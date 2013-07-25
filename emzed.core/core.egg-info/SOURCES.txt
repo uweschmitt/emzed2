@@ -1,0 +1,8 @@
+setup.py
+core/__init__.py
+core/core.py
+core.egg-info/PKG-INFO
+core.egg-info/SOURCES.txt
+core.egg-info/dependency_links.txt
+core.egg-info/namespace_packages.txt
+core.egg-info/top_level.txt
