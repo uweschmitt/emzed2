@@ -1,8 +1,0 @@
-setup.py
-emzed/__init__.py
-emzed/workbench.py
-emzed.egg-info/PKG-INFO
-emzed.egg-info/SOURCES.txt
-emzed.egg-info/dependency_links.txt
-emzed.egg-info/namespace_packages.txt
-emzed.egg-info/top_level.txt

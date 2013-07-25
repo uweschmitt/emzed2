@@ -1,8 +1,0 @@
-setup.py
-emezd.core.egg-info/PKG-INFO
-emezd.core.egg-info/SOURCES.txt
-emezd.core.egg-info/dependency_links.txt
-emezd.core.egg-info/namespace_packages.txt
-emezd.core.egg-info/top_level.txt
-emzed/__init__.py
-emzed/core.py
