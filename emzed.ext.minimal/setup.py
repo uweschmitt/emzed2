@@ -12,13 +12,13 @@ distutils.config.PyPIRCCommand._read_pypirc = patched
 
 from setuptools import setup
 
-setup(name="minimal_extension",
-      packages=[ "minimal_extension"],
+setup(name="emzed_extension_minimal",
+      packages=[ "minimal"],
       version="0.0.5" ,
       entry_points = {
           'emzed_plugin' :
           [
-              "package = minimal_extension",
+              "package = minimal",
               ]
           }
      )

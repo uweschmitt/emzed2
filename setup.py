@@ -8,14 +8,10 @@ def patched(self):
                 server="local",
                 )
 distutils.config.PyPIRCCommand._read_pypirc = patched
+
 from setuptools import setup
 
-setup(name="emzed.workbench",
+setup(name="emzed",
       packages=[ "emzed"],
-      namespace_packages=["emzed"],
-      entry_points= {
-          'console_scripts': [
-              "emzed.worbench = emzed.workbench:main"
-              ]
-          }
+      version="2.0.1" ,
      )

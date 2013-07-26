@@ -18,9 +18,8 @@ virtualenv $TMPDIR
 . $TMPDIR/bin/activate
 echo 
 echo
-pip install -i http://localhost:3142/root/dev/+simple emzed.workbench
-emzed.worbench
-pip install -i http://localhost:3142/root/dev/+simple minimal_extension
-python -i -c "import emzed.ext; print dir(emzed.ext)"
+pip install -i http://localhost:3142/root/dev/+simple emzed
+pip install -i http://localhost:3142/root/dev/+simple emzed_extension_minimal
+python -c "import emzed.ext; print emzed.ext.minimal.hello()"
 
 
