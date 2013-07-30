@@ -11,7 +11,10 @@ distutils.config.PyPIRCCommand._read_pypirc = patched
 
 from setuptools import setup
 
+import emzed
+version_str = ".".join(map(str, emzed.__version__))
+
 setup(name="emzed",
       packages=[ "emzed"],
-      version="2.0.1" ,
+      version=version_str,
      )
