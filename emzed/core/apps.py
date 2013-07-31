@@ -4,12 +4,35 @@ EMZED_APP_MARKER_FILE = ".emzed_app_marker"
 
 import os
 import requests
-import config
 import subprocess
 import pkg_resources
+import urllib
+
+import helpers
+import config
+import licenses
 
 
-SETUP_PY_TEMPALTE = """
+SETUP_PY_TEMPLATE = """
+
+# YOU CAN EDIT THESE FIELDS ##################################################
+
+VERSION = %(version)r
+AUTHOR = %(author)r
+AUTHOR_EMAIL = %(author_email)r
+AUTHOR_URL = %(author_url)r
+
+DESCRIPTION = "please describe here %(app_name)s in one line"
+LONG_DESCRIPTION = \"\"\"
+
+describe %(app_name)s here in more than one line
+
+\"\"\"
+
+LICENSE = "http://opensource.org/licenses/GPL-3.0"
+
+# DO NOT TOUCH THE CODE BELOW UNLESS YOU KNOW WHAT YOU DO !!!! ###############
+
 import distutils.config
 
 def patched(self):
@@ -25,10 +48,13 @@ from setuptools import setup
 
 setup(name=%(app_name)r,
       packages=[ %(app_name)r],
-      version=%(version)r,
-      author=%(author)r,
-      author_email=%(author_email)r,
-      url=%(author_url)r,
+      version=".".join(map(str, VERSION)),
+      author=AUTHOR,
+      author_email=AUTHOR_EMAIL,
+      url=AUTHOR_URL,
+      description=DESCRIPTION,
+      long_description=LONG_DESCRIPTION,
+      license=LICENSE,
       entry_points = {
           'emzed_plugin' :
           [
@@ -69,18 +95,18 @@ def _test_if_folder_already_exists(folder):
         raise Exception("%s already exists" % folder)
 
 
-def _create_app_folder(app_folder, app_name):
+def _create_app_folder(app_folder, app_name, version):
     path_to_existing_app = _test_if_folder_is_inside_existing_app(app_folder)
     if path_to_existing_app:
         raise Exception("found existing app in %s" % path_to_existing_app)
 
     os.makedirs(app_folder)
     open(os.path.join(app_folder, EMZED_APP_MARKER_FILE), "w").close()
-    _create_package_folder(app_folder, app_name)
+    _create_package_folder(app_folder, app_name, version)
     _create_test_folder(app_folder, app_name)
 
 
-def _create_package_folder(app_folder, app_name):
+def _create_package_folder(app_folder, app_name, version):
     package_folder = os.path.join(app_folder, app_name)
     os.makedirs(package_folder)
     with open(os.path.join(package_folder, "__init__.py"), "w") as fp:
@@ -90,20 +116,25 @@ from hello import hello
 
     with open(os.path.join(package_folder, "hello.py"), "w") as fp:
         fp.write("""
-def hello(): 
+def hello():
     return "this is %s"
     """ % app_name)
 
     with open(os.path.join(app_folder, "setup.py"), "w") as fp:
         user = config.get_value("app_store", "user")
         password = config.get_value("app_store", "password")
-        repository = config.get_url("app_store", "app_store_url") + "/"
+        repository = config.get_url("app_store", "app_store_url")
         author = config.get_value("app_store", "author")
         author_email = config.get_value("app_store", "author_email")
         author_url = config.get_url("app_store", "author_url")
-        version = "0.0.1"
-        fp.write(SETUP_PY_TEMPALTE % locals())
+        #version = "0.0.1"
+        fp.write(SETUP_PY_TEMPLATE % locals())
 
+    with open(os.path.join(app_folder, "LICENSE"), "w") as fp:
+        fp.write(licenses.GPL_3)
+
+    with open(os.path.join(app_folder, "README"), "w") as fp:
+        fp.write("please describe your app here\n")
 
 def _create_test_folder(app_folder, app_name):
     tests_folder = os.path.join(app_folder, "tests")
@@ -119,16 +150,16 @@ def test_hello():
     """ % locals())
 
 
-def create_app_scaffold(folder, app_name):
+def create_app_scaffold(folder, app_name, version=(0,0,1)):
     _check_name(app_name)
     folder = _normalize(folder)
     _test_if_folder_already_exists(folder)
-    _create_app_folder(folder, app_name)
+    _create_app_folder(folder, app_name, version)
 
 def delete_from_app_store(app_name):
     user = config.get_value("app_store", "user")
     password = config.get_value("app_store", "password")
-    app_url = "%s/%s" % (config.get_url("app_store", "app_store_url"), app_name)
+    app_url = urllib.basejoin(config.get_url("app_store", "app_store_url"), app_name)
     response = requests.delete(app_url, auth=(user, password))
     response.raise_for_status()
 
@@ -138,9 +169,15 @@ def upload_to_app_store(app_folder):
     if rc:
         raise Exception("upload failed")
 
-def install_from_app_store(app_name):
+def install_from_app_store(app_name, version=None):
+    if version:
+        assert isinstance(version, tuple)
+        assert len(version) == 3
     index_url = config.get_url("app_store", "app_store_index_url")
-    exit_code = subprocess.call("pip install -i %s %s" % (index_url, app_name),
+    app_query = app_name
+    if version:
+        app_query += "==%s.%s.%s" % version
+    exit_code = subprocess.call("pip install -i %s %s" % (index_url, app_query),
         shell=True)
     assert exit_code == 0
 
@@ -157,4 +194,21 @@ def installed_apps():
                 for ep in pkg_resources.iter_entry_points("emzed_plugin",
                                                            name="package")]
 
+def list_apps_from_appstore():
+    index_url = config.get_url("app_store", "app_store_url")
+    response = helpers.get_json(index_url)
+    response.raise_for_status()
+    apps = [ name.encode("latin-1") for name in response.json()["result"]]
+    result = []
+    for app in apps:
+        response = helpers.get_json(index_url + app)
+        response.raise_for_status()
+        version_strings = response.json()["result"].keys()
+        versions = [map(int, version_str.split(".")) for version_str in
+                                                               version_strings]
+        result.append((app, map(tuple, versions)))
+    return result
 
+def list_newest_apps_from_appstore():
+    apps = list_apps_from_appstore()
+    return [ (app, max(versions)) for (app, versions) in apps]

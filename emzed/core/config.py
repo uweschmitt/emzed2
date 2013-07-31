@@ -1,6 +1,6 @@
 config_app_store = {
         "app_store_url" : "http://127.0.0.1:3142/root/dev/",
-        "app_store_index_url" : "http://127.0.0.1:3142/root/dev/+simple",
+        "app_store_index_url" : "http://127.0.0.1:3142/root/dev/+simple/",
         "user" : "uschmitt",
         "password" : "pillepalle",
         "author": "Uwe Schmitt",
@@ -21,6 +21,7 @@ test_config = {
 config = test_config.copy()
 
 import os
+import urllib
 
 def get_value(group, id_):
     is_test = os.environ.get("IS_TEST")
@@ -30,4 +31,5 @@ def get_value(group, id_):
         return config[group][id_]
 
 def get_url(group, id_):
-    return config[group][id_].rstrip("/")
+    # URLS allways end with "/" !!!
+    return config[group][id_].rstrip("/")+ "/"

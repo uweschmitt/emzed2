@@ -24,6 +24,8 @@ class AppTests(unittest.TestCase):
         self.assertIn("minimal_app", files)
         self.assertIn("tests", files)
         self.assertIn("setup.py", files)
+        self.assertIn("README", files)
+        self.assertIn("LICENSE", files)
 
         files = os.listdir(os.path.join(tmpdir, "minimal_app"))
         self.assertIn("hello.py", files)
@@ -60,8 +62,14 @@ class AppTests(unittest.TestCase):
         except:
             pass
 
+        apps = emzed.core.apps.list_apps_from_appstore()
+        self.assertEquals(apps,[ ("test_minimal_app", [(0,0,1)]) ])
+
+        apps = emzed.core.apps.list_newest_apps_from_appstore()
+        self.assertEquals(apps,[ ("test_minimal_app", (0,0,1)) ])
+
         # install app
-        emzed.core.apps.install_from_app_store("test_minimal_app")
+        emzed.core.apps.install_from_app_store("test_minimal_app", (0, 0, 1))
 
         # use app
         import emzed.ext
@@ -82,6 +90,11 @@ class AppTests(unittest.TestCase):
 
         # remove test app from app store
         emzed.core.apps.delete_from_app_store("test_minimal_app")
+
+        apps = emzed.core.apps.list_apps_from_appstore()
+        self.assertEqual(apps, [])
+        apps = emzed.core.apps.list_newest_apps_from_appstore()
+        self.assertEqual(apps, [])
 
 
     def test_delete_nonexisting(self):
