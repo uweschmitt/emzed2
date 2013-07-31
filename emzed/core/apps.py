@@ -6,6 +6,7 @@ import os
 import requests
 import config
 import subprocess
+import pkg_resources
 
 
 SETUP_PY_TEMPALTE = """
@@ -149,4 +150,11 @@ def uninstall_app(app_name):
     assert exit_code == 0
     import emzed.ext
     delattr(emzed.ext, app_name)
+
+def installed_apps():
+    reload(pkg_resources)
+    return [ep.module_name\
+                for ep in pkg_resources.iter_entry_points("emzed_plugin",
+                                                           name="package")]
+
 

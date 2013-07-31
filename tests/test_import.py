@@ -1,5 +1,8 @@
 # encoding: latin-1
+import unittest
 
-def test():
-    import emzed
-    assert emzed.__version__ >= (2, 0, 0)
+class ImportTest(unittest.TestCase):
+
+    def test_version(self):
+        import emzed
+        self.assertGreaterEqual(emzed.__version__, (2, 0, 0))

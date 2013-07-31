@@ -65,11 +65,16 @@ class AppTests(unittest.TestCase):
 
         # use app
         import emzed.ext
-        assert isinstance(emzed.ext.test_minimal_app.hello(), basestring)
+        self.assertIsInstance(emzed.ext.test_minimal_app.hello(), basestring)
+
+        # check if listed
+        self.assertEqual(emzed.core.apps.installed_apps(), ["test_minimal_app"])
 
         # remove app
         emzed.core.apps.uninstall_app("test_minimal_app")
 
+        # check if not listed any more
+        self.assertEqual(emzed.core.apps.installed_apps(), [])
         # test if app is removed
         with self.assertRaises(Exception) as ctx:
             reload(emzed.ext)
