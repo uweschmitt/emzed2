@@ -1,6 +1,6 @@
 config_app_store = {
-        "app_store_url" : "http://127.0.0.1:3142/root/dev/",
-        "app_store_index_url" : "http://127.0.0.1:3142/root/dev/+simple/",
+        "app_store_url" : "http://127.0.0.1:3141/root/dev/",
+        "app_store_index_url" : "http://127.0.0.1:3141/root/dev/+simple/",
         "user" : "uschmitt",
         "password" : "pillepalle",
         "author": "Uwe Schmitt",
