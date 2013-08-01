@@ -1,9 +1,7 @@
-import pdb
 # encoding:latin-1
 
 import config
 import requests
-import urllib
 
 def get_latest_emzed_version_from_pypi():
     url = config.get_url("testpypi", "url")

@@ -1,4 +1,3 @@
-import pdb
 #encoding: latin-1
 
 import unittest
@@ -14,89 +13,94 @@ class AppTests(unittest.TestCase):
     def test_scaffold(self):
         import tempfile
         import os.path
-        import emzed.core.apps
-        tmpdir = os.path.join(tempfile.mkdtemp(), "app_folder")
+        import emzed.core.packages
+        tmpdir = os.path.join(tempfile.mkdtemp(), "pkg_folder")
 
-        emzed.core.apps.create_app_scaffold(tmpdir, "minimal_app")
+        emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
 
         files = os.listdir(tmpdir)
 
-        self.assertIn("minimal_app", files)
+        self.assertIn("minimal_package", files)
         self.assertIn("tests", files)
         self.assertIn("setup.py", files)
         self.assertIn("README", files)
         self.assertIn("LICENSE", files)
 
-        files = os.listdir(os.path.join(tmpdir, "minimal_app"))
+        files = os.listdir(os.path.join(tmpdir, "minimal_package"))
+        self.assertIn("main.py", files)
         self.assertIn("hello.py", files)
         self.assertIn("__init__.py", files)
 
         files = os.listdir(os.path.join(tmpdir, "tests"))
-        self.assertIn("test_hello.py", files)
+        self.assertIn("test_main.py", files)
         self.assertIn("__init__.py", files)
 
         # try to use existing folder:
-        with self.assertRaises(Exception) as ctx:
-            emzed.core.apps.create_app_scaffold(tmpdir, "minimal_app")
+        with self.assertRaises(Exception):
+            emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
 
-        # try to start app inside exising app folder:
-        with self.assertRaises(Exception) as ctx:
-            app_dir = os.path.join(tmpdir, "tests")
-            emzed.core.apps.create_app_scaffold(app_dir, "minimal_app2")
+        # try to create package inside exising package folder:
+        with self.assertRaises(Exception):
+            pkg_dir = os.path.join(tmpdir, "tests")
+            emzed.core.packages.create_package_scaffold(pkg_dir, "minimal_package2")
 
-    def test_minimal_app(self):
+    def test_minimal_package(self):
         import tempfile
         import os.path
-        import emzed.core.apps
-        tmpdir = os.path.join(tempfile.mkdtemp(), "app_folder")
+        import emzed.core.packages
+        tmpdir = os.path.join(tempfile.mkdtemp(), "pkg_folder")
 
-        # create minimal app files
-        emzed.core.apps.create_app_scaffold(tmpdir, "test_minimal_app")
+        # create minimal set package files
+        emzed.core.packages.create_package_scaffold(tmpdir, "test_minimal_package")
 
-        # upload minimal app file
-        emzed.core.apps.upload_to_app_store(tmpdir)
+        # upload minimal package file
+        emzed.core.packages.upload_to_emzed_store(tmpdir)
 
-        # remove eventually installed test app
+        # remove eventually installed test packages
         try:
-            emzed.core.apps.uninstall_app("test_minimal_app")
+            emzed.core.packages.uninstall_emzed_package("test_minimal_package")
         except:
             pass
 
-        apps = emzed.core.apps.list_apps_from_appstore()
-        self.assertEquals(apps,[ ("test_minimal_app", [(0,0,1)]) ])
+        pkgs = emzed.core.packages.list_packages_from_emzed_store()
+        self.assertEquals(pkgs,[ ("test_minimal_package", [(0,0,1)]) ])
 
-        apps = emzed.core.apps.list_newest_apps_from_appstore()
-        self.assertEquals(apps,[ ("test_minimal_app", (0,0,1)) ])
+        pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
+        self.assertEquals(pkgs,[ ("test_minimal_package", (0,0,1)) ])
 
-        # install app
-        emzed.core.apps.install_from_app_store("test_minimal_app", (0, 0, 1))
+        # install package
+        emzed.core.packages.install_from_emzed_store("test_minimal_package", (0, 0, 1))
 
-        # use app
+        # use package as extension
         import emzed.ext
-        self.assertIsInstance(emzed.ext.test_minimal_app.hello(), basestring)
+        self.assertIsInstance(emzed.ext.test_minimal_package.hello(), basestring)
+
+        import emzed.app
+        self.assertEquals(emzed.app.test_minimal_package(), 42)
 
         # check if listed
-        self.assertEqual(emzed.core.apps.installed_apps(), ["test_minimal_app"])
+        self.assertEqual(emzed.core.packages.installed_emzed_packages(),
+                                                          [("test_minimal_package", True, False)])
 
-        # remove app
-        emzed.core.apps.uninstall_app("test_minimal_app")
+        # remove package
+        emzed.core.packages.uninstall_emzed_package("test_minimal_package")
 
         # check if not listed any more
-        self.assertEqual(emzed.core.apps.installed_apps(), [])
-        # test if app is removed
-        with self.assertRaises(Exception) as ctx:
+        self.assertEqual(emzed.core.packages.installed_emzed_packages(), [])
+        # test if package is removed
+        with self.assertRaises(Exception):
             reload(emzed.ext)
-            emzed.ext.test_minimal_app
+            emzed.ext.test_minimal_package
 
-        # remove test app from app store
-        emzed.core.apps.delete_from_app_store("test_minimal_app")
+        # remove test package from emzed package store
+        emzed.core.packages.delete_from_emzed_store("test_minimal_package")
 
-        apps = emzed.core.apps.list_apps_from_appstore()
-        self.assertEqual(apps, [])
-        apps = emzed.core.apps.list_newest_apps_from_appstore()
-        self.assertEqual(apps, [])
+        packages = emzed.core.packages.list_packages_from_emzed_store()
+        self.assertEqual(packages, [])
+        packages = emzed.core.packages.list_newest_packages_from_emzed_store()
+        self.assertEqual(packages, [])
 
 
     def test_delete_nonexisting(self):
-        with self.assertRaises(Exception) as ctx:
-            emzed.core.apps.delete_from_appstore("abc123")
+        with self.assertRaises(Exception):
+            emzed.core.packages.delete_from_emzed_store("abc123")
