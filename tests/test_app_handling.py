@@ -1,3 +1,4 @@
+import pdb
 #encoding: latin-1
 
 import unittest
@@ -55,6 +56,10 @@ class AppTests(unittest.TestCase):
 
         # upload minimal package file
         emzed.core.packages.upload_to_emzed_store(tmpdir)
+
+        # duplicate upload should fail
+        with self.assertRaises(Exception):
+            emzed.core.packages.upload_to_emzed_store(tmpdir)
 
         # remove eventually installed test packages
         try:

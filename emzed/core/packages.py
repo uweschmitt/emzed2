@@ -1,8 +1,10 @@
+import pdb
 # encoding:latin-1
 
 EMZED_PKG_MARKER_FILE = ".emzed_pkg_marker"
 
 import os
+import sys
 import requests
 import subprocess
 import pkg_resources
@@ -33,6 +35,8 @@ AUTHOR = %(author)r
 AUTHOR_EMAIL = %(author_email)r
 AUTHOR_URL = %(author_url)r
 
+PKG_NAME = %(pkg_name)r
+
 DESCRIPTION = "please describe here %(pkg_name)s in one line"
 LONG_DESCRIPTION = \"\"\"
 
@@ -52,38 +56,41 @@ if APP_MAIN is not None:
     except:
         raise Exception("invalid specification %%r of APP_MAIN" %% APP_MAIN)
 
-import distutils.config
-
-def patched(self):
-    return dict(realm="pypi",
-                username=%(user)r,
-                password=%(password)r,
-                repository=%(repository)r,
-                server="local",
-                )
-distutils.config.PyPIRCCommand._read_pypirc = patched
-
-from setuptools import setup
 
 entry_points = dict()
-entry_points['emzed_package'] = [ "package = %(pkg_name)s", ]
+entry_points['emzed_package'] = [ "package = " + PKG_NAME, ]
 if IS_EXTENSION:
-    entry_points['emzed_package'].append("extension = %(pkg_name)s")
+    entry_points['emzed_package'].append("extension = " + PKG_NAME)
 if APP_MAIN is not None:
     entry_points['emzed_package'].append("main = %%s" %% APP_MAIN)
 
 
-setup(name=%(pkg_name)r,
-      packages=[ %(pkg_name)r],
-      version=".".join(map(str, VERSION)),
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      url=AUTHOR_URL,
-      description=DESCRIPTION,
-      long_description=LONG_DESCRIPTION,
-      license=LICENSE,
-      entry_points = entry_points
-     )
+if __name__ == "__main__":   # allows import setup.py for version checking
+
+    import distutils.config
+
+    def patched(self):
+        return dict(realm="pypi",
+                    username=%(user)r,
+                    password=%(password)r,
+                    repository=%(repository)r,
+                    server="local",
+                    )
+    distutils.config.PyPIRCCommand._read_pypirc = patched
+
+
+    from setuptools import setup
+    setup(name=PKG_NAME,
+        packages=[ PKG_NAME ],
+        version=".".join(map(str, VERSION)),
+        author=AUTHOR,
+        author_email=AUTHOR_EMAIL,
+        url=AUTHOR_URL,
+        description=DESCRIPTION,
+        long_description=LONG_DESCRIPTION,
+        license=LICENSE,
+        entry_points = entry_points
+        )
    """
 
 def _normalize(folder):
@@ -191,6 +198,17 @@ def delete_from_emzed_store(pkg_name):
 
 def upload_to_emzed_store(pkg_folder):
     os.chdir(pkg_folder)
+
+    # make sure we load the right setup.py
+    sys.path.insert(0, os.path.abspath(pkg_folder))
+    import setup
+    sys.path.pop(0)
+
+    for p, versions in list_packages_from_emzed_store():
+        if p == setup.PKG_NAME and setup.VERSION  in versions:
+            raise Exception("package %s with version %s already exists" % (setup.PKG_NAME,
+                                                                           setup.VERSION))
+
     rc = subprocess.call("python setup.py sdist upload", shell=True)
     if rc:
         raise Exception("upload failed")
