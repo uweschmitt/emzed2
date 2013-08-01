@@ -1,3 +1,4 @@
+import pdb
 #encoding: latin-1
 
 import guidata.dataset.datatypes as dt
@@ -67,7 +68,6 @@ def set_(key, value):
 def get_url(key):
     return get(key).rstrip("/") + "/"
 
-
 def store(fp):
     cf = guidata.userconfig.UserConfig(dict())
     config.write_config(cf, "emzed", "")
@@ -77,5 +77,3 @@ def load(fp):
     cf = guidata.userconfig.UserConfig(dict())
     cf.read(fp)
     config.read_config(cf, "emzed", "")
-
-

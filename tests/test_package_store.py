@@ -2,19 +2,13 @@
 
 import unittest
 
-class AppTests(unittest.TestCase):
+class PackageStoreTests(unittest.TestCase):
 
-    def test_emzed_version_check(self):
-
-        import emzed.core.updaters as updaters
-        latest_version = updaters.get_latest_emzed_version_from_pypi()
-        self.assertEquals(latest_version, (3, 1375178237, 93))
-
-    def test_scaffold(self):
+    def test_project_scaffold(self):
         import tempfile
         import os.path
         import emzed.core.packages
-        tmpdir = os.path.join(tempfile.mkdtemp(), "pkg_folder")
+        tmpdir = os.path.join(tempfile.mkdtemp(), "project")
 
         emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
 
@@ -48,7 +42,7 @@ class AppTests(unittest.TestCase):
         import tempfile
         import os.path
         import emzed.core.packages
-        tmpdir = os.path.join(tempfile.mkdtemp(), "pkg_folder")
+        tmpdir = os.path.join(tempfile.mkdtemp(), "project")
 
         # create minimal set package files
         emzed.core.packages.create_package_scaffold(tmpdir, "test_minimal_package")
