@@ -1,77 +1,81 @@
 #encoding: latin-1
 
-#class ConfiGroup(object):
-#
-    #def __init__(self);
-        #self.dd = dict()
-#
-    #def add_
-    #
+import guidata.dataset.datatypes as dt
+import guidata.dataset.dataitems as di
+import guidata.userconfig
 
-config_pkg_store = {
-        "url" : "http://127.0.0.1:3141/root/dev/",
-        "index_url" : "http://127.0.0.1:3141/root/dev/+simple/",
-        "user" : "uschmitt",
-        "password" : "pillepalle",
-        "author": "Uwe Schmitt",
-        "author_email": "uschmitt@uschmitt.info",
-        "author_url": "",
-        }
+is_expert = dt.ValueProp(False)
 
-config_testpypi  = {
-        "url" : "http://testpypi.python.org/pypi",
-        }
+class UserConfig(dt.DataSet):
 
+    g1 = dt.BeginGroup("User Settings")
 
-test_config = {
-        "emzed_store": config_pkg_store,
-        "testpypi": config_testpypi,
-        }
+    user_name = di.StringItem("Full Name", notempty=True)
+    user_email = di.StringItem("Email Adress", notempty=True)
+    user_url = di.StringItem("Website URL")
 
-config = test_config.copy()
+    _g1 = dt.EndGroup("User Settings")
+
+    g2 = dt.BeginGroup("Webservice Settings")
+
+    metlin_token  = di.StringItem("Metlin Token")
+
+    _g2 = dt.EndGroup("Webservice Settings")
+
+    g3 = dt.BeginGroup("Emzed Store User Account")
+
+    emzed_store_user = di.StringItem("User Name")
+    emzed_store_password = di.StringItem("User Password")
+
+    _g3 = dt.EndGroup("Emzed Store Settings")
+
+    g4 = dt.BeginGroup("Emzed Store Expert Settings")
+    enable_expert_settings = di.BoolItem("Enable Settings").set_prop("display",
+            store=is_expert)
+    emzed_store_url = di.StringItem("Emzed Store URL").set_prop("display", active=is_expert)
+    emzed_store_index_url = di.StringItem("Emzed Store Index URL").set_prop("display", active=is_expert)
+    pypi_url = di.StringItem("PyPi URL").set_prop("display", active=is_expert)
+
+    _g4 = dt.EndGroup("Expert Settings")
+
+test_config = UserConfig()
+
+test_config.user_name = "Uwe Schmitt"
+test_config.user_email = "uschmitt@uschmitt.info"
+test_config.user_url = ""
+
+test_config.metlin_token = ""
+
+test_config.emzed_store_user = "uschmitt"
+test_config.emzed_store_password = "pillepalle"
+
+test_config.emzed_store_url = "http://127.0.0.1:3141/root/dev"
+test_config.emzed_store_index_url = "http://127.0.0.1:3141/root/dev/+simple/"
+test_config.pypi_url = "http://testpypi.python.org/pypi"
 
 import os
+is_test = os.environ.get("IS_TEST")
+if is_test:
+    config = test_config
 
-def get_value(group, id_):
-    is_test = os.environ.get("IS_TEST")
-    if is_test:
-        return test_config[group][id_]
-    else:
-        return config[group][id_]
+def get(key):
+    return getattr(config, key)
 
-def get_url(group, id_):
-    # URLS allways end with "/" !!!
-    return config[group][id_].rstrip("/")+ "/"
+def set_(key, value):
+    return setattr(config, key, value)
 
-#
-#
-# hier dann zwei instanzen !
-# eine fixed zum testen
-# eine andere für den betrieb
+def get_url(key):
+    return get(key).rstrip("/") + "/"
 
 
-#class Config(object):
+def store(fp):
+    cf = guidata.userconfig.UserConfig(dict())
+    config.write_config(cf, "emzed", "")
+    cf.write(fp)
 
-#    @classmethod
-#    def fromDirectory(clz, path):
-#        # lade config.json falls vorhanden
-#        # lade current_default.json falls vorhanden
-#        # lada old_default.json fallls vorhanden
-
-class Config(object):
-
-    pass
-    # holds groups, keys, description, type, is_expert, editable
-
-    @classmethod
-    def fromFile(clz, path):
-        pass
-
-    @classmethod
-    def fromDict(clz, dd):
-        pass
-
-    def storeFile(self, path):
-        pass
+def load(fp):
+    cf = guidata.userconfig.UserConfig(dict())
+    cf.read(fp)
+    config.read_config(cf, "emzed", "")
 
 

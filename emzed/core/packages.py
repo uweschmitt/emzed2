@@ -155,12 +155,12 @@ def hello():
     """ % pkg_name)
 
     with open(os.path.join(pkg_folder, "setup.py"), "w") as fp:
-        user = config.get_value("emzed_store", "user")
-        password = config.get_value("emzed_store", "password")
-        repository = config.get_url("emzed_store", "url")
-        author = config.get_value("emzed_store", "author")
-        author_email = config.get_value("emzed_store", "author_email")
-        author_url = config.get_url("emzed_store", "author_url")
+        user = config.get("emzed_store_user")
+        password = config.get("emzed_store_password")
+        repository = config.get_url("emzed_store_url")
+        author = config.get("user_name")
+        author_email = config.get("user_email")
+        author_url = config.get("user_url")
         fp.write(SETUP_PY_TEMPLATE % locals())
 
     with open(os.path.join(pkg_folder, "LICENSE"), "w") as fp:
@@ -190,9 +190,9 @@ def create_package_scaffold(folder, pkg_name, version=(0,0,1)):
     _create_pkg_folder(folder, pkg_name, version)
 
 def delete_from_emzed_store(pkg_name):
-    user = config.get_value("emzed_store", "user")
-    password = config.get_value("emzed_store", "password")
-    url = urllib.basejoin(config.get_url("emzed_store", "url"), pkg_name)
+    user = config.get("emzed_store_user")
+    password = config.get("emzed_store_password")
+    url = config.get_url("emzed_store_url") + pkg_name
     response = requests.delete(url, auth=(user, password))
     response.raise_for_status()
 
@@ -217,7 +217,7 @@ def install_from_emzed_store(pkg_name, version=None):
     if version:
         assert isinstance(version, tuple)
         assert len(version) == 3
-    index_url = config.get_url("emzed_store", "index_url")
+    index_url = config.get_url("emzed_store_index_url")
     pkg_query = pkg_name
     if version:
         pkg_query += "==%s.%s.%s" % version
@@ -246,13 +246,13 @@ def installed_emzed_packages():
     return [ (p, p in extensions, p in apps) for p in packages]
 
 def list_packages_from_emzed_store():
-    index_url = config.get_url("emzed_store", "url")
-    response = helpers.get_json(index_url)
+    url = config.get_url("emzed_store_url")
+    response = helpers.get_json(url)
     response.raise_for_status()
     packages = [ name.encode("latin-1") for name in response.json()["result"]]
     result = []
     for package in packages:
-        response = helpers.get_json(index_url + package)
+        response = helpers.get_json(url + package)
         response.raise_for_status()
         version_strings = response.json()["result"].keys()
         versions = [map(int, version_str.split(".")) for version_str in version_strings]
