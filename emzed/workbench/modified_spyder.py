@@ -1,18 +1,24 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2009-2011 Pierre Raybaut
-# Licensed under the terms of the MIT License
-# (see spyderlib/__init__.py for details)
+# Copyright © 2012-2013 Uwe Schmitt
+# Licensed under the terms of the GPL 3 License
+# (see emzed/__init__.py for details)
 
 """
-Spyder, the Scientific PYthon Development EnviRonment
-=====================================================
 
-Developped and maintained by Pierre Raybaut
+This is emzed.workbench which relies an spyder.
 
-Copyright © 2009-2012 Pierre Raybaut
-Licensed under the terms of the MIT License
-(see spyderlib/__init__.py for details)
+original copyright:
+
+
+    Spyder, the Scientific PYthon Development EnviRonment
+    =====================================================
+
+    Developped and maintained by Pierre Raybaut
+
+    Copyright © 2009-2012 Pierre Raybaut
+    Licensed under the terms of the MIT License
+    (see spyderlib/__init__.py for details)
 """
 
 # Stdlib imports
