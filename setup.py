@@ -17,4 +17,10 @@ version_str = ".".join(map(str, emzed.__version__))
 setup(name="emzed",
       packages=[ "emzed"],
       version=version_str,
+      entry_points = {
+          "console_scripts":
+          [
+              "emzed.workbench = emzed.workbench.modified_spyder:main",
+          ]
+          }
      )
