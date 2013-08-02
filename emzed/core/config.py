@@ -50,8 +50,8 @@ test_config.metlin_token = ""
 test_config.emzed_store_user = "uschmitt"
 test_config.emzed_store_password = "pillepalle"
 
-test_config.emzed_store_url = "http://127.0.0.1:3141/root/dev"
-test_config.emzed_store_index_url = "http://127.0.0.1:3141/root/dev/+simple/"
+test_config.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
+test_config.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
 test_config.pypi_url = "http://testpypi.python.org/pypi"
 
 import os
