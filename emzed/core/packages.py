@@ -1,4 +1,3 @@
-import pdb
 # encoding:latin-1
 
 EMZED_PKG_MARKER_FILE = ".emzed_pkg_marker"
@@ -8,10 +7,9 @@ import sys
 import requests
 import subprocess
 import pkg_resources
-import urllib
 
 import helpers
-import config
+from config import global_config
 import licenses
 
 
@@ -155,12 +153,12 @@ def hello():
     """ % pkg_name)
 
     with open(os.path.join(pkg_folder, "setup.py"), "w") as fp:
-        user = config.get("emzed_store_user")
-        password = config.get("emzed_store_password")
-        repository = config.get_url("emzed_store_url")
-        author = config.get("user_name")
-        author_email = config.get("user_email")
-        author_url = config.get("user_url")
+        user = global_config.get("emzed_store_user")
+        password = global_config.get("emzed_store_password")
+        repository = global_config.get_url("emzed_store_url")
+        author = global_config.get("user_name")
+        author_email = global_config.get("user_email")
+        author_url = global_config.get("user_url")
         fp.write(SETUP_PY_TEMPLATE % locals())
 
     with open(os.path.join(pkg_folder, "LICENSE"), "w") as fp:
@@ -190,9 +188,9 @@ def create_package_scaffold(folder, pkg_name, version=(0,0,1)):
     _create_pkg_folder(folder, pkg_name, version)
 
 def delete_from_emzed_store(pkg_name):
-    user = config.get("emzed_store_user")
-    password = config.get("emzed_store_password")
-    url = config.get_url("emzed_store_url") + pkg_name
+    user = global_config.get("emzed_store_user")
+    password = global_config.get("emzed_store_password")
+    url = global_config.get_url("emzed_store_url") + pkg_name
     response = requests.delete(url, auth=(user, password))
     response.raise_for_status()
 
@@ -217,7 +215,7 @@ def install_from_emzed_store(pkg_name, version=None):
     if version:
         assert isinstance(version, tuple)
         assert len(version) == 3
-    index_url = config.get_url("emzed_store_index_url")
+    index_url = global_config.get_url("emzed_store_index_url")
     pkg_query = pkg_name
     if version:
         pkg_query += "==%s.%s.%s" % version
@@ -246,7 +244,7 @@ def installed_emzed_packages():
     return [ (p, p in extensions, p in apps) for p in packages]
 
 def list_packages_from_emzed_store():
-    url = config.get_url("emzed_store_url")
+    url = global_config.get_url("emzed_store_url")
     response = helpers.get_json(url)
     response.raise_for_status()
     packages = [ name.encode("latin-1") for name in response.json()["result"]]

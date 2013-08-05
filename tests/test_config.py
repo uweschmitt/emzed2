@@ -1,32 +1,23 @@
 #encoding: latin-1
 
 import unittest
+import emzed.core.config
+import tempfile, os.path
 
-import emzed.core.config as config
 
 class ConfigTests(unittest.TestCase):
 
-    def test_config(self):
+    def setUp(self):
+        self.path = os.path.join(tempfile.mkdtemp(), "test_config.ini")
 
-        return
+    def test_global_config(self):
 
-        self.assertEqual(config.get("user_name"), "Uwe Schmitt")
+        config = emzed.core.config.global_config
+
         config.set_("user_name", "Hans Dampf")
         self.assertEqual(config.get("user_name"), "Hans Dampf")
-
-        import cStringIO
-        fp = cStringIO.StringIO()
-        config.store(fp)
-        fp.seek(0)
+        config.store(self.path)
 
         config.set_("user_name", "Udo Juergens")
-        config.load(fp)
-
-        config.set_("user_name", "Hans Dampf")
-
-
-
-
-
-
-
+        assert config.load(self.path)
+        self.assertEqual(config.get("user_name"), "Hans Dampf")

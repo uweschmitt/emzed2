@@ -4,6 +4,22 @@ import unittest
 
 class PackageStoreTests(unittest.TestCase):
 
+    def setUp(self):
+        from emzed.core.config import global_config
+
+        global_config.parameters.user_name = "Uwe Schmitt"
+        global_config.parameters.user_email = "uschmitt@uschmitt.info"
+        global_config.parameters.user_url = ""
+
+        global_config.parameters.metlin_token = ""
+
+        global_config.parameters.emzed_store_user = "uschmitt"
+        global_config.parameters.emzed_store_password = "pillepalle"
+
+        # for testing implicit unicode conversions:
+        global_config.store()
+        global_config.load()
+
     def test_project_scaffold(self):
         import tempfile
         import os.path
@@ -100,5 +116,6 @@ class PackageStoreTests(unittest.TestCase):
 
 
     def test_delete_nonexisting(self):
+        import emzed.core.packages
         with self.assertRaises(Exception):
             emzed.core.packages.delete_from_emzed_store("abc123")

@@ -1,79 +1,105 @@
-import pdb
 #encoding: latin-1
 
-import guidata.dataset.datatypes as dt
-import guidata.dataset.dataitems as di
-import guidata.userconfig
+# keep namespace clean:
 
-is_expert = dt.ValueProp(False)
+import guidata.dataset.datatypes as _dt
+import guidata.dataset.dataitems as _di
 
-class UserConfig(dt.DataSet):
+_is_expert = _dt.ValueProp(False)
 
-    g1 = dt.BeginGroup("User Settings")
+class _UserConfig(object):
 
-    user_name = di.StringItem("Full Name", notempty=True)
-    user_email = di.StringItem("Email Adress", notempty=True)
-    user_url = di.StringItem("Website URL")
 
-    _g1 = dt.EndGroup("User Settings")
+    class Parameters(_dt.DataSet):
 
-    g2 = dt.BeginGroup("Webservice Settings")
+        g1 = _dt.BeginGroup("User Settings")
 
-    metlin_token  = di.StringItem("Metlin Token")
+        user_name = _di.StringItem("Full Name", notempty=True)
+        user_email = _di.StringItem("Email Adress", notempty=True)
+        user_url = _di.StringItem("Website URL")
 
-    _g2 = dt.EndGroup("Webservice Settings")
+        _g1 = _dt.EndGroup("User Settings")
 
-    g3 = dt.BeginGroup("Emzed Store User Account")
+        g2 = _dt.BeginGroup("Webservice Settings")
 
-    emzed_store_user = di.StringItem("User Name")
-    emzed_store_password = di.StringItem("User Password")
+        metlin_token  = _di.StringItem("Metlin Token")
 
-    _g3 = dt.EndGroup("Emzed Store Settings")
+        _g2 = _dt.EndGroup("Webservice Settings")
 
-    g4 = dt.BeginGroup("Emzed Store Expert Settings")
-    enable_expert_settings = di.BoolItem("Enable Settings").set_prop("display",
-            store=is_expert)
-    emzed_store_url = di.StringItem("Emzed Store URL").set_prop("display", active=is_expert)
-    emzed_store_index_url = di.StringItem("Emzed Store Index URL").set_prop("display", active=is_expert)
-    pypi_url = di.StringItem("PyPi URL").set_prop("display", active=is_expert)
+        g3 = _dt.BeginGroup("Emzed Store User Account")
 
-    _g4 = dt.EndGroup("Expert Settings")
+        emzed_store_user = _di.StringItem("User Name")
+        emzed_store_password = _di.StringItem("User Password")
 
-test_config = UserConfig()
+        _g3 = _dt.EndGroup("Emzed Store Settings")
 
-test_config.user_name = "Uwe Schmitt"
-test_config.user_email = "uschmitt@uschmitt.info"
-test_config.user_url = ""
+        g4 = _dt.BeginGroup("Emzed Store Expert Settings")
+        enable_expert_settings = _di.BoolItem("Enable Settings").set_prop("display",
+                store=_is_expert)
+        emzed_store_url = _di.StringItem("Emzed Store URL").set_prop("display", active=_is_expert)
+        emzed_store_index_url = _di.StringItem("Emzed Store Index URL").set_prop("display", active=_is_expert)
+        pypi_url = _di.StringItem("PyPi URL").set_prop("display", active=_is_expert)
 
-test_config.metlin_token = ""
+        _g4 = _dt.EndGroup("Expert Settings")
 
-test_config.emzed_store_user = "uschmitt"
-test_config.emzed_store_password = "pillepalle"
+    def __init__(self, *a, **kw):
+        self.parameters = _UserConfig.Parameters()
+        if "_no_load" not in kw:
+            loaded = self.load()
+            if not loaded:
+                self.set_defaults()
+        else:
+            self.set_defaults()
 
-test_config.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
-test_config.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
-test_config.pypi_url = "http://testpypi.python.org/pypi"
+    def get(self, key):
+        val = getattr(self.parameters, key)
+        if isinstance(val, unicode):
+            val = val.encode("latin-1")
+        return val
 
-import os
-is_test = os.environ.get("IS_TEST")
-if is_test:
-    config = test_config
+    def set_(self, key, value):
+        return setattr(self.parameters, key, value)
 
-def get(key):
-    return getattr(config, key)
+    def get_url(self, key):
+        return self.get(key).rstrip("/") + "/"
 
-def set_(key, value):
-    return setattr(config, key, value)
+    def store(self, path=None):
+        import guidata.userconfig
+        if path is None:
+            path = self.config_file_path()
+        cf = guidata.userconfig.UserConfig(dict())
+        self.parameters.write_config(cf, "emzed", "")
+        with open(path, "wt") as fp:
+            cf.write(fp)
 
-def get_url(key):
-    return get(key).rstrip("/") + "/"
+    def load(self, path=None):
+        import os
+        import guidata.userconfig
+        cf = guidata.userconfig.UserConfig(dict())
+        if path is None:
+            path = self.config_file_path()
+        if os.path.exists(path):
+            with open(path, "rt") as fp:
+                try:
+                    cf.readfp(fp)
+                    self.parameters.read_config(cf, "emzed", "")
+                    return True
+                except:
+                    pass
+        return False
 
-def store(fp):
-    cf = guidata.userconfig.UserConfig(dict())
-    config.write_config(cf, "emzed", "")
-    cf.write(fp)
+    def edit(self):
+        self.parameters.edit()
+        self.store()
 
-def load(fp):
-    cf = guidata.userconfig.UserConfig(dict())
-    cf.read(fp)
-    config.read_config(cf, "emzed", "")
+    def config_file_path(self):
+        import os
+        from emzed.core.platform_dependent import getEmzedFolder
+        return os.path.join(getEmzedFolder(), "config.ini")
+
+    def set_defaults(self):
+        self.parameters.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
+        self.parameters.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
+        self.parameters.pypi_url = "http://testpypi.python.org/pypi"
+
+global_config = _UserConfig()
