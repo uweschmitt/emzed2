@@ -20,7 +20,7 @@ setup(name="emzed",
       entry_points = {
           "console_scripts":
           [
-              "emzed.workbench = emzed.workbench.modified_spyder:main",
+              "emzed.workbench = emzed.workbench.modified_spyder_main:main",
           ]
           }
      )

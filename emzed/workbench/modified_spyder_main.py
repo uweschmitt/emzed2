@@ -35,17 +35,9 @@ import threading
 # Keeping a reference to the original sys.exit before patching it
 ORIGINAL_SYS_EXIT = sys.exit
 
-import pkg_resources
-pkg_resources.require("spyder>=2.2.1")
-
-#if sys.platform == "win32":
-    # on windows spyder only unses all features of variable explorer
-    # for ipython 0.10:
-    #pkg_resources.require("IPython==0.10")
 
 
 import IPython
-print "IPYTHON VERSION=", IPython.__version__
 
 # Test if IPython v0.13+ is installed to eventually switch to PyQt API #2
 from spyderlib.utils.programs import is_module_installed
@@ -69,14 +61,27 @@ if is_module_installed('IPython.frontend.qt', SUPPORTED_IPYTHON):
 
 
 #EMZEDADDON BEGIN ###########################################################################
+
+# we patch spyder, so we need to be shure that versions fit
+import pkg_resources
+pkg_resources.require("spyder>=2.2.1")
+pkg_resources.require("IPython>=0.13")
+
 here = os.path.dirname(os.path.abspath(__file__))
 
-os.environ["EMZED_HOME"] = here
-import spyderlib
-os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
-print os.environ["SPYDER_PARENT_DIR"]
+
+# TODO:
+
+
+#os.environ["EMZED_HOME"] = here
+#import spyderlib
+#os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
+#print os.environ["SPYDER_PARENT_DIR"]
 #import spyder_app_patches
 #spyder_app_patches.patch_spyder()
+
+import emzed.workbench.patches
+emzed.workbench.patches.patch_spyderlib()
 
 
 # during first startup the current working directory is used  by
@@ -89,14 +94,15 @@ print os.environ["SPYDER_PARENT_DIR"]
 #    os.makedirs(home)
 #os.chdir(home)
 
+
 from emzed.version import version as emzed_version
 
-#try:
-#    import pyopenms
-#except ImportError:
-#    from spyderlib import requirements
-#    requirements.show_warning("can not load pyopenms. Is it installed ?")
-#    exit(1)
+try:
+    import emzed.core
+except ImportError:
+    from spyderlib import requirements
+    requirements.show_warning("can not load emzed.core. Is it installed ?")
+    exit(1)
 
 #EMZEDADDON END #############################################################################
 
@@ -977,6 +983,10 @@ class MainWindow(QMainWindow):
                         create_module_bookmark_actions(self, self.BOOKMARKS))
             self.help_menu_actions.append(web_resources)
 
+            # Status bar widgets
+            self.mem_status = MemoryStatus(self, status)
+            self.cpu_status = CPUStatus(self, status)
+            self.apply_statusbar_settings()
 
             # Third-party plugins
             for mod in get_spyderplugins_mods(prefix='p_', extension='.py'):
