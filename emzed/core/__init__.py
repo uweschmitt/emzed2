@@ -1,1 +1,1 @@
-from data import Table
+from data.Table import Table

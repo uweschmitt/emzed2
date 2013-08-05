@@ -4,7 +4,9 @@ import numpy as np
 from   collections import Counter, OrderedDict, defaultdict
 import warnings
 
-import emzed.version
+import emzed
+
+from  . import tools
 
 __doc__ = """
 
@@ -630,7 +632,7 @@ class Table(object):
         if not forceOverwrite and os.path.exists(path):
             raise Exception("%s exists. You may use forceOverwrite=True" % path)
         with open(path, "w+b") as fp:
-            fp.write("version='%s.%s.%s'\n" % emzed.version)
+            fp.write("version=%s.%s.%s\n" % emzed.__version__)
             cPickle.dump(self, fp, protocol=2)
 
     @staticmethod
@@ -654,7 +656,7 @@ class Table(object):
                 assert version_str.startswith("version="), version_str # "wrong format"
                 v_number_str = version_str[8:]
                 v_number = tuple(map(int, v_number_str.split(".")))
-                if v_number_str != emzed.version:
+                if v_number_str != emzed.__version__:
                     if v_number < (1,3,2):
                         raise Exception("can not load table of version %s" %
                                 v_number_str)
@@ -1498,74 +1500,159 @@ class Table(object):
         rows = [[v] for v in values]
         return Table([colName], [type_], [format_], rows, meta=meta)
 
-def toOpenMSFeatureMap(table):
+    @staticmethod
+    def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
+        # local import in order to keep namespaces clean
+        #import ms
+        import csv, os.path, sys, re
+        if isinstance(path, unicode):
+            path = path.encode(sys.getfilesystemencoding())
+        elif path is None:
+            #path = ms.askForSingleFile(extensions=["csv"])
+            if path is None:
+                return None
 
-    table.requireColumn("mz")
-    table.requireColumn("rt")
+        with open(path,"r") as fp:
+            # remove clutter at right margin
+            reader = csv.reader(fp, delimiter=sep)
+            # reduce multiple spaces to single underscore
+            colNames = [ re.sub(" +", "_", n.strip()) for n in reader.next()]
 
-    if "feature_id" in table._colNames:
-        # feature table from openms
-        ti = table.splitBy("feature_id")
-        # intensity, rt, mz should be the same value for each feature table:
-        areas = [ t0.intensity.values[0] for t0 in ti]
-        rts = [ t0.rt.values[0] for t0 in ti]
-        mzs = [ t0.mz.values[0] for t0 in ti]
-    else:
-        # chromatographic peak table from XCMS
-        if "into" in table._colNames:
-            areas = table.into.values
-        elif "area" in table._colNames:
-            areas = table.area.values
+            if keepNone:
+                conv = bestConvert
+            else:
+                conv = lambda v: None if v=="None" else bestConvert(v)
+
+            rows = [ [conv(c.strip()) for c in row] for row in reader]
+
+
+        columns = [[row[i] for row in rows] for i in range(len(colNames))]
+        types = [common_type_for(col) for col in columns]
+
+        formats = dict([(name, guessFormatFor(name,type_)) for (name, type_)\
+                                                    in zip(colNames, types)])
+        formats.update(specialFormats)
+
+        formats = [formats[n] for n in colNames]
+
+        title = os.path.basename(path)
+        meta = dict(loaded_from=os.path.abspath(path))
+        return Table._create(colNames, types, formats, rows, title, meta)
+
+    def toOpenMSFeatureMap(self):
+
+        self.requireColumn("mz")
+        self.requireColumn("rt")
+
+        if "feature_id" in self._colNames:
+            # feature table from openms
+            ti = self.splitBy("feature_id")
+            # intensity, rt, mz should be the same value for each feature table:
+            areas = [ t0.intensity.values[0] for t0 in ti]
+            rts = [ t0.rt.values[0] for t0 in ti]
+            mzs = [ t0.mz.values[0] for t0 in ti]
         else:
-            print "features have no area/intensity, we assume constant intensity"
-            areas = [None] * len(table)
-        mzs = table.mz.values
-        rts = table.rt.values
+            # chromatographic peak table from XCMS
+            if "into" in self._colNames:
+                areas = self.into.values
+            elif "area" in self._colNames:
+                areas = self.area.values
+            else:
+                print "features have no area/intensity, we assume constant intensity"
+                areas = [None] * len(self)
+            mzs = self.mz.values
+            rts = self.rt.values
 
-    fm = pyopenms.FeatureMap()
+        fm = pyopenms.FeatureMap()
 
-    for (mz, rt, area) in zip(mzs, rts, areas):
-        f = pyopenms.Feature()
-        f.setMZ(mz)
-        f.setRT(rt)
-        f.setIntensity(area if area is not None else 1000.0)
-        fm.push_back(f)
-    return fm
+        for (mz, rt, area) in zip(mzs, rts, areas):
+            f = pyopenms.Feature()
+            f.setMZ(mz)
+            f.setRT(rt)
+            f.setIntensity(area if area is not None else 1000.0)
+            fm.push_back(f)
+        return fm
 
 
-def compressPeakMaps(table):
-    """
-    sometimes duplicate peakmaps occur as different objects in a table,
-    that is: different id() but same content.
-    this function removes duplicates and replaces different instances
-    of the same data by one particular instance.
-    """
-    import hashlib
+    @staticmethod
+    def mergeTables(tables, reference_table=None, force_merge=False):
+        """ merges tables. Eg:
 
-    def _compute_digest(pm):
-        h = hashlib.sha512()
-        for spec in pm.spectra:
-            # peaks.data is binary representation of numpy array peaks:
-            h.update(str(spec.peaks.data))
-        return h.digest()
+            .. pycon::
+            t1 = ms.toTable("a",[1])
+            t2 = t1.copy()
+            t1.addColumn("b", 3)
+            t2.addColumn("c", 5)
 
-    from   libms.DataStructures import PeakMap
-    peak_maps = dict()
-    digests = dict()
-    for row in table.rows:
-        for cell in row:
-            if isinstance(cell, PeakMap):
-                if not hasattr(cell, "_digest"):
-                    d = digests.get(id(cell))
-                    if d is None:
-                        d = _compute_digest(cell)
-                        digests[id(cell)] = d
-                    cell._digest = d
-                peak_maps[cell._digest] = cell
-    for row in table.rows:
-        for i, cell in enumerate(row):
-            if isinstance(cell, PeakMap):
-                row[i] = peak_maps[cell._digest]
-                # del cell._digest
-    table.resetInternals()
+            t1.print_()
+            t2.print_()
+            t3 = ms.mergeTables([t1, t2])
+            t3.print_()
+
+            in case of conflicting names, name orders, types or formats
+            you can try ``force_merge=True`` or provide a reference
+            table. This reference table just serves information about
+            wanted column names, types and formats and  is merged to the result
+            only if it appers in  ``tables``.
+
+        """
+        if reference_table is not None:
+            final_colnames = reference_table._colNames
+            start_with = reference_table.buildEmptyClone()
+        else:
+            final_colnames, final_types, final_formats = tools._build_starttable(tables, force_merge)
+            start_with = Table._create(final_colnames, final_types, final_formats)
+
+        extended_tables = []
+        for table in tables:
+            missing_names = [c for c in final_colnames if c not in table._colNames]
+            if missing_names:
+                table = table.copy()
+                for name in missing_names:
+                    type_ = start_with.getType(name)
+                    format_ = start_with.getFormat(name)
+                    table.addColumn(name, None, type_, format_)
+            table = table.extractColumns(*final_colnames)
+            extended_tables.append(table)
+
+        result = extended_tables[0]
+        result.append(extended_tables[1:])
+        return result
+
+
+    def compressPeakMaps(self):
+        """
+        sometimes duplicate peakmaps occur as different objects in a table,
+        that is: different id() but same content.
+        this function removes duplicates and replaces different instances
+        of the same data by one particular instance.
+        """
+        import hashlib
+
+        def _compute_digest(pm):
+            h = hashlib.sha512()
+            for spec in pm.spectra:
+                # peaks.data is binary representation of numpy array peaks:
+                h.update(str(spec.peaks.data))
+            return h.digest()
+
+        from   libms.DataStructures import PeakMap
+        peak_maps = dict()
+        digests = dict()
+        for row in self.rows:
+            for cell in row:
+                if isinstance(cell, PeakMap):
+                    if not hasattr(cell, "_digest"):
+                        d = digests.get(id(cell))
+                        if d is None:
+                            d = _compute_digest(cell)
+                            digests[id(cell)] = d
+                        cell._digest = d
+                    peak_maps[cell._digest] = cell
+        for row in self.rows:
+            for i, cell in enumerate(row):
+                if isinstance(cell, PeakMap):
+                    row[i] = peak_maps[cell._digest]
+                    # del cell._digest
+        self.resetInternals()
 
