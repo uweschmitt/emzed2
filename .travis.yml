@@ -4,3 +4,9 @@ python:
 
 install: "pip install -r requirements.txt --use-mirrors"
 script: py.test
+
+virtualenv:
+  system_site_packates: true
+
+before_install:
+  - sudo apt-get install -qq python-numpy python.scipy python-qt4
