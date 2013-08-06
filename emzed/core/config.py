@@ -1,3 +1,4 @@
+import pdb
 #encoding: latin-1
 
 # keep namespace clean:
@@ -64,13 +65,22 @@ class _UserConfig(object):
         return self.get(key).rstrip("/") + "/"
 
     def store(self, path=None):
+
+        # path UserConfig for not writing to ~/.config/.none.ini as default:
         import guidata.userconfig
-        if path is None:
-            path = self.config_file_path()
-        cf = guidata.userconfig.UserConfig(dict())
-        self.parameters.write_config(cf, "emzed", "")
-        with open(path, "wt") as fp:
-            cf.write(fp)
+        __save = guidata.userconfig.UserConfig.__save
+        try:
+            guidata.userconfig.UserConfig.__save = lambda self: None
+            if path is None:
+                path = self.config_file_path()
+            cf = guidata.userconfig.UserConfig(dict())
+            self.parameters.write_config(cf, "emzed", "")
+            with open(path, "wt") as fp:
+                cf.write(fp)
+        finally:
+            # undo patch
+            guidata.userconfig.UserConfig.__save = __save
+
 
     def load(self, path=None):
         import os
