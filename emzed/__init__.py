@@ -1,5 +1,8 @@
 # encoding:latin-1
 
+import patches
+patches.apply_()
+
 from version import version as __version__
 
 """

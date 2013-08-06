@@ -6,6 +6,7 @@ import warnings
 
 import emzed
 
+
 from  . import tools
 
 __doc__ = """
@@ -1636,7 +1637,7 @@ class Table(object):
                 h.update(str(spec.peaks.data))
             return h.digest()
 
-        from   libms.DataStructures import PeakMap
+        from  emzed.core.data_types import PeakMap
         peak_maps = dict()
         digests = dict()
         for row in self.rows:
@@ -1653,6 +1654,6 @@ class Table(object):
             for i, cell in enumerate(row):
                 if isinstance(cell, PeakMap):
                     row[i] = peak_maps[cell._digest]
-                    # del cell._digest
+                    del cell._digest
         self.resetInternals()
 

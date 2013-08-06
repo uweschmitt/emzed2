@@ -7,7 +7,7 @@ import pickle, re
 
 import pytest
 
-from emzed.core import Table
+from emzed.core.data_types import Table, PeakMap, Spectrum
 
 
 class TestTable(unittest.TestCase):
@@ -887,13 +887,11 @@ class TestTable(unittest.TestCase):
         assert len(ts) == 4
 
 
-    @pytest.mark.xfail
+    #@pytest.mark.xfail
     def testCompress(self):
         t = Table.toTable("a", [])
-        #from libTable.DataStructures.Table import compressPeakMaps
-        #from libTable.DataStructures.MSTypes import PeakMap, Spectrum
         import numpy
-        t.compressPeakMaps(t)
+        t.compressPeakMaps()
 
         s = Spectrum(numpy.arange(12).reshape(-1,2), 1.0, 1, "+")
         pm = PeakMap([s])
@@ -902,7 +900,7 @@ class TestTable(unittest.TestCase):
 
         t = Table.toTable("pm", [pm, pm2])
         assert len(set(map(id, t.pm.values))) == 2
-        compressPeakMaps(t)
+        t.compressPeakMaps()
         assert len(set(map(id, t.pm.values))) == 1
 
 
