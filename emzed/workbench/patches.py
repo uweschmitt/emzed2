@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from patch_utils import replace, add
+from emzed.core.patch_utils import replace, add
 import os
 
 _here = os.path.abspath(os.path.dirname(__file__))
@@ -77,6 +77,7 @@ def patch_NamespaceBrowser():
 
     @add(NamespaceBrowser, verbose=True)
     def is_tablelist(self, name):
+
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
             "isinstance(globals()['%s'], list) "\
