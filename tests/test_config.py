@@ -8,7 +8,8 @@ import tempfile, os.path
 class ConfigTests(unittest.TestCase):
 
     def setUp(self):
-        self.path = os.path.join(tempfile.mkdtemp(), "test_config.ini")
+        # create nonexisting temp dir
+        self.path = os.path.join(tempfile.mkdtemp() + "x", "test_config.ini")
 
     def test_global_config(self):
 

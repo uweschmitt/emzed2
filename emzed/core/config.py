@@ -66,6 +66,8 @@ class _UserConfig(object):
 
     def store(self, path=None):
 
+        import os
+
         # path UserConfig for not writing to ~/.config/.none.ini as default:
         import guidata.userconfig
         __save = guidata.userconfig.UserConfig.__save
@@ -75,6 +77,9 @@ class _UserConfig(object):
                 path = self.config_file_path()
             cf = guidata.userconfig.UserConfig(dict())
             self.parameters.write_config(cf, "emzed", "")
+            dir_name = os.path.dirname(path)
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
             with open(path, "wt") as fp:
                 cf.write(fp)
         finally:
