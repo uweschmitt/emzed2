@@ -5,9 +5,9 @@ import unittest
 import numpy as np
 import pickle, re
 
-import pytest
-
 from emzed.core.data_types import Table, PeakMap, Spectrum
+
+from emzed.utils import toTable
 
 
 class TestTable(unittest.TestCase):
@@ -291,9 +291,9 @@ class TestTable(unittest.TestCase):
 
 
     def testWithEmtpyTablesAndTestColnameGeneration(self):
-        e = Table.toTable("x", [])
-        f = Table.toTable("y", [])
-        g = Table.toTable("z", [1])
+        e = toTable("x", [])
+        f = toTable("y", [])
+        g = toTable("z", [1])
 
         assert len(e.filter(e.x == 0)) == 0
         t1 = e.join(f, f.y == e.x)
@@ -350,10 +350,10 @@ class TestTable(unittest.TestCase):
 
     def testUniqeNotNone(self):
 
-        t = Table.toTable("a", [1,1,None])
+        t = toTable("a", [1,1,None])
         assert t.a.uniqueNotNone() == 1
 
-        t = Table.toTable("a", [1,1,1])
+        t = toTable("a", [1,1,1])
         assert t.a.uniqueNotNone() == 1
 
         t.addColumn("b", None)
@@ -374,14 +374,14 @@ class TestTable(unittest.TestCase):
         with self.assertRaises(Exception):
             t.addConstantColumn("d", 3)
 
-        t2 = Table.toTable("x",[])
+        t2 = toTable("x",[])
         with self.assertRaises(Exception):
             t.aggregate(t2.x.mean, "neu")
 
     def testWithNoneValues(self):
 
         # simple int compare ###################################
-        t = Table.toTable("a", [None, 2])
+        t = toTable("a", [None, 2])
         t.print_()
 
         assert len(t.filter(t.a < 3)) == 1
@@ -448,7 +448,7 @@ class TestTable(unittest.TestCase):
         assert len(t.leftJoin(t2, t.a<t2.a)) == 2
 
 
-        t = Table.toTable("a", [None, 2.0])
+        t = toTable("a", [None, 2.0])
         t.print_()
 
         assert len(t.filter(t.a < 3)) == 1
@@ -524,7 +524,7 @@ class TestTable(unittest.TestCase):
         assert len(t.leftJoin(t2, t.a<t2.a)) == 2
 
         # simple str compare ###################################
-        t = Table.toTable("a", [None, "2"])
+        t = toTable("a", [None, "2"])
         t.filter(t.a < "3").print_()
 
         assert len(t.filter(t.a < "3")) == 1
@@ -594,7 +594,7 @@ class TestTable(unittest.TestCase):
 
 
         # simple float compare reversed #########################
-        t = Table.toTable("a", [None, 2.0])
+        t = toTable("a", [None, 2.0])
         t.print_()
 
         assert len(t.filter(3.0 > t.a)) == 1
@@ -641,7 +641,7 @@ class TestTable(unittest.TestCase):
         assert len(t.filter(3.0 != t.a)) == 1
 
         # simple int   compare reversed #########################
-        t = Table.toTable("a", [None, 2])
+        t = toTable("a", [None, 2])
         t.print_()
 
         assert len(t.filter(3 > t.a)) == 1
@@ -689,7 +689,7 @@ class TestTable(unittest.TestCase):
         assert len(t.filter(3.0 != t.a)) == 1
 
         # simple str   compare reversed #########################
-        t = Table.toTable("a", [None, "2"])
+        t = toTable("a", [None, "2"])
         t.print_()
 
         assert len(t.filter("3" > t.a)) == 1
@@ -717,7 +717,7 @@ class TestTable(unittest.TestCase):
 
         ##########################################################
 
-        t = Table.toTable("i", [1,2,None])
+        t = toTable("i", [1,2,None])
         assert len(t.filter(t.i.isNone())) == 1
         assert len(t.filter(t.i.isNotNone())) == 2
 
@@ -736,14 +736,14 @@ class TestTable(unittest.TestCase):
         t.replaceColumn("i", t.i)
         assert t.getColNames() == ["i", "b"]
 
-        s = Table.toTable("b",[])
+        s = toTable("b",[])
         x = t.join(s, t.b == s.b)
         assert len(x) == 0
 
         assert s.b.max() == None
 
     def testSomeExpressions(self):
-        t = Table.toTable("mf", ["Ag", "P", "Pb", "P3Pb", "PbP"])
+        t = toTable("mf", ["Ag", "P", "Pb", "P3Pb", "PbP"])
         tn = t.filter(t.mf.containsElement("P"))
         assert len(tn) == 3
         tn = t.filter(t.mf.containsElement("Pb"))
@@ -795,7 +795,7 @@ class TestTable(unittest.TestCase):
             pass
 
     def testRename(self):
-        t = Table.toTable("a", [1,1,3,4])
+        t = toTable("a", [1,1,3,4])
         t.addColumn("b", [1,1,3,3])
         t.addColumn("c", [1,2,1,4])
         with self.assertRaises(Exception):
@@ -814,7 +814,7 @@ class TestTable(unittest.TestCase):
         assert tuple(t.getColNames()) == ("x", "y", "z")
 
     def testSplitBy(self):
-        t = Table.toTable("a", [1,1,3,4])
+        t = toTable("a", [1,1,3,4])
         t.addColumn("b", [1,1,3,3])
         t.addColumn("c", [1,2,1,4])
         t._print()
@@ -843,12 +843,12 @@ class TestTable(unittest.TestCase):
             assert subt.getColNames() == [ "a", "b", "c"]
 
     def testConstantColumn(self):
-        t = Table.toTable("a",[1,2,3])
+        t = toTable("a",[1,2,3])
         t.addConstantColumn("b", dict())
         assert len(set(id(x) for x in t.b.values)) == 1
 
     def testSlicing(self):
-        t = Table.toTable("a", [1, 2, 3])
+        t = toTable("a", [1, 2, 3])
         assert t[0].a.values == [1]
         assert t[:1].a.values == [1]
         assert t[1:].a.values == [2, 3]
@@ -856,11 +856,11 @@ class TestTable(unittest.TestCase):
 
 
     def testMerge(self):
-        t1 = Table.toTable("a", [1])
+        t1 = toTable("a", [1])
         t1.addColumn("b", [2])
         t1.addColumn("c", [3])
 
-        t2 = Table.toTable("a", [1,2])
+        t2 = toTable("a", [1,2])
         t2.addColumn("c", [1,3])
         t2.addColumn("d", [1,4])
 
@@ -878,7 +878,7 @@ class TestTable(unittest.TestCase):
 
     def testApply(self):
 
-        t = Table.toTable("a", [0.01, 0.1, 0.1, 0.015, 0.2,1.0 ])
+        t = toTable("a", [0.01, 0.1, 0.1, 0.015, 0.2,1.0 ])
 
         t.addColumn("a_bin", t.a.apply(lambda v: int(v*100)))
         # this returned numpy-ints due to an fault in addColumn and so
@@ -887,9 +887,8 @@ class TestTable(unittest.TestCase):
         assert len(ts) == 4
 
 
-    #@pytest.mark.xfail
     def testCompress(self):
-        t = Table.toTable("a", [])
+        t = toTable("a", [])
         import numpy
         t.compressPeakMaps()
 
@@ -898,14 +897,14 @@ class TestTable(unittest.TestCase):
         s = Spectrum(numpy.arange(12).reshape(-1,2), 1.0, 1, "+")
         pm2 = PeakMap([s])
 
-        t = Table.toTable("pm", [pm, pm2])
+        t = toTable("pm", [pm, pm2])
         assert len(set(map(id, t.pm.values))) == 2
         t.compressPeakMaps()
         assert len(set(map(id, t.pm.values))) == 1
 
 
     def testUpdateColumn(self):
-        t = Table.toTable("a", [1, 2])
+        t = toTable("a", [1, 2])
         t.updateColumn("a", t.a + 1)
         assert t.a.values == [2, 3]
         t.updateColumn("b", t.a + 1)
@@ -913,8 +912,8 @@ class TestTable(unittest.TestCase):
 
 
     def test_all_comps(self):
-        a = Table.toTable("a",[3,2,1])
-        b = Table.toTable("b",[1,2,3]) # must be sorted for tests below !
+        a = toTable("a",[3,2,1])
+        b = toTable("b",[1,2,3]) # must be sorted for tests below !
 
         def _test(e, a=a, b=b):
 
@@ -970,7 +969,7 @@ class TestTable(unittest.TestCase):
 
     def test_numpy_comparison(self):
         v = np.array((1,2,3))
-        t = Table.toTable("a",[v])
+        t = toTable("a",[v])
         t2 = t.filter(t.a == t.a)
         assert len(t2) == len(t)
         t2 = t.filter(t.a <= t.a)

@@ -534,7 +534,7 @@ class BaseExpression(object):
 
         Example: ``tab = substances.name.toTable()``
         """
-        from Table import Table
+        from .table import Table
         return Table.toTable(colName, self.values, fmt, type_, title, meta)
 
 

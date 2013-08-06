@@ -1,0 +1,637 @@
+
+# (t.float >= -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float > -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float < -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float == -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != -1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float > 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float < 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float == 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 0)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float > 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float < 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float == 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 0.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float > 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float != 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float < 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float == 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float != 1)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float <= 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float > 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float == 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+
+# (t.float != 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+2          3      3.000    hi3     
+
+# (t.float <= 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float < 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float >= 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.float == 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+
+# (t.float != 2)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float > 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float <= 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float > 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float == 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float <= 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float < 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float >= 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float < 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float == 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float != 2.5)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float >= 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float > 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float <= 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float > 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.float == 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float != 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float <= 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float < 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float >= 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float < 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float == 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+2          3      3.000    hi3     
+
+# (t.float != 3)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+
+# (t.float == t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.float != t.float)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  

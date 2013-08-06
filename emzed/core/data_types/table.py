@@ -1,11 +1,11 @@
 import copy, os, itertools, re, numpy, cPickle, sys, inspect
-from   Expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
 import numpy as np
 from   collections import Counter, OrderedDict, defaultdict
 import warnings
 
 import emzed
-
+from   .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+import pyopenms
 
 from  . import tools
 
@@ -1542,6 +1542,7 @@ class Table(object):
 
     def toOpenMSFeatureMap(self):
 
+
         self.requireColumn("mz")
         self.requireColumn("rt")
 
@@ -1637,7 +1638,7 @@ class Table(object):
                 h.update(str(spec.peaks.data))
             return h.digest()
 
-        from  emzed.core.data_types import PeakMap
+        from  .ms_types import PeakMap
         peak_maps = dict()
         digests = dict()
         for row in self.rows:

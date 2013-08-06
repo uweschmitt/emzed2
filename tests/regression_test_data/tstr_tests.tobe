@@ -1,0 +1,69 @@
+
+# (t.str == 'hi')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.str > 'hi')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.str >= 'hi')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.str <= 'hi')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (t.str >= 'a')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.str >= 'z')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.str <= 'z')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.str == 'z')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (t.str != 'z')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# (t.str %s.startswith(%s) 'hi')
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     

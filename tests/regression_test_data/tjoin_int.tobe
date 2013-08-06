@@ -1,0 +1,159 @@
+# t1.join(t2, (t1.int > t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+1          2      2.000    hi2      0          1      1.000    hi      
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t2.int < t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+1          2      2.000    hi2      0          1      1.000    hi      
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t1.int == t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+1          2      2.000    hi2      1          2      2.000    hi2     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t2.int == t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+1          2      2.000    hi2      1          2      2.000    hi2     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t1.int != t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      0          1      1.000    hi      
+1          2      2.000    hi2      2          3      3.000    hi3     
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t2.int != t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      0          1      1.000    hi      
+1          2      2.000    hi2      2          3      3.000    hi3     
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t1.int >= t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+1          2      2.000    hi2      0          1      1.000    hi      
+1          2      2.000    hi2      1          2      2.000    hi2     
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t2.int <= t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+1          2      2.000    hi2      0          1      1.000    hi      
+1          2      2.000    hi2      1          2      2.000    hi2     
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t1.int <= t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      1          2      2.000    hi2     
+1          2      2.000    hi2      2          3      3.000    hi3     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t2.int >= t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      1          2      2.000    hi2     
+1          2      2.000    hi2      2          3      3.000    hi3     
+2          3      3.000    hi3      2          3      3.000    hi3     
+
+# t1.join(t2, (t1.int < t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      2          3      3.000    hi3     
+
+# t1.join(t2, (t2.int > t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      2          3      3.000    hi3     
+
+# t1.join(t2, (t1.int > t2.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+1          2      2.000    hi2      0          1      1.000    hi      
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t2.int < t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+1          2      2.000    hi2      0          1      1.000    hi      
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+
+# t1.join(t2, (t1.int == t1.int))
+33 66 100
+id       int      float    str      id__0    int__0   float__0 str__0  
+int      int      float    str      int      int      float    str     
+------   ------   ------   ------   ------   ------   ------   ------  
+0          1      1.000    hi       0          1      1.000    hi      
+0          1      1.000    hi       1          2      2.000    hi2     
+0          1      1.000    hi       2          3      3.000    hi3     
+1          2      2.000    hi2      0          1      1.000    hi      
+1          2      2.000    hi2      1          2      2.000    hi2     
+1          2      2.000    hi2      2          3      3.000    hi3     
+2          3      3.000    hi3      0          1      1.000    hi      
+2          3      3.000    hi3      1          2      2.000    hi2     
+2          3      3.000    hi3      2          3      3.000    hi3     
+

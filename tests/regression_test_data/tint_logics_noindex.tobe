@@ -1,0 +1,77 @@
+
+# ((t.int >= 2) & (t.int <= 3))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) & (t.int >= 1))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) | (t.int >= 1))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) | (t.int <= 3))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) ^ (t.int >= 1))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+
+# (((t.int >= 2) | (t.int >= 1)) | True)
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) | ((t.int > 1) & False))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# ((t.int >= 2) | ((t.int < 1) & False))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# True
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
+1          2      2.000    hi2     
+2          3      3.000    hi3     
+
+# False
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+
+# (not %s((t.int >= 2)) & not %s((t.int >= 3)))
+id       int      float    str     
+int      int      float    str     
+------   ------   ------   ------  
+0          1      1.000    hi      
