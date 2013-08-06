@@ -1,4 +1,4 @@
-from  elements import MonoIsotopicElements
+from  .elements import MonoIsotopicElements
 import re
 
 def monoisotopicMass(mf, **kw):
@@ -44,7 +44,7 @@ def formulaTable(min_mass, max_mass, C=(0, None),
     the process tremendously.
 
     """
-    import mass
+    from ... import mass
     import math
     import collections
     from ..data_types import Table
