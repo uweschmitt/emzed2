@@ -1,0 +1,20 @@
+exact monoisotopic Mass M0;RT min;RT max;link to pubchem;copmpound name ;HMDB ID;Molecular formula;KEGG ID
+118.026611;12.4;16.4;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=1110&loc=ec_rcs;"""Succinic acid""";HMDB00254;C4H6O4;C00042
+134.02153;12.5;16.5;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=525&loc=ec_rcs;"""Malic acid""";HMDB00744;C4H6O5;C00149
+146.02153;12.8;16.8;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=51&loc=ec_rcs;"""Oxoglutaric acid""";HMDB00208;C5H6O5;C00026
+167.982376;14;18;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=1005&loc=ec_rcs;"""Phosphoenolpyruvic acid""";HMDB00263;C3H5O6P;C00074
+192.027008;14;18;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=311&loc=ec_rcs;"""Citric acid""";HMDB00094;C6H8O7;C00158
+230.01915;11.9;16;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=77982&loc=ec_rcs;"""D-Ribose 5-phosphate""";HMDB01548;C5H11O8P;C00117
+260.029724;11.9;16;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=208&loc=ec_rcs;"""Glucose 6-phosphate""";HMDB01401;C6H13O9P;C00668
+276.024628;14;18;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=91493&loc=ec_rcs;"""6-Phosphogluconic acid""";HMDB01316;C6H13O10P;C00345
+324.001129;13.6;17.6;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=718&loc=ec_rcs;"""Fructose 1,6-bisphosphate""";HMDB01058;C6H14O11P2;"C00354; C05378"
+347.06308;12.8;16.8;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=6083&loc=ec_rcs;"""Adenosine monophosphate""";HMDB00045;C10H14N5O7P;C00020
+427.029419;14;16;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=159296&loc=ec_rcs;"""Adenosine 3,5-diphosphate""";HMDB00061;C10H15N5O10P2;C00054
+506.995758;14.8;18.8;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=5957&loc=ec_rcs;"""Adenosine triphosphate""";HMDB00538;C10H16N5O13P3;C00002
+522.990662;14.7;18.7;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=6830&loc=ec_rcs;"""Guanosine triphosphate""";HMDB01273;C10H16N5O14P3;C00044
+612.151978;11.8;15;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=975&loc=ec_rcs;"""Oxidized glutathione""";HMDB03337;C20H32N6O12S2;C00127
+665.124756;9.5;13.5;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=928&loc=ec_rcs;"""NADH""";HMDB01487;C21H29N7O14P2;C00004
+745.091125;10;17;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=5884&loc=ec_rcs;"""NADPH""";HMDB00221;C21H30N7O17P3;C00005
+787.172791;14.5;18.5;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=446013&loc=ec_rcs;"""FADH""";HMDB01197;C27H35N9O15P2;C01352
+809.125793;15.2;19.2;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=6302&loc=ec_rcs;"""Acetyl-CoA""";HMDB01206;C23H38N7O17P3S;C00024
+867.131226;15.8;19.8;http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid=439161&loc=ec_rcs;"""Succinyl-CoA""";HMDB01022;C25H40N7O19P3S;C00091
