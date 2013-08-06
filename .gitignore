@@ -1,6 +1,8 @@
 *.pyc
-*.swp
+*.swn
 *.swo
+*.swp
+*.swq
 *.bak
 sandbox
 *.ropeproject
@@ -13,3 +15,6 @@ logs
 build/
 dist/
 *.egg-info
+.cache
+.coverage
+.pytest
