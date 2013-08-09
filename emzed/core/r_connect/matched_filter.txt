@@ -1,0 +1,79 @@
+findPeaks.matchedFilter-methods      package:xcms      R Documentation
+
+Feature detection in the chromatographic time domain
+
+Description:
+
+     Find peaks in extracted the chromatographic time domain of the
+     profile matrix.
+
+Arguments:
+
+  object: 'xcmsRaw' object
+
+    fwhm: full width at half maximum of matched filtration gaussian
+          model peak. Only used to calculate the actual sigma, see
+          below.
+
+   sigma: standard deviation (width) of matched filtration model peak
+
+     max: maximum number of peaks per extracted ion chromatogram
+
+snthresh: signal to noise ratio cutoff
+
+    step: step size to use for profile generation
+
+   steps: number of steps to merge prior to filtration
+
+  mzdiff: minimum difference in m/z for peaks with overlapping
+          retention times
+
+   index: return indicies instead of values for m/z and retention times
+
+   sleep: number of seconds to pause between plotting peak finding
+          cycles
+
+Value:
+
+     A matrix with columns:
+
+      mz: weighted (by intensity) mean of peak m/z across scans
+
+   mzmin: m/z of minimum step
+
+   mzmax: m/z of maximum step
+
+      rt: retention time of peak midpoint
+
+   rtmin: leading edge of peak retention time
+
+   rtmax: trailing edge of peak retention time
+
+    into: integrated area of original (raw) peak
+
+    intf: integrated area of filtered peak
+
+    maxo: maximum intensity of original (raw) peak
+
+    maxf: maximum intensity of filtered peak
+
+       i: rank of peak identified in merged EIC (<= 'max')
+
+      sn: signal to noise ratio of the peak
+
+Methods:
+
+     object = "xcmsRaw" ' findPeaks.matchedFilter(object, fwhm = 30,
+          sigma = fwhm/2.3548, max = 5, snthresh = 10, step = 0.1,
+          steps = 2, mzdiff = 0.8 - step*steps, index = FALSE, sleep =
+          0) '
+
+Author(s):
+
+     Colin A. Smith, <email: csmith@scripps.edu>
+
+See Also:
+
+     'findPeaks-methods' 'xcmsRaw-class'
+
+
