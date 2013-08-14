@@ -4,7 +4,6 @@
 *.swp
 *.swq
 *.bak
-sandbox
 *.ropeproject
 spyder_crash.log
 docs/
