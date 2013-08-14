@@ -8,7 +8,6 @@ def loadPeakMap(path=None):
     """
 
     # local import in order to keep namespaces clean
-    import emzed.gui
     import os.path
     import sys
     from   pyopenms import MSExperiment, FileHandler
@@ -17,6 +16,7 @@ def loadPeakMap(path=None):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
+        import emzed.gui
         path = emzed.gui.askForSingleFile(extensions="mzML mzXML mzData".split())
         if path is None:
             return None
@@ -45,13 +45,13 @@ def loadTable(path=None):
     """
 
     # local import in order to keep namespaces clean
-    import emzed.gui
     import sys
     from   ..core.data_types import Table
 
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
+        import emzed.gui
         path = emzed.gui.askForSingleFile(extensions=["table"])
         if path is None:
             return None
@@ -62,7 +62,6 @@ def loadTable(path=None):
 
 def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
     # local import in order to keep namespaces clean
-    import emzed.gui
     import csv, os.path, sys, re
     #from   libms.DataStructures.Table import (Table, common_type_for,\
                                               #bestConvert, guessFormatFor)
@@ -72,6 +71,7 @@ def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
+        import emzed.gui
         path = emzed.gui.askForSingleFile(extensions=["csv"])
         if path is None:
             return None

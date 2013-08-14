@@ -996,4 +996,33 @@ class TestTable(unittest.TestCase):
         t2 = t.filter(t.a > 0)
         assert len(t2) == 1
 
+    def test_apply_with_none_values_as_result(self):
+
+        t = toTable("a", [1,2,3])
+
+        dd = {1:1, 2: 4, 3:5}
+        t.addColumn("b", t.a.apply(dd.get))
+        assert t.b.values == [1, 4, 5]
+        t.dropColumns("b")
+
+        dd = {1: 4}
+        t.addColumn("b", t.a.apply(dd.get))
+        assert t.b.values == [4, None, None]
+        t.dropColumns("b")
+
+        dd = {2: 4}
+        t.addColumn("b", t.a.apply(dd.get))
+        assert t.b.values == [None, 4, None]
+        t.dropColumns("b")
+
+        dd = {3: 4}
+        t.addColumn("b", t.a.apply(dd.get))
+        assert t.b.values == [None, None, 4]
+        t.dropColumns("b")
+
+        dd = {2: 4, 3:5}
+        t.addColumn("b", t.a.apply(dd.get))
+        assert t.b.values == [None, 4, 5]
+        t.dropColumns("b")
+
 

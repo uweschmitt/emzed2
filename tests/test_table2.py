@@ -84,7 +84,7 @@ def testApply():
     assert len(sub) == 2
     sub.addColumn("m02", sub.mf.apply(emzed.mass.of))
     sub.addColumn("m0s2", sub.m0.apply(str))
-    assert sub.getColTypes() == [ str, float, str, float, str]
+    assert sub.getColTypes() == [ str, float, str, float, str], sub.getColTypes()
 
 
 

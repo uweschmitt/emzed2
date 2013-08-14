@@ -1,64 +1,82 @@
 masses = (1024.0, 1025.0)
 adducts = ("M", "M+H")
 
-token = "DqeN7qBNEAzVNm9n"
-tolerance = 300
-tolunits = "ppm"
 
-message = """<SOAP-ENV:Envelope
-    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
-    xmlns:tns="Metlin"
-    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
-    xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
-    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+def match(masses, adducts, tolerance=30, tolunits="ppm"):
 
-    <SOAP-ENV:Body>
-        <mns:MetaboliteSearch xmlns:mns="Metlin"
-            SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-            <MetaboliteSearchRequest xsi:type="tns:MetaboliteSearchRequest">
+    token = "DqeN7qBNEAzVNm9n"
 
-                <mass xsi:type="soapenc:Array" soapenc:arrayType="xsd:float[2]">
-                    <item soapenc:position="[0]" xsi:type="xsd:float">%f</item>
-                    <item soapenc:position="[1]" xsi:type="xsd:float">%f</item>
-                </mass>
+    mass_items = "".join("""\
+            <item soapenc:position="[%d]" xsi:type="xsd:float">%.6f</item>""" % p
+                           for p in enumerate(masses))
+    adduct_items = "".join("""\
+            <item soapenc:position="[%d]" xsi:type="xsd:string">%s</item>""" %p
+                           for p in enumerate(adducts))
 
-                <adduct xsi:type="soapenc:Array" soapenc:arrayType="xsd:string[2]">
-                    <item soapenc:position="[0]" xsi:type="xsd:string">%s</item>
-                    <item soapenc:position="[1]" xsi:type="xsd:string">%s</item>
-                </adduct>
+    message = """<SOAP-ENV:Envelope
+        xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+        xmlns:tns="Metlin"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+        xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-                <tolerance xsi:type="xsd:float">%d</tolerance>
+        <SOAP-ENV:Body>
+            <mns:MetaboliteSearch xmlns:mns="Metlin"
+                SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                <MetaboliteSearchRequest xsi:type="tns:MetaboliteSearchRequest">
 
-                <tolunits xsi:type="xsd:string">%s</tolunits>
+                    <mass xsi:type="soapenc:Array" soapenc:arrayType="xsd:float[%d]">
+                        %s
+                    </mass>
 
-                <token xsi:type="xsd:string">%s</token>
+                    <adduct xsi:type="soapenc:Array" soapenc:arrayType="xsd:string[%d]">
+                        %s
+                    </adduct>
 
-            </MetaboliteSearchRequest>
-        </mns:MetaboliteSearch>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>""" % (masses + adducts+ (tolerance, tolunits, token))
+                    <tolerance xsi:type="xsd:float">%d</tolerance>
 
-import requests
-import xml.etree.ElementTree as E
+                    <tolunits xsi:type="xsd:string">%s</tolunits>
 
-r = requests.post("http://metlin.scripps.edu/soap/soapserver.php", data=message)
-root = E.fromstring(r.text.encode("UTF-8"))
+                    <token xsi:type="xsd:string">%s</token>
 
-nodes = root.findall('.//item[@{http://www.w3.org/2001/XMLSchema-instance}type="ns1:singleSearchResult"]')
+                </MetaboliteSearchRequest>
+            </mns:MetaboliteSearch>
+        </SOAP-ENV:Body>
+    </SOAP-ENV:Envelope>""" % (len(masses), mass_items, len(adducts), adduct_items, tolerance, tolunits, token)
 
-import itertools
+    print message
 
-keys = ("mass", "molid", "formula", "name")
+    import requests
+    import xml.etree.ElementTree as E
 
-for (adduct, mass), e in zip(itertools.product(adducts, masses), nodes):
+    r = requests.post("http://metlin.scripps.edu/soap/soapserver.php", data=message)
+    root = E.fromstring(r.text.encode("UTF-8"))
 
-    print
-    print "RESULT FOR", adduct, mass
+    print r.text
 
-    for c in e.getchildren():
+    nodes = root.findall('.//item[@{http://www.w3.org/2001/XMLSchema-instance}type="ns1:singleSearchResult"]')
+
+    import itertools
+
+    keys = ("mass", "molid", "formula", "name")
+
+    for (adduct, mass), e in zip(itertools.product(adducts, masses), nodes):
+
         print
-        for k in keys:
-            print "  %-7s: %s" % (k, c.find(k).text)
+        print "RESULT FOR", adduct, mass
+
+        for c in e.getchildren():
+            print
+            for k in keys:
+                print "  %-7s: %s" % (k, c.find(k).text)
+
+
+match(masses, adducts, 300)
+
+
+masses = [ 1024.0 + i for i in range(501)]
+match(masses, ["M", "M+H"], 30)
+
 

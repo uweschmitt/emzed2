@@ -2,6 +2,7 @@
 from r_executor import RExecutor
 from ..data_types.table  import fms as formatSeconds
 from ..data_types.table_parser import TableParser
+from ..data_types import PeakMap
 
 import os, sys
 
@@ -37,7 +38,7 @@ def install_xmcs_if_needed_statements():
                 if (require("xcms") == FALSE)
                 {
                     source("http://bioconductor.org/biocLite.R")
-                    biocLite("xcms", dep=T, lib="%s", destdir="%s")
+                    biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
                 }
             """ % (r_libs, r_libs)
 
@@ -62,7 +63,7 @@ def lookForXcmsUpgrades():
 
     script = """
                  source("http://bioconductor.org/biocLite.R")
-                 todo <- old.packages(repos=biocinstallRepos(), lib="%s")
+                 todo <- old.packages(repos=biocinstallRepos(), lib="%s", quiet=T)
                  q(status=length(todo))
              """ % user_config.getRLibsFolder().replace("\\", "\\\\")
 
@@ -83,7 +84,7 @@ def doXcmsUpgrade():
 
     script = """
      source("http://bioconductor.org/biocLite.R")
-     todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE, lib="%s", destdir="%s")
+     todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE, lib="%s", destdir="%s", quiet=T)
      q(status=length(todo))
     """ % (r_libs, r_libs)
 

@@ -1,0 +1,50 @@
+import emzed.batches
+import glob
+import os
+
+def testRunCentwave(tmpdir, path):
+
+    tables = emzed.batches.runCentwave(path("data/test_mini.mzXML"),
+                                       destination=tmpdir.strpath,
+                                       configid="std",
+                                       ppm=3,
+                                       peakwidth=(8, 13),
+                                       snthresh=40,
+                                       prefilter=(8, 10000),
+                                       mzdiff=1.5 )
+    assert len(glob.glob(tmpdir.join("test_mini.csv").strpath)) == 1
+    assert len(tables) == 1
+    table=tables[0]
+    assert len(table) == 1, len(table)
+    assert len(table.getColNames()) ==  16, len(table.getColNames())
+    assert len(table.getColTypes()) ==  16
+
+
+def testMatchedFilter(path, tmpdir):
+
+    try:
+        os.remove("temp_output/test.csv")
+    except:
+        pass
+    tables = emzed.batches.runMatchedFilter(path("data/test.mzXML"),
+            destination=tmpdir.strpath, configid="std", mzdiff=0, fwhm=50,
+            steps=1, step=0.6)
+    assert len(glob.glob(tmpdir.join("test.csv").strpath)) == 1
+    table, = tables
+    assert len(table) == 340, len(table)
+    assert len(table.getColNames()) ==  18, len(table.getColNames())
+    assert len(table.getColTypes()) ==  18
+
+def testMetaboFF(path, tmpdir):
+
+    try:
+        os.remove("temp_output/test.csv")
+    except:
+        pass
+    tables = emzed.batches.runMetaboFeatureFinder(path("data/test.mzXML"),
+            destination=tmpdir.strpath, configid="_test")
+    assert len(glob.glob(tmpdir.join("test.csv").strpath)) == 1
+    table, = tables
+    assert len(table) == 1, len(table)
+    assert len(table.getColNames()) ==  14, len(table.getColNames())
+    assert len(table.getColTypes()) ==  14

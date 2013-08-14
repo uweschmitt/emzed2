@@ -529,7 +529,7 @@ class Table(object):
         types = [ self._colTypes[i] for i in indices ]
         formats = [self._colFormats[i] for i in indices]
         rows = [[row[i] for i in indices] for row in self.rows]
-        return Table(names, types, formats, rows, self.title, self.meta.copy())
+        return Table._create(names, types, formats, rows, self.title, self.meta.copy())
 
     def _renameColumnsUnchecked(self, *dicts, **keyword_args):
         for d in dicts:
@@ -633,7 +633,7 @@ class Table(object):
         if not forceOverwrite and os.path.exists(path):
             raise Exception("%s exists. You may use forceOverwrite=True" % path)
         with open(path, "w+b") as fp:
-            fp.write("version=%s.%s.%s\n" % emzed.__version__)
+            fp.write("emzed_version=%s.%s.%s\n" % emzed.__version__)
             cPickle.dump(self, fp, protocol=2)
 
     @staticmethod
@@ -645,30 +645,25 @@ class Table(object):
 
         """
         with open(path, "rb") as fp:
+            data = fp.read()
+            version_str, pickle_data = data.split("\n", 1)
+            if not version_str.startswith("emzed_version="):
+                msg = "magic string invalid. wrong file format"
+                raise Exception(msg)
+            v_number_str = version_str[14:]
+            v_number = tuple(map(int, v_number_str.split(".")))
+            if v_number_str != emzed.__version__:
+                if v_number < (1,3,2):
+                    raise Exception("can not load table of version %s" %
+                            v_number_str)
             try:
-                # old format without version information
-                tab = cPickle.load(fp)
+                tab = cPickle.loads(pickle_data)
+                tab.version = v_number_str
+            except:
+                raise Exception("%s has invalid format" % path)
+            else:
                 tab.meta["loaded_from"]=os.path.abspath(path)
                 return tab
-            except:
-                fp.seek(0)
-                data = fp.read()
-                version_str, pickle_data = data.split("\n", 1)
-                assert version_str.startswith("version="), version_str # "wrong format"
-                v_number_str = version_str[8:]
-                v_number = tuple(map(int, v_number_str.split(".")))
-                if v_number_str != emzed.__version__:
-                    if v_number < (1,3,2):
-                        raise Exception("can not load table of version %s" %
-                                v_number_str)
-                try:
-                    tab = cPickle.loads(pickle_data)
-                    tab.version = v_number_str
-                except:
-                    raise Exception("%s has invalid format" % path)
-                else:
-                    tab.meta["loaded_from"]=os.path.abspath(path)
-                    return tab
 
     def buildEmptyClone(self):
         """ returns empty table with same names, types, formatters,
@@ -1655,6 +1650,5 @@ class Table(object):
             for i, cell in enumerate(row):
                 if isinstance(cell, PeakMap):
                     row[i] = peak_maps[cell._digest]
-                    del cell._digest
         self.resetInternals()
 

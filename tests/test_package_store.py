@@ -1,6 +1,9 @@
+import pdb
 #encoding: latin-1
 
 import unittest
+
+import pytest
 
 class PackageStoreTests(unittest.TestCase):
 
@@ -54,6 +57,8 @@ class PackageStoreTests(unittest.TestCase):
             pkg_dir = os.path.join(tmpdir, "tests")
             emzed.core.packages.create_package_scaffold(pkg_dir, "minimal_package2")
 
+
+    @pytest.mark.slow
     def test_minimal_package(self):
         import tempfile
         import os.path
@@ -63,6 +68,11 @@ class PackageStoreTests(unittest.TestCase):
         # create minimal set package files
         emzed.core.packages.create_package_scaffold(tmpdir, "test_minimal_package")
 
+        # remove test package from emzed package store if exists
+        try:
+            emzed.core.packages.delete_from_emzed_store("test_minimal_package")
+        except Exception, e:
+            assert e.message == "404 Client Error: Not Found"
         # upload minimal package file
         emzed.core.packages.upload_to_emzed_store(tmpdir)
 

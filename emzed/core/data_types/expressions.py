@@ -956,15 +956,17 @@ class FunctionExpression(BaseExpression):
             if type(self.efun) == np.ufunc:
                 values = self.efun(values)
             else:
-                vtest = self.efun(values[0])
-                if cleanup(type(vtest)) in _basic_num_types:
-                    try:
-                        values = np.vectorize(self.efun)(values)
-                    except ValueError:
-                        # vectorize failed
-                        values = np.array([self.efun(v) for v in values])
-                else:
-                    values = [ self.efun(v) for v in values ]
+                values = [ self.efun(v) for v in values ]
+                types = set(type(f) for f in values if f is not None)
+                if None in types:
+                    types.remove(None)
+                if len(types)>1:
+                    raise Exception("no unique return type in function result")
+                type_ = types.pop()
+                if cleanup(type_) in _basic_num_types:
+                    values = np.array(values)
+                    return values, None, cleanup(type_)
+
             return values, None, common_type_for(values)
         new_values = [self.efun(v) if v is not None else None for v in values]
         type_ = self.restype or common_type_for(new_values)
