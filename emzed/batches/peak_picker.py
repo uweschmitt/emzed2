@@ -50,21 +50,22 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
 
     from _BatchRunner import BatchRunner
-    import configs
-    import ms
+    from .. import configs
+    from .. import utils
     import os.path
-    import libms.PeakPicking
+    #import libms.PeakPicking
+    from ..core import peak_picking
 
     class P(BatchRunner):
 
         def setup(self, config):
-            self.pp = libms.PeakPicking.PeakPickerHiRes(**config)
+            self.pp = peak_picking.PeakPickerHiRes(**config)
 
         def process(self, path):
 
             try:
                 print "read ", path
-                pm = ms.loadPeakMap(path)
+                pm = utils.loadPeakMap(path)
             except Exception, e:
                 print e
                 print "reading FAILED"
@@ -77,6 +78,6 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
             basename, ext = os.path.splitext(os.path.basename(path))
             savePath = os.path.join(destinationDir, basename+"_centroided.mzML")
             print "save to ", savePath
-            ms.storePeakMap(result, savePath)
+            utils.storePeakMap(result, savePath)
 
     return P(configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)

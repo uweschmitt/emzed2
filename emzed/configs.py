@@ -21,9 +21,9 @@ mfstd = MatchedFilterFeatureDetector.standardConfig
 matchedFilterConfig = [  ( "std", "standard config" , mfstd ) ]
 
 
-#from libms.PeakPicking import PeakPickerHiRes
+from core.peak_picking import PeakPickerHiRes
 
-#peakPickerHiResConfig = [ ("std", "orbitrap standard", PeakPickerHiRes.standardConfig) ]
+peakPickerHiResConfig = [ ("std", "orbitrap standard", PeakPickerHiRes.standardConfig) ]
 
 
 from core.peak_integration import *
