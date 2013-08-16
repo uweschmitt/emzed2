@@ -130,6 +130,13 @@ class Table(object):
 
     """
 
+    _to_pickle = ("_colNames",
+                  "_colTypes",
+                  "_colFormats",
+                  "title",
+                  "meta",
+                  "rows")
+
     def __init__(self, colNames, colTypes, colFormats, rows=None, title=None,
             meta=None):
 
@@ -634,7 +641,8 @@ class Table(object):
             raise Exception("%s exists. You may use forceOverwrite=True" % path)
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" % emzed.__version__)
-            cPickle.dump(self, fp, protocol=2)
+            data = tuple(getattr(self, a) for a in Table._to_pickle)
+            cPickle.dump(data, fp, protocol=2)
 
     @staticmethod
     def load(path):
@@ -657,11 +665,18 @@ class Table(object):
                     raise Exception("can not load table of version %s" %
                             v_number_str)
             try:
-                tab = cPickle.loads(pickle_data)
-                tab.version = v_number_str
+                data = cPickle.loads(pickle_data)
             except:
                 raise Exception("%s has invalid format" % path)
             else:
+                if not isinstance(data, (list, tuple)):
+                    raise Exception("data item from file is not list or tuple")
+                if len(data) != len(Table._to_pickle):
+                    raise Exception("number of data items from file does not match Table._to_pickle")
+                tab = Table([], [], [], [], None, None)
+                for name, item in zip(Table._to_pickle, data):
+                    setattr(tab, name, item)
+                tab.version = v_number_str
                 tab.meta["loaded_from"]=os.path.abspath(path)
                 return tab
 
