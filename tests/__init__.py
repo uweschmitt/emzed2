@@ -1,5 +1,3 @@
-import os
-os.environ["IS_TEST"]="1"
 
 class TestAllWithoutDisplay(object):
 
@@ -11,6 +9,7 @@ class TestAllWithoutDisplay(object):
 
     def __del__(self):
         print "RESET DISPLAY"
+        import os
         if self.old_display is not None:
             os.environ["DISPLAY"] = self.old_display
 
