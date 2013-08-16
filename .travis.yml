@@ -9,7 +9,8 @@ install:
    - pip install guiqwt==2.3.1
    - pip install -r requirements.txt --use-mirrors
 script: 
-   - py.test -s -v tests/
+   - py.test -s -v --debug tests/
+   - cat pytestdebug.log
 
 virtualenv:
   system_site_packages: true
@@ -18,4 +19,3 @@ before_install:
   - sudo apt-get install -qq python-numpy python.scipy python-qt4
   - sudo apt-get install -qq r-base
   - sudo apt-get install -qq python-matplotlib
-
