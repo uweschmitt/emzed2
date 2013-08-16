@@ -15,7 +15,7 @@ class _GlobalConfig(object):
         if not os.path.exists(self.configFilePath):
             self.exchangeFolder = None
             self.metlinToken = None
-            self.editConfig()
+            #self.editConfig()
         else:
             p = ConfigParser.ConfigParser()
             p.readfp(open(self.configFilePath))
