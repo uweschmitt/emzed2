@@ -8,9 +8,8 @@ install:
    - pip install guidata==1.6.0
    - pip install guiqwt==2.3.1
    - pip install -r requirements.txt --use-mirrors
-   - pip install -U pytest==2.3.5
 script: 
-   - py.test -s
+   - py.test -s -v tests/
 
 virtualenv:
   system_site_packages: true
