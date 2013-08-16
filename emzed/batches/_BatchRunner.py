@@ -32,7 +32,6 @@ class BatchRunner(object):
             if not files:
                 print "aborted"
                 return
-            import emzed.gui
             destination = emzed.gui.askForDirectory()
             if not destination:
                 print "aborted"

@@ -1,4 +1,3 @@
-import pdb
 #encoding: latin-1
 
 # keep namespace clean:

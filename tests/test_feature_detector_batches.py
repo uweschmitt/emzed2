@@ -1,6 +1,5 @@
 import emzed.batches
 import glob
-import os
 
 def testRunCentwave(tmpdir, path):
 
@@ -22,10 +21,6 @@ def testRunCentwave(tmpdir, path):
 
 def testMatchedFilter(path, tmpdir):
 
-    try:
-        os.remove("temp_output/test.csv")
-    except:
-        pass
     tables = emzed.batches.runMatchedFilter(path("data/test.mzXML"),
             destination=tmpdir.strpath, configid="std", mzdiff=0, fwhm=50,
             steps=1, step=0.6)
@@ -37,10 +32,6 @@ def testMatchedFilter(path, tmpdir):
 
 def testMetaboFF(path, tmpdir):
 
-    try:
-        os.remove("temp_output/test.csv")
-    except:
-        pass
     tables = emzed.batches.runMetaboFeatureFinder(path("data/test.mzXML"),
             destination=tmpdir.strpath, configid="_test")
     assert len(glob.glob(tmpdir.join("test.csv").strpath)) == 1
