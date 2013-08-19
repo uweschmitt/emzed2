@@ -2,11 +2,15 @@ import os, glob, subprocess, sys, re
 
 from ..temp_file_utils import TemporaryDirectoryWithBackup
 
+from .. import config
+
+
 class RExecutor(object):
 
     # RExecutor is a Singleton:
     _instance = None
     def __new__(cls, *args, **kwargs):
+
         if not cls._instance:
             cls._instance = super(RExecutor, cls).__new__(
                                 cls, *args, **kwargs)
@@ -72,12 +76,10 @@ class RExecutor(object):
         key = _winreg.OpenKey(regsection, "Software\\R-core\\R")
         return _winreg.QueryValueEx(key, "InstallPath")[0]
 
-    def runTest(self):
-        status = self.run_command("q(status=123);")
-        assert status == 123, repr(status)
 
     def runScript(self, path):
 
+        self.setup_r_libs_variable()
         with open(path, "r") as fp:
             # do not know why diff platforms behave differntly:
             if sys.platform == "win32":
@@ -100,17 +102,38 @@ class RExecutor(object):
                                     stderr=subprocess.PIPE,
                                     bufsize=0, shell=True)
             out, err = proc.communicate()
-	    answer = err
+            answer = err
         else:
             proc = subprocess.Popen(['%s --version' % self.rExe],
                                     stdout = subprocess.PIPE,
                                     bufsize=0, shell=True)
             out, err = proc.communicate()
-	    answer = out
+            answer = out
         match = re.search("version\s+(\d+\.\d+\.\d+)", answer)
         if not match:
-	    return None
+            return None
         return match.groups(0)[0]
+
+    def getRLibsFolder(self):
+        r_version = RExecutor().get_r_version()
+        if r_version is None:
+            r_libs_folder = config.folders.getExchangeSubFolder("r_libs")
+        else:
+            r_libs_folder = config.folders.getExchangeSubFolder("r_libs_%s" % r_version)
+        return r_libs_folder
+
+    def setup_r_libs_variable(self):
+
+        r_libs_folder = self.getRLibsFolder()
+
+        print "SET R_LIBS ENVIRONMENT VARIABLE TO", r_libs_folder
+        if r_libs_folder is not None:
+            r_libs = [path for path in os.environ.get("R_LIBS", "").split(os.pathsep) if path]
+            if r_libs_folder not in r_libs:
+                if not os.path.exists(r_libs_folder):
+                    os.makedirs(r_libs_folder)
+                r_libs.insert(0, r_libs_folder)
+                os.environ["R_LIBS"] = os.pathsep.join(r_libs)
 
 
     def run_command(self, command, dir_=None):
@@ -131,17 +154,3 @@ class RExecutor(object):
             with TemporaryDirectoryWithBackup() as dir_:
                 return run(dir_, command)
 
-from .. import user_config
-
-r_version = RExecutor().get_r_version()
-user_config.setRVersion(r_version)
-
-r_libs_folder = user_config.getRLibsFolder()
-print "SET R_LIBS ENVIRONMENT VARIABLE TO", r_libs_folder
-if r_libs_folder is not None:
-    r_libs=[path for path in os.environ.get("R_LIBS", "").split(":") if path]
-    if r_libs_folder not in r_libs:
-        if not os.path.exists(r_libs_folder):
-            os.makedirs(r_libs_folder)
-        r_libs.insert(0, r_libs_folder)
-        os.environ["R_LIBS"] = ":".join(r_libs)

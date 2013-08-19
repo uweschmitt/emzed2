@@ -20,4 +20,4 @@ before_install:
 - sudo apt-get install -qq libnetcdf-dev libfftw3-dev
 env:
   global:
-  - secure: deuH2sc43ASKWQAKLWonGE7JuwIs/AsjKMEZwu6qHKCHE8hk8Dn8rZ7akFUN1UzykYg3sfbr5GZulNIGtpfzeK35vN/AcMPQFixfbyfYS1JmzQxEvATeXThN6G/AQ5CoCZRNCaDBv9egb9tjNm8TpYJPtAO2qmBks+O67I003WE=
+  - secure: MMLIzyBDbnS04owZ1QgiicWTEM8WaRxA7z/VKakLfSEVwJq9UFc5drFr+Q309rBUvKmMl7/xzloqorYa4DPwJ8XOvIW2eKT2wsXuKc5neCD9v8o1RtLDEsvlkVW7K5xuenLxN0XdZwa78/cb2XZowp6dezpSVXc6xJInuhtj5q8=

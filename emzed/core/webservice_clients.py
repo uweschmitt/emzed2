@@ -1,3 +1,4 @@
+import pdb
 #encoding:latin-1
 import requests
 import urllib2
@@ -6,7 +7,7 @@ from collections import OrderedDict
 
 
 from data_types import Table
-import user_config
+import config
 
 
 class MetlinMatcher(object):
@@ -30,9 +31,9 @@ class MetlinMatcher(object):
     @staticmethod
     def _query(masses, adduct, ppm):
 
-        token = user_config.getMetlinToken()
+        token = config.global_config.get("metlin_token")
         if not token:
-            raise Exception("need metlin token in user_config config file")
+            raise Exception("metlin token not configured. call emzed.core.config.global_config.edit()")
 
         params = OrderedDict()
         params["token"] = token # "DqeN7qBNEAzVNm9n"

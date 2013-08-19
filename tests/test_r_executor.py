@@ -1,12 +1,11 @@
 
-from emzed.core.r_connect import RExecutor, installXcmsIfNeeded
-
+from emzed.core.r_connect import RExecutor
 
 def test_one():
-    RExecutor().runTest()
-
-def test_two():
-    installXcmsIfNeeded()
+    status = RExecutor().run_command("q(status=123)")
+    assert status == 123, repr(status)
+    status = RExecutor().run_command("q(status=12)")
+    assert status == 12, repr(status)
 
 
 

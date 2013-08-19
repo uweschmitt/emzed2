@@ -9,10 +9,11 @@ import os, sys
 from ..temp_file_utils import TemporaryDirectoryWithBackup
 from pyopenms import FileHandler
 
-#from userConfig import getExchangeSubFolder, getRLibsFolder
-from .. import user_config
+from .. import config
 
-exchangeFolderAvailable = user_config.getExchangeSubFolder("") is not None
+
+def exchangeFolderAvailable():
+    return config.folders.getExchangeSubFolder("") is not None
 
 class XCMSFeatureParser(TableParser):
 
@@ -32,7 +33,7 @@ class XCMSFeatureParser(TableParser):
 
 
 def install_xmcs_if_needed_statements():
-    r_libs = user_config.getRLibsFolder().replace("\\", "\\\\")
+    r_libs = RExecutor().getRLibsFolder().replace("\\", "\\\\")
 
     script = """
                 if (require("xcms") == FALSE)
@@ -45,10 +46,15 @@ def install_xmcs_if_needed_statements():
     return script
 
 
+def checkIfxcmsIsInstalled():
+
+    status = RExecutor().run_command(""" if (require("xcms") == FALSE) q(status=1); q(status=0); """)
+    return status==1
+
+
 def installXcmsIfNeeded():
 
-    if not exchangeFolderAvailable:
-# all installled libs will get to local folder
+    if not exchangeFolderAvailable():
         print "no xcms install as exchange folder is not available"
         return
 
@@ -57,7 +63,7 @@ def installXcmsIfNeeded():
 
 def lookForXcmsUpgrades():
 
-    if not exchangeFolderAvailable:
+    if not exchangeFolderAvailable():
         print "no xcms upgrade check as exchange folder is not available"
         return
 
@@ -65,7 +71,7 @@ def lookForXcmsUpgrades():
                  source("http://bioconductor.org/biocLite.R")
                  todo <- old.packages(repos=biocinstallRepos(), lib="%s", quiet=T)
                  q(status=length(todo))
-             """ % user_config.getRLibsFolder().replace("\\", "\\\\")
+             """ % RExecutor().getRLibsFolder().replace("\\", "\\\\")
 
     num = RExecutor().run_command(script)
     if not num:
@@ -76,11 +82,11 @@ def lookForXcmsUpgrades():
 
 def doXcmsUpgrade():
 
-    if not exchangeFolderAvailable:
+    if not exchangeFolderAvailable():
         print "no xcms upgrade as exchange folder is not available"
         return
 
-    r_libs = user_config.getRLibsFolder().replace("\\", "\\\\")
+    r_libs = RExecutor().getRLibsFolder().replace("\\", "\\\\")
 
     script = """
      source("http://bioconductor.org/biocLite.R")

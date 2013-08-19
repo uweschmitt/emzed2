@@ -5,11 +5,26 @@
 import guidata.dataset.datatypes as _dt
 import guidata.dataset.dataitems as _di
 import os
+import types
+import functools
+import sys
+
+from .. import version
 
 _is_expert = _dt.ValueProp(False)
 
-class _UserConfig(object):
 
+def _apply_patch_for_allowing_empty_value(diretory_item):
+    def check_value(self, value):
+        if value == "":
+            return True
+        return _di.DirectoryItem.check_value(self, value)
+    # subclassing _di.DirectoryItem does not work as guidata does some lookup based
+    # on "typc(xxx)" for DataItems. So we replace the corresponding method:
+    diretory_item.check_value = types.MethodType(check_value, diretory_item, _di.DirectoryItem)
+
+
+class _UserConfig(object):
 
     class Parameters(_dt.DataSet):
 
@@ -21,9 +36,16 @@ class _UserConfig(object):
 
         _g1 = _dt.EndGroup("User Settings")
 
+        g11 = _dt.BeginGroup("Exchange Folder Settings")
+
+        exchange_folder = _di.DirectoryItem("Exchange Folder")
+        _apply_patch_for_allowing_empty_value(exchange_folder)
+
+        _g11 = _dt.EndGroup("Exchange Folder Settings")
+
         g2 = _dt.BeginGroup("Webservice Settings")
 
-        metlin_token  = _di.StringItem("Metlin Token", default=os.environ.get("METLIN_TOKEN"))
+        metlin_token  = _di.StringItem("Metlin Token")
 
         _g2 = _dt.EndGroup("Webservice Settings")
 
@@ -53,13 +75,17 @@ class _UserConfig(object):
             self.set_defaults()
 
     def get(self, key):
-        val = getattr(self.parameters, key)
+        env_key = "EMZED_%s" % key.upper()
+        if env_key in os.environ:
+            val = os.environ.get(env_key)
+        else:
+            val = getattr(self.parameters, key)
         if isinstance(val, unicode):
             val = val.encode("latin-1")
         return val
 
     def set_(self, key, value):
-        return setattr(self.parameters, key, value)
+        setattr(self.parameters, key, value)
 
     def get_url(self, key):
         return self.get(key).rstrip("/") + "/"
@@ -117,4 +143,87 @@ class _UserConfig(object):
         self.parameters.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
 
+
 global_config = _UserConfig()
+
+
+
+def _linuxdefault(path):
+    def wrapper(fun, path=path):
+        @functools.wraps(fun)
+        def new_fun():
+            if sys.platform == "win32":
+                return fun()
+            else:
+                return path
+        return new_fun
+    return wrapper
+
+
+class _FolderLocations(object):
+
+    @staticmethod
+    def _query(subKey):
+        import _winreg
+        key =_winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+                            "Software\\Microsoft\\Windows\\CurrentVersion"
+                            "\\Explorer\\User Shell Folders")
+        val, _ = _winreg.QueryValueEx(key, subKey)
+        return _winreg.ExpandEnvironmentStrings(val)
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getDocumentFolder():
+        return _FolderLocations._query("Personal")
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getAppDataFolder():
+        return _FolderLocations._query( "AppData")
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getLocalAppDataFolder():
+        return _FolderLocations._query( "Local AppData")
+
+    @staticmethod
+    def getEmzedFolder():
+        if sys.platform == "win32":
+            return os.path.join(_FolderLocations.getAppDataFolder(), "emzed")
+        else:
+            return os.path.join(_FolderLocations.getAppDataFolder(), ".emzed")
+
+
+    @staticmethod
+    def getDataHome():
+        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed_files")
+        return dataHome
+
+    @staticmethod
+    def getExchangeSubFolder(subfolder):
+        folder = global_config.get("exchange_folder")
+        if folder:
+            folder = os.path.join(folder, subfolder)
+            try:
+                if not os.path.exists(folder):
+                    os.makedirs(folder)
+                os.stat(folder)
+            except:
+                # not reachable, may happen for network folders
+                return None
+            return folder
+        # no global exchange folder set, use local folder instead:
+        folder = os.path.join(_FolderLocations.getDataHome(), "shared")
+        folder = os.path.join(folder, subfolder)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        return folder
+
+    @staticmethod
+    def getVersionedExchangeFolder():
+        return _FolderLocations.getExchangeSubFolder(version.version)
+
+folders = _FolderLocations

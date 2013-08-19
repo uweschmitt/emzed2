@@ -1,7 +1,12 @@
 import emzed.utils as utils
 import pytest
+import emzed.core.config
 
 def test_small():
+
+    if not emzed.core.config.global_config.get("metlin_token"):
+        raise Exception("please provide EMZED_METLIN_TOKEN variable "\
+                        "on commandline for running test")
 
     t = utils.toTable("m0",[195.0877, 194.07904])
     tn = utils.matchMetlin(t, "m0", ["M"], 30)
@@ -15,12 +20,20 @@ def test_small():
 # error in metlin rest service !
 @pytest.mark.xfail
 def test_large():
+    if not emzed.core.config.global_config.get("metlin_token"):
+        raise Exception("please provide EMZED_METLIN_TOKEN variable "\
+                        "on commandline for running test")
+
     mz_values = [185.0877 + i +1 for i in range(100)]
     t = utils.toTable("m0", mz_values)
     tn = utils.matchMetlin(t, "m0", ["M", "M+H", "M+2H", "M+3H"], 3)
     assert len(tn) >= 2709, len(tn)
 
 def test_handling_of_wrong_answer_from_metlin(path):
+    if not emzed.core.config.global_config.get("metlin_token"):
+        raise Exception("please provide EMZED_METLIN_TOKEN variable "\
+                        "on commandline for running test")
+
 
     t = utils.loadCSV(path("data/metlin_input.csv"))
     assert len(t) == 2, len(t)
