@@ -4,7 +4,7 @@ adducts = ("M", "M+H")
 
 def match(masses, adducts, tolerance=30, tolunits="ppm"):
 
-    token = "DqeN7qBNEAzVNm9n"
+    token = ""
 
     mass_items = "".join("""\
             <item soapenc:position="[%d]" xsi:type="xsd:float">%.6f</item>""" % p

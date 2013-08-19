@@ -4,6 +4,7 @@
 
 import guidata.dataset.datatypes as _dt
 import guidata.dataset.dataitems as _di
+import os
 
 _is_expert = _dt.ValueProp(False)
 
@@ -22,7 +23,7 @@ class _UserConfig(object):
 
         g2 = _dt.BeginGroup("Webservice Settings")
 
-        metlin_token  = _di.StringItem("Metlin Token")
+        metlin_token  = _di.StringItem("Metlin Token", default=os.environ.get("METLIN_TOKEN"))
 
         _g2 = _dt.EndGroup("Webservice Settings")
 

@@ -14,7 +14,7 @@ class _GlobalConfig(object):
         self.configFilePath=os.path.join(emzedFolder, "global.ini")
         if not os.path.exists(self.configFilePath):
             self.exchangeFolder = None
-            self.metlinToken = None
+            self.metlinToken = os.environ.get("METLIN_TOKEN")
             #self.editConfig()
         else:
             p = ConfigParser.ConfigParser()
