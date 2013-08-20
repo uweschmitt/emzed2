@@ -203,10 +203,11 @@ class _FolderLocations(object):
         return dataHome
 
     @staticmethod
-    def getExchangeSubFolder(subfolder):
+    def getExchangeSubFolder(subfolder=None):
         folder = global_config.get("exchange_folder")
         if folder:
-            folder = os.path.join(folder, subfolder)
+            if subfolder is not None:
+                folder = os.path.join(folder, subfolder)
             try:
                 if not os.path.exists(folder):
                     os.makedirs(folder)

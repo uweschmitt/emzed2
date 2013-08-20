@@ -13,7 +13,7 @@ from .. import config
 
 
 def exchangeFolderAvailable():
-    return config.folders.getExchangeSubFolder("") is not None
+    return config.folders.getExchangeSubFolder(None) is not None
 
 class XCMSFeatureParser(TableParser):
 
