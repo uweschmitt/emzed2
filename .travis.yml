@@ -13,11 +13,16 @@ script:
 virtualenv:
   system_site_packages: true
 before_install:
-- sudo apt-get install -qq python-numpy python.scipy python-qt4 python-qwt5-qt4
-- sudo apt-get install -qq r-base
-- sudo apt-get install -qq python-matplotlib
-- sudo apt-get install -qq r-cran-rmpi r-cran-rsprng
-- sudo apt-get install -qq libnetcdf-dev libfftw3-dev
+- sudo apt-get install -q -y python-numpy 
+- sudo apt-get install -q -y python.scipy 
+- sudo apt-get install -q -y python-qt4 
+- sudo apt-get install -q -y python-qwt5-qt4
+- sudo apt-get install -q -y r-base
+- sudo apt-get install -q -y python-matplotlib
+- sudo apt-get install -q -y r-cran-rmpi 
+- sudo apt-get install -q -y r-cran-rsprng
+- sudo apt-get install -q -y libnetcdf-dev 
+- sudo apt-get install -q -y libfftw3-dev
 env:
   global:
   - secure: MMLIzyBDbnS04owZ1QgiicWTEM8WaRxA7z/VKakLfSEVwJq9UFc5drFr+Q309rBUvKmMl7/xzloqorYa4DPwJ8XOvIW2eKT2wsXuKc5neCD9v8o1RtLDEsvlkVW7K5xuenLxN0XdZwa78/cb2XZowp6dezpSVXc6xJInuhtj5q8=
