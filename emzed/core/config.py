@@ -217,11 +217,14 @@ class _FolderLocations(object):
                 return None
             return folder
         # no global exchange folder set, use local folder instead:
-        folder = os.path.join(_FolderLocations.getDataHome(), "shared")
-        folder = os.path.join(folder, subfolder)
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        return folder
+        return None
+        return _FolderLocations.getDataHome()
+
+        #folder = os.path.join(_FolderLocations.getDataHome(), "shared")
+        #folder = os.path.join(folder, subfolder)
+        #if not os.path.exists(folder):
+            #os.makedirs(folder)
+        #return folder
 
     @staticmethod
     def getVersionedExchangeFolder():
