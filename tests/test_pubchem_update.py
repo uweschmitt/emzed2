@@ -55,7 +55,7 @@ def test_pubchem_import():
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
     db = emzed.db.init_pubchem(tmpdir.strpath, None)
-    updater = emzed.updaters.registry.get("pubchem_updater")
+    updater = emzed.updaters.get("pubchem_updater")
 
     # reset updater
     emzed.updaters.reset("pubchem_updater")
