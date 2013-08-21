@@ -54,18 +54,10 @@ def checkIfxcmsIsInstalled():
 
 def installXcmsIfNeeded():
 
-    if not exchangeFolderAvailable():
-        print "no xcms install as exchange folder is not available"
-        return
-
     RExecutor().run_command(install_xmcs_if_needed_statements())
 
 
 def lookForXcmsUpgrades():
-
-    if not exchangeFolderAvailable():
-        print "no xcms upgrade check as exchange folder is not available"
-        return
 
     script = """
                  source("http://bioconductor.org/biocLite.R")

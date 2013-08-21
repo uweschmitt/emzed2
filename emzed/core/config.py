@@ -203,6 +203,13 @@ class _FolderLocations(object):
         return dataHome
 
     @staticmethod
+    def getDataHomeSubFolder(subfolder=None):
+        data_home = _FolderLocations.getDataHome()
+        if subfolder is not None:
+            data_home = os.path.join(data_home, subfolder)
+        return data_home
+
+    @staticmethod
     def getExchangeSubFolder(subfolder=None):
         folder = global_config.get("exchange_folder")
         if folder:
@@ -218,13 +225,6 @@ class _FolderLocations(object):
             return folder
         # no global exchange folder set, use local folder instead:
         return None
-        return _FolderLocations.getDataHome()
-
-        #folder = os.path.join(_FolderLocations.getDataHome(), "shared")
-        #folder = os.path.join(folder, subfolder)
-        #if not os.path.exists(folder):
-            #os.makedirs(folder)
-        #return folder
 
     @staticmethod
     def getVersionedExchangeFolder():

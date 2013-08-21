@@ -7,7 +7,7 @@ from .. import config
 
 class RExecutor(object):
 
-    # RExecutor is a Singleton:
+    # RExecutor is a singleton:
     _instance = None
     def __new__(cls, *args, **kwargs):
 
@@ -117,9 +117,15 @@ class RExecutor(object):
     def getRLibsFolder(self):
         r_version = RExecutor().get_r_version()
         if r_version is None:
-            r_libs_folder = config.folders.getExchangeSubFolder("r_libs")
+            subfolder = "r_libs"
+            r_libs_folder = config.folders.getExchangeSubFolder(subfolder)
+            if r_libs_folder is None:
+                r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
         else:
-            r_libs_folder = config.folders.getExchangeSubFolder("r_libs_%s" % r_version)
+            subfolder = "r_libs_%s" % r_version
+            r_libs_folder = config.folders.getExchangeSubFolder(subfolder)
+            if r_libs_folder is None:
+                r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
         return r_libs_folder
 
     def setup_r_libs_variable(self):
