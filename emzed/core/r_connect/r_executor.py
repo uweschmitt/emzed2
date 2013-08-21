@@ -7,6 +7,8 @@ from .. import config
 
 class RExecutor(object):
 
+    _patched_rlibs_folder = None
+
     # RExecutor is a singleton:
     _instance = None
     def __new__(cls, *args, **kwargs):
@@ -115,6 +117,10 @@ class RExecutor(object):
         return match.groups(0)[0]
 
     def getRLibsFolder(self):
+
+        if RExecutor._patched_rlibs_folder is not None:
+            return RExecutor._patched_rlibs_folder
+
         r_version = RExecutor().get_r_version()
         if r_version is None:
             subfolder = "r_libs"

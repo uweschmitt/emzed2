@@ -74,10 +74,6 @@ def lookForXcmsUpgrades():
 
 def doXcmsUpgrade():
 
-    if not exchangeFolderAvailable():
-        print "no xcms upgrade as exchange folder is not available"
-        return
-
     r_libs = RExecutor().getRLibsFolder().replace("\\", "\\\\")
 
     script = """
