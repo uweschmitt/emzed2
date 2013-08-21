@@ -5,10 +5,10 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress = True):
         returns processed table. ``ftable`` is not changed inplace.
 
         The peak integrator corresponding to the integratorId is
-        defined in ``configs.py`` or ``local_configs.py``
+        defined in ``algorithm_configs.py`` or ``local_configs.py``
 
     """
-    from ..configs import peakIntegrators
+    from ..algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
     import time

@@ -1,19 +1,22 @@
-import emzed.core
-a = 42
 
-import guidata.dataset.datatypes as dt
-import guidata.dataset.dataitems as di
+from emzed.core.config import _UserConfig
 
+_c = _UserConfig(_no_load=True)
+if _c.load() is False:
+    _c.edit()
 
-class Processing(dt.DataSet):
-    """Example"""
+import emzed.updaters
 
-    a = di.FloatItem("Parameter #1", default=2.3)
-    b = di.IntItem("Parameter #2", min=0, max=10, default=5)
-    c = di.StringItem("NAME")
+emzed.updaters.check_emzed_updates()
+emzed.updaters.print_update_status()
 
-#import PyQt4.QtGui
-#import sys
-#app = PyQt4.QtGui.QApplication(sys.argv)
-p = Processing()
-#x = p.edit()
+import emzed.abundance
+import emzed.adducts
+import emzed.align
+import emzed.batches
+import emzed.db
+import emzed.elements
+import emzed.gui
+import emzed.stats
+import emzed.utils
+

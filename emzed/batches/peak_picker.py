@@ -9,7 +9,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
          signal_to_noise, as named arguments.
 
          if you have multiple configs for the peakpicker, you can give an
-         configid as defined in configs.py, or you are asked to choose
+         configid as defined in algorithm_configs.py, or you are asked to choose
          a config.
 
          if you have a single config this one is used automatically
@@ -18,7 +18,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
               runPeakPickerHiRes():
                      asks for source files and target directory
-                     asks for config if multiple configs are defined
+                     asks for config if multiple algorithm_configs are defined
 
               runPeakPickerHiRes(configid="std", signal_to_noise = 2.0)
                      uses config with id "std", overwrites signal_to_noise
@@ -50,7 +50,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
 
     from _BatchRunner import BatchRunner
-    from .. import configs
+    from .. import algorithm_configs
     from .. import utils
     import os.path
     #import libms.PeakPicking
@@ -80,4 +80,4 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
             print "save to ", savePath
             utils.storePeakMap(result, savePath)
 
-    return P(configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)

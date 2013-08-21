@@ -42,7 +42,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
          as named arguments.
 
          if you have multiple configs for centwave, you can give an
-         configid as defined in configs.py, or you are asked to choose
+         configid as defined in algorithm_configs.py, or you are asked to choose
          a config.
 
          if you have a single config this one is used automatically
@@ -51,7 +51,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
 
               runCentwave():
                      asks for source files and target directory
-                     asks for config if multiple configs are defined
+                     asks for config if multiple algorithm_configs are defined
 
               runCentwave(configid="std", ppm=17)
                      uses config with id "std", overwrites ppm parameter
@@ -81,7 +81,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
 
     """
 
-    from .. import configs
+    from .. import algorithm_configs
     from ..core.r_connect import CentwaveFeatureDetector
 
     class P(_FD):
@@ -89,7 +89,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
         def setup(self, config):
             self.det = CentwaveFeatureDetector(**config)
 
-    return P(configs.centwaveConfig, True).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.centwaveConfig, True).run(pattern, destination, configid, **params)
 
 from ..core import r_connect as __rconnect
 runCentwave.__doc__ += __rconnect.CentwaveFeatureDetector.__doc__
@@ -105,7 +105,7 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
          as named arguments.
 
          if you have multiple configs for matched filter, you can give an
-         configid as defined in configs.py, or you are asked to choose
+         configid as defined in algorithm_configs.py, or you are asked to choose
          a config.
 
          if you have a single config this one is used automatically
@@ -114,7 +114,7 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
 
               runMatchedFilter():
                      asks for source files and target directory
-                     asks for config if multiple configs are defined
+                     asks for config if multiple algorithm_configs are defined
 
               runMatchedFilter(configid="std", ppm=17)
                      uses config with id "std", overwrites ppm parameter
@@ -145,14 +145,14 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
     """
 
     from ..core.r_connect import MatchedFilterFeatureDetector
-    from .. import configs
+    from .. import algorithm_configs
 
     class P(_FD):
 
         def setup(self, config):
             self.det = MatchedFilterFeatureDetector(**config)
 
-    return P(configs.matchedFilterConfig, True).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid, **params)
 
 runMatchedFilter.__doc__ += __rconnect.MatchedFilterFeatureDetector.__doc__
 
@@ -170,7 +170,7 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
          as named arguments.
 
          if you have multiple configs for matched filter, you can give an
-         configid as defined in configs.py, or you are asked to choose
+         configid as defined in algorithm_configs.py, or you are asked to choose
          a config.
 
          if you have a single config this one is used automatically
@@ -179,7 +179,7 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
 
               runMatchedFilter():
                      asks for source files and target directory
-                     asks for config if multiple configs are defined
+                     asks for config if multiple algorithm_configs are defined
 
               runMatchedFilter(configid="std", ppm=17)
                      uses config with id "std", overwrites ppm parameter
@@ -209,7 +209,7 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
 
     """
 
-    from .. import configs
+    from .. import algorithm_configs
 
     class P(_FD):
 
@@ -237,5 +237,5 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
         def setup(self, config):
             self._ff_config = config
 
-    return P(configs.metaboFFConfigs, True).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.metaboFFConfigs, True).run(pattern, destination, configid, **params)
 

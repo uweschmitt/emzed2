@@ -11,8 +11,94 @@ import sys
 
 from .. import version
 
-_is_expert = _dt.ValueProp(False)
 
+def _linuxdefault(path):
+    def wrapper(fun, path=path):
+        @functools.wraps(fun)
+        def new_fun():
+            if sys.platform == "win32":
+                return fun()
+            else:
+                return path
+        return new_fun
+    return wrapper
+
+
+class _FolderLocations(object):
+
+    @staticmethod
+    def _query(subKey):
+        import _winreg
+        key =_winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+                            "Software\\Microsoft\\Windows\\CurrentVersion"
+                            "\\Explorer\\User Shell Folders")
+        val, _ = _winreg.QueryValueEx(key, subKey)
+        return _winreg.ExpandEnvironmentStrings(val)
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getDocumentFolder():
+        return _FolderLocations._query("Personal")
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getAppDataFolder():
+        return _FolderLocations._query( "AppData")
+
+    # order of decorators counts
+    @staticmethod
+    @_linuxdefault(os.environ.get("HOME"))
+    def getLocalAppDataFolder():
+        return _FolderLocations._query( "Local AppData")
+
+    @staticmethod
+    def getEmzedFolder():
+        if sys.platform == "win32":
+            return os.path.join(_FolderLocations.getAppDataFolder(), "emzed")
+        else:
+            return os.path.join(_FolderLocations.getAppDataFolder(), ".emzed")
+
+
+    @staticmethod
+    def getDataHome():
+        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed_files")
+        return dataHome
+
+    @staticmethod
+    def getDataHomeSubFolder(subfolder=None):
+        data_home = _FolderLocations.getDataHome()
+        if subfolder is not None:
+            data_home = os.path.join(data_home, subfolder)
+        return data_home
+
+    @staticmethod
+    def getExchangeSubFolder(subfolder=None):
+        folder = global_config.get("exchange_folder")
+        if folder:
+            if subfolder is not None:
+                folder = os.path.join(folder, subfolder)
+            try:
+                if not os.path.exists(folder):
+                    os.makedirs(folder)
+                os.stat(folder)
+            except:
+                # not reachable, may happen for network folders
+                return None
+            return folder
+        # no global exchange folder set, use local folder instead:
+        return None
+
+    @staticmethod
+    def getVersionedExchangeFolder():
+        return _FolderLocations.getExchangeSubFolder(version.version)
+
+folders = _FolderLocations
+
+
+
+_is_expert = _dt.ValueProp(False)
 
 def _apply_patch_for_allowing_empty_value(diretory_item):
     def check_value(self, value):
@@ -134,9 +220,8 @@ class _UserConfig(object):
         self.store()
 
     def config_file_path(self):
-        import os
-        from emzed.core.platform_dependent import getEmzedFolder
-        return os.path.join(getEmzedFolder(), "config.ini")
+        import os.path
+        return os.path.join(folders.getEmzedFolder(), "config.ini")
 
     def set_defaults(self):
         self.parameters.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
@@ -148,86 +233,3 @@ global_config = _UserConfig()
 
 
 
-def _linuxdefault(path):
-    def wrapper(fun, path=path):
-        @functools.wraps(fun)
-        def new_fun():
-            if sys.platform == "win32":
-                return fun()
-            else:
-                return path
-        return new_fun
-    return wrapper
-
-
-class _FolderLocations(object):
-
-    @staticmethod
-    def _query(subKey):
-        import _winreg
-        key =_winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
-                            "Software\\Microsoft\\Windows\\CurrentVersion"
-                            "\\Explorer\\User Shell Folders")
-        val, _ = _winreg.QueryValueEx(key, subKey)
-        return _winreg.ExpandEnvironmentStrings(val)
-
-    # order of decorators counts
-    @staticmethod
-    @_linuxdefault(os.environ.get("HOME"))
-    def getDocumentFolder():
-        return _FolderLocations._query("Personal")
-
-    # order of decorators counts
-    @staticmethod
-    @_linuxdefault(os.environ.get("HOME"))
-    def getAppDataFolder():
-        return _FolderLocations._query( "AppData")
-
-    # order of decorators counts
-    @staticmethod
-    @_linuxdefault(os.environ.get("HOME"))
-    def getLocalAppDataFolder():
-        return _FolderLocations._query( "Local AppData")
-
-    @staticmethod
-    def getEmzedFolder():
-        if sys.platform == "win32":
-            return os.path.join(_FolderLocations.getAppDataFolder(), "emzed")
-        else:
-            return os.path.join(_FolderLocations.getAppDataFolder(), ".emzed")
-
-
-    @staticmethod
-    def getDataHome():
-        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed_files")
-        return dataHome
-
-    @staticmethod
-    def getDataHomeSubFolder(subfolder=None):
-        data_home = _FolderLocations.getDataHome()
-        if subfolder is not None:
-            data_home = os.path.join(data_home, subfolder)
-        return data_home
-
-    @staticmethod
-    def getExchangeSubFolder(subfolder=None):
-        folder = global_config.get("exchange_folder")
-        if folder:
-            if subfolder is not None:
-                folder = os.path.join(folder, subfolder)
-            try:
-                if not os.path.exists(folder):
-                    os.makedirs(folder)
-                os.stat(folder)
-            except:
-                # not reachable, may happen for network folders
-                return None
-            return folder
-        # no global exchange folder set, use local folder instead:
-        return None
-
-    @staticmethod
-    def getVersionedExchangeFolder():
-        return _FolderLocations.getExchangeSubFolder(version.version)
-
-folders = _FolderLocations
