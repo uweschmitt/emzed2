@@ -10,6 +10,7 @@ install:
 script:
 - py.test -s -v --debug tests/
 - py.test -s -v --debug integration_tests/
+- cat pytestdebug.log
 virtualenv:
   system_site_packages: true
 before_install:
