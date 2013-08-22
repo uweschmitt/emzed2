@@ -4,6 +4,12 @@
 # Licensed under the terms of the GPL 3 License
 # (see emzed/__init__.py for details)
 
+import spyderlib.baseconfig
+spyderlib.baseconfig.SUBFOLDER = ".emzed2_workbench"
+
+import spyderlib.config
+spyderlib.config.CONF.name = "emzed2"
+
 """
 
 This is emzed.workbench which relies an spyder.
