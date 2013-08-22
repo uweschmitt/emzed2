@@ -1,9 +1,7 @@
+import emzed.config
 
-from emzed.core.config import _UserConfig
-
-_c = _UserConfig(_no_load=True)
-if _c.load() is False:
-    _c.edit()
+if emzed.config._is_first_start():
+    emzed.config.edit()
 
 import emzed.updaters
 
@@ -19,4 +17,5 @@ import emzed.elements
 import emzed.gui
 import emzed.stats
 import emzed.utils
+
 

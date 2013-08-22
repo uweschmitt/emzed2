@@ -16,36 +16,33 @@ def patch_external_shell():
 
     # utility functions called in monitor to get status info
     # about objects in shell:
-    #patch_dicteditorutils()
+    patch_dicteditorutils()
 
     # oedit opens dialogs for objects, we introduce handling of
     # emzed specific types:
-    #patch_oedit()
+    patch_oedit()
 
-    #__builtins__["__emzed_patched_applied"] = True
+    __builtins__["__emzed_patche_applied"] = True
 
 def patch_dicteditorutils():
 
     from  spyderlib.widgets import dicteditorutils
     @replace(dicteditorutils.is_supported, verbose=True)
     def is_supported(value, check_all=False, filters=None, iterate=True):
-        import libms.DataStructures
+        from  emzed.core.data_types import PeakMap, Table
         import numpy
-        return dicteditorutils._orig_is_supported(value,
+        return isinstance(value, (Table, PeakMap)) \
+            or dicteditorutils._orig_is_supported(value,
                                                   check_all,
                                                   filters,
                                                   iterate)\
-            or isinstance(value, libms.DataStructures.PeakMap)\
-            or isinstance(value, libms.DataStructures.Table)\
             or numpy.number in getattr(type(value), "__mro__", [])
 
 
     @replace(dicteditorutils.get_size, verbose=True)
     def get_size( item ):
-        import libms.DataStructures
-        if isinstance(item, libms.DataStructures.PeakMap):
-            return len(item)
-        if isinstance(item, libms.DataStructures.Table):
+        from  emzed.core.data_types import PeakMap, Table
+        if isinstance(item, (PeakMap, Table)):
             return len(item)
         return dicteditorutils._orig_get_size(item)
 
@@ -56,7 +53,7 @@ def patch_dicteditorutils():
         # and including the first dot is ommited by
         # dicteditorutils.get_type which leads to strange results
 
-        from libms.DataStructures import Table, PeakMap
+        from  emzed.core.data_types import PeakMap, Table
         import numpy
 
         if isinstance(item, list) and all(isinstance(ii, Table) for ii in item):
@@ -75,7 +72,7 @@ def patch_dicteditorutils():
     @replace(dicteditorutils.value_to_display, verbose=True)
     def  value_to_display(value, truncate=False, trunc_len=80, minmax=False,
                           collvalue=True):
-        from libms.DataStructures import Table, PeakMap
+        from  emzed.core.data_types import PeakMap, Table
         import os
         import numpy
 
@@ -130,7 +127,8 @@ def patch_guiqwt():
 
     # remove __del__ as we get unbreakable dependency cycles
     #  if we plot a lot.
-    del guiqwt.curve.CurvePlot.__del__
+    if hasattr(guiqwt.curve.CurvePlot, "__del__"):
+        del guiqwt.curve.CurvePlot.__del__
 
     # caused by the latter patch, get_active_plot sometimes raises
     # exception (i guess) because the underlying c++ object does not
@@ -156,8 +154,25 @@ def patch_oedit():
     # modified signature of patched method: added keeper arg, as this is
     # a module global variable in objecteditor.py:
 
-    @replace(objecteditor.oedit, verbose=True)
-    def oedit(obj, modal=True, namespace=None, keeper=objecteditor.DialogKeeper()):
+    @replace(objecteditor.create_dialog)
+    def create_dialog(obj, obj_name):
+        from emzed.core.data_types import PeakMap, Table
+        from emzed.core.explorers  import PeakMapExplorer, TableExplorer
+        if isinstance(obj, PeakMap):
+            dialog = PeakMapExplorer()
+            dialog.setup(obj)
+            return dialog, lambda dlg: dlg.get_value()
+        elif isinstance(obj, Table):
+            dialog = TableExplorer([obj], False)
+            return dialog, lambda dlg: dlg.get_value()[0]
+        elif isinstance(obj, list) and all(isinstance(t, Table) for t in obj):
+            dialog = TableExplorer(obj, False)
+            return dialog, lambda dlg: dlg.get_value()
+        return objecteditor._orig_create_dialog(obj, obj_name)
+
+
+    #@replace(objecteditor.oedit, verbose=True)
+    def oedit(obj, modal=True, namespace=None):
         """
         Edit the object 'obj' in a GUI-based editor and return the edited copy
         (if Cancel is pressed, return None)

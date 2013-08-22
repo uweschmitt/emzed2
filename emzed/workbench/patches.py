@@ -25,36 +25,22 @@ def patch_spyderlib():
 
     # patch dialogs for emzed specific types:
 
-    #patch_RemoteDictEditorTableView()
-    #patch_NamespaceBrowser()
+    patch_RemoteDictEditorTableView()
+    patch_NamespaceBrowser()
 
 
 def patch_RemoteDictEditorTableView():
 
     from  spyderlib.widgets.dicteditor import (RemoteDictEditorTableView,
-                                               BaseTableView)
+                                               #BaseTableView
+                                               )
 
-    @replace(RemoteDictEditorTableView.edit_item, verbose=True)
-    def patch(self):
-        if self.remote_editing_enabled:
-            index = self.currentIndex()
-            if not index.isValid():
-                return
-            key = self.model.get_key(index)
-            if (self.is_list(key) or self.is_dict(key)
-                or self.is_array(key) or self.is_image(key)):
-                # If this is a remote dict editor, the following avoid
-                # transfering large amount of data through the socket
-                self.oedit(key)
-            # START MOD EMZED
-            elif self.is_peakmap(key) or self.is_table(key) or\
+    @replace(RemoteDictEditorTableView.oedit_possible, verbose=True)
+    def oedit_possible(self, key):
+        if self.is_peakmap(key) or self.is_table(key) or\
                  self.is_tablelist(key):
-                self.oedit(key)
-            # END MOD EMZED
-            else:
-                BaseTableView.edit_item(self)
-        else:
-            BaseTableView.edit_item(self)
+                     return True
+        return RemoteDictEditorTableView._orig_oedit_possible(self, key)
 
 
 def patch_NamespaceBrowser():
@@ -67,13 +53,13 @@ def patch_NamespaceBrowser():
     def is_peakmap(self, name):
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
-           "isinstance(globals()['%s'], (libms.DataStructures.PeakMap))" % name)
+           "isinstance(globals()['%s'], emzed.core.data_types.PeakMap)" % name)
 
     @add(NamespaceBrowser, verbose=True)
     def is_table(self, name):
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
-             "isinstance(globals()['%s'], (libms.DataStructures.Table))" % name)
+             "isinstance(globals()['%s'], emzed.core.data_types.Table)" % name)
 
     @add(NamespaceBrowser, verbose=True)
     def is_tablelist(self, name):
@@ -81,7 +67,7 @@ def patch_NamespaceBrowser():
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
             "isinstance(globals()['%s'], list) "\
-            "and all(isinstance(li, libms.DataStructures.Table)"\
+            "and all(isinstance(li, emzed.core.data_types.Table)"\
             "        for li in globals()['%s'])" %(name, name))
 
     @replace(NamespaceBrowser.setup, verbose=True)

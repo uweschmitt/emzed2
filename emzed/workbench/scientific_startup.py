@@ -33,6 +33,14 @@ print "load patched scientific startup"
 
 import emzed.core
 
+import external_shell_patches
+external_shell_patches.patch_external_shell()
+
+import emzed.utils
+from emzed.core.explorers import inspect
+
+a = emzed.utils.toTable("a", [1,2,3])
+
 import os
 if os.environ.get('QT_API') != 'pyside':
     try:
