@@ -145,7 +145,7 @@ class TableExplorer(QDialog):
     def setupIntegrationWidgets(self):
         self.intLabel = QLabel("Integration")
         self.chooseIntMethod = QComboBox()
-        import algorithm_configs
+        from ... import algorithm_configs
         for name, _ in algorithm_configs.peakIntegrators:
             self.chooseIntMethod.addItem(name)
 
