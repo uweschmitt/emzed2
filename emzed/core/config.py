@@ -216,7 +216,7 @@ class _UserConfig(object):
         return False
 
     def edit(self):
-        aborted = self.parameters.edit() == 0
+        aborted = self.parameters.edit(size=(600, 600)) == 0
         self.store()
         return aborted
 
