@@ -377,8 +377,16 @@ class PeakMap(object):
     def toMSExperiment(self):
         """converts peakmap to pyopenms.MSExperiment"""
         exp = pyopenms.MSExperiment()
+
+        if hasattr(exp, "push_back"):
+            # pyopenms 1.10
+            add_ = exp.push_back
+        else:
+            # pyopenms 1.11
+            add_ = exp.addSpectrum
         for spec in self.spectra:
-            exp.addSpectrum(spec.toMSSpectrum())
+            add_(spec.toMSSpectrum())
+
         exp.updateRanges()
         exp.setLoadedFilePath(self.meta.get("source",""))
         return exp
