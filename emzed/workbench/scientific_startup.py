@@ -10,10 +10,33 @@ Scientific Python startup script
 
 Requires NumPy, SciPy and Matplotlib
 """
+import emzed.config
 
-from __future__ import division
+if emzed.config._is_first_start():
+    emzed.config.edit()
+#
+import emzed.updaters
+ 
+import emzed.db
+emzed.db.init_pubchem() # registers updater
 
-print "load patched scientific startup"
+emzed.updaters.check_emzed_updates()
+emzed.updaters.print_update_status()
+
+import emzed.abundance
+import emzed.adducts
+import emzed.align
+import emzed.batches
+import emzed.core
+import emzed.db
+import emzed.elements
+import emzed.gui
+import emzed.stats
+import emzed.utils
+
+# from __future__ import division
+
+#print "load patched scientific startup"
 
 # Pollute the namespace but also provide MATLAB-like experience:
 #from pylab import *  #analysis:ignore
@@ -31,12 +54,11 @@ print "load patched scientific startup"
 #print "Imported NumPy %s, SciPy %s, Matplotlib %s" %\
       #(np.__version__, sp.__version__, mpl.__version__),
 
-import emzed.core
+#import emzed.core
 
 import external_shell_patches
 external_shell_patches.patch_external_shell()
 
-import emzed.utils
 from emzed.core.explorers import inspect
 
 a = emzed.utils.toTable("a", [1,2,3])
@@ -92,4 +114,3 @@ Within Spyder, this interpreter also provides:
 
 setscientific()
 del setscientific
-print 'Type "emzed.core" for more details.'

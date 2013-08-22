@@ -22,8 +22,8 @@ class RExecutor(object):
         if sys.platform == "win32":
             self.rHome = RExecutor.findRHome()
             rExe  = RExecutor.findRExe(self.rHome)
-            import win32api
-            self.rExe = win32api.GetShortPathName(rExe)
+            #import win32api
+            self.rExe = rExe # win32api.GetShortPathName(rExe)
         else:
             self.rExe = "R"
 

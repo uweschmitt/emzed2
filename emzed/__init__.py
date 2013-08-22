@@ -5,12 +5,29 @@ __builtins__["SECONDS"] = 1.0
 __builtins__["MINUTES"] = 60.0
 __builtins__["HOURS"] = 60.0 * MINUTES
 
-import patches
-patches.apply_()
+import patches as _patches
+_patches.apply_()
+
+#import align
+#import batches
+#import core
+#import db
+#import gui
+#import stats
+#import utils
+
+#import abundance
+#import adducts
+#import adducts
+#import elements
+#import ext
+#import mass
+#import updaters
 
 from version import version as __version__
 
-"""
+__license__ = """
+
 eMZed  -- Copyright (c) 2012-2013:
 
  *  Institute of Microbiology, Department of Biology, ETH Zurich

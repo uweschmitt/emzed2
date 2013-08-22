@@ -102,7 +102,7 @@ _is_expert = _dt.ValueProp(False)
 
 def _apply_patch_for_allowing_empty_value(diretory_item):
     def check_value(self, value):
-        if value == "":
+        if not value:
             return True
         return _di.DirectoryItem.check_value(self, value)
     # subclassing _di.DirectoryItem does not work as guidata does some lookup based
@@ -222,7 +222,7 @@ class _UserConfig(object):
 
     def config_file_path(self):
         import os.path
-        return os.path.join(folders.getEmzedFolder(), "config.ini")
+        return os.path.join(folders.getEmzedFolder(), "config_emzed2.ini")
 
     def set_defaults(self):
         self.parameters.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
