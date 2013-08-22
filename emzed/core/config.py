@@ -216,8 +216,9 @@ class _UserConfig(object):
         return False
 
     def edit(self):
-        self.parameters.edit()
+        aborted = self.parameters.edit() == 0
         self.store()
+        return aborted
 
     def config_file_path(self):
         import os.path
