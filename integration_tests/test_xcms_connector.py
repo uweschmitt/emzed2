@@ -15,6 +15,7 @@ def test_install_xcms(tmpdir):
                                        lookForXcmsUpgrades,
                                        doXcmsUpgrade)
 
+    assert checkIfxcmsIsInstalled() == 0
     assert installXcmsIfNeeded() == 1
     assert checkIfxcmsIsInstalled() == 1
     lookForXcmsUpgrades()

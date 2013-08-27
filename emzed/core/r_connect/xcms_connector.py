@@ -40,7 +40,9 @@ def install_xmcs_if_needed_statements():
                 {
                     source("http://bioconductor.org/biocLite.R")
                     biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
+                    q(status=1);
                 }
+                q(status=0);
             """ % (r_libs, r_libs)
 
     return script
@@ -49,12 +51,14 @@ def install_xmcs_if_needed_statements():
 def checkIfxcmsIsInstalled():
 
     status = RExecutor().run_command(""" if (require("xcms") == FALSE) q(status=1); q(status=0); """)
-    return status==1
+    return status==0
 
 
 def installXcmsIfNeeded():
 
-    RExecutor().run_command(install_xmcs_if_needed_statements())
+    status = RExecutor().run_command(install_xmcs_if_needed_statements())
+    did_install = status == 1
+    return did_install
 
 
 def lookForXcmsUpgrades():
@@ -133,7 +137,9 @@ class CentwaveFeatureDetector(object):
 
     def __init__(self, **kw):
 
-        #installXcmsIfNeeded()
+        installed = checkIfxcmsIsInstalled()
+        if not installed:
+            raise Exception("XCMS not installed yet")
 
         self.config = self.standardConfig.copy()
         self.config.update(kw)
@@ -163,7 +169,8 @@ class CentwaveFeatureDetector(object):
             dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
 
 
-            script = install_xmcs_if_needed_statements() + """
+
+            script = """
                         library(xcms)
                         xs <- xcmsSet(%(temp_input)r, method="centWave",
                                           ppm=%(ppm)d,
@@ -227,7 +234,9 @@ class MatchedFilterFeatureDetector(object):
                              index = False )
 
     def __init__(self, **kw):
-        #installXcmsIfNeeded()
+        installed = checkIfxcmsIsInstalled()
+        if not installed:
+            raise Exception("XCMS not installed yet")
         self.config = self.standardConfig.copy()
         self.config.update(kw)
 
@@ -260,7 +269,7 @@ class MatchedFilterFeatureDetector(object):
             dd["temp_output"] = temp_output
             dd["index"] = str(dd["index"]).upper()
 
-            script = install_xmcs_if_needed_statements() + """
+            script = """
                         library(xcms)
                         xs <- xcmsSet(%(temp_input)r, method="matchedFilter",
                                        fwhm = %(fwhm)f, sigma = %(sigma)f,

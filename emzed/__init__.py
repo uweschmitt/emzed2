@@ -8,6 +8,12 @@ __builtins__["HOURS"] = 60.0 * MINUTES
 import patches as _patches
 _patches.apply_()
 
+del _patches
+try:
+    del patches
+except:
+    pass
+
 #import align
 #import batches
 #import core
