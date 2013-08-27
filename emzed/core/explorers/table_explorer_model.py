@@ -11,7 +11,7 @@ import guidata
 import os
 import re
 
-from ... import algorithm_configs
+from ... import _algorithm_configs
 
 from helpers import protect_signal_handler
 
@@ -173,7 +173,7 @@ class IntegrateAction(TableAction):
 
     def do(self):
         #pyqtRemoveInputHook()
-        integrator = dict(algorithm_configs.peakIntegrators).get(self.method)
+        integrator = dict(_algorithm_configs.peakIntegrators).get(self.method)
         table = self.model.table
         # returns Bunch which sublcasses dict
         args = table.getValues(table.rows[self.idx])
@@ -439,7 +439,7 @@ class TableModel(QAbstractTableModel):
             values = self.getIntegrationValues(rowIdx, p)
             method = values["method"+p]
             params = values["params"+p]
-            integrator = dict(algorithm_configs.peakIntegrators).get(method)
+            integrator = dict(_algorithm_configs.peakIntegrators).get(method)
             data = ([], [])
             if method is not None:
                 try:

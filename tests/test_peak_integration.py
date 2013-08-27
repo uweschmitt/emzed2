@@ -1,6 +1,6 @@
 import emzed.utils as utils
 
-import emzed.algorithm_configs
+import emzed._algorithm_configs
 import numpy as np
 
 from   emzed.core.data_types import Spectrum, PeakMap
@@ -124,7 +124,7 @@ def run(integrator, areatobe, rmsetobe):
 
 def testNoIntegration():
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["no_integration"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["no_integration"]
     integrator.setPeakMap(PeakMap([]))
     result = integrator.integrate(0.0, 100.0, 0, 300, 1)
     assert result.get("area") == None
@@ -139,18 +139,18 @@ def testNoIntegration():
 
 def testPeakIntegration():
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["asym_gauss"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["asym_gauss"]
     _, _, params = run(integrator, 1.19e5, 7.2891e3)
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["emg_exact"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_exact"]
 
     run(integrator,  154542.79, 7.43274e3)
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["trapez"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
 
     run(integrator,  120481.9, 0.0)
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["std"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["std"]
     run(integrator,  119149.7, 6854.8)
 
 
@@ -168,7 +168,7 @@ def testTrapezIntegrationSimple():
 
     pm = PeakMap([s0,s1,s2,s3])
 
-    integrator = dict(emzed.algorithm_configs.peakIntegrators)["trapez"]
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
     integrator.setPeakMap(pm)
 
     assert integrator.integrate(1.4, 2.5, 0, 3)["area"] == 5.0

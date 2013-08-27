@@ -50,7 +50,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
 
     from _BatchRunner import BatchRunner
-    from .. import algorithm_configs
+    from .. import _algorithm_configs
     from .. import utils
     import os.path
     #import libms.PeakPicking
@@ -80,4 +80,4 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
             print "save to ", savePath
             utils.storePeakMap(result, savePath)
 
-    return P(algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)
+    return P(_algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)

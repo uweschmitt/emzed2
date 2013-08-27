@@ -114,7 +114,7 @@ class _ParamHandler(object):
 
 def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
 
-    from ..algorithm_configs import metaboFFConfigs
+    from .._algorithm_configs import metaboFFConfigs
 
     config_params = dict()
 

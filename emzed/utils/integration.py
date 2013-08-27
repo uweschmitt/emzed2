@@ -8,7 +8,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress = True):
         defined in ``algorithm_configs.py`` or ``local_configs.py``
 
     """
-    from ..algorithm_configs import peakIntegrators
+    from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
     import time
