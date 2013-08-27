@@ -22,5 +22,8 @@ setup(name="emzed",
           [
               "emzed.workbench = emzed.workbench.modified_spyder_main:main",
           ]
-          }
+          },
+      package_data = {
+          "emzed.core.r_connect": [ "*.txt"]
+          },
      )

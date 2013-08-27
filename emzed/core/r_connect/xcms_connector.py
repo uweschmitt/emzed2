@@ -11,6 +11,7 @@ from pyopenms import FileHandler
 
 from .. import config
 
+from pkg_resources import resource_string
 
 def exchangeFolderAvailable():
     return config.folders.getExchangeSubFolder(None) is not None
@@ -104,8 +105,6 @@ def _get_temp_peakmap(msLevel, peakMap):
 
 class CentwaveFeatureDetector(object):
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "centwave.txt")
-
     __doc__ = """ CentwaveFeatureDetector
 
     usage:
@@ -120,7 +119,8 @@ class CentwaveFeatureDetector(object):
 
     """
 
-    __doc__ += "".join(file(path).readlines())
+
+    __doc__ += resource_string("emzed.core.r_connect", "centwave.txt")
     __doc__ = unicode(__doc__, "utf-8")
 
     standardConfig = dict(   ppm=25,
@@ -204,7 +204,6 @@ class CentwaveFeatureDetector(object):
 
 class MatchedFilterFeatureDetector(object):
 
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "matched_filter.txt")
 
     __doc__ = """ MatchedFilterFeatureDetector
 
@@ -220,7 +219,7 @@ class MatchedFilterFeatureDetector(object):
 
     """
 
-    __doc__ += "".join(file(path).readlines())
+    __doc__  += resource_string("emzed.core.r_connect", "matched_filter.txt")
     __doc__ = unicode(__doc__, "utf-8")
 
     standardConfig = dict(   fwhm = 30,
