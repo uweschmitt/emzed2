@@ -6,7 +6,7 @@
 from emzed.core.r_connect import CentwaveFeatureDetector as _Centwave
 from emzed.core.r_connect import MatchedFilterFeatureDetector as _MatchedFilters
 
-from _metabo import metaboFeatureFinder
+from metaboff import metaboFeatureFinder
 
 
 def runCentwave(pm, **kws):

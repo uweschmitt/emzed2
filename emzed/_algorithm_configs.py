@@ -53,4 +53,3 @@ metaboFFConfigs = [ (None, "no params set", metaboff_defaults),
                     ("std", "std params",  std_config),
                     ("_test", "params for fast test",  _fast_for_test),
                     ]
-
