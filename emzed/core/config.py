@@ -1,3 +1,4 @@
+import pdb
 #encoding: latin-1
 
 # keep namespace clean:
@@ -116,15 +117,15 @@ class _UserConfig(object):
 
         g1 = _dt.BeginGroup("User Settings")
 
-        user_name = _di.StringItem("Full Name", notempty=True)
-        user_email = _di.StringItem("Email Adress", notempty=True)
+        user_name = _di.StringItem("Full Name", notempty=True, default="")
+        user_email = _di.StringItem("Email Adress", notempty=True, default="")
         user_url = _di.StringItem("Website URL")
 
         _g1 = _dt.EndGroup("User Settings")
 
         g11 = _dt.BeginGroup("Exchange Folder Settings")
 
-        exchange_folder = _di.DirectoryItem("Exchange Folder")
+        exchange_folder = _di.DirectoryItem("Exchange Folder", default="")
         _apply_patch_for_allowing_empty_value(exchange_folder)
 
         _g11 = _dt.EndGroup("Exchange Folder Settings")
