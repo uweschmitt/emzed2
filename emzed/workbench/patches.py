@@ -4,7 +4,7 @@ from emzed.core.patch_utils import replace, add
 import os
 
 _here = os.path.abspath(os.path.dirname(__file__))
-_path_to_emzed_startup = os.path.join(_here, "scientific_startup.py")
+_path_to_emzed_startup = os.path.join(_here, "startup.py")
 _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
 def patch_spyderlib():
@@ -32,15 +32,29 @@ def patch_spyderlib():
 def patch_RemoteDictEditorTableView():
 
     from  spyderlib.widgets.dicteditor import (RemoteDictEditorTableView,
-                                               #BaseTableView
-                                               )
+                                               BaseTableView)
 
-    @replace(RemoteDictEditorTableView.oedit_possible, verbose=True)
-    def oedit_possible(self, key):
-        if self.is_peakmap(key) or self.is_table(key) or\
+    @replace(RemoteDictEditorTableView.edit_item, verbose=True)
+    def patch(self):
+        if self.remote_editing_enabled:
+            index = self.currentIndex()
+            if not index.isValid():
+                return
+            key = self.model.get_key(index)
+            if (self.is_list(key) or self.is_dict(key) 
+                or self.is_array(key) or self.is_image(key)):
+                # If this is a remote dict editor, the following avoid 
+                # transfering large amount of data through the socket
+                self.oedit(key)
+            # START MOD EMZED
+            elif self.is_peakmap(key) or self.is_table(key) or\
                  self.is_tablelist(key):
-                     return True
-        return RemoteDictEditorTableView._orig_oedit_possible(self, key)
+                self.oedit(key)
+            # END MOD EMZED
+            else:
+                BaseTableView.edit_item(self)
+        else:
+            BaseTableView.edit_item(self)
 
 
 def patch_NamespaceBrowser():
@@ -159,15 +173,17 @@ def patch_userconfig():
                               "pythonstartup" : _path_to_emzed_startup,
                                "object_inspector": False,
                               "open_python_at_startup"  : False,
+                              "open_ipython_at_startup"  : True,
+                              "start_ipython_kernel_at_startup"  : True,
                             }
                  ,
-                 "ipython_console":
-                            {
-                              "open_ipython_at_startup"  : True,
-                               "startup/run_file" : _path_to_emzed_ipython_startup,
-                               "startup/use_run_file" : True,
-                            },
-
+                 #"ipython_console":  
+                            #{
+                              #"open_ipython_at_startup"  : True,
+                               #"startup/run_file" : _path_to_emzed_ipython_startup,
+                               #"startup/use_run_file" : True,
+                            #},
+#
                  "inspector":
                              { "automatic_import" : False,  # faster !
                              }

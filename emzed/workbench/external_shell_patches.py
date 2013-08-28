@@ -154,34 +154,17 @@ def patch_oedit():
     # modified signature of patched method: added keeper arg, as this is
     # a module global variable in objecteditor.py:
 
-    @replace(objecteditor.create_dialog)
-    def create_dialog(obj, obj_name):
-        from emzed.core.data_types import PeakMap, Table
-        from emzed.core.explorers  import PeakMapExplorer, TableExplorer
-        if isinstance(obj, PeakMap):
-            dialog = PeakMapExplorer()
-            dialog.setup(obj)
-            return dialog, lambda dlg: dlg.get_value()
-        elif isinstance(obj, Table):
-            dialog = TableExplorer([obj], False)
-            return dialog, lambda dlg: dlg.get_value()[0]
-        elif isinstance(obj, list) and all(isinstance(t, Table) for t in obj):
-            dialog = TableExplorer(obj, False)
-            return dialog, lambda dlg: dlg.get_value()
-        return objecteditor._orig_create_dialog(obj, obj_name)
-
-
-    #@replace(objecteditor.oedit, verbose=True)
-    def oedit(obj, modal=True, namespace=None):
+    @replace(objecteditor.oedit, verbose=True) 
+    def oedit(obj, modal=True, namespace=None, keeper=objecteditor.DialogKeeper()):
         """
         Edit the object 'obj' in a GUI-based editor and return the edited copy
         (if Cancel is pressed, return None)
 
         The object 'obj' is a container
-
+        
         Supported container types:
         dict, list, tuple, str/unicode or numpy.array
-
+        
         (instantiate a new QApplication if necessary,
         so it can be called directly from the interpreter)
         """
@@ -191,16 +174,16 @@ def patch_oedit():
                                                        Image, is_known_type)
         from spyderlib.widgets.dicteditor import DictEditor
         from spyderlib.widgets.arrayeditor import ArrayEditor
-
+        
         from spyderlib.utils.qthelpers import qapplication
         app = qapplication()
 
         # STARTMODIFICATION EMZED
-        import libms.Explorers
-        from libms.DataStructures import PeakMap, Table
+        from emzed.core.data_types import PeakMap, Table
+        from emzed.core.explorers  import PeakMapExplorer, TableExplorer
         # ENDMODIFICATION EMZED
 
-
+        
         if modal:
             obj_name = ''
         else:
@@ -235,22 +218,22 @@ def patch_oedit():
 
         # START MODIFICATION EMZED
         elif isinstance(obj, PeakMap):
-            dialog = libms.Explorers.MzExplorer()
+            dialog = PeakMapExplorer()
             dialog.setup(obj)
         elif isinstance(obj, Table):
-            dialog = libms.Explorers.TableExplorer([obj], False)
+            dialog = TableExplorer([obj], False)
             conv_func = lambda (x,) : x
         elif isinstance(obj, list) and all(isinstance(t, Table) for t in obj):
-            dialog = libms.Explorers.TableExplorer(obj, False)
+            dialog = TableExplorer(obj, False)
         # END MODIFICATION EMZED
 
         else:
             dialog = DictEditor()
             dialog.setup(obj, title=obj_name, readonly=readonly)
-
+        
         def end_func(dialog):
             return conv_func(dialog.get_value())
-
+        
         if modal:
             if dialog.exec_():
                 return end_func(dialog)

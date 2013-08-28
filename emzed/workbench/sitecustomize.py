@@ -8,19 +8,23 @@ import pdb
 import bdb
 import __builtin__
 
+
 ############ EMZED ADDDONS BEGIN ##############################
 
+print "run patched sitecustomize"
 try:
     import external_shell_patches
     external_shell_patches.patch_external_shell()
 except Exception, e:
     print e
+print "patches applied"
 
 ############ EMZED ADDDONS END ################################
 
 
 # Colorization of sys.stderr (standard Python interpreter)
-if os.environ.get("COLORIZE_SYS_STDERR", "").lower() == "true":
+if os.environ.get("COLORIZE_SYS_STDERR", "").lower() == "true"\
+   and not os.environ.get('IPYTHON', False):
     class StderrProxy(object):
         """Proxy to sys.stderr file object overriding only the `write` method
         to provide red colorization for the whole stream, and blue-underlined
@@ -53,22 +57,24 @@ if os.environ.get("COLORIZE_SYS_STDERR", "").lower() == "true":
 
 # Prepending this spyderlib package's path to sys.path to be sure
 # that another version of spyderlib won't be imported instead:
-spyderlib_path = osp.dirname(__file__)
 
-# emzed: deactivated block !
-#
-#while not osp.isdir(osp.join(spyderlib_path, 'spyderlib')):
-#    spyderlib_path = osp.abspath(osp.join(spyderlib_path, os.pardir))
-#if not spyderlib_path.startswith(sys.prefix):
-#    # Spyder is not installed: moving its parent directory to the top of
-#    # sys.path to be sure that this spyderlib package will be imported in
-#    # the remote process (instead of another installed version of Spyder)
-#    while spyderlib_path in sys.path:
-#        sys.path.remove(spyderlib_path)
-#    sys.path.insert(0, spyderlib_path)
-#os.environ['SPYDER_PARENT_DIR'] = spyderlib_path
-#
-# end deactivated block
+if os.environ.get("SPYDER_PARENT_DIR") is None:
+    spyderlib_path = osp.dirname(__file__)
+    while not osp.isdir(osp.join(spyderlib_path, 'spyder')):
+        print spyderlib_path
+        spyderlib_path = osp.abspath(osp.join(spyderlib_path, os.pardir))
+    if not spyderlib_path.startswith(sys.prefix):
+        # Spyder is not installed: moving its parent directory to the top of
+        # sys.path to be sure that this spyderlib package will be imported in
+        # the remote process (instead of another installed version of Spyder)
+        while spyderlib_path in sys.path:
+            sys.path.remove(spyderlib_path)
+        sys.path.insert(0, spyderlib_path)
+    print os.environ["EMZED_HOME"]
+    os.environ['SPYDER_PARENT_DIR'] = spyderlib_path
+
+else:
+    spyderlib_path = os.environ.get("SPYDER_PARENT_DIR")
 
 
 # Set PyQt4 API to #1 or #2
@@ -82,6 +88,23 @@ if pyqt_api:
         except AttributeError:
             # Old version of sip
             pass
+    except ImportError:
+        pass
+
+
+mpl_backend = os.environ.get("MATPLOTLIB_BACKEND")
+if mpl_backend:
+    try:
+        import matplotlib
+        matplotlib.use(mpl_backend)
+    except ImportError:
+        pass
+
+
+if os.environ.get("MATPLOTLIB_PATCH", "").lower() == "true":
+    try:
+        from spyderlib import mpl_patch
+        mpl_patch.apply()
     except ImportError:
         pass
 
@@ -102,54 +125,18 @@ if os.name == 'nt': # Windows platforms
     except ImportError:
         pass
 
-
-# For our MacOs X app
-if sys.platform == 'darwin' and 'Spyder.app' in __file__:
-    interpreter = os.environ.get('SPYDER_INTERPRETER')
-    if 'Spyder.app' not in interpreter:
-        # We added this file's dir to PYTHONPATH (in pythonshell.py)
-        # so that external interpreters can import this script, and
-        # now we are removing it
-        del os.environ['PYTHONPATH']
-
-        # Add a minimal library (with spyderlib) at the end of sys.path to
-        # be able to connect our monitor to the external console
-        app_pythonpath = 'Spyder.app/Contents/Resources/lib/python2.7'
-        full_pythonpath = filter(lambda p: p.endswith(app_pythonpath),
-                                 sys.path)
-        if full_pythonpath:
-            sys.path.remove(full_pythonpath[0])
-            sys.path.append(full_pythonpath[0] + osp.sep + 'minimal-lib')
-    else:
-        # Add missing variables and methods to the app's site module
-        import site
-        import osx_app_site
-        osx_app_site.setcopyright()
-        osx_app_site.sethelper()
-        site._Printer = osx_app_site._Printer
-        site.USER_BASE = osx_app_site.getuserbase()
-        site.USER_SITE = osx_app_site.getusersitepackages()
-
-
-mpl_backend = os.environ.get("MATPLOTLIB_BACKEND")
-if mpl_backend:
-    try:
-        import matplotlib
-        if os.environ.get('QT_API') == 'pyside':
-            # Just for precaution, since mpl is not working with PySide
-            # inside Qt apps, because of its lack of an input hook
-            matplotlib.rcParams['backend.qt4'] = 'PySide'
-        matplotlib.rcParams['docstring.hardcopy'] = True
-        matplotlib.use(mpl_backend)
-    except ImportError:
-        pass
-
-if os.environ.get("MATPLOTLIB_PATCH", "").lower() == "true":
-    try:
-        from spyderlib import mpl_patch
-        mpl_patch.apply()
-    except ImportError:
-        pass
+    # Workaround for IPython thread issues with win32 comdlg32
+    if os.environ.get('IPYTHON', False):
+        try:
+            import win32gui, win32api
+            try:
+                win32gui.GetOpenFileNameW(File=win32api.GetSystemDirectory()[:2])
+            except win32gui.error:
+                # This error is triggered intentionally
+                pass
+        except ImportError:
+            # Unfortunately, pywin32 is not installed...
+            pass
 
 
 # Set standard outputs encoding:
@@ -175,17 +162,9 @@ try:
 except ImportError:
     pass
 
-
-# emzed patch ##########################################################################
-#
-# this one is important ! it keeps a ref to QApplication for the whole liftime
-# of emzed workbench in the external interpreter, else we get strange crashes
-# from time to time
-
+print "install __appemzed__"
 import guidata
 __builtin__.__appemzed__ = guidata.qapplication()
-
-# end emzed patch ######################################################################
 
 # Communication between Spyder and the remote process
 if os.environ.get('SPYDER_SHELL_ID') is None:
@@ -201,29 +180,17 @@ else:
     monitor.start()
 
     def open_in_spyder(source, lineno=1):
-        """
-        Open a source file in Spyder's editor (it could be a filename or a
-        Python module/package).
-
-        If you want to use IPython's %edit use %ed instead
-        """
-        try:
-            source = sys.modules[source]
-        except KeyError:
-            source = source
+        """Open in Spyder's editor the source file
+(may be a filename or a Python module/package)"""
         if not isinstance(source, basestring):
             try:
                 source = source.__file__
             except AttributeError:
-                print >>sys.stderr, "The argument must be either a string"\
-                                    "or a module object"
+                raise ValueError("source argument must be either "
+                                 "a string or a module object")
         if source.endswith('.pyc'):
             source = source[:-1]
-        source = osp.abspath(source)
-        if osp.exists(source):
-            monitor.notify_open_file(source, lineno=lineno)
-        else:
-            print >>sys.stderr, "Can't open file %s" % source
+        monitor.notify_open_file(source, lineno=lineno)
     __builtin__.open_in_spyder = open_in_spyder
 
     # * PyQt4:
@@ -234,7 +201,13 @@ else:
     # * PySide:
     #   * Installing an input hook: this feature is not yet supported
     #     natively by PySide
-    if os.environ.get("INSTALL_QT_INPUTHOOK", "").lower() == "true":
+    if os.environ.get("INSTALL_QT_INPUTHOOK", "").lower() == "true"\
+       and not os.environ.get('IPYTHON', False):
+        # For now, the Spyder's input hook does not work with IPython:
+        # with IPython v0.10 or non-Windows platforms, this is not a
+        # problem. However, with IPython v0.11 on Windows, this will be
+        # fixed by patching IPython to force it to use our inputhook.
+
         if os.environ["QT_API"] == 'pyqt':
             from PyQt4 import QtCore
             # Removing PyQt's PyOS_InputHook implementation:
@@ -306,32 +279,6 @@ else:
 #===============================================================================
 # Monkey-patching pdb
 #===============================================================================
-
-if os.environ.get("IPYTHON_KERNEL", "").lower() == "true":
-
-    #XXX If Matplotlib is not imported first, the next IPython import will fail
-    try:
-        import matplotlib  # analysis:ignore
-    except ImportError:
-        pass
-
-    from IPython.core.debugger import Pdb as ipyPdb
-    pdb.Pdb = ipyPdb
-
-    # Patch unittest.main so that errors are printed directly in the console.
-    # See http://comments.gmane.org/gmane.comp.python.ipython.devel/10557
-    # Fixes Issue 1370
-    import unittest
-    from unittest import TestProgram
-    class IPyTesProgram(TestProgram):
-        def __init__(self, *args, **kwargs):
-            test_runner = unittest.TextTestRunner(stream=sys.stderr)
-            kwargs['testRunner'] = kwargs.pop('testRunner', test_runner)
-            kwargs['exit'] = False
-            TestProgram.__init__(self, *args, **kwargs)
-
-    unittest.main = IPyTesProgram
-
 class SpyderPdb(pdb.Pdb):
     def set_spyder_breakpoints(self):
         self.clear_all_breaks()
@@ -365,9 +312,6 @@ class SpyderPdb(pdb.Pdb):
 
 pdb.Pdb = SpyderPdb
 
-#XXX: I know, this function is now also implemented as is in utils/misc.py but
-#     I'm kind of reluctant to import spyderlib in sitecustomize, even if this
-#     import is very clean.
 def monkeypatch_method(cls, patch_name):
     # This function's code was inspired from the following thread:
     # "[Python-Dev] Monkeypatching idioms -- elegant or ugly?"
@@ -459,8 +403,22 @@ if os.environ.get("IGNORE_SIP_SETAPI_ERRORS", "").lower() == "true":
         pass
 
 
+# Workaround #1 to make the HDF5 I/O variable explorer plugin work:
+# we import h5py without IPython support (otherwise, Spyder will crash
+# when initializing IPython in startup.py).
+# (see startup.py for the Workaround #2)
+if monitor and not os.environ.get('IPYTHON', False):
+    sys.modules['IPython'] = None
+    try:
+        import h5py #@UnusedImport
+    except ImportError:
+        pass
+    del sys.modules['IPython']
+
+
+
 # The following classes and functions are mainly intended to be used from
-# an interactive Python session
+# an interactive Python/IPython session
 class UserModuleDeleter(object):
     """
     User Module Deleter (UMD) aims at deleting user modules
@@ -506,23 +464,26 @@ class UserModuleDeleter(object):
                     log.append(modname)
                     del sys.modules[modname]
         if verbose and log:
-            print "\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
-                  % ("UMD has deleted", ": "+", ".join(log))
+            print "\x1b[4;33m%s\x1b[24m%s\x1b[0m" % ("UMD has deleted",
+                                                     ": "+", ".join(log))
 
 __umd__ = None
 
 
 def _get_globals():
-    """Return current Python interpreter globals namespace"""
+    """Return current Python/IPython interpreter globals namespace"""
     from __main__ import __dict__ as namespace
-    shell = namespace.get('__ipythonshell__')
+    if hasattr(__builtin__, '__IPYTHON__'):
+        # IPython 0.10
+        shell = __builtin__.__IPYTHON__
+    else:
+        # IPython 0.11+
+        shell = namespace.get('__ipythonshell__')
     if shell is not None and hasattr(shell, 'user_ns'):
-        # IPython 0.13+ kernel
+        # IPython
         return shell.user_ns
     else:
-        # Python interpreter
         return namespace
-    return namespace
 
 
 def runfile(filename, args=None, wdir=None, namespace=None):
@@ -531,10 +492,6 @@ def runfile(filename, args=None, wdir=None, namespace=None):
     args: command line arguments (string)
     wdir: working directory
     """
-    try:
-        filename = filename.decode('utf-8')
-    except (UnicodeError, TypeError):
-        pass
     global __umd__
     if os.environ.get("UMD_ENABLED", "").lower() == "true":
         if __umd__ is None:
@@ -555,10 +512,6 @@ def runfile(filename, args=None, wdir=None, namespace=None):
         for arg in args.split():
             sys.argv.append(arg)
     if wdir is not None:
-        try:
-            wdir = wdir.decode('utf-8')
-        except (UnicodeError, TypeError):
-            pass
         os.chdir(wdir)
     execfile(filename, namespace)
     sys.argv = ['']
@@ -623,15 +576,15 @@ def evalsc(command):
             from spyderlib import baseconfig
             execfile(baseconfig.SCIENTIFIC_STARTUP, namespace)
         else:
-            raise NotImplementedError("Unsupported command: '%s'" % command)
+            raise NotImplementedError, "Unsupported command: '%s'" % command
 
 __builtin__.evalsc = evalsc
 
 
-# Restoring original PYTHONPATH
-try:
-    os.environ['PYTHONPATH'] = os.environ['OLD_PYTHONPATH']
-    del os.environ['OLD_PYTHONPATH']
-except KeyError:
-    if os.environ.get('PYTHONPATH') is not None:
-        del os.environ['PYTHONPATH']
+## Restoring original PYTHONPATH
+#try:
+#    os.environ['PYTHONPATH'] = os.environ['OLD_PYTHONPATH']
+#    del os.environ['OLD_PYTHONPATH']
+#except KeyError:
+#    if os.environ.get('PYTHONPATH') is not None:
+#        del os.environ['PYTHONPATH']

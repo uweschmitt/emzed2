@@ -1,8 +1,7 @@
 from emzed.core.patch_utils import replace, add
 
 def apply_():
-    # automatic checking from beginning:
-
+    # checking for valid values from beginning:
     import guidata.dataset.qtitemwidgets
     @replace(guidata.dataset.qtitemwidgets.LineEditWidget.__init__)
     def __init__(self, item, parent_layout):
