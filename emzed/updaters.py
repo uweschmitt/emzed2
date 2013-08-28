@@ -3,7 +3,7 @@
 
 def check_emzed_updates():
     import version
-    from core.updaters import get_latest_emzed_version_from_pypi
+    from core.update_handling import get_latest_emzed_version_from_pypi
     latest_version = get_latest_emzed_version_from_pypi()
     if latest_version > version.version:
         print "please update emzed, new version %s.%s.%s on pypi" % latest_version
@@ -16,14 +16,14 @@ def update_emzed():
     assert exit_code == 0
 
 def run(id_):
-    from core.updaters import registry
+    from core.update_handling import registry
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
     updater.do_update(10)
 
 def reset(id_):
-    from core.updaters import registry
+    from core.update_handling import registry
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
@@ -33,31 +33,41 @@ def reset(id_):
 #
 
 def get(id_):
-    from core.updaters import registry
+    from core.update_handling import registry
     updater = registry.get(id_)
     return updater
 
 def print_update_status():
-    from core.updaters import registry
+    from core.update_handling import registry
     print
-    printed = False
+    print
     for name, updater in registry.updaters.items():
+        print "%-20s :" % name,
         flag, msg = updater.check_for_newer_version_on_exchange_folder()
         if flag is True:
             flag, msg = updater.fetch_update_from_exchange_folder()
             if flag:
-                print "%s copied update from exchange folder" % name
+                print "copied update from exchange folder" % name
             else:
-                print "%s failed to update from exchange folder: %s" % (name, msg)
-            printed = True
+                print "failed to update from exchange folder: %s" % (name, msg)
+        elif flag is False:
+            print "local version still up to date"
+        else:
+            assert flag is None
+            print "no exchange folder configured"
 
-    if printed:
-        print
+    print
 
     for name, updater in registry.updaters.items():
+        print "%-20s :" % name,
         if updater.offer_update_lookup():
             id_, ts, info = updater.query_update_info()
-            print "%s says: %s" % (id_, info)
+            print info
+            print "%-20s +" % "",
             print "call emzed.updaters.run(%r) for running update" % id_
-            print
+        else:
+            print "local version is new enough"
+    print
 
+from db import _register_pubchem_updater
+_register_pubchem_updater()

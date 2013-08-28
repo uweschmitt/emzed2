@@ -40,9 +40,9 @@ import abc
 class AbstractUpdaterImpl(object):
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
-    def __init__(self, data_home, exchange_folder):
-        pass
+    #@abc.abstractmethod
+    #def __init__(self, data_home, exchange_folder):
+        #pass
 
     @staticmethod
     @abc.abstractmethod
@@ -54,31 +54,37 @@ class AbstractUpdaterImpl(object):
         pass
 
     @abc.abstractmethod
-    def query_update_info(self):
+    def query_update_info(self, limit):
         pass
 
     @abc.abstractmethod
-    def trigger_update(self, data_home, limit):
+    def do_update(self, limit):
         pass
 
     @abc.abstractmethod
-    def upload_to_exchange_folder(self, data_home, exchange_folder):
+    def upload_to_exchange_folder(self):
         pass
 
     @abc.abstractmethod
-    def check_for_newer_version_on_exchange_folder(self, data_home, exchange_folder):
+    def check_for_newer_version_on_exchange_folder(self):
         pass
 
     @abc.abstractmethod
-    def update_from_exchange_folder(self, data_home, exchange_folder):
+    def update_from_exchange_folder(self):
         pass
 
 class Updater(object):
 
     def __init__(self, impl, data_home, exchange_folder):
-        self.impl = impl(data_home, exchange_folder)
+        self.impl = impl
+        self.set_folders(data_home, exchange_folder)
+
+    def set_folders(self, data_home, exchange_folder):
         self.data_home = data_home
+        self.impl.data_home = data_home
+
         self.exchange_folder = exchange_folder
+        self.impl.exchange_folder = exchange_folder
 
     def get_id(self):
         return self.impl.get_id()
@@ -119,15 +125,15 @@ class Updater(object):
         """ shall I offer update lookup ??? """
         return self.get_latest_update_ts() + self.impl.get_update_time_delta_in_seconds() <= time.time()
 
-    def query_update_info(self):
+    def query_update_info(self, limit=None):
         """ queries if update is available and delivers info about that"""
-        info = self.impl.query_update_info()
+        info = self.impl.query_update_info(limit)
         return (self.impl.get_id(), self.get_latest_update_ts(), info)
 
     def do_update(self, limit=None):
         """ returns flag, message """
         try:
-            self.impl.trigger_update(self.data_home, limit)
+            self.impl.do_update(limit)
         except Exception, e:
             return False, str(e)
         # update succeeded
@@ -135,7 +141,7 @@ class Updater(object):
         self._update_latest_update_ts(ts)
         if self.exchange_folder is not None:
             if is_writable(self.exchange_folder):
-                self.impl.upload_to_exchange_folder(self.data_home, self.exchange_folder)
+                self.impl.upload_to_exchange_folder()
 
         return True, "ok"
 
@@ -150,8 +156,7 @@ class Updater(object):
             os.listdir(self.exchange_folder)
         except Exception, e:
             return None, str(e)
-        is_newer  = self.impl.check_for_newer_version_on_exchange_folder(self.data_home,
-                                                                         self.exchange_folder)
+        is_newer  = self.impl.check_for_newer_version_on_exchange_folder()
         return is_newer, None
 
     def fetch_update_from_exchange_folder(self):
@@ -165,7 +170,7 @@ class Updater(object):
             os.listdir(self.exchange_folder)
         except Exception, e:
             return False, str(e)
-        message = self.impl.update_from_exchange_folder(self.data_home, self.exchange_folder)
+        message = self.impl.update_from_exchange_folder()
         self._update_latest_update_ts(time.time())
         return True, message
 
@@ -181,6 +186,10 @@ class UpdaterRegistry(object):
 
     def get(self, id_):
         return self.updaters.get(id_)
+
+    def install(self, module):
+        for name, updater in self.updaters.items():
+            setattr(module, name, updater.do_update)
 
 registry = UpdaterRegistry()
 #

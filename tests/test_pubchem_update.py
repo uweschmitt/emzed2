@@ -1,3 +1,4 @@
+import pdb
 from emzed.core.data_bases import PubChemDB
 
 import os.path
@@ -48,14 +49,14 @@ import emzed.db
 import emzed.updaters
 
 def test_pubchem_import():
-    db = emzed.db.init_pubchem()
+    db = emzed.db.load_pubchem()
     assert db is not None
     assert len(db) >= 0
 
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
-    db = emzed.db.init_pubchem(tmpdir.strpath, None)
     updater = emzed.updaters.get("pubchem_updater")
+    updater.set_folders(tmpdir.join("data_home").strpath, None)
 
     # reset updater
     emzed.updaters.reset("pubchem_updater")
@@ -64,14 +65,14 @@ def test_pubchem_updaters_without_exchange_folder(tmpdir):
     assert updater.offer_update_lookup() is True
 
     # ask pubchem for info about eventual update:
-    id_, ts, info = updater.query_update_info()
+    id_, ts, info = updater.query_update_info(limit=10)
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
 
     # download 10 items
-    updater.do_update(10)
-    assert len(updater.impl.db) == 10
+    updater.do_update(limit=10)
+    assert len(emzed.db.load_pubchem(updater.data_home)) == 10
 
     # exchange folder is not configuredd, so we get None results:
     assert updater.check_for_newer_version_on_exchange_folder() == (None, None)
@@ -82,12 +83,13 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
 
     # create folders
     import os
-    data_home = tmpdir.join("data_home").strpath
-    exchange_folder = tmpdir.join("exchange_folder").strpath
-
-    db = emzed.db.init_pubchem(data_home, exchange_folder)
 
     updater = emzed.updaters.get("pubchem_updater")
+
+    exchange_folder = tmpdir.join("exchange_folder").strpath
+    updater.set_folders(tmpdir.join("data_home").strpath,
+                        exchange_folder)
+    os.makedirs(exchange_folder)
 
     # reset updater
     emzed.updaters.reset("pubchem_updater")
@@ -96,20 +98,20 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     assert updater.offer_update_lookup() is True
 
     # ask pubchem for info about eventual update:
-    id_, ts, info = updater.query_update_info()
+    id_, ts, info = updater.query_update_info(limit=10)
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
 
     # download 10 items
-    assert updater.do_update(10) == (True, "ok")
-    assert len(updater.impl.db) == 10
+    assert updater.do_update(limit=10) == (True, "ok")
+    assert len(emzed.db.load_pubchem(updater.data_home)) == 10
 
     # simulate next startup, make db on exchange folder more current than local db
     import time
     time.sleep(0.05)
-    from emzed.db.pubchem import db_path
-    os.utime(db_path(exchange_folder), None)  # like "touch" command on linux
+    from emzed.db import _db_path
+    os.utime(_db_path(exchange_folder), None)  # like "touch" command on linux
 
     # now we should get back that a more update version on exchange folder exists
     flag, msg =  updater.check_for_newer_version_on_exchange_folder()

@@ -6,7 +6,6 @@ from ..chemistry.tools import monoisotopicMass
 from ..data_types import Table
 from ... import version
 
-import shutil
 
 def dom_tree_from_bytes(data):
     if isinstance(data, unicode):
@@ -133,7 +132,15 @@ class PubChemDB(object):
         print "TOTAL TIME %.fm %.fs" % divmod(needed,60)
         return items
 
-    def __init__(self, path=None):
+    _instances = dict()
+
+    @staticmethod
+    def cached_load_from(path):
+        if path not in PubChemDB._instances:
+            PubChemDB._instances[path] = PubChemDB(path)
+        return PubChemDB._instances[path]
+
+    def __init__(self, path):
         self.path = path
         self.reload_()
 
@@ -214,70 +221,9 @@ class PubChemDB(object):
             path = self.path
         assert path is not None, "no path given in constructor nor as argument"
         self.table.store(path, forceOverwrite=True)
+        PubChemDB._instances[path] = self
 
     def __getattr__(self, colName):
         return getattr(self.table, colName)
-
-
-FILE_NAME = "pubchem.table"
-
-def db_path(target_dir):
-    version_str = "%d.%d.%d" % version.version
-    path = os.path.join(target_dir, version_str, FILE_NAME)
-    return path
-
-from .. import updaters
-
-class PubChemUpdateImpl(updaters.AbstractUpdaterImpl):
-
-    def __init__(self, data_home, exchange_folder):
-        self.db = PubChemDB(db_path(data_home))
-
-    @staticmethod
-    def get_id():
-        return "pubchem_updater"
-
-    def get_update_time_delta_in_seconds(self):
-        days = 1
-        return days * 24 * 60 * 60
-
-    def query_update_info(self):
-        assert self.db is not None
-        unknown, missing = self.db.getDiff()
-        if unknown or missing:
-            return "%d unknown and %d deleted entries on website" % (len(unknown), len(missing))
-        return "data on website unchanged"
-
-    def trigger_update(self, data_home, limit):
-        assert self.db is not None
-        self.db.update(maxIds=limit)
-        target_path = db_path(data_home)
-        target_dir = os.path.dirname(target_path)
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-        self.db.store(target_path)
-
-    def upload_to_exchange_folder(self, __, exchange_folder):
-        assert self.db is not None
-        target_path = db_path(exchange_folder)
-        target_dir = os.path.dirname(target_path)
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-        self.db.store(target_path)
-
-    def check_for_newer_version_on_exchange_folder(self, data_home, exchange_folder):
-        return os.stat(db_path(data_home)).st_mtime \
-            <  os.stat(db_path(exchange_folder)).st_mtime
-
-    def update_from_exchange_folder(self, data_home, exchange_folder):
-        assert self.db is not None
-        source_path = db_path(exchange_folder)
-        target_path = db_path(data_home)
-
-        target_dir = os.path.dirname(target_path)
-        if not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-        shutil.copy(source_path, target_path)
-        self.db.reload_()
 
 

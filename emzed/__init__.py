@@ -14,6 +14,15 @@ try:
 except:
     pass
 
+
+#import _updaters as updaters
+#import emzed.core.update_handling
+#emzed.core.update_handling.registry.install(updaters)
+
+#del _updaters
+#del emzed.core
+
+
 #import align
 #import batches
 #import core
@@ -24,12 +33,12 @@ except:
 
 #import abundance
 #import adducts
-#import adducts
+##import adducts
 #import elements
 #import ext
 #import mass
 #import updaters
-
+#
 from version import version as __version__
 
 __license__ = """
