@@ -114,40 +114,67 @@ class _UserConfig(object):
 
     class Parameters(_dt.DataSet):
 
+        """ EMZED CONFIGURATION DIALOG
+
+        Please provide data requested below. You can open this dialog and modify data
+        later running 'emzed.config.edit()'.
+        """
+
         g1 = _dt.BeginGroup("User Settings")
 
-        user_name = _di.StringItem("Full Name", notempty=True, default="")
-        user_email = _di.StringItem("Email Adress", notempty=True, default="")
-        user_url = _di.StringItem("Website URL")
+        user_name = _di.StringItem("Full Name",
+                                   notempty=True,
+                                   default="",
+                                   help="needed for submitting to package store")
+
+        user_email = _di.StringItem("Email Adress",
+                                    notempty=True,
+                                    default="",
+                                    help="needed for submitting to package store")
+
+        user_url = _di.StringItem("Website URL",
+                                  help="usefull when submitting to package store")
 
         _g1 = _dt.EndGroup("User Settings")
 
         g11 = _dt.BeginGroup("Exchange Folder Settings")
 
-        exchange_folder = _di.DirectoryItem("Exchange Folder", default="")
+        exchange_folder = _di.DirectoryItem("Exchange Folder", default="",
+                             help="here you can configure a shared folder, see emezed "\
+                             "installation guide on emzed website for more information")
+
         _apply_patch_for_allowing_empty_value(exchange_folder)
 
         _g11 = _dt.EndGroup("Exchange Folder Settings")
 
         g2 = _dt.BeginGroup("Webservice Settings")
 
-        metlin_token  = _di.StringItem("Metlin Token")
+        metlin_token  = _di.StringItem("Metlin SOAP Token",
+                                       help="needed for metlin matching. you can request this "\
+                                       "token from metlins website")
 
         _g2 = _dt.EndGroup("Webservice Settings")
 
         g3 = _dt.BeginGroup("Emzed Store User Account")
 
-        emzed_store_user = _di.StringItem("User Name")
-        emzed_store_password = _di.StringItem("User Password")
+        emzed_store_user = _di.StringItem("User Name",
+                help="please request name and password from emzed google group")
+        emzed_store_password = _di.StringItem("User Password",
+                help="please request name and password from emzed google group")
 
         _g3 = _dt.EndGroup("Emzed Store Settings")
 
         g4 = _dt.BeginGroup("Emzed Store Expert Settings")
-        enable_expert_settings = _di.BoolItem("Enable Settings").set_prop("display",
+        enable_expert_settings = _di.BoolItem("Enable Settings",
+                help="only check this box if you really know what you do !!!").set_prop("display",
                 store=_is_expert)
-        emzed_store_url = _di.StringItem("Emzed Store URL").set_prop("display", active=_is_expert)
-        emzed_store_index_url = _di.StringItem("Emzed Store Index URL").set_prop("display", active=_is_expert)
-        pypi_url = _di.StringItem("PyPi URL").set_prop("display", active=_is_expert)
+
+        emzed_store_url = _di.StringItem("Emzed Store URL").set_prop("display",
+                active=_is_expert)
+        emzed_store_index_url = _di.StringItem("Emzed Store Index URL").set_prop("display",
+                active=_is_expert)
+        pypi_url = _di.StringItem("PyPi URL").set_prop("display",
+                active=_is_expert)
 
         _g4 = _dt.EndGroup("Expert Settings")
 
@@ -216,7 +243,7 @@ class _UserConfig(object):
         return False
 
     def edit(self):
-        aborted = self.parameters.edit(size=(600, 600)) == 0
+        aborted = self.parameters.edit(size=(600, 800)) == 0
         self.store()
         return aborted
 
