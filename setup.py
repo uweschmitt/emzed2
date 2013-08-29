@@ -17,13 +17,14 @@ version_str = ".".join(map(str, emzed.__version__))
 setup(name="emzed",
       packages=[ "emzed"],
       version=version_str,
-      entry_points = {
-          "console_scripts":
-          [
-              "emzed.workbench = emzed.workbench.main:main",
-          ]
+      entry_points={
+          "console_scripts": [
+                "emzed.workbench = emzed.workbench.main:main",
+            ]
           },
-      package_data = {
+      package_data={
           "emzed.core.r_connect": [ "*.txt"]
           },
+      zip_safe=False,
+
      )
