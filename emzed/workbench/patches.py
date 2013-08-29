@@ -17,10 +17,10 @@ def patch_spyderlib():
     # corresponding import of ExternalConsole implies import of baseshell. So
     # patching baseshell will not work, as it is registered in sys.modules in
     # unpatched version !
+    patch_baseconfig()
 
     # patches python path, so that external IPython shell loads patched
     # sitecustomize.py
-
     patch_baseshell()
 
     # patch dialogs for emzed specific types:
@@ -174,7 +174,7 @@ def patch_userconfig():
                                "object_inspector": False,
                               "open_python_at_startup"  : False,
                               "open_ipython_at_startup"  : True,
-                              "start_ipython_kernel_at_startup"  : True,
+                              #"start_ipython_kernel_at_startup"  : True,
                             }
                  ,
                  #"ipython_console":  
@@ -211,3 +211,23 @@ def patch_userconfig():
 
     import spyderlib.userconfig
     spyderlib.userconfig.UserConfig = MyConfig
+
+def patch_baseconfig():
+    from spyderlib import baseconfig
+
+    # Opening an IPYTHON shell does not use the configures startup.py
+    # which we see in spyder.ini, but locate starup.py inside the
+    # the directory where spyderlib.widgets.externalshell resides.
+    # So we fool ExternalPythonShell in widgets/externalshell/pythonshell.py
+    # by patching baseconfig.get_module_source_path:
+
+    @replace(baseconfig.get_module_source_path, verbose=True)
+    def patch(modname, basename=None):
+        if modname == "spyderlib.widgets.externalshell"\
+            and basename=="startup.py":
+                return _path_to_emzed_startup
+            #return os.path.join(os.environ.get("EMZED_HOME"),
+                                #"patched_modules",
+                                #"startup.py")
+        return baseconfig._orig_get_module_source_path(modname, basename)
+
