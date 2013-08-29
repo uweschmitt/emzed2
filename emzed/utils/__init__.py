@@ -1,4 +1,5 @@
-from utils import *
+from utils import toTable, formula, addmf, openInBrowser, recalculateMzPeaks, startfile
+
 from isotope_calculator import isotopeDistributionTable, plotIsotopeDistribution
 from formula_generator  import formulaTable
 
