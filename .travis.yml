@@ -3,6 +3,7 @@ python:
 - '2.7'
 install:
 - easy_install pyopenms
+- easy_install pyopenms
 - pip install "Cython>=0.19.0"
 - pip install guidata==1.6.0
 - pip install guiqwt==2.3.1
