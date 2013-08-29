@@ -258,14 +258,6 @@ class PeakMap(object):
         """
         return [spec for spec in self.spectra if rtmin <= spec.rt <= rtmax]
 
-    def levelOneSpecsInRange(self, rtmin, rtmax):
-        """
-        returns lists level one spectra in peakmap
-        """
-        deprecation("WARNING: method is levelOneSpecsInRange is depreciated, "\
-              "please use PeakMap.levelNSpecsInRange instead")
-        return self.levelNSpecsInRange(1, rtmin, rtmax)
-
     def levelNSpecsInRange(self, n, rtmin, rtmax):
         """
         returns lists level one spectra in peakmap
@@ -305,11 +297,6 @@ class PeakMap(object):
         """returns list of ms levels in current peak map"""
 
         return sorted(set(spec.msLevel for spec in self.spectra))
-
-    def ms1Peaks(self, rtmin=None, rtmax=None):
-        deprecation("WARNING: ms1Peaks method is depreciated, please use "\
-              "PeakMap.msNPeaks instead")
-        return self.msNPeaks(1, rtmin, rtmax)
 
     def msNPeaks(self, n, rtmin=None, rtmax=None):
         """return ms level n peaks in given range"""

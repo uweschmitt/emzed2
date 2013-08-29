@@ -502,7 +502,7 @@ class TableExplorer(QDialog):
         # get spectra for current row in given rt-range:
         peakmaps = self.model.getPeakmaps(self.currentRowIdx)
 
-        peaks = [pm.getDominatingPeakmap().ms1Peaks(rtmin, rtmax) for pm in peakmaps]
+        peaks = [pm.getDominatingPeakmap().msNPeaks(1, rtmin, rtmax) for pm in peakmaps]
 
         # plot peaks
         configs = configsForSpectra(peaks)
