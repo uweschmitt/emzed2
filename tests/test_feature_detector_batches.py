@@ -1,7 +1,13 @@
 import emzed.batches
 import glob
+import pytest
 
+
+@pytest.mark.slow
 def testRunCentwave(tmpdir, path):
+
+    from emzed.core.r_connect import installXcmsIfNeeded
+    installXcmsIfNeeded()
 
     tables = emzed.batches.runCentwave(path("data/test_mini.mzXML"),
                                        destination=tmpdir.strpath,
@@ -19,7 +25,11 @@ def testRunCentwave(tmpdir, path):
     assert len(table.getColTypes()) ==  16
 
 
+@pytest.mark.slow
 def testMatchedFilter(path, tmpdir):
+
+    from emzed.core.r_connect import installXcmsIfNeeded
+    installXcmsIfNeeded()
 
     tables = emzed.batches.runMatchedFilter(path("data/test.mzXML"),
             destination=tmpdir.strpath, configid="std", mzdiff=0, fwhm=50,

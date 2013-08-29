@@ -97,9 +97,11 @@ class PackageStoreTests(unittest.TestCase):
 
         # use package as extension
         import emzed.ext
+        reload(emzed.ext)
         self.assertIsInstance(emzed.ext.test_minimal_package.hello(), basestring)
 
         import emzed.app
+        reload(emzed.app)
         self.assertEquals(emzed.app.test_minimal_package(), 42)
 
         # check if listed
