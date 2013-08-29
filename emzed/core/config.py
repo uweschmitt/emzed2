@@ -57,14 +57,13 @@ class _FolderLocations(object):
     @staticmethod
     def getEmzedFolder():
         if sys.platform == "win32":
-            return os.path.join(_FolderLocations.getAppDataFolder(), "emzed")
+            return os.path.join(_FolderLocations.getAppDataFolder(), "emzed2")
         else:
-            return os.path.join(_FolderLocations.getAppDataFolder(), ".emzed")
-
+            return os.path.join(_FolderLocations.getAppDataFolder(), ".emzed2")
 
     @staticmethod
     def getDataHome():
-        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed_files")
+        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed2_files")
         return dataHome
 
     @staticmethod
@@ -189,7 +188,7 @@ class _UserConfig(object):
             if path is None:
                 path = self.config_file_path()
             cf = guidata.userconfig.UserConfig(dict())
-            self.parameters.write_config(cf, "emzed", "")
+            self.parameters.write_config(cf, "emzed2", "")
             dir_name = os.path.dirname(path)
             if not os.path.exists(dir_name):
                 os.makedirs(dir_name)
@@ -210,7 +209,7 @@ class _UserConfig(object):
             with open(path, "rt") as fp:
                 try:
                     cf.readfp(fp)
-                    self.parameters.read_config(cf, "emzed", "")
+                    self.parameters.read_config(cf, "emzed2", "")
                     return True
                 except:
                     pass

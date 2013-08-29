@@ -70,7 +70,6 @@ if os.environ.get("SPYDER_PARENT_DIR") is None:
         while spyderlib_path in sys.path:
             sys.path.remove(spyderlib_path)
         sys.path.insert(0, spyderlib_path)
-    print os.environ["EMZED_HOME"]
     os.environ['SPYDER_PARENT_DIR'] = spyderlib_path
 
 else:

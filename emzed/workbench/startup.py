@@ -32,11 +32,13 @@ if sys.platform == "win32":
 
 def install_emzed(user_ns=None):
 
-    print "INSTALL EMZED"
 
-    exec "import emzed" in user_ns
+    import emzed
+    import emzed.config
+    emzed.config.edit()
 
-    print "emzed installed"
+
+    user_ns.update(locals())
 
 
 # Remove this module's path from sys.path:
@@ -165,7 +167,8 @@ on Windows platforms (only IPython v0.10 is fully supported).
     if ip is not None:
         
         try:
-            ip.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
+            #ip.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
+            pass
         except:
             pass
         for name in ["e", "pi", "path"]:
@@ -174,7 +177,8 @@ on Windows platforms (only IPython v0.10 is fully supported).
             except:
                 pass
     try:
-        __ipythonshell__.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')    
+        #__ipythonshell__.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')    
+        pass
     except:
         pass
     __ipythonshell__.mainloop()

@@ -23,21 +23,21 @@ except:
 #del emzed.core
 
 
-#import align
-#import batches
-#import core
-#import db
-#import gui
-#import stats
-#import utils
+import align
+import batches
+import core
+import db
+import gui
+import stats
+import utils
 
-#import abundance
-#import adducts
-##import adducts
-#import elements
-#import ext
-#import mass
-#import updaters
+import abundance
+import adducts
+import elements
+import ext
+import mass
+import updaters
+
 #
 from version import version as __version__
 

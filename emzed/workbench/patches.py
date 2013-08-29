@@ -9,6 +9,7 @@ _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
 def patch_spyderlib():
 
+
     # patches default config values for first startup
     # including path to startup.py for "normal" python console:
     patch_userconfig()
@@ -22,6 +23,7 @@ def patch_spyderlib():
     # patches python path, so that external IPython shell loads patched
     # sitecustomize.py
     patch_baseshell()
+
 
     # patch dialogs for emzed specific types:
 
@@ -174,7 +176,7 @@ def patch_userconfig():
                                "object_inspector": False,
                               "open_python_at_startup"  : False,
                               "open_ipython_at_startup"  : True,
-                              #"start_ipython_kernel_at_startup"  : True,
+                              "start_ipython_kernel_at_startup"  : False,
                             }
                  ,
                  #"ipython_console":  
@@ -214,6 +216,7 @@ def patch_userconfig():
 
 def patch_baseconfig():
     from spyderlib import baseconfig
+    baseconfig.SUBFOLDER = "emzed2_workbench"
 
     # Opening an IPYTHON shell does not use the configures startup.py
     # which we see in spyder.ini, but locate starup.py inside the

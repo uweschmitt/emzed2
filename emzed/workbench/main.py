@@ -49,6 +49,9 @@ if sys.platform == "win32":
     pkg_resources.require("IPython==0.10")
 
 
+import emzed.workbench.patches
+emzed.workbench.patches.patch_spyderlib()
+
 # Test if IPython v0.12+ is installed to eventually switch to PyQt API #2
 from spyderlib.utils.programs import is_module_installed
 if is_module_installed('IPython.frontend.qt', '>=0.12'):
@@ -75,8 +78,6 @@ import spyderlib
 os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
 print os.environ["SPYDER_PARENT_DIR"]
 
-import emzed.workbench.patches
-emzed.workbench.patches.patch_spyderlib()
 
 try:
     import emzed.core
@@ -852,15 +853,15 @@ class MainWindow(QMainWindow):
                 action = create_action(self, text, icon=icon,
                                triggered=lambda path=path: start_file(path))
                 self.help_menu_actions.append(action)
-            if os.name == 'nt':
-                sysdocpth = osp.join(sys.prefix, 'Doc')
-                for docfn in os.listdir(sysdocpth):
-                    pt = r'([a-zA-Z\_]*)(doc)?(-dev)?(-ref)?(-user)?.(chm|pdf)'
-                    match = re.match(pt, docfn)
-                    if match is not None:
-                        pname = match.groups()[0]
-                        if pname not in ('Python', ):
-                            add_doc_action(pname, osp.join(sysdocpth, docfn))
+            #if os.name == 'nt':
+                #sysdocpth = osp.join(sys.prefix, 'Doc')
+                #for docfn in os.listdir(sysdocpth):
+                    #pt = r'([a-zA-Z\_]*)(doc)?(-dev)?(-ref)?(-user)?.(chm|pdf)'
+                    #match = re.match(pt, docfn)
+                    #if match is not None:
+                        #pname = match.groups()[0]
+                        #if pname not in ('Python', ):
+                            #add_doc_action(pname, osp.join(sysdocpth, docfn))
             # Documentation provided by Python(x,y), if available
             try:
                 from xy.config import DOC_PATH as xy_doc_path
@@ -1917,7 +1918,7 @@ def get_options():
     parser.add_option('-w', '--workdir', dest="working_directory", default=None,
                       help="Default working directory")
     parser.add_option('-d', '--debug', dest="debug", action='store_true',
-                      default=False,
+                      default=True,  # emzed modification
                       help="Debug mode (stds are not redirected)")
     parser.add_option('--showconsole', dest="show_console",
                       action='store_true', default=False,
