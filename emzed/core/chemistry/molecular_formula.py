@@ -11,22 +11,22 @@ class MolecularFormula(object):
 
     def __init__(self, form):
         if isinstance(form, str):
-            self.stringForm = form
-            self.dictForm = formula_parser.parseFormula(form)
+            self._stringForm = form
+            self._dictForm = formula_parser.parseFormula(form)
         elif isinstance(form, dict):
-            self.stringForm = formula_parser.joinFormula(form)
+            self._stringForm = formula_parser.joinFormula(form)
             # cleanup zero counts:
-            self.dictForm = dict( (e,c) for (e,c) in form.items() if c)
+            self._dictForm = dict( (e,c) for (e,c) in form.items() if c)
         else:
             raise Exception("can not handle argument %s" % form)
 
     def asDict(self):
         # maybe dictForm is a Counter, so in order to provide too much
         # surprise we convert to dict:
-        return dict(self.dictForm)
+        return dict(self._dictForm)
 
     def __str__(self):
-        return self.stringForm
+        return self._stringForm
 
     def __eq__(self, other):
         return self.asDict() == other.asDict()
@@ -64,7 +64,7 @@ class MolecularFormula(object):
         """
 
         el = elements.Elements()
-        items = self.dictForm.items()
+        items = self._dictForm.items()
         def get_mass(sym, massnum):
             # if mass num is None, and there is a specialisation
             # provided, we take this specialisation. Else we use
