@@ -13,8 +13,6 @@ def patch_external_shell():
 
     from spyderlib import baseconfig
     baseconfig.SUBFOLDER = "emzed2_workbench"
-    from spyderlib import config
-    config.CONF.name = "emzed2"
 
     # guiqwt leads to mem leak for long running procesess, we fix this:
     patch_guiqwt()

@@ -32,11 +32,9 @@ if sys.platform == "win32":
 
 def install_emzed(user_ns=None):
 
-
     import emzed
-    import emzed.config
-    emzed.config.edit()
-
+    if emzed.config._is_first_start():
+        emzed.config.edit()
 
     user_ns.update(locals())
 

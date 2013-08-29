@@ -25,6 +25,7 @@ except:
 
 import align
 import batches
+import config
 import core
 import db
 import gui
