@@ -1,6 +1,6 @@
 def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
-    """
+    """ import runPeakPickerHiRes
          runs peakPickerHiRes fron openMs in batch mode.
          input files are map files (mzXML, mxML, mzData),
          ouput files are mzML files, with extended file name.
@@ -49,12 +49,11 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
     """
 
 
-    from _BatchRunner import BatchRunner
-    from .. import _algorithm_configs
-    from .. import utils
+    from ...core.batch_runner import BatchRunner
+    from ... import _algorithm_configs
+    from ... import io
     import os.path
-    #import libms.PeakPicking
-    from ..core import peak_picking
+    from ...core import peak_picking
 
     class P(BatchRunner):
 
@@ -65,7 +64,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
             try:
                 print "read ", path
-                pm = utils.loadPeakMap(path)
+                pm = io.loadPeakMap(path)
             except Exception, e:
                 print e
                 print "reading FAILED"
@@ -78,6 +77,6 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
             basename, ext = os.path.splitext(os.path.basename(path))
             savePath = os.path.join(destinationDir, basename+"_centroided.mzML")
             print "save to ", savePath
-            utils.storePeakMap(result, savePath)
+            io.storePeakMap(result, savePath)
 
     return P(_algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)

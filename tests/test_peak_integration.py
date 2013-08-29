@@ -1,4 +1,5 @@
 import emzed.utils as utils
+import emzed.io as io
 
 import emzed._algorithm_configs
 import numpy as np
@@ -12,7 +13,7 @@ import os.path
 def testIntegration(path):
 
     # test with and without unicode:
-    ft = utils.loadTable(path("data/features.table"))
+    ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for ms.integrate generated columns
     ftr = utils.integrate(ft, "trapez")
@@ -87,7 +88,7 @@ def run(integrator, areatobe, rmsetobe):
         ds = run.ds
     except:
         here = os.path.dirname(os.path.abspath(__file__))
-        ds = run.ds =  utils.loadPeakMap(os.path.join(here, "data", "SHORT_MS2_FILE.mzData"))
+        ds = run.ds =  io.loadPeakMap(os.path.join(here, "data", "SHORT_MS2_FILE.mzData"))
 
     integrator.setPeakMap(ds)
 

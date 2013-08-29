@@ -1,7 +1,6 @@
 import emzed.utils
+import emzed.io
 import os.path as osp
-import numpy as np
-import copy
 
 
 def testFormula():
@@ -14,16 +13,16 @@ def testFormula():
 
 def testLoadMap(path, tmpdir):
     from_ = path(u"data/SHORT_MS2_FILE.mzData")
-    ds = emzed.utils.loadPeakMap(from_)
+    ds = emzed.io.loadPeakMap(from_)
     assert osp.basename(ds.meta.get("source")) ==  osp.basename(from_)
 
     # with unicode
-    emzed.utils.storePeakMap(ds, tmpdir.join("utilstest.mzML").strpath)
-    ds2 = emzed.utils.loadPeakMap(tmpdir.join("utilstest.mzML").strpath)
+    emzed.io.storePeakMap(ds, tmpdir.join("utilstest.mzML").strpath)
+    ds2 = emzed.io.loadPeakMap(tmpdir.join("utilstest.mzML").strpath)
     assert len(ds)==len(ds2)
 
     # without unicode
-    emzed.utils.storePeakMap(ds2, tmpdir.join("utilstest.mzData").strpath)
-    ds3 = emzed.utils.loadPeakMap(tmpdir.join("utilstest.mzData").strpath)
+    emzed.io.storePeakMap(ds2, tmpdir.join("utilstest.mzData").strpath)
+    ds3 = emzed.io.loadPeakMap(tmpdir.join("utilstest.mzData").strpath)
     assert len(ds)==len(ds3)
 

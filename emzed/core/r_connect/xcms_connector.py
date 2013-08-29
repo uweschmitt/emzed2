@@ -40,7 +40,7 @@ def install_xmcs_if_needed_statements():
                 if (require("xcms") == FALSE)
                 {
                     source("http://bioconductor.org/biocLite.R")
-                    biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
+                    biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
                     q(status=1);
                 }
                 q(status=0);
@@ -66,7 +66,7 @@ def lookForXcmsUpgrades():
 
     script = """
                  source("http://bioconductor.org/biocLite.R")
-                 todo <- old.packages(repos=biocinstallRepos(), lib="%s", quiet=T)
+                 todo <- old.packages(repos=biocinstallRepos(), lib="%s", quiet=F)
                  q(status=length(todo))
              """ % RExecutor().getRLibsFolder().replace("\\", "\\\\")
 
@@ -83,7 +83,7 @@ def doXcmsUpgrade():
 
     script = """
      source("http://bioconductor.org/biocLite.R")
-     todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE, lib="%s", destdir="%s", quiet=T)
+     todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE, lib="%s", destdir="%s", quiet=F)
      q(status=length(todo))
     """ % (r_libs, r_libs)
 

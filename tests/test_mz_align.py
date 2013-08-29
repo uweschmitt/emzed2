@@ -1,5 +1,5 @@
 import emzed.align
-import emzed.utils
+import emzed.io
 import glob
 import sys
 
@@ -20,8 +20,8 @@ def testMzAlign(path, tmpdir, monkeypatch):
         else:
             raise Exception("exepcted exception when opening figure on absent X windows system")
 
-    tab = emzed.utils.loadTable(path("data/ftab_for_mzalign.table"))
-    reftable = emzed.utils.loadCSV(path("data/universal_metabolites.csv"))
+    tab = emzed.io.loadTable(path("data/ftab_for_mzalign.table"))
+    reftable = emzed.io.loadCSV(path("data/universal_metabolites.csv"))
     reftable.info()
     pm = tab.peakmap.values[0]
     s0 = pm.spectra[0].peaks[:,0]

@@ -3,8 +3,6 @@ from utils import toTable, formula, addmf, openInBrowser, recalculateMzPeaks, st
 from isotope_calculator import isotopeDistributionTable, plotIsotopeDistribution
 from formula_generator  import formulaTable
 
-from load_utils import loadCSV, loadTable, loadPeakMap
-from store_utils import storeCSV, storeTable, storePeakMap
 
 from feature_detectors import runCentwave, runMatchedFilters, runMetaboFeatureFinder
 
@@ -22,14 +20,6 @@ except:
     pass
 try:
     del feature_detectors
-except:
-    pass
-try:
-    del store_utils
-except:
-    pass
-try:
-    del load_utils
 except:
     pass
 try:

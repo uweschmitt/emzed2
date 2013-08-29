@@ -1,16 +1,14 @@
 
-import _BatchRunner
-class _FD(_BatchRunner.BatchRunner):
+from ...core import batch_runner
 
-    def __init__(self, *a, **kw):
-        super(_FD, self).__init__(*a, **kw)
+class FD(batch_runner.BatchRunner):
 
     def process(self, path):
-        from .. import utils
+        from ... import io
 
         try:
             print "read ", path
-            ds = utils.loadPeakMap(path)
+            ds = io.loadPeakMap(path)
         except Exception, e:
             print e
             print "reading FAILED"
@@ -81,17 +79,17 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
 
     """
 
-    from .. import _algorithm_configs
-    from ..core.r_connect import CentwaveFeatureDetector
+    from ... import _algorithm_configs
+    from ...core.r_connect import CentwaveFeatureDetector
 
-    class P(_FD):
+    class P(FD):
 
         def setup(self, config):
             self.det = CentwaveFeatureDetector(**config)
 
     return P(_algorithm_configs.centwaveConfig, True).run(pattern, destination, configid, **params)
 
-from ..core import r_connect as __rconnect
+from ...core import r_connect as __rconnect
 runCentwave.__doc__ += __rconnect.CentwaveFeatureDetector.__doc__
 
 def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
@@ -144,10 +142,10 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
 
     """
 
-    from ..core.r_connect import MatchedFilterFeatureDetector
-    from .. import _algorithm_configs
+    from ...core.r_connect import MatchedFilterFeatureDetector
+    from ... import _algorithm_configs
 
-    class P(_FD):
+    class P(FD):
 
         def setup(self, config):
             self.det = MatchedFilterFeatureDetector(**config)
@@ -209,20 +207,20 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
 
     """
 
-    from .. import _algorithm_configs
+    from ... import _algorithm_configs
 
-    class P(_FD):
+    class P(FD):
 
         def __init__(self, *a, **kw):
-            _BatchRunner.BatchRunner.__init__(self, *a, **kw)
+            batch_runner.BatchRunner.__init__(self, *a, **kw)
 
         def process(self, path):
-            from ..utils.metaboff import metaboFeatureFinder
-            from .. import utils
+            from ..metaboff import metaboFeatureFinder
+            from ... import io
 
             try:
                 print "read ", path
-                ds = utils.loadPeakMap(path)
+                ds = io.loadPeakMap(path)
             except Exception, e:
                 print e
                 print "reading FAILED"

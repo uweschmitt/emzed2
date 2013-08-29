@@ -1,4 +1,5 @@
 import emzed.utils as utils
+import emzed.io as io
 import pytest
 import emzed.core.config
 
@@ -35,7 +36,7 @@ def test_handling_of_wrong_answer_from_metlin(path):
                         "on commandline for running test")
 
 
-    t = utils.loadCSV(path("data/metlin_input.csv"))
+    t = io.loadCSV(path("data/metlin_input.csv"))
     assert len(t) == 2, len(t)
     tn = utils.matchMetlin(t, "mass__0", ["M"], 3)
     assert len(tn) == 12, len(tn)

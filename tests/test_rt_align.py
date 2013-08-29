@@ -1,10 +1,9 @@
-import pdb
 import os
 import numpy as np
 
 import unittest
 
-from emzed.utils import loadTable
+from emzed.io import loadTable
 from emzed.align import rtAlign
 
 

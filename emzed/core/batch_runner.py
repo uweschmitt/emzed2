@@ -27,12 +27,12 @@ class BatchRunner(object):
         import glob, os.path
 
         if pattern is None:
-            import emzed.gui
-            files = emzed.gui.askForMultipleFiles(extensions=["mzXML", "mzData", "mzML"])
+            from .. import gui
+            files = gui.askForMultipleFiles(extensions=["mzXML", "mzData", "mzML"])
             if not files:
                 print "aborted"
                 return
-            destination = emzed.gui.askForDirectory()
+            destination = gui.askForDirectory()
             if not destination:
                 print "aborted"
                 return
@@ -51,8 +51,8 @@ class BatchRunner(object):
                     return
 
             elif len(self.config) > 1:
-                import emzed.gui
-                config = emzed.gui.chooseConfig(self.config,  params)
+                from .. import gui
+                config = gui.chooseConfig(self.config,  params)
             else:
                 config = self.config[0][2]
 

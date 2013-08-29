@@ -1,5 +1,5 @@
 import sys
-from  emzed.utils import loadTable
+from  emzed.io import loadTable
 
 import pytest
 
