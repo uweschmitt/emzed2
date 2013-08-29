@@ -1,4 +1,3 @@
-print "LOAD ABUNDANCES"
 
 from collections import defaultdict as _defaultdict
 
@@ -22,5 +21,4 @@ for _symbol, _massnumber, _abundance in zip(_symbols,
 
 for _k in _abu.keys():
     exec("%s=_abu['%s']" % (_k, _k))
-
 

@@ -1,5 +1,3 @@
-print "LOAD ELEMENTS"
-
 from emzed.core.chemistry import (Elements as _Elements,
                                   MonoIsotopicElements as _MonoIsotopicElements,
                                   )
