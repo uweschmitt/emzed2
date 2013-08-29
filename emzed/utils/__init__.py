@@ -43,3 +43,8 @@ try:
     del utils
 except:
     pass
+
+try:
+    del metaboff
+except:
+    pass

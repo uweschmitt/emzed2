@@ -257,7 +257,7 @@ metaboFeatureFinder.__doc__ = _ParamHandler.setup_doc_string()
 
 
 def test():
-    import ms
-    pm = ms.loadPeakMap("emzed_files/example1.mzXML")
+    from emzed.utils import inspect, loadPeakMap
+    pm = loadPeakMap("emzed_files/example1.mzXML")
     t = metaboFeatureFinder(pm, epdet_width_filtering="auto")
-    ms.inspect(t)
+    inspect(t)
