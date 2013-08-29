@@ -69,8 +69,8 @@ def showWarning(message):
     shows a warning dialog with given message
     """
 
-
-    guidata.qapplication().beep()
+    app = guidata.qapplication()
+    app.beep()
     QMessageBox.warning(None, "Warning", message)
 
 def showInformation(message):
@@ -78,7 +78,7 @@ def showInformation(message):
     shows a information dialog with given message
     """
 
-    guidata.qapplication().beep()
+    app = guidata.qapplication()
     QMessageBox.information(None, "Information", message)
 
 class DialogBuilder(object):
