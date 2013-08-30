@@ -25,7 +25,7 @@ def patch_external_shell():
     # emzed specific types:
     patch_oedit()
 
-    __builtins__["__emzed_patche_applied"] = True
+    __builtins__["__emzed_patches_applied"] = True
 
 def patch_dicteditorutils():
 

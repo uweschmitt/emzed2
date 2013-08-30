@@ -100,6 +100,7 @@ elif os.environ.get('IPYTHON', False):
     if "__builtins__" in user_ns:
         del user_ns["__builtins__"]
 
+
     ###########################################################################
     # end of       modification ###############################################
     ###########################################################################
@@ -143,11 +144,16 @@ on Windows platforms (only IPython v0.10 is fully supported).
         import IPython.external.path
         IPython.external.path.path.isdir = lambda self: osp.isdir(self)
         import IPython.Shell
+        user_ns["__emzed_project__"] = None
         __ipythonshell__ = IPython.Shell.start(user_ns=user_ns)
         # modification eMZEd end ##############################################
 
         __ipythonshell__.IP.stdin_encoding = os.environ['SPYDER_ENCODING']
         __ipythonshell__.IP.autoindent = 0
+
+        # emzed 2
+        from ip_prompt_hook import hook
+        __ipythonshell__.IP.set_hook("generate_prompt", hook)
 
 
     ###########################################################################
