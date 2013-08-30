@@ -216,7 +216,7 @@ def patch_userconfig():
 
 def patch_baseconfig():
     from spyderlib import baseconfig
-    baseconfig.SUBFOLDER = "emzed2_workbench"
+    baseconfig.SUBFOLDER = ".emzed2_workbench"
 
     # Opening an IPYTHON shell does not use the configures startup.py
     # which we see in spyder.ini, but locate starup.py inside the
