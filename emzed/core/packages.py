@@ -126,7 +126,12 @@ def _create_pkg_folder(pkg_folder, pkg_name, version):
     if path_to_existing_pkg:
         raise Exception("found existing emzed package in %s" % path_to_existing_pkg)
 
-    os.makedirs(pkg_folder)
+    try:
+        os.makedirs(pkg_folder)
+    except:
+        if os.listdirs(pkg_folder):
+            raise Exception("destination folder is not empty")
+        
     open(os.path.join(pkg_folder, EMZED_PKG_MARKER_FILE), "w").close()
     _create_package_folder(pkg_folder, pkg_name, version)
     _create_test_folder(pkg_folder, pkg_name)
