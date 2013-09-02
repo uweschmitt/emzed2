@@ -39,6 +39,9 @@ class TestUpdaterImpl(emzed.core.update_handling.AbstractUpdaterImpl):
         shutil.copy(os.path.join(self.data_home, "test_data"),
                     os.path.join(self.exchange_folder))
 
+    def touch_data_home_files(self):
+        pass
+
     def check_for_newer_version_on_exchange_folder(self):
         return True
 

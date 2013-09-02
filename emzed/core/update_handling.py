@@ -66,6 +66,10 @@ class AbstractUpdaterImpl(object):
         pass
 
     @abc.abstractmethod
+    def touch_data_home_files(self):
+        pass
+
+    @abc.abstractmethod
     def check_for_newer_version_on_exchange_folder(self):
         pass
 
@@ -142,6 +146,8 @@ class Updater(object):
         if self.exchange_folder is not None:
             if is_writable(self.exchange_folder):
                 self.impl.upload_to_exchange_folder()
+                # make data_home data "newer" than those on exchange folder:
+                self.impl.touch_data_home_files()
 
         return True, "ok"
 

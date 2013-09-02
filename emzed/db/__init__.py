@@ -63,6 +63,10 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
             os.makedirs(target_dir)
         self.get_db().store(target_path)
 
+    def touch_data_home_files(self):
+        import os
+        os.utime(_db_path(self.data_home), None)
+
     def check_for_newer_version_on_exchange_folder(self):
         import os
         return os.stat(_db_path(self.data_home)).st_mtime \
