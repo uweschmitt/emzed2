@@ -135,6 +135,12 @@ class _UserConfig(object):
         user_url = _di.StringItem("Website URL",
                                   help="usefull when submitting to package store")
 
+        project_home = _di.DirectoryItem("Folder for emzed projects",
+                default="",
+                help="here you can configure a folder in which emzed package projects "\
+                "will be created")
+        _apply_patch_for_allowing_empty_value(project_home)
+
         _g1 = _dt.EndGroup("User Settings")
 
         g11 = _dt.BeginGroup("Exchange Folder Settings")
@@ -225,7 +231,6 @@ class _UserConfig(object):
             # undo patch
             guidata.userconfig.UserConfig.__save = __save
 
-
     def load(self, path=None):
         import os
         import guidata.userconfig
@@ -243,18 +248,26 @@ class _UserConfig(object):
         return False
 
     def edit(self):
+        import guidata
+        app = guidata.qapplication()
         aborted = self.parameters.edit(size=(600, 800)) == 0
         self.store()
+        global global_config# = self
+        global_config = self
         return aborted
 
     def config_file_path(self):
-        import os.path
         return os.path.join(folders.getEmzedFolder(), "config_emzed2.ini")
 
     def set_defaults(self):
         self.parameters.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
         self.parameters.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
+        self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
+        try:
+            os.makedirs(self.parameters.project_home)
+        except:
+            pass
 
 
 global_config = _UserConfig()
