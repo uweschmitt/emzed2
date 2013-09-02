@@ -7,23 +7,19 @@ def init(name=None):
     if not project_home:
         raise Exception("no project folder configured. please run emzed.config.edit()")
 
-    import re
+    from ..core.packages import create_package_scaffold, check_name
     if name is None:
         while True:
-            name = DialogBuilder().addString("Package Name")\
+            pkg_name = DialogBuilder().addString("Package Name")\
                     .addInstruction("valid package names contain a-z, 0-9 and '_' and start " \
                     "with a lower case letter").show()
-            if name.lower() != name:
-                showWarning("only lower case characters allowed in package name")
-                continue
-            if re.match("[a-z][a-z0-9_]*$", name) is None:
-                showWarning("invalid chars in package name")
-                continue
-            break
+            complaint = check_name(pkg_name)
+            if not complaint:
+                break
+            showWarning(complaint)
 
     import os
-    folder = os.path.join(project_home, "package_%s" % name)
-    from ..core.packages import create_package_scaffold
+    folder = os.path.join(project_home, name)
     try:
         create_package_scaffold(folder, name)
     except Exception ,e:
@@ -31,7 +27,129 @@ def init(name=None):
         return
 
     print
-    print "project scaffold created, enter emzed.project.activate() to start working on it"
+    print "project scaffold created, enter emzed.project.activate() to start working on it."
+    print
+    print "please edit setup.py for your needs"
+    os.chdir(folder)
+    try:
+        # should be set during ipython shell startup
+        open_in_spyder(os.path.join(folder, "setup.py"))
+    except:
+        pass
+
+
+def _get_active_project():
+    return __builtins__.get("__emzed_project__")
+
+def _set_active_project(project):
+    __builtins__["__emzed_project__"] = project
+
+def _run_setup_py_develop(uninstall=False):
+    #subprocess runnint "setup.py develop [-u]"  kills socket for monitor thread !!!, so:
+
+    from setuptools.command.develop import develop
+    from setuptools import Distribution
+
+    import sys
+    sys.path.insert(0, ".")
+    import setup
+    sys.path.pop(0)
+
+    d = Distribution(dict(name=setup.PKG_NAME,
+                          packages=[setup.PKG_NAME],
+                          version=setup.VERSION_STRING,
+                          entry_points=setup.ENTRY_POINTS))
+    d.script_name = "setup.py"
+    cmd = develop(d)
+    cmd.user = 1
+    cmd.uninstall = uninstall
+    cmd.ensure_finalized()
+    import site
+    cmd.install_dir = site.USER_SITE
+    cmd.user = 1
+    cmd.run()
+
+def deactivate():
+    ap = _get_active_project()
+    if ap is not None:
+        _run_setup_py_develop(uninstall=True)
+
+        _set_active_project(None)
+        del __builtins__["___deactivate"]
+        del __builtins__["___run_tests"]
+        try:
+            from IPython import ipapi
+            ipapi.get().IP.home_dir = __builtins__["__old_home"]
+        except:
+            pass
+
+    else:
+        raise Exception("no active project set")
+
+def run_tests():
+
+    ap = _get_active_project()
+    if ap is not None:
+        import pytest
+
+        import os, sys
+        for name, mod in sys.modules.items()[:]:
+            if mod and hasattr(mod, "__file__"):
+                if os.path.dirname(mod.__file__).startswith(ap):
+                    print "del", name
+                    del sys.modules[name]
+        reload(pytest)
+        before = os.getcwd()
+        try:
+            pytest.main(ap)
+        finally:
+            os.chdir(before)
+
+    else:
+        raise Exception("no active project set")
+
+
+def activate(name=None):
+    import os
+    from emzed.core.packages import is_project_folder
+    if name is None:
+        if is_project_folder("."):
+            _set_active_project(os.getcwd())
+        else:
+            raise Exception("either cd to emzed project before you call emzed.project.activate, "\
+                    "or provide a project name or a full path")
+    else:
+        if is_project_folder(name):
+            _set_active_project(name)
+            os.chdir(name)
+        else:
+            from ..core.config import global_config
+            project_home = global_config.get("project_home").strip()
+            path_in_project_home = os.path.join(project_home, name)
+            if is_project_folder(path_in_project_home):
+                _set_active_project(path_in_project_home)
+                os.chdir(path_in_project_home)
+            else:
+                raise Exception("'%s' is not a valid project folder" % name)
+
+    __builtins__["___deactivate"] = deactivate
+    __builtins__["___run_tests"] = run_tests
+
+    try:
+        from IPython import ipapi
+        __builtins__["__old_home"] = ipapi.get().IP.home_dir
+        ipapi.get().IP.home_dir = os.getcwd()
+    except:
+        pass
+
+    _run_setup_py_develop()
+
+
+__builtins__["___activate"] = activate
+__builtins__["___init"] = init
+
+
+
 
 
 

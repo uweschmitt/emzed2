@@ -26,7 +26,7 @@ IS_EXTENSION = True
 # will can be started as app.%(pkg_name)s.run()
 
 # set this variable to None if this is a pure extension and not an emzed app
-APP_MAIN = "%(pkg_name)s.main:run"
+APP_MAIN = "%(pkg_name)s.app:run"
 
 VERSION = %(version)r
 AUTHOR = %(author)r
@@ -54,13 +54,14 @@ if APP_MAIN is not None:
     except:
         raise Exception("invalid specification %%r of APP_MAIN" %% APP_MAIN)
 
+VERSION_STRING = "%%s.%%s.%%s" %% VERSION
 
-entry_points = dict()
-entry_points['emzed_package'] = [ "package = " + PKG_NAME, ]
+ENTRY_POINTS = dict()
+ENTRY_POINTS['emzed_package'] = [ "package = " + PKG_NAME, ]
 if IS_EXTENSION:
-    entry_points['emzed_package'].append("extension = " + PKG_NAME)
+    ENTRY_POINTS['emzed_package'].append("extension = " + PKG_NAME)
 if APP_MAIN is not None:
-    entry_points['emzed_package'].append("main = %%s" %% APP_MAIN)
+    ENTRY_POINTS['emzed_package'].append("main = %%s" %% APP_MAIN)
 
 
 if __name__ == "__main__":   # allows import setup.py for version checking
@@ -80,28 +81,32 @@ if __name__ == "__main__":   # allows import setup.py for version checking
     from setuptools import setup
     setup(name=PKG_NAME,
         packages=[ PKG_NAME ],
-        version=".".join(map(str, VERSION)),
         author=AUTHOR,
         author_email=AUTHOR_EMAIL,
         url=AUTHOR_URL,
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
         license=LICENSE,
-        entry_points = entry_points
+        version=VERSION_STRING,
+        entry_points = ENTRY_POINTS
         )
    """
 
 def _normalize(folder):
     return os.path.abspath(os.path.normpath(folder))
 
-def _check_name(pkg_name):
-    forbidden = " .-"
-    if any(c in pkg_name for c in forbidden) or pkg_name.lower() != pkg_name:
-        suggested = pkg_name.lower()
-        for f in forbidden:
-            suggested = suggested.replace(f, "_")
-        raise Exception("name %r invalid. you could use %r instead" % ( pkg_name, suggested))
+def check_name(pkg_name):
+    if pkg_name != pkg_name.lower():
+        return "'%s' contains upper case letters" % pkg_name
+    import re
+    if re.match("[a-z]", pkg_name[0]) is None:
+        return "first character of '%s' is not in [a-z]" % pkg_name
+    if re.match("[a-z][a-z0-9_]*$", pkg_name) is None:
+        return "invalid characters in '%s'. only [a-z], [0-9] and '_' are allowed" % pkg_name
+    return None
 
+def is_project_folder(path):
+    return os.path.exists(path) and EMZED_PKG_MARKER_FILE in os.listdir(path)
 
 def _test_if_folder_is_inside_existing_pkg(folder):
     folder = _normalize(folder)
@@ -111,7 +116,8 @@ def _test_if_folder_is_inside_existing_pkg(folder):
             return None # reached top folder (maybe something like C:\ on win)
         # go one folder level upwards:
         folder, __ = os.path.split(folder)
-        if os.path.exists(os.path.join(folder, EMZED_PKG_MARKER_FILE)):
+        if is_project_folder(folder):
+        #if os.path.exists(os.path.join(folder, EMZED_PKG_MARKER_FILE)):
                 return folder
     raise Exception("unlimited loop for folder %r" % folder)
 
@@ -131,7 +137,7 @@ def _create_pkg_folder(pkg_folder, pkg_name, version):
     except:
         if os.listdirs(pkg_folder):
             raise Exception("destination folder is not empty")
-        
+
     open(os.path.join(pkg_folder, EMZED_PKG_MARKER_FILE), "w").close()
     _create_package_folder(pkg_folder, pkg_name, version)
     _create_test_folder(pkg_folder, pkg_name)
@@ -142,19 +148,19 @@ def _create_package_folder(pkg_folder, pkg_name, version):
     os.makedirs(package_folder)
     with open(os.path.join(package_folder, "__init__.py"), "w") as fp:
         fp.write("""
-from hello import hello
+from minimal_module import hello
     """)
 
-    with open(os.path.join(package_folder, "main.py"), "w") as fp:
+    with open(os.path.join(package_folder, "app.py"), "w") as fp:
         fp.write("""
 def run():
     return 42
     """)
 
-    with open(os.path.join(package_folder, "hello.py"), "w") as fp:
+    with open(os.path.join(package_folder, "minimal_module.py"), "w") as fp:
         fp.write("""
 def hello():
-    return "%s says hello"
+    return "hello from %s"
     """ % pkg_name)
 
     with open(os.path.join(pkg_folder, "setup.py"), "w") as fp:
@@ -178,16 +184,19 @@ def _create_test_folder(pkg_folder, pkg_name):
     with open(os.path.join(tests_folder, "__init__.py"), "w") as fp:
         pass
 
-    with open(os.path.join(tests_folder, "test_main.py"), "w") as fp:
+    with open(os.path.join(tests_folder, "test_extension.py"), "w") as fp:
         fp.write("""
-import %(pkg_name)s.main
 def test_hello():
-    assert isinstance(%(pkg_name)s.main.run(), basestring)
+    import emzed.ext
+    reload(emzed.ext)
+    assert emzed.ext.%(pkg_name)s.hello().startswith("hello")
     """ % locals())
 
 
 def create_package_scaffold(folder, pkg_name, version=(0,0,1)):
-    _check_name(pkg_name)
+    complaint = check_name(pkg_name)
+    if complaint:
+        raise Exception(complaint)
     folder = _normalize(folder)
     _test_if_folder_already_exists(folder)
     _create_pkg_folder(folder, pkg_name, version)

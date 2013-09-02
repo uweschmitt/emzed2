@@ -40,12 +40,12 @@ class PackageStoreTests(unittest.TestCase):
         self.assertIn("LICENSE", files)
 
         files = os.listdir(os.path.join(tmpdir, "minimal_package"))
-        self.assertIn("main.py", files)
-        self.assertIn("hello.py", files)
+        self.assertIn("app.py", files)
+        self.assertIn("minimal_module.py", files)
         self.assertIn("__init__.py", files)
 
         files = os.listdir(os.path.join(tmpdir, "tests"))
-        self.assertIn("test_main.py", files)
+        self.assertIn("test_extension.py", files)
         self.assertIn("__init__.py", files)
 
         # try to use existing folder:

@@ -54,19 +54,19 @@ __name__ = '__main__'
 if os.environ.get('IPYTHON_KERNEL', False):
 
     # IPython >=v0.11 Kernel
-    
+
     # Fire up the kernel instance.
     from IPython.zmq.ipkernel import IPKernelApp
     ipk_temp = IPKernelApp.instance()
     ipk_temp.initialize(sys.argv[1:])
     __ipythonshell__ = ipk_temp.shell
-    
-    # Issue 977: Since kernel.initialize() has completed execution, 
-    # we can now allow the monitor to communicate the availablility of 
+
+    # Issue 977: Since kernel.initialize() has completed execution,
+    # we can now allow the monitor to communicate the availablility of
     # the kernel to accept front end connections.
     __ipythonkernel__ = ipk_temp
     del ipk_temp
-    
+
     # Start the (infinite) kernel event loop.
     __ipythonkernel__.start()
 
@@ -90,7 +90,7 @@ elif os.environ.get('IPYTHON', False):
         pyreadline.GetOutputFile = lambda: None
 
 
-       
+
     ###########################################################################
     #       modification eMZed # ##############################################
     ###########################################################################
@@ -134,7 +134,7 @@ on Windows platforms (only IPython v0.10 is fully supported).
         del banner2
     except ImportError:
         # IPython v0.10
-    
+
         #######################################################################
         # modification eMZEd, somehow it is important that the fix for
         # path happens here:
@@ -159,7 +159,7 @@ on Windows platforms (only IPython v0.10 is fully supported).
     ###########################################################################
     # modification eMZed # #
     ###########################################################################
-    ip = None    
+    ip = None
     try:
         ip = IPython.ipapi.get()
     except:
@@ -169,7 +169,7 @@ on Windows platforms (only IPython v0.10 is fully supported).
             pass
 
     if ip is not None:
-        
+
         try:
             #ip.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
             pass
@@ -180,11 +180,11 @@ on Windows platforms (only IPython v0.10 is fully supported).
                 ip.ex("del %s" % name)
             except:
                 pass
-    try:
-        #__ipythonshell__.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')    
-        pass
-    except:
-        pass
+    #try:
+        #__ipythonshell__.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
+        #pass
+    #except:
+        #pass
     __ipythonshell__.mainloop()
 
     ###########################################################################
