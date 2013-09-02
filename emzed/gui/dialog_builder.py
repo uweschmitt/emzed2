@@ -70,7 +70,6 @@ def showWarning(message):
     """
 
     app = guidata.qapplication()
-    app.beep()
     QMessageBox.warning(None, "Warning", message)
 
 def showInformation(message):

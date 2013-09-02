@@ -11,6 +11,7 @@ def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
                  multipleFiles=True, extensions=None, caption=None):
 
     import guidata
+    app = guidata.qapplication()
     from PyQt4.QtGui import QFileDialog
     from PyQt4.QtCore import Qt
 
@@ -19,7 +20,6 @@ def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
     if startAt is None:
         startAt = os.getcwd()
 
-    app = guidata.qapplication()
     if caption is not None:
         di=QFileDialog(directory=startAt, caption=caption)
     else:
@@ -50,7 +50,7 @@ def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
     return [None]
 
 
-def askForDirectory(startAt=None):
+def askForDirectory(startAt=None, caption="Choose Folder"):
     """
     asks for a single directory.
 
@@ -59,9 +59,9 @@ def askForDirectory(startAt=None):
     returns the path to the selected directory as a string,
     or None if the user aborts the dialog.
     """
-    return __fileDialog(startAt, onlyDirectories=True)[0]
+    return __fileDialog(startAt, onlyDirectories=True, caption=caption)[0]
 
-def askForSave(startAt=None, extensions=None):
+def askForSave(startAt=None, extensions=None, caption="Save As"):
 
     """
           asks for a single file, which needs not to exist.
@@ -80,9 +80,9 @@ def askForSave(startAt=None, extensions=None):
           or None if the user aborts the dialog.
     """
     return __fileDialog(startAt, anyFile=True, multipleFiles=False,
-                                 extensions=extensions, caption="Save As")[0]
+                                 extensions=extensions, caption=caption)[0]
 
-def askForSingleFile(startAt=None, extensions=None):
+def askForSingleFile(startAt=None, extensions=None, caption="Open File"):
 
     """
           asks for a single file.
@@ -101,9 +101,9 @@ def askForSingleFile(startAt=None, extensions=None):
           returns the path of the selected file as a string,
           or None if the user aborts the dialog.
     """
-    return __fileDialog(startAt, multipleFiles=False, extensions=extensions)[0]
+    return __fileDialog(startAt, multipleFiles=False, extensions=extensions, caption=caption)[0]
 
-def askForMultipleFiles(startAt=None, extensions=None):
+def askForMultipleFiles(startAt=None, extensions=None, caption="Open Files"):
     """
           asks for a single or multiple files.
 
@@ -121,7 +121,7 @@ def askForMultipleFiles(startAt=None, extensions=None):
           returns the paths of the selected files as a list of strings,
           or None if the user aborts the dialog.
     """
-    return __fileDialog(startAt, multipleFiles=True, extensions=extensions)
+    return __fileDialog(startAt, multipleFiles=True, extensions=extensions, caption=caption)
 
 
 def chooseConfig(configs, params):
