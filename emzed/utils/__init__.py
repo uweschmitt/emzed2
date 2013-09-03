@@ -3,9 +3,6 @@ from utils import toTable, formula, addmf, openInBrowser, recalculateMzPeaks, st
 from isotope_calculator import isotopeDistributionTable, plotIsotopeDistribution
 from formula_generator  import formulaTable
 
-
-from feature_detectors import runCentwave, runMatchedFilters, runMetaboFeatureFinder
-
 from metlin import matchMetlin
 
 from integration import integrate
