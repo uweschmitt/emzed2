@@ -184,6 +184,12 @@ class _UserConfig(object):
 
         _g4 = _dt.EndGroup("Expert Settings")
 
+        g5 = _dt.BeginGroup("Internal Settings")
+
+        last_active_project = _di.StringItem("Last active project").set_prop("display", active=False)
+
+        _g5 = _dt.EndGroup("Internal Settings")
+
     def __init__(self, *a, **kw):
         self.parameters = _UserConfig.Parameters()
         if "_no_load" not in kw:
@@ -205,6 +211,8 @@ class _UserConfig(object):
 
     def set_(self, key, value):
         setattr(self.parameters, key, value)
+        global global_config
+        global_config = self
 
     def get_url(self, key):
         return self.get(key).rstrip("/") + "/"
@@ -252,7 +260,7 @@ class _UserConfig(object):
         app = guidata.qapplication()
         aborted = self.parameters.edit(size=(600, 800)) == 0
         self.store()
-        global global_config# = self
+        global global_config
         global_config = self
         return aborted
 
@@ -264,6 +272,7 @@ class _UserConfig(object):
         self.parameters.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
+        self.parameters.last_active_project = ""
         try:
             os.makedirs(self.parameters.project_home)
         except:

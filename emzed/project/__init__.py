@@ -109,6 +109,10 @@ def deactivate():
         ipapi.get().IP.home_dir = __builtins__["__old_home"]
     except:
         pass
+    
+    from emzed.core.config import global_config
+    global_config.set_("last_active_project", "")
+    global_config.store()
 
 def run_tests():
     ap = _get_active_project()
@@ -185,12 +189,23 @@ def activate(name=None):
         __builtins__["__old_home"] = ipapi.get().IP.home_dir
         ipapi.get().IP.home_dir = os.getcwd()
     except:
-        raise
         pass
 
     import subprocess, sys
     subprocess.call("python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
+    from emzed.core.config import global_config
+    global_config.set_("last_active_project", name)
+    global_config.store()
+
 
 __builtins__["___activate"] = activate
 __builtins__["___init"] = init
+
+from emzed.core.config import global_config
+last_project  = global_config.get("last_active_project")
+if last_project:
+    activate(last_project)
+
+del last_project, global_config
+
