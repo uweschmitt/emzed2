@@ -110,7 +110,7 @@ def deactivate():
     except:
         pass
     
-    from emzed.core.config import global_config
+    from ..core.config import global_config
     global_config.set_("last_active_project", "")
     global_config.store()
 
@@ -124,13 +124,13 @@ def run_tests():
 
 def upload():
     ap = _get_active_project()
-    from emzed.core.packages import upload_to_emzed_store
+    from ..core.packages import upload_to_emzed_store
     upload_to_emzed_store(ap)
 
 
 def remove_from_package_store(version_string):
     ap = _get_active_project()
-    from emzed.core.packages import delete_from_emzed_store
+    from ..core.packages import delete_from_emzed_store
     import os
     print
     ok = raw_input("ARE YOU SURE TO DELTED VERSION %s OF %s FROM PACKAGE STORE (Y/N) ? ")
@@ -144,7 +144,7 @@ def remove_from_package_store(version_string):
 
 def list_versions():
     ap = _get_active_project()
-    from emzed.core.packages import list_packages_from_emzed_store
+    from ..core.packages import list_packages_from_emzed_store
     import os
     __, name = os.path.split(ap)
     versions = [v for (n, v) in list_packages_from_emzed_store() if n==name]
@@ -160,9 +160,19 @@ def list_versions():
             print "   %s.%s.%s" % v
 
 
+def list_projects():
+    import os
+    from ..core.packages import is_project_folder
+    from ..core.config   import global_config
+    project_home = global_config.get("project_home").strip()
+    result = [f for f in os.listdir(os.path.abspath(project_home)) if is_project_folder(f)]
+    return result
+
+
+
 def activate(name=None):
     import os
-    from emzed.core.packages import is_project_folder
+    from ..core.packages import is_project_folder
     if name is None:
         if is_project_folder("."):
             _set_active_project(os.getcwd())
@@ -194,7 +204,7 @@ def activate(name=None):
     import subprocess, sys
     subprocess.call("python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
-    from emzed.core.config import global_config
+    from ..core.config import global_config
     global_config.set_("last_active_project", name)
     global_config.store()
 
@@ -202,7 +212,11 @@ def activate(name=None):
 __builtins__["___activate"] = activate
 __builtins__["___init"] = init
 
-from emzed.core.config import global_config
+for _n in list_projects():
+    __builtins__["___activate_%s" % _n] = lambda: activate(_n)
+
+
+from ..core.config import global_config
 last_project  = global_config.get("last_active_project")
 if last_project:
     activate(last_project)
