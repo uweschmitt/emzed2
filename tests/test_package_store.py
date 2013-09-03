@@ -70,7 +70,7 @@ class PackageStoreTests(unittest.TestCase):
 
         # remove test package from emzed package store if exists
         try:
-            emzed.core.packages.delete_from_emzed_store("test_minimal_package")
+            emzed.core.packages.delete_from_emzed_store("test_minimal_package", "0.0.1")
         except Exception, e:
             assert e.message == "404 Client Error: Not Found"
         # upload minimal package file
@@ -120,7 +120,7 @@ class PackageStoreTests(unittest.TestCase):
             emzed.ext.test_minimal_package
 
         # remove test package from emzed package store
-        emzed.core.packages.delete_from_emzed_store("test_minimal_package")
+        emzed.core.packages.delete_from_emzed_store("test_minimal_package", "0.0.1")
 
         pkgs = emzed.core.packages.list_packages_from_emzed_store()
         self.assertNotIn( ("test_minimal_package", [(0,0,1)]) , pkgs)
@@ -132,4 +132,4 @@ class PackageStoreTests(unittest.TestCase):
     def test_delete_nonexisting(self):
         import emzed.core.packages
         with self.assertRaises(Exception):
-            emzed.core.packages.delete_from_emzed_store("abc123")
+            emzed.core.packages.delete_from_emzed_store("abc123", "0.0.1")
