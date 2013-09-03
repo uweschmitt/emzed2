@@ -11,14 +11,14 @@ import __builtin__
 
 ############ EMZED ADDDONS BEGIN ##############################
 
+import os
+
 print "run patched sitecustomize"
 try:
     import external_shell_patches
     external_shell_patches.patch_external_shell()
 except Exception, e:
     print e
-print "patches applied"
-
 ############ EMZED ADDDONS END ################################
 
 
@@ -578,6 +578,24 @@ def evalsc(command):
             raise NotImplementedError, "Unsupported command: '%s'" % command
 
 __builtin__.evalsc = evalsc
+
+# emzed2 ###################################################################################
+
+# cleanup python path et al: ################################################################
+#
+# somehow emzed patches result in loading of patched startup.py when running python inter-
+# preter ins subprocess (eg !python -c print). this leads to a crash of the introspection
+# monitor, as startup.py tries to start a second one listening on the same port.
+#
+# so we clean up path settings, so that the python interpreter in the subprocess does not load
+# patched startup, but the default one:
+
+import os, sys
+pathes = os.environ.get("PYTHONPATH", "")
+fields = pathes.split(os.pathsep)
+fields = [ f for f in fields if not f.endswith("emzed/workbench")]
+os.putenv("PYTHONPATH", os.pathsep.join(fields))
+sys.path = [ f for f in sys.path[:] if not f.endswith("emzed/workbench")]
 
 
 ## Restoring original PYTHONPATH
