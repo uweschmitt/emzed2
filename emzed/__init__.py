@@ -36,6 +36,7 @@ import project
 import stats
 import utils
 
+import app
 import abundance
 import adducts
 import elements
