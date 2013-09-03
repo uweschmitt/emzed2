@@ -28,12 +28,13 @@ IS_EXTENSION = True
 # set this variable to None if this is a pure extension and not an emzed app
 APP_MAIN = "%(pkg_name)s.app:run"
 
-VERSION = %(version)r
 AUTHOR = %(author)r
 AUTHOR_EMAIL = %(author_email)r
 AUTHOR_URL = %(author_url)r
 
 PKG_NAME = %(pkg_name)r
+
+# HINT: to modify version edit %(pkg_name)s/version.py !!!
 
 DESCRIPTION = "please describe here %(pkg_name)s in one line"
 LONG_DESCRIPTION = \"\"\"
@@ -45,6 +46,8 @@ describe %(pkg_name)s here in more than one line
 LICENSE = "http://opensource.org/licenses/GPL-3.0"
 
 # DO NOT TOUCH THE CODE BELOW UNLESS YOU KNOW WHAT YOU DO !!!!  # ################################
+
+from %(pkg_name)s.version import version as VERSION
 
 if APP_MAIN is not None:
     try:
@@ -148,8 +151,18 @@ def _create_package_folder(pkg_folder, pkg_name, version):
     os.makedirs(package_folder)
     with open(os.path.join(package_folder, "__init__.py"), "w") as fp:
         fp.write("""
-from minimal_module import hello
-    """)
+
+# IMPORTS WHICH SHOULD APPEAR AFTER INSTALLING THE PACKAGE:
+from minimal_module import hello # makes emzed.ext.%s.hello() visible
+
+# DO NOT TOUCH THE FOLLOWING LINE:
+from version import version as __version__
+    """ % pkg_name)
+
+    with open(os.path.join(package_folder, "version.py"), "w") as fp:
+        fp.write("""
+version = %r
+    """ % (version,))
 
     with open(os.path.join(package_folder, "app.py"), "w") as fp:
         fp.write("""
@@ -201,12 +214,15 @@ def create_package_scaffold(folder, pkg_name, version=(0,0,1)):
     _test_if_folder_already_exists(folder)
     _create_pkg_folder(folder, pkg_name, version)
 
-def delete_from_emzed_store(pkg_name):
+
+def delete_from_emzed_store(pkg_name, version_string):
+    assert version_string, "empty version_string not allowed"
     user = global_config.get("emzed_store_user")
     password = global_config.get("emzed_store_password")
-    url = global_config.get_url("emzed_store_url") + pkg_name
+    url = global_config.get_url("emzed_store_url") + pkg_name + "/" + version_string
     response = requests.delete(url, auth=(user, password))
     response.raise_for_status()
+
 
 def upload_to_emzed_store(pkg_folder):
     old_wd = os.getcwd()
@@ -228,6 +244,7 @@ def upload_to_emzed_store(pkg_folder):
     if rc:
         raise Exception("upload failed")
 
+
 def install_from_emzed_store(pkg_name, version=None):
     if version:
         assert isinstance(version, tuple)
@@ -243,6 +260,7 @@ def install_from_emzed_store(pkg_name, version=None):
     exit_code = subprocess.call("pip install %s -i %s %s" % (user_flag, index_url, pkg_query),
                                 shell=True)
     assert exit_code == 0
+
 
 def uninstall_emzed_package(pkg_name):
     exit_code = subprocess.call("pip uninstall --yes %s" % pkg_name, shell=True)
