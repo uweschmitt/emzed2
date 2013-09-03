@@ -209,11 +209,13 @@ def delete_from_emzed_store(pkg_name):
     response.raise_for_status()
 
 def upload_to_emzed_store(pkg_folder):
+    old_wd = os.getcwd()
     os.chdir(pkg_folder)
 
     # make sure we load the right setup.py
     sys.path.insert(0, os.path.abspath(pkg_folder))
     import setup
+    reload(setup)
     sys.path.pop(0)
 
     for p, versions in list_packages_from_emzed_store():
@@ -222,6 +224,7 @@ def upload_to_emzed_store(pkg_folder):
                                                                            setup.VERSION))
 
     rc = subprocess.call("python setup.py sdist upload", shell=True)
+    os.chdir(old_wd)
     if rc:
         raise Exception("upload failed")
 

@@ -42,10 +42,15 @@ def _get_active_project():
     return __builtins__.get("__emzed_project__")
 
 def _set_active_project(project):
+    if project is not None:
+        import os
+        project = os.path.abspath(project)
     __builtins__["__emzed_project__"] = project
+
 
 def _run_setup_py_develop(uninstall=False):
     #subprocess runnint "setup.py develop [-u]"  kills socket for monitor thread !!!, so:
+    import sys, os
 
     from setuptools.command.develop import develop
     from setuptools import Distribution
@@ -72,11 +77,13 @@ def _run_setup_py_develop(uninstall=False):
 def deactivate():
     ap = _get_active_project()
     if ap is not None:
-        _run_setup_py_develop(uninstall=True)
+        import subprocess
+        subprocess.call("python setup.py develop -u", shell=True)
 
         _set_active_project(None)
         del __builtins__["___deactivate"]
         del __builtins__["___run_tests"]
+        del __builtins__["___upload"]
         try:
             from IPython import ipapi
             ipapi.get().IP.home_dir = __builtins__["__old_home"]
@@ -90,21 +97,18 @@ def run_tests():
 
     ap = _get_active_project()
     if ap is not None:
-        import pytest
+        import os
+        import subprocess
+        path = os.path.join(ap, "tests")
+        subprocess.call("py.test %s" % path, shell=True)
+    else:
+        raise Exception("no active project set")
 
-        import os, sys
-        for name, mod in sys.modules.items()[:]:
-            if mod and hasattr(mod, "__file__"):
-                if os.path.dirname(mod.__file__).startswith(ap):
-                    print "del", name
-                    del sys.modules[name]
-        reload(pytest)
-        before = os.getcwd()
-        try:
-            pytest.main(ap)
-        finally:
-            os.chdir(before)
-
+def upload():
+    ap = _get_active_project()
+    if ap is not None:
+        from emzed.core.packages import upload_to_emzed_store
+        upload_to_emzed_store(ap)
     else:
         raise Exception("no active project set")
 
@@ -134,6 +138,7 @@ def activate(name=None):
 
     __builtins__["___deactivate"] = deactivate
     __builtins__["___run_tests"] = run_tests
+    __builtins__["___upload"] = upload
 
     try:
         from IPython import ipapi
@@ -142,7 +147,9 @@ def activate(name=None):
     except:
         pass
 
-    _run_setup_py_develop()
+    import subprocess
+    subprocess.call("python setup.py develop", shell=True)
+    #_run_setup_py_develop()
 
 
 __builtins__["___activate"] = activate
