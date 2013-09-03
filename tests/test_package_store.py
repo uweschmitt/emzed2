@@ -87,10 +87,10 @@ class PackageStoreTests(unittest.TestCase):
             pass
 
         pkgs = emzed.core.packages.list_packages_from_emzed_store()
-        self.assertEquals(pkgs,[ ("test_minimal_package", [(0,0,1)]) ])
+        self.assertIn( ("test_minimal_package", [(0,0,1)]) , pkgs)
 
         pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
-        self.assertEquals(pkgs,[ ("test_minimal_package", (0,0,1)) ])
+        self.assertIn( ("test_minimal_package", (0,0,1)) , pkgs)
 
         # install package
         emzed.core.packages.install_from_emzed_store("test_minimal_package", (0, 0, 1))
@@ -105,14 +105,15 @@ class PackageStoreTests(unittest.TestCase):
         self.assertEquals(emzed.app.test_minimal_package(), 42)
 
         # check if listed
-        self.assertEqual(emzed.core.packages.installed_emzed_packages(),
-                                                          [("test_minimal_package", True, False)])
+        self.assertIn(("test_minimal_package", True, False),
+                emzed.core.packages.installed_emzed_packages())
 
         # remove package
         emzed.core.packages.uninstall_emzed_package("test_minimal_package")
 
         # check if not listed any more
-        self.assertEqual(emzed.core.packages.installed_emzed_packages(), [])
+        self.assertNotIn(("test_minimal_package", True, False),
+                emzed.core.packages.installed_emzed_packages())
         # test if package is removed
         with self.assertRaises(Exception):
             reload(emzed.ext)
@@ -121,10 +122,11 @@ class PackageStoreTests(unittest.TestCase):
         # remove test package from emzed package store
         emzed.core.packages.delete_from_emzed_store("test_minimal_package")
 
-        packages = emzed.core.packages.list_packages_from_emzed_store()
-        self.assertEqual(packages, [])
-        packages = emzed.core.packages.list_newest_packages_from_emzed_store()
-        self.assertEqual(packages, [])
+        pkgs = emzed.core.packages.list_packages_from_emzed_store()
+        self.assertNotIn( ("test_minimal_package", [(0,0,1)]) , pkgs)
+
+        pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
+        self.assertNotIn( ("test_minimal_package", (0,0,1)) , pkgs)
 
 
     def test_delete_nonexisting(self):
