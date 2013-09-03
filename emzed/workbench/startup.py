@@ -36,6 +36,7 @@ def install_emzed(user_ns=None):
     if emzed.config._is_first_start():
         emzed.config.edit()
 
+    import os, sys
     user_ns.update(locals())
 
 
@@ -212,6 +213,8 @@ on Windows platforms (only IPython v0.10 is fully supported).
             pass
         except:
             pass
+        # else  we load patched sitecostuomize.py on windows:
+        ip.ex("os.unsetenv('PYTHONPATH')")
         for name in ["e", "pi", "path"]:
             try:
                 ip.ex("del %s" % name)

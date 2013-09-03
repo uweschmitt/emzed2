@@ -80,6 +80,7 @@ def _run_setup_py_develop(uninstall=False):
 
 
 def _install_builtins():
+    #return
     __builtins__["___deactivate"] = deactivate
     __builtins__["___run_tests"] = run_tests
     __builtins__["___upload"] = upload
@@ -97,8 +98,8 @@ def _uninstall_builtins():
 
 def deactivate():
     ap = _get_active_project()
-    import subprocess
-    subprocess.call("python setup.py develop -u", shell=True)
+    import subprocess, sys
+    subprocess.call("python setup.py develop -u", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
     _set_active_project(None)
     _uninstall_builtins()
@@ -112,9 +113,9 @@ def deactivate():
 def run_tests():
     ap = _get_active_project()
     import os
-    import subprocess
+    import subprocess, sys
     path = os.path.join(ap, "tests")
-    subprocess.call("py.test %s" % path, shell=True)
+    subprocess.call("py.test %s" % path, shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
 
 def upload():
@@ -184,11 +185,11 @@ def activate(name=None):
         __builtins__["__old_home"] = ipapi.get().IP.home_dir
         ipapi.get().IP.home_dir = os.getcwd()
     except:
+        raise
         pass
 
-    import subprocess
-    subprocess.call("python setup.py develop", shell=True)
-    #_run_setup_py_develop()
+    import subprocess, sys
+    subprocess.call("python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
 
 __builtins__["___activate"] = activate

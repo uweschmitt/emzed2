@@ -9,7 +9,7 @@ _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
 def patch_spyderlib():
 
-
+    patch_baseconfig()
     # patches default config values for first startup
     # including path to startup.py for "normal" python console:
     patch_userconfig()
@@ -18,7 +18,6 @@ def patch_spyderlib():
     # corresponding import of ExternalConsole implies import of baseshell. So
     # patching baseshell will not work, as it is registered in sys.modules in
     # unpatched version !
-    patch_baseconfig()
 
     # patches python path, so that external IPython shell loads patched
     # sitecustomize.py
