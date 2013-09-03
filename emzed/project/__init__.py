@@ -26,6 +26,7 @@ def init(name=None):
         showWarning(str(e))
         return
 
+    __builtins__["___activate_%s" % name] = lambda : activate(name)
     print
     print "project scaffold created, enter emzed.project.activate() to start working on it."
     print
@@ -105,14 +106,14 @@ def deactivate():
     _uninstall_builtins()
 
     try:
-        from IPython import ipapi
-        ipapi.get().IP.home_dir = __builtins__["__old_home"]
+        os.chdir(__builtins__["__old_home"])
     except:
         pass
     
     from ..core.config import global_config
     global_config.set_("last_active_project", "")
     global_config.store()
+
 
 def run_tests():
     ap = _get_active_project()
@@ -171,10 +172,10 @@ def list_projects():
     return result
 
 
-
 def activate(name=None):
     import os
     from ..core.packages import is_project_folder
+    __builtins__["__old_home"] = os.getcwd() # ipapi.get().IP.home_dir
     if name is None:
         if is_project_folder("."):
             _set_active_project(os.getcwd())
@@ -196,12 +197,6 @@ def activate(name=None):
                 raise Exception("'%s' is not a valid project folder" % name)
 
     _install_builtins()
-    try:
-        from IPython import ipapi
-        __builtins__["__old_home"] = ipapi.get().IP.home_dir
-        ipapi.get().IP.home_dir = os.getcwd()
-    except:
-        pass
 
     import subprocess, sys
     subprocess.call("python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
@@ -213,6 +208,7 @@ def activate(name=None):
 
 __builtins__["___activate"] = activate
 __builtins__["___init"] = init
+__builtins__["___list_projects"] = list_projects
 
 for _n in list_projects():
     __builtins__["___activate_%s" % _n] = lambda: activate(_n)
@@ -220,8 +216,16 @@ for _n in list_projects():
 
 from ..core.config import global_config
 last_project  = global_config.get("last_active_project")
-if last_project:
-    activate(last_project)
+project_home  = global_config.get("project_home")
 
-del last_project, global_config
+if last_project:
+    #activate(last_project) # does not work, crashes on win maybe bcause starting pythonin subprocess
+    import os
+    path_in_project_home = os.path.join(project_home, last_project)
+    _set_active_project(path_in_project_home)
+    os.chdir(path_in_project_home)
+    _install_builtins()
+    del os
+
+del last_project, global_config, project_home
 

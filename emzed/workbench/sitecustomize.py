@@ -590,6 +590,8 @@ __builtin__.evalsc = evalsc
 # so we clean up path settings, so that the python interpreter in the subprocess does not load
 # patched startup, but the default one:
 
+# works only on linux:
+
 import os, sys
 pathes = os.environ.get("PYTHONPATH", "")
 fields = pathes.split(os.pathsep)
