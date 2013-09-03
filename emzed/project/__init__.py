@@ -165,7 +165,9 @@ def list_projects():
     from ..core.packages import is_project_folder
     from ..core.config   import global_config
     project_home = global_config.get("project_home").strip()
-    result = [f for f in os.listdir(os.path.abspath(project_home)) if is_project_folder(f)]
+    #projects = [os.path.join(project_home, f) for ]
+    result = [f for f in os.listdir(project_home) \
+                 if is_project_folder(os.path.join(project_home, f))]
     return result
 
 
