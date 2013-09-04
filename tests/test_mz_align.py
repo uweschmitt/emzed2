@@ -21,17 +21,19 @@ def testMzAlign(path, tmpdir, monkeypatch):
             raise Exception("exepcted exception when opening figure on absent X windows system")
 
     tab = emzed.io.loadTable(path("data/ftab_for_mzalign.table"))
-    reftable = emzed.io.loadCSV(path("data/universal_metabolites.csv"))
+    reftable = emzed.io.loadCSV(path("data/universal_metabolites_.csv"))
+    reftable.renameColumns(mz_calc="mz_hypot")
     reftable.info()
     pm = tab.peakmap.values[0]
     s0 = pm.spectra[0].peaks[:,0]
+    print tmpdir.strpath
     tab_aligned = emzed.align.mzAlign(tab, reftable, interactive=False, minPoints=4, tol=14*MMU,
                       destination=tmpdir.strpath)
     assert tab_aligned is not None
     after = tab_aligned.mz.values
     pm = tab_aligned.peakmap.values[0]
     s0 = pm.spectra[0].peaks[:,0]
-    assert abs(s0[0]-202.121231079) < 1e-5, float(s0[0])
+    assert abs(s0[0]-202.12121582) < 1e-5, float(s0[0])
     assert abs(after[0]-272.199238673) < 1e-5, float(after[0])
 
     assert len(glob.glob(tmpdir.join("2011-10-06_054_PKTB*").strpath))==4
