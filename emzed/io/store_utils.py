@@ -14,7 +14,7 @@ def storePeakMap(pm, path=None):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
-        import gui
+        from .. import gui
         path = gui.askForSave(extensions="mzML mzXML mzData".split())
         if path is None:
             return None
@@ -44,7 +44,7 @@ def storeTable(tab, path=None, forceOverwrite=False):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
         startAt = tab.meta.get("loaded_from", "")
-        import gui
+        from .. import gui
         path = gui.askForSave(extensions=["table"], startAt=startAt)
         if path is None:
             return None
@@ -63,7 +63,7 @@ def storeCSV(tab, path=None):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
-        import gui
+        from .. import gui
         path = gui.askForSave(extensions=["csv"])
         if path is None:
             return None

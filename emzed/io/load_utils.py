@@ -16,8 +16,8 @@ def loadPeakMap(path=None):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
-        import emzed.gui
-        path = emzed.gui.askForSingleFile(extensions="mzML mzXML mzData".split())
+        from .. import gui
+        path = gui.askForSingleFile(extensions="mzML mzXML mzData".split())
         if path is None:
             return None
 
@@ -51,8 +51,8 @@ def loadTable(path=None):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
-        import emzed.gui
-        path = emzed.gui.askForSingleFile(extensions=["table"])
+        from .. import gui
+        path = gui.askForSingleFile(extensions=["table"])
         if path is None:
             return None
 
@@ -71,8 +71,8 @@ def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
     elif path is None:
-        import emzed.gui
-        path = emzed.gui.askForSingleFile(extensions=["csv"])
+        from .. import gui
+        path = gui.askForSingleFile(extensions=["csv"])
         if path is None:
             return None
 
