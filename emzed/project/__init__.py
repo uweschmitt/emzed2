@@ -10,10 +10,10 @@ def init(name=None):
     from ..core.packages import create_package_scaffold, check_name
     if name is None:
         while True:
-            pkg_name = DialogBuilder().addString("Package Name")\
+            name = DialogBuilder().addString("Package Name")\
                     .addInstruction("valid package names contain a-z, 0-9 and '_' and start " \
                     "with a lower case letter").show()
-            complaint = check_name(pkg_name)
+            complaint = check_name(name)
             if not complaint:
                 break
             showWarning(complaint)
@@ -106,6 +106,7 @@ def deactivate():
     _uninstall_builtins()
 
     try:
+        import os
         os.chdir(__builtins__["__old_home"])
     except:
         pass
@@ -211,7 +212,7 @@ __builtins__["___init"] = init
 __builtins__["___list_projects"] = list_projects
 
 for _n in list_projects():
-    __builtins__["___activate_%s" % _n] = lambda: activate(_n)
+    __builtins__["___activate_%s" % _n] = lambda _n=_n: activate(_n)
 
 
 from ..core.config import global_config
