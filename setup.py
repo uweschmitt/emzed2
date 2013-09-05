@@ -14,6 +14,10 @@ from setuptools import setup
 import emzed
 version_str = ".".join(map(str, emzed.__version__))
 
+print _mod # pyflakes:ignore
+
+
+
 setup(name="emzed",
       packages=[ "emzed"],
       version=version_str,

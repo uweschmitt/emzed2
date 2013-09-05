@@ -16,7 +16,7 @@ class PackageStoreTests(unittest.TestCase):
 
         global_config.parameters.metlin_token = ""
 
-        global_config.parameters.emzed_store_user = "uschmitt"
+        global_config.parameters.emzed_store_user = "uweschmitt"
         global_config.parameters.emzed_store_password = "pillepalle"
 
         # for testing implicit unicode conversions:

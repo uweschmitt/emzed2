@@ -250,6 +250,8 @@ def install_from_emzed_store(pkg_name, version=None):
         assert isinstance(version, tuple)
         assert len(version) == 3
     index_url = global_config.get_url("emzed_store_index_url")
+    user = global_config.get("emzed_store_user")
+    password = global_config.get("emzed_store_password")
     pkg_query = pkg_name
     if version:
         pkg_query += "==%s.%s.%s" % version
@@ -257,7 +259,12 @@ def install_from_emzed_store(pkg_name, version=None):
     is_venv = os.environ.get("VIRTUAL_ENV") is not None
     user_flag = "" if is_venv else "--user"
 
-    exit_code = subprocess.call("pip install %s -i %s %s" % (user_flag, index_url, pkg_query),
+    pre, __, post = index_url.partition("//")
+
+    url = "%s//%s:%s@%s" % (pre, user, password, post)
+
+    print "pip install %s -i %s %s" % (user_flag, url, pkg_query)
+    exit_code = subprocess.call("pip install %s -i %s %s" % (user_flag, url, pkg_query),
                                 shell=True)
     assert exit_code == 0
 
@@ -281,6 +288,7 @@ def installed_emzed_packages():
 def list_packages_from_emzed_store():
     url = global_config.get_url("emzed_store_url")
     response = helpers.get_json(url)
+    print response.url
     response.raise_for_status()
     packages = [ name.encode("latin-1") for name in response.json()["result"]]
     result = []
