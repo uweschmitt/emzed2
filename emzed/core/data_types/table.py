@@ -691,8 +691,10 @@ class Table(object):
             data = fp.read()
             version_str, __, pickle_data = data.partition("\n")
             if not version_str.startswith("emzed_version="):
-                msg = "magic string invalid. wrong file format"
-                raise Exception(msg)
+                try:
+                    return Table._try_to_load_old_version(pickle_data)
+                except:
+                    return Table._try_to_load_old_version(data)
             v_number_str = version_str[14:]
             v_number = tuple(map(int, v_number_str.split(".")))
             try:
