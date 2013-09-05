@@ -645,6 +645,41 @@ class Table(object):
             cPickle.dump(data, fp, protocol=2)
 
     @staticmethod
+    def _load_strict(pickle_data):
+        try:
+            data = cPickle.loads(pickle_data)
+        except Exception, e:
+            raise Exception("file has invalid format: %s" % e)
+
+        if not isinstance(data, (list, tuple)):
+            raise Exception("data item from file is not list or tuple")
+        if len(data) != len(Table._to_pickle):
+            raise Exception("number of data items from file does not match Table._to_pickle")
+        tab = Table([], [], [], [], None, None)
+        for name, item in zip(Table._to_pickle, data):
+            setattr(tab, name, item)
+        return tab
+
+
+    @staticmethod
+    def _try_to_load_old_version(pickle_data):
+        import sys
+        from . import table, ms_types
+        sys.modules["libms.DataStructures.Table"] = table
+        sys.modules["libms.DataStructures.MSTypes"] = ms_types
+        try:
+            tab = cPickle.loads(pickle_data)
+        except Exception, e:
+            import traceback
+            traceback.print_exc()
+            raise Exception("file has invalid format: %s" % e)
+        finally:
+            del sys.modules["libms.DataStructures.Table"]
+            del sys.modules["libms.DataStructures.MSTypes"]
+        return tab
+
+
+    @staticmethod
     def load(path):
         """loads a table stored with :py:meth:`~.store`
 
@@ -654,31 +689,20 @@ class Table(object):
         """
         with open(path, "rb") as fp:
             data = fp.read()
-            version_str, pickle_data = data.split("\n", 1)
+            version_str, __, pickle_data = data.partition("\n")
             if not version_str.startswith("emzed_version="):
                 msg = "magic string invalid. wrong file format"
                 raise Exception(msg)
             v_number_str = version_str[14:]
             v_number = tuple(map(int, v_number_str.split(".")))
-            if v_number_str != emzed.__version__:
-                if v_number < (1,3,2):
-                    raise Exception("can not load table of version %s" %
-                            v_number_str)
             try:
-                data = cPickle.loads(pickle_data)
-            except:
-                raise Exception("%s has invalid format" % path)
-            else:
-                if not isinstance(data, (list, tuple)):
-                    raise Exception("data item from file is not list or tuple")
-                if len(data) != len(Table._to_pickle):
-                    raise Exception("number of data items from file does not match Table._to_pickle")
-                tab = Table([], [], [], [], None, None)
-                for name, item in zip(Table._to_pickle, data):
-                    setattr(tab, name, item)
-                tab.version = v_number_str
+                tab = Table._load_strict(pickle_data)
+                tab.version = v_number
                 tab.meta["loaded_from"]=os.path.abspath(path)
                 return tab
+            except:
+                return Table._try_to_load_old_version(pickle_data)
+
 
     def buildEmptyClone(self):
         """ returns empty table with same names, types, formatters,
