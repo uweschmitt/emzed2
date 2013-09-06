@@ -1,4 +1,4 @@
-import emzed.ff.batches
+import emzed.batches
 import glob
 import pytest
 
@@ -9,7 +9,7 @@ def testRunCentwave(tmpdir, path):
     from emzed.core.r_connect import installXcmsIfNeeded
     installXcmsIfNeeded()
 
-    tables = emzed.ff.batches.runCentwave(path("data/test_mini.mzXML"),
+    tables = emzed.batches.runCentwave(path("data/test_mini.mzXML"),
                                           destination=tmpdir.strpath,
                                           configid="std",
                                           ppm=3,
@@ -31,7 +31,7 @@ def testMatchedFilter(path, tmpdir):
     from emzed.core.r_connect import installXcmsIfNeeded
     installXcmsIfNeeded()
 
-    tables = emzed.ff.batches.runMatchedFilter(path("data/test.mzXML"),
+    tables = emzed.batches.runMatchedFilter(path("data/test.mzXML"),
                                                destination=tmpdir.strpath,
                                                configid="std",
                                                mzdiff=0,
@@ -46,7 +46,7 @@ def testMatchedFilter(path, tmpdir):
 
 def testMetaboFF(path, tmpdir):
 
-    tables = emzed.ff.batches.runMetaboFeatureFinder(path("data/test.mzXML"),
+    tables = emzed.batches.runMetaboFeatureFinder(path("data/test.mzXML"),
                                                      destination=tmpdir.strpath,
                                                      configid="_test")
 
