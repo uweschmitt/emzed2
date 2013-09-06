@@ -5,7 +5,7 @@ class TestAllWithoutDisplay(object):
         import os
         self.old_display = os.environ.pop("DISPLAY", None)
         print "DISPLAY BEFORE TESTS=",self.old_display
-        print os.environ.keys()
+        #print os.environ.keys()
 
     def __del__(self):
         print "RESET DISPLAY"

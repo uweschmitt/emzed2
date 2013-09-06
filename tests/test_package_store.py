@@ -59,6 +59,7 @@ class PackageStoreTests(unittest.TestCase):
 
 
     @pytest.mark.slow
+    @pytest.mark.xfail
     def test_minimal_package(self):
         import tempfile
         import os.path
@@ -129,6 +130,7 @@ class PackageStoreTests(unittest.TestCase):
         self.assertNotIn( ("test_minimal_package", (0,0,1)) , pkgs)
 
 
+    #@pytest.mark.xfail
     def test_delete_nonexisting(self):
         import emzed.core.packages
         with self.assertRaises(Exception):
