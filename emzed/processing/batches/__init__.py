@@ -1,1 +1,0 @@
-from peak_picker import runPeakPickerHiRes

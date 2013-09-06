@@ -669,10 +669,6 @@ class Table(object):
         sys.modules["libms.DataStructures.MSTypes"] = ms_types
         try:
             tab = cPickle.loads(pickle_data)
-        except Exception, e:
-            import traceback
-            traceback.print_exc()
-            raise Exception("file has invalid format: %s" % e)
         finally:
             del sys.modules["libms.DataStructures.Table"]
             del sys.modules["libms.DataStructures.MSTypes"]
