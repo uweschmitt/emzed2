@@ -2,13 +2,13 @@ from contextlib import contextmanager
 import StringIO # cStringIO for upload does not work !
 import requests
 
-import emzed.package_store.server
-import emzed.package_store.client as client
+import emzed.core.package_store.server as server
+import emzed.core.package_store.client as client
 
 
 @contextmanager
 def run_background_server(dir_, port):
-    srv = emzed.package_store.server.BackgroundWebserver(dir_, port)
+    srv = server.BackgroundWebserver(dir_, port)
     srv.start()
     try:
         yield srv
@@ -32,7 +32,7 @@ def test_store_upload(tmpdir):
         assert client.list_public_packages(base_url) == dict()
 
         # list public files of test_account
-        assert client.list_files(base_url, "test_account", "/")  == []
+        assert client.list_files(base_url, "test_account", "")  == []
 
         # upload public file
         data = StringIO.StringIO("abc123abccdd") # cStringIO for upload does not work !
@@ -47,7 +47,7 @@ def test_store_upload(tmpdir):
         client.upload_file(base_url, "test_account", "password", "/hidden/abcd.txt", data)
         assert client.list_files(base_url, "test_account", "/") == ["abc.txt"]
         assert client.list_files(base_url, "test_account", "/hidden") == ["abcd.txt"]
-        assert client.download_file(base_url, "test_account", "/hidden/abc.txt") == data.getvalue()
+        assert client.download_file(base_url, "test_account", "/hidden/abcd.txt") == data.getvalue()
 
         # list all public files
         assert client.list_public_packages(base_url) == { 'abc.txt': "test_account/abc.txt" }

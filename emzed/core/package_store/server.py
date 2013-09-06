@@ -42,6 +42,13 @@ def upload_package_to(path, password):
         fp.write(request.body.getvalue())
 
 
+@get("/+files/<path:path>/<password>")
+def list_packages(path, password):
+    files = os.listdir(path)
+    files = [f for f in files if not f.startswith(".") and os.path.isfile(os.path.join(path,f))]
+    return dict(packages=files)
+
+
 @delete("/+files/<path:path>/<password>")
 def delete_file_from(path, password):
     repos, __, __ =  path.partition("/")
@@ -52,13 +59,13 @@ def delete_file_from(path, password):
         raise HTTPError(404)
 
 
-
 def _list_public_packages():
     files = glob.glob("*/*")
-    files = [ f for f in files if not f.startswith(".") and os.path.isfile(f)]
+    files = [ f for f in files if not os.path.basename(f).startswith(".") and os.path.isfile(f)]
     files = dict( (os.path.basename(f), f) for f in files)
     return dict(packages=files)
 list_public_packages = get("/+files")(_list_public_packages)
+
 
 @get("/<path:path>")
 def download_file(path):
