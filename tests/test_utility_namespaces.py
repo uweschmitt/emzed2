@@ -17,10 +17,10 @@ def testAccessAndConsistency():
 
 
 def testAdducts():
-    assert len(adducts.all) == 21, len(adducts.all)
+    assert len(adducts.all) == 25, len(adducts.all)
     #test subgroups
-    assert len(adducts.positive) == 14, len(adducts.positive)
-    assert len(adducts.negative) == 21-14, len(adducts.negative)
+    assert len(adducts.positive) == 16, len(adducts.positive)
+    assert len(adducts.negative) == 25-16, len(adducts.negative)
     assert len(adducts.single_charged)>0
     assert len(adducts.double_charged)>0
     assert len(adducts.triple_charged )>0
@@ -83,7 +83,7 @@ def testAdducts():
     assert adducts.M_minus_H3.toTable().z_signed.uniqueValue()  == -3
 
     t = adducts.positive.toTable()
-    assert len(t) == 14
+    assert len(t) == 16
     assert len(t.getColNames()) == 4
 
 def testfoumulaadd():

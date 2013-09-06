@@ -17,10 +17,11 @@ def testAccessAndConsistency():
 
 
 def testAdducts():
-    assert len(adducts.all) == 21, len(adducts.all)
+    assert len(adducts.all) == 28, len(adducts.all)
     #test subgroups
-    assert len(adducts.positive) == 14, len(adducts.positive)
-    assert len(adducts.negative) == 21-14, len(adducts.negative)
+    assert len(adducts.positive) == 17, len(adducts.positive)
+    assert len(adducts.neutral) == 1, len(adducts.neutral)
+    assert len(adducts.negative) == 28-17-1, len(adducts.negative)
     assert len(adducts.single_charged)>0
     assert len(adducts.double_charged)>0
     assert len(adducts.triple_charged )>0
@@ -36,54 +37,72 @@ def testAdducts():
     assert adducts.M_plus_H.toTable().z.uniqueValue() == 1
     assert adducts.M_plus_NH4.toTable().z.uniqueValue() == +1
     assert adducts.M_plus_Na.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_H_minus_2H2O.toTable().z.uniqueValue()  ==1 
     assert adducts.M_plus_H_minus_H2O.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_H_minus_H4O2.toTable().z.uniqueValue()  ==1
     assert adducts.M_plus_K.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_CH4O_plus_H.toTable().z.uniqueValue()  ==1
+    assert adducts.M_plus_ACN_plus_H.toTable().z.uniqueValue()  ==1
+    assert adducts.M_plus_ACN_plus_Na.toTable().z.uniqueValue()  ==1
     assert adducts.M_plus_2Na_minus_H.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_H2.toTable().z.uniqueValue()  ==2
-    assert adducts.M_plus_H3.toTable().z.uniqueValue()  ==3
-    assert adducts.M_plus_Na_plus_H.toTable().z.uniqueValue()  ==2
-    assert adducts.M_plus_H2_plus_Na.toTable().z.uniqueValue()  ==3
-    assert adducts.M_plus_Na2.toTable().z.uniqueValue()  ==2
-    assert adducts.M_plus_H_plus_Na2.toTable().z.uniqueValue()  ==3
-    assert adducts.M_plus_Na_minus_H2.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_Cl.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_K_minus_H2.toTable().z.uniqueValue()  ==1
-    assert adducts.M_plus_Na_minus_H2.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_2H.toTable().z.uniqueValue()  ==2
+    assert adducts.M_plus_3H.toTable().z.uniqueValue()  ==3
+    assert adducts.M_plus_H_plus_Na.toTable().z.uniqueValue()  ==2
+    assert adducts.M_plus_2H_plus_Na.toTable().z.uniqueValue()  ==3
+    assert adducts.M_plus_2Na.toTable().z.uniqueValue()  ==2
+    assert adducts.M_plus_2Na_plus_H.toTable().z.uniqueValue()  ==3
+    assert adducts.M_plus_Li.toTable().z.uniqueValue()  ==1
+    assert adducts.M_plus_CH3OH_plus_H.toTable().z.uniqueValue()  ==1
+
 
     assert adducts.M_plus_H.toTable().z_signed.uniqueValue() == 1
     assert adducts.M_plus_NH4.toTable().z_signed.uniqueValue() == +1
     assert adducts.M_plus_Na.toTable().z_signed.uniqueValue() == 1
+    assert adducts.M_plus_H_minus_2H2O.toTable().z_signed.uniqueValue()  ==1 
     assert adducts.M_plus_H_minus_H2O.toTable().z_signed.uniqueValue()  ==1
-    assert adducts.M_plus_H_minus_H4O2.toTable().z_signed.uniqueValue()  ==1
     assert adducts.M_plus_K.toTable().z_signed.uniqueValue()  ==1
-    assert adducts.M_plus_CH4O_plus_H.toTable().z_signed.uniqueValue()  ==1
+    assert adducts.M_plus_ACN_plus_H.toTable().z_signed.uniqueValue()  ==1
+    assert adducts.M_plus_ACN_plus_Na.toTable().z_signed.uniqueValue()  ==1
     assert adducts.M_plus_2Na_minus_H.toTable().z_signed.uniqueValue()  ==1
-    assert adducts.M_plus_H2.toTable().z_signed.uniqueValue()  ==2
-    assert adducts.M_plus_H3.toTable().z_signed.uniqueValue()  ==3
-    assert adducts.M_plus_Na_plus_H.toTable().z_signed.uniqueValue()  ==2
-    assert adducts.M_plus_H2_plus_Na.toTable().z_signed.uniqueValue()  ==3
-    assert adducts.M_plus_Na2.toTable().z_signed.uniqueValue()  ==2
-    assert adducts.M_plus_H_plus_Na2.toTable().z_signed.uniqueValue()  ==3
-
-    assert adducts.M_plus_Na_minus_H2.toTable().z_signed.uniqueValue()  == -1
-    assert adducts.M_plus_Cl.toTable().z_signed.uniqueValue()  == -1
-    assert adducts.M_plus_K_minus_H2.toTable().z_signed.uniqueValue()  == -1
-    assert adducts.M_plus_Na_minus_H2.toTable().z_signed.uniqueValue() ==  -1
-
-
+    assert adducts.M_plus_2H.toTable().z_signed.uniqueValue()  ==2
+    assert adducts.M_plus_3H.toTable().z_signed.uniqueValue()  ==3
+    assert adducts.M_plus_H_plus_Na.toTable().z_signed.uniqueValue()  ==2
+    assert adducts.M_plus_2H_plus_Na.toTable().z_signed.uniqueValue()  ==3
+    assert adducts.M_plus_2Na.toTable().z_signed.uniqueValue()  ==2
+    assert adducts.M_plus_2Na_plus_H.toTable().z_signed.uniqueValue()  ==3
+    assert adducts.M_plus_Li.toTable().z_signed.uniqueValue()  ==1
+    assert adducts.M_plus_CH3OH_plus_H.toTable().z_signed.uniqueValue()  ==1
+    
+    
+    
     assert adducts.M_minus_H.toTable().z.uniqueValue()  ==1
-    assert adducts.M_minus_H_minus_H2O.toTable().z.uniqueValue() == 1
-    assert adducts.M_minus_H2.toTable().z.uniqueValue()  ==2
-    assert adducts.M_minus_H3.toTable().z.uniqueValue()  ==3
+    assert adducts.M_minus_H2O_minus_H.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_Na_minus_2H.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_Cl.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_K_minus_2H.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_FA_minus_H.toTable().z.uniqueValue() == 1
+    assert adducts.M_minus_2H.toTable().z.uniqueValue()  ==2
+    assert adducts.M_minus_3H.toTable().z.uniqueValue()  ==3
+    assert adducts.M_plus_CH3COO.toTable().z.uniqueValue() == 1
+    assert adducts.M_plus_F.toTable().z.uniqueValue() == 1
+    
+    
     assert adducts.M_minus_H.toTable().z_signed.uniqueValue()  == -1
-    assert adducts.M_minus_H_minus_H2O.toTable().z_signed.uniqueValue() == -1
-    assert adducts.M_minus_H2.toTable().z_signed.uniqueValue()  == -2
-    assert adducts.M_minus_H3.toTable().z_signed.uniqueValue()  == -3
+    assert adducts.M_minus_H2O_minus_H.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_plus_Na_minus_2H.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_plus_Cl.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_plus_K_minus_2H.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_plus_FA_minus_H.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_minus_2H.toTable().z_signed.uniqueValue()  == -2
+    assert adducts.M_minus_3H.toTable().z_signed.uniqueValue()  == -3
+    assert adducts.M_plus_CH3COO.toTable().z_signed.uniqueValue() == -1
+    assert adducts.M_plus_F.toTable().z_signed.uniqueValue() == -1
+    
+    assert adducts.M.toTable().z.uniqueValue() == 0 
+    assert adducts.M.toTable().z_signed.uniqueValue() == 0
+
+    
 
     t = adducts.positive.toTable()
-    assert len(t) == 14
+    assert len(t) == 17
     assert len(t.getColNames()) == 4
 
 def testfoumulaadd():
