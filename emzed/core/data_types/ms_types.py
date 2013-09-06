@@ -152,7 +152,7 @@ class PeakMap(object):
     """
         This is the container object for spectra of type :ref:Spectrum.
         Peakmaps can be loaded from .mzML, .mxXML or .mzData files,
-        using :py:func:`~ms.loadPeakMap`
+        using :py:func:`~emzed.io.loadPeakMap`
 
         A PeakMap is a list of :ref:Spectrum objects attached with
         meta data about its source.

@@ -423,7 +423,7 @@ class BaseExpression(object):
     def len(self):
         """
         **This expression is depreciated**. Please use
-        :py:meth:`~libms.DataStructures.Expressions.BaseExpression.count`
+        :py:meth:`~emzed.core.data_types.expressions.BaseExpression.count`
         instead.
         """
         return AggregateExpression(self, lambda v: len(v), "len(%s)",\
@@ -529,7 +529,7 @@ class BaseExpression(object):
 
     def toTable(self, colName, fmt=None, type_=None, title="", meta=None):
         """
-        Generates a one column :py:class:`~libms.DataStructures.Table`
+        Generates a one column :py:class:`~emzed.core.data_types.Table`
         from an expression.
 
         Example: ``tab = substances.name.toTable()``

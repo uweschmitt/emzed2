@@ -11,9 +11,9 @@ def formula(mf):
 
     .. pycon::
 
-       import ms   !onlyoutput
-       mf1 = ms.formula("H2O")
-       mf2 = ms.formula("NaOH")
+       import emzed.utils   !onlyoutput
+       mf1 = emzed.utils.formula("H2O")
+       mf2 = emzed.utils.formula("NaOH")
        mf3 = mf1 + mf2
        print str(mf3)
        print str(mf3 - mf1)
@@ -31,7 +31,7 @@ def formula(mf):
     .. pycon::
 
        print mf1.asDict()
-       mixed = ms.formula("[13]C2[14]C3")
+       mixed = emzed.utils.formula("[13]C2[14]C3")
        print mixed.asDict()
 
 
@@ -45,17 +45,17 @@ def addmf(formula0, *formulas):
 
     .. pycon::
 
-       import ms !onlyoutput
-       print ms.addmf("H2O", "COOH")
-       print ms.addmf("H2O", "COOH", "NaCl")
+       import emzed.utils !onlyoutput
+       print emzed.utils.addmf("H2O", "COOH")
+       print emzed.utils.addmf("H2O", "COOH", "NaCl")
 
     A leading minus sign subtracts the formula following this sign:
 
     .. pycon::
 
-       print ms.addmf("H2O2", "-H2O")
-       print ms.addmf("H2O", "COOH", "NaCl", "-H2O2")
-       print ms.addmf("(CH2)7COOH", "-C7")
+       print emzed.utils.addmf("H2O2", "-H2O")
+       print emzed.utils.addmf("H2O", "COOH", "NaCl", "-H2O2")
+       print emzed.utils.addmf("(CH2)7COOH", "-C7")
 
     """
 
@@ -76,7 +76,7 @@ def openInBrowser(urlPath):
     opens *urlPath* in browser, eg:
 
     .. pycon::
-        ms.openInBrowser("http://emzed.biol.ethz.ch") !noexec
+        emzed.utils.openInBrowser("http://emzed.biol.ethz.ch") !noexec
 
     """
     from PyQt4.QtGui import QDesktopServices

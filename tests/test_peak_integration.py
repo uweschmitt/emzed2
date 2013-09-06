@@ -15,7 +15,7 @@ def testIntegration(path):
     # test with and without unicode:
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
-    # in None values for ms.integrate generated columns
+    # in None values for emzed.utils.integrate generated columns
     ftr = utils.integrate(ft, "trapez")
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()

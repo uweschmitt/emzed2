@@ -99,7 +99,7 @@ def openInBrowser(urlPath):
     opens *urlPath* in browser, eg:
 
     .. pycon::
-        ms.openInBrowser("http://emzed.biol.ethz.ch") !noexec
+        emzed.utils.openInBrowser("http://emzed.biol.ethz.ch") !noexec
 
     """
     from PyQt4.QtGui import QDesktopServices

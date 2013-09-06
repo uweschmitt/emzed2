@@ -320,7 +320,7 @@ class Table(object):
             to get the values of the column you can use
             ``table.getColumn("index").values``.
 
-            See: :py:class:`~libms.DataStructures.Expressions.ColumnExpression`
+            See: :py:class:`~emzed.core.data_types.expressions.ColumnExpression`
         """
         return getattr(self, name)
 
@@ -343,7 +343,7 @@ class Table(object):
 
         Example::
 
-                t = ms.toTable("a", [1, 2, 3])
+                t = emzed.utils.toTable("a", [1, 2, 3])
                 t[0].a.values == [1]
                 t[:1].a.values == [1]
                 t[1:].a.values == [2, 3]
@@ -839,7 +839,7 @@ class Table(object):
 
         For the values ``what`` you can use
 
-           - an expression (see :py:class:`~libms.DataStructures.Expressions`)
+           - an expression (see :py:class:`~emzed.core.data_types.Expressions`)
              as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
            - a callback with signature ``callback(table, row, name)``
            - a constant value
@@ -1536,14 +1536,9 @@ class Table(object):
     @staticmethod
     def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
         # local import in order to keep namespaces clean
-        #import ms
         import csv, os.path, sys, re
         if isinstance(path, unicode):
             path = path.encode(sys.getfilesystemencoding())
-        elif path is None:
-            #path = ms.askForSingleFile(extensions=["csv"])
-            if path is None:
-                return None
 
         with open(path,"r") as fp:
             # remove clutter at right margin
@@ -1613,14 +1608,14 @@ class Table(object):
         """ merges tables. Eg:
 
             .. pycon::
-            t1 = ms.toTable("a",[1])
+            t1 = emzed.utils.toTable("a",[1])
             t2 = t1.copy()
             t1.addColumn("b", 3)
             t2.addColumn("c", 5)
 
             t1.print_()
             t2.print_()
-            t3 = ms.mergeTables([t1, t2])
+            t3 = emzed.utils.mergeTables([t1, t2])
             t3.print_()
 
             in case of conflicting names, name orders, types or formats

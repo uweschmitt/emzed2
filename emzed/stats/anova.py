@@ -87,7 +87,7 @@ def oneWayAnovaOnTables(tableSet1, tableSet2, idColumn, valueColumn):
     .. pycon::
        :invisible:
 
-       t = ms.toTable("id", ["ATP", "ADP"])
+       t = emzed.utils.toTable("id", ["ATP", "ADP"])
        t.addColumn("n1", [4,5])
        t.addColumn("n2", [6,6])
        t.addColumn("avg1_foldChange", [1.4, 1.6])
@@ -99,7 +99,7 @@ def oneWayAnovaOnTables(tableSet1, tableSet2, idColumn, valueColumn):
 
 
     .. pycon::
-       tresult = ms.oneWayAnovaOnTables(tables1, tables2, idColumn="compound", valueColumn="foldChange") !noexec
+       tresult = emzed.stats.oneWayAnovaOnTables(tables1, tables2, idColumn="compound", valueColumn="foldChange") !noexec
        tresult.print_()
 
     """
@@ -111,7 +111,7 @@ def oneWayAnovaOnTables(tableSet1, tableSet2, idColumn, valueColumn):
 
 def kruskalWallisOnTables(tableSet1, tableSet2, idColumn, valueColumn):
     """
-       Works as :py:meth:`~ms.oneWayAnovaOnTables` above, but uses non parametric kruskal wallis test.
+       Works as :py:meth:`~emzed.stats.oneWayAnovaOnTables` above, but uses non parametric kruskal wallis test.
     """
     result = _runStatistcsOnTables(tableSet1, tableSet2, idColumn, valueColumn,
              lambda s1, s2: kruskal(s1, s2)[1])
