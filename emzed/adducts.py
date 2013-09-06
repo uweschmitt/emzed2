@@ -45,7 +45,7 @@ class _Adducts(object):
         self.adducts = adducts
         self.negatives = [ a for a in self.adducts if a[-1] < 0]
         self.positives = [ a for a in self.adducts if a[-1] > 0]
-        self.neutrals=[ a for a in self.adducts if a[-1] == 0]
+        self.neutrals = [ a for a in self.adducts if a[-1] == 0]
         for name, masscorr, mode in adducts:
             shortName = _shortname(name)
             setattr(self,  shortName, (name, masscorr, mode))
@@ -68,7 +68,7 @@ class _Adducts(object):
 
     def createMultipleChoice(self, builder=None):
         if builder is None:
-            from libms.gui.DialogBuilder import DialogBuilder
+            from gui import DialogBuilder
             builder = DialogBuilder("Choose Adducts")
         if self.positives:
             labels = [a[0] for a in self.positives]
@@ -78,9 +78,9 @@ class _Adducts(object):
             labels = [a[0] for a in self.negatives]
             builder.addMultipleChoice("negative adducts", labels, vertical=2,
                                       default=[0])
-        if self.neutral:
-            labels = [a[0] for a in self.neutral]
-            builder.addMultipleChoice("neutral", labels, vertical=2,
+        if self.neutrals:
+            labels = [a[0] for a in self.neutrals]
+            builder.addMultipleChoice("neutral adducts", labels, vertical=2,
                                       default=[0])
         return builder
 
@@ -88,7 +88,7 @@ class _Adducts(object):
         dlg = self.createMultipleChoice()
         res  = dlg.show()
         pos, neg, neut = [], [], []
-        if self.positives and self.negatives and self.neutral:
+        if self.positives and self.negatives and self.neutrals:
             pos, neg, neut = res
         if self.positives and self.negatives:
             pos, neg = res
@@ -96,7 +96,7 @@ class _Adducts(object):
             pos = res
         elif self.negatives:
             neg = res
-        elif self.neutral:
+        elif self.neutrals:
             neg = neut
         return self.getSelected(pos, neg).toTable()
 
