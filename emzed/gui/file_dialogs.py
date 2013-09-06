@@ -126,7 +126,7 @@ def askForMultipleFiles(startAt=None, extensions=None, caption="Open Files"):
 
 def chooseConfig(configs, params):
 
-    from libms.gui.ConfigChooseDialog import ConfigChooseDialog
+    from config_choose_dialog import ConfigChooseDialog
     import guidata
 
     app = guidata.qapplication()

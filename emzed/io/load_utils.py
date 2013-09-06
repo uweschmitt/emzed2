@@ -63,8 +63,6 @@ def loadTable(path=None):
 def loadCSV(path=None, sep=";", keepNone = False, **specialFormats):
     # local import in order to keep namespaces clean
     import csv, os.path, sys, re
-    #from   libms.DataStructures.Table import (Table, common_type_for,\
-                                              #bestConvert, guessFormatFor)
 
     from ..core.data_types.table import (Table, common_type_for, bestConvert, guessFormatFor)
 
