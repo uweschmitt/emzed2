@@ -1,3 +1,7 @@
+import sys
+
+# rescan moudles and packages on sys.path:
+
 import pkg_resources
 reload(pkg_resources)  # migh be loaded already and is not up to date
 

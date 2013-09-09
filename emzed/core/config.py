@@ -177,8 +177,7 @@ class _UserConfig(object):
 
         emzed_store_url = _di.StringItem("Emzed Store URL").set_prop("display",
                 active=_is_expert)
-        emzed_store_index_url = _di.StringItem("Emzed Store Index URL").set_prop("display",
-                active=_is_expert)
+
         pypi_url = _di.StringItem("PyPi URL").set_prop("display",
                 active=_is_expert)
 
@@ -268,8 +267,7 @@ class _UserConfig(object):
         return os.path.join(folders.getEmzedFolder(), "config_emzed2.ini")
 
     def set_defaults(self):
-        self.parameters.emzed_store_url = "http://uweschmitt.info:3141/root/dev"
-        self.parameters.emzed_store_index_url = "http://uweschmitt.info:3141/root/dev/+simple/"
+        self.parameters.emzed_store_url = "http://0.0.0.0:54321"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
         self.parameters.last_active_project = ""

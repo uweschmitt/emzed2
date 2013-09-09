@@ -1,137 +1,165 @@
-import pdb
-#encoding: latin-1
-
-import unittest
+# encoding: latin-1
 
 import pytest
 
-class PackageStoreTests(unittest.TestCase):
+import emzed.core.package_store.server as server
+# import emzed.core.package_store.client as client
+import emzed.core.packages
 
-    def setUp(self):
-        from emzed.core.config import global_config
+from contextlib import contextmanager
 
-        global_config.parameters.user_name = "Uwe Schmitt"
-        global_config.parameters.user_email = "uschmitt@uschmitt.info"
-        global_config.parameters.user_url = ""
 
-        global_config.parameters.metlin_token = ""
+@contextmanager
+def run_background_server(dir_, port):
+    srv = server.create_file_server(dir_, port)
+    srv.start()
+    try:
+        yield srv
+    finally:
+        srv.stop()
 
-        global_config.parameters.emzed_store_user = "uweschmitt"
-        global_config.parameters.emzed_store_password = "pillepalle"
 
-        # for testing implicit unicode conversions:
-        global_config.store()
-        global_config.load()
+def setup_config():
+    from emzed.core.config import global_config
 
-    def test_project_scaffold(self):
-        import tempfile
-        import os.path
-        import emzed.core.packages
-        tmpdir = os.path.join(tempfile.mkdtemp(), "project")
+    global_config.parameters.user_name = "Uwe Schmitt"
+    global_config.parameters.user_email = "uschmitt@uschmitt.info"
+    global_config.parameters.user_url = ""
 
+    global_config.parameters.metlin_token = ""
+
+    global_config.parameters.emzed_store_user = "uweschmitt"
+    global_config.parameters.emzed_store_password = "pillepalle"
+
+    global_config.parameters.emzed_store_url = "http://0.0.0.0:33336"
+
+    # for testing implicit unicode conversions:
+    global_config.store()
+    global_config.load()
+
+
+def test_basics(tmpdir):
+    from emzed.core.config import global_config
+    global_config.set_("package_store_url", "http://localhost:33336")
+
+    with run_background_server(tmpdir.strpath, 33336):
+        assert emzed.core.packages.list_packages_from_emzed_store() == dict()
+
+
+def test_project_scaffold(tmpdir):
+    import os.path
+
+    tmpdir = os.path.join(tmpdir.strpath, "minimal_package")
+
+    emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
+
+    files = os.listdir(tmpdir)
+
+    assert "minimal_package" in files
+    assert "tests" in files
+    assert "setup.py" in files
+    assert "README" in files
+    assert "LICENSE" in files
+
+    files = os.listdir(os.path.join(tmpdir, "minimal_package"))
+    assert "app.py" in files
+    assert "minimal_module.py" in files
+    assert "__init__.py" in files
+
+    files = os.listdir(os.path.join(tmpdir, "tests"))
+    assert ("test_extension.py" in files)
+    assert ("__init__.py" in files)
+
+    # try to use existing folder:
+    with pytest.raises(Exception):
         emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
 
-        files = os.listdir(tmpdir)
-
-        self.assertIn("minimal_package", files)
-        self.assertIn("tests", files)
-        self.assertIn("setup.py", files)
-        self.assertIn("README", files)
-        self.assertIn("LICENSE", files)
-
-        files = os.listdir(os.path.join(tmpdir, "minimal_package"))
-        self.assertIn("app.py", files)
-        self.assertIn("minimal_module.py", files)
-        self.assertIn("__init__.py", files)
-
-        files = os.listdir(os.path.join(tmpdir, "tests"))
-        self.assertIn("test_extension.py", files)
-        self.assertIn("__init__.py", files)
-
-        # try to use existing folder:
-        with self.assertRaises(Exception):
-            emzed.core.packages.create_package_scaffold(tmpdir, "minimal_package")
-
-        # try to create package inside exising package folder:
-        with self.assertRaises(Exception):
-            pkg_dir = os.path.join(tmpdir, "tests")
-            emzed.core.packages.create_package_scaffold(pkg_dir, "minimal_package2")
+    # try to create package inside exising package folder:
+    with pytest.raises(Exception):
+        pkg_dir = os.path.join(tmpdir, "tests")
+        emzed.core.packages.create_package_scaffold(pkg_dir, "minimal_package2")
 
 
-    @pytest.mark.slow
-    @pytest.mark.xfail
-    def test_minimal_package(self):
-        import tempfile
-        import os.path
-        import emzed.core.packages
-        tmpdir = os.path.join(tempfile.mkdtemp(), "project")
+def test_minimal_package(tmpdir):
 
-        # create minimal set package files
-        emzed.core.packages.create_package_scaffold(tmpdir, "test_minimal_package")
+    from emzed.core.config import global_config
+    global_config.set_("package_store_url", "http://localhost:33336")
 
-        # remove test package from emzed package store if exists
-        try:
-            emzed.core.packages.delete_from_emzed_store("test_minimal_package", "0.0.1")
-        except Exception, e:
-            assert e.message == "404 Client Error: Not Found"
-        # upload minimal package file
+    tmp_repos = tmpdir.join("data_dir").strpath
+    tmp_project_folder = tmpdir.join("projects").strpath
+
+    with run_background_server(tmp_repos, 33336) as srv:
+        srv.app.create_account("uweschmitt", "pillepalle")
+        _test_minimal_package(tmp_project_folder, srv)
+
+
+def _test_minimal_package(tmpdir, srv):
+
+    setup_config()
+
+    import os.path
+    import emzed.ext
+    import emzed.app
+
+    # create minimal set package files
+    tmpdir = os.path.join(tmpdir, "minimal_test_package")
+    emzed.core.packages.create_package_scaffold(tmpdir, "minimal_test_package")
+
+    # remove test package from emzed package store if exists
+    assert emzed.core.packages.delete_from_emzed_store("minimal_test_package", "0.0.1") is False
+
+    # upload minimal package file
+    emzed.core.packages.upload_to_emzed_store(tmpdir)
+
+    # duplicate upload should fail
+    with pytest.raises(Exception):
         emzed.core.packages.upload_to_emzed_store(tmpdir)
 
-        # duplicate upload should fail
-        with self.assertRaises(Exception):
-            emzed.core.packages.upload_to_emzed_store(tmpdir)
+    # remove eventually installed test packages
+    try:
+        emzed.core.packages.uninstall_emzed_package("minimal_test_package")
+    except:
+        pass
 
-        # remove eventually installed test packages
-        try:
-            emzed.core.packages.uninstall_emzed_package("test_minimal_package")
-        except:
-            pass
+    pkgs = emzed.core.packages.list_packages_from_emzed_store()
+    assert (0, 0, 1) in [v for (v, path) in pkgs["minimal_test_package"]]
 
-        pkgs = emzed.core.packages.list_packages_from_emzed_store()
-        self.assertIn( ("test_minimal_package", [(0,0,1)]) , pkgs)
+    pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
+    newest_version, __ = pkgs["minimal_test_package"]
+    assert newest_version == (0, 0, 1)
 
-        pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
-        self.assertIn( ("test_minimal_package", (0,0,1)) , pkgs)
+    # install package
+    emzed.core.packages.install_from_emzed_store("minimal_test_package", (0, 0, 1))
 
-        # install package
-        emzed.core.packages.install_from_emzed_store("test_minimal_package", (0, 0, 1))
+    exec "import minimal_test_package"
 
-        # use package as extension
-        import emzed.ext
+    # use package as extension
+    reload(emzed.ext)
+    assert isinstance(emzed.ext.minimal_test_package.hello(), basestring)
+
+    reload(emzed.app)
+    assert (emzed.app.minimal_test_package() == 42)
+
+    # check if listed
+    assert(("minimal_test_package", True, False) in emzed.core.packages.installed_emzed_packages())
+
+    # remove package
+    emzed.core.packages.uninstall_emzed_package("minimal_test_package")
+
+    # check if not listed any more
+    assert(("minimal_test_package", True, False) not in
+           emzed.core.packages.installed_emzed_packages())
+
+    # test if package is removed
+    with pytest.raises(Exception):
         reload(emzed.ext)
-        self.assertIsInstance(emzed.ext.test_minimal_package.hello(), basestring)
+        emzed.ext.minimal_test_package
 
-        import emzed.app
-        reload(emzed.app)
-        self.assertEquals(emzed.app.test_minimal_package(), 42)
+    # remove test package from emzed package store
+    assert emzed.core.packages.delete_from_emzed_store("minimal_test_package", "0.0.1") is True
 
-        # check if listed
-        self.assertIn(("test_minimal_package", True, False),
-                emzed.core.packages.installed_emzed_packages())
+    pkgs = emzed.core.packages.list_packages_from_emzed_store()
+    assert (0, 0, 1) not in [v for (v, path) in pkgs["minimal_test_package"]]
 
-        # remove package
-        emzed.core.packages.uninstall_emzed_package("test_minimal_package")
-
-        # check if not listed any more
-        self.assertNotIn(("test_minimal_package", True, False),
-                emzed.core.packages.installed_emzed_packages())
-        # test if package is removed
-        with self.assertRaises(Exception):
-            reload(emzed.ext)
-            emzed.ext.test_minimal_package
-
-        # remove test package from emzed package store
-        emzed.core.packages.delete_from_emzed_store("test_minimal_package", "0.0.1")
-
-        pkgs = emzed.core.packages.list_packages_from_emzed_store()
-        self.assertNotIn( ("test_minimal_package", [(0,0,1)]) , pkgs)
-
-        pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
-        self.assertNotIn( ("test_minimal_package", (0,0,1)) , pkgs)
-
-
-    #@pytest.mark.xfail
-    def test_delete_nonexisting(self):
-        import emzed.core.packages
-        with self.assertRaises(Exception):
-            emzed.core.packages.delete_from_emzed_store("abc123", "0.0.1")
+    pkgs = emzed.core.packages.list_newest_packages_from_emzed_store()
+    assert "minimal_test_package" not in pkgs.keys()

@@ -1,4 +1,4 @@
-from bottle import get, post, put, delete, run, HTTPError, request, ServerAdapter, debug, static_file
+from bottle import HTTPError, request, Bottle, ServerAdapter, debug, static_file
 import os
 import glob
 import threading
@@ -17,96 +17,66 @@ def parse_key_value_file(path):
     return dd
 
 
-def check(password, path):
-    password_tobe = parse_key_value_file(os.path.join(path, ".password"))["password"]
-    if password != password_tobe:
-        raise HTTPError(401)# , "password '%s' does not match" % password)
+class FileServerApplication(object):
 
+    """
+    CONCEPT:
 
-@put("/+files/<path:path>/<password>")
-def upload_package_to(path, password):
-    repos, __, local_path =  path.partition("/")
-    is_public = os.path.dirname(local_path) == ""
-    if is_public:
-        f_name = os.path.basename(local_path)
-        if f_name in _list_public_packages()["packages"].keys():
-            raise HTTPError(409)
+    1) For each user/account we have a subfolder or the root data_dir.
 
-    check(password, repos)
-    folder, filename = os.path.split(path)
-    try:
-        os.makedirs(folder)
-    except:
-        pass
-    with open(os.path.join(path), "wb") as fp:
-        fp.write(request.body.getvalue())
+    2) In this account folder we have a .password file which contains text "passwort=xxxx".
 
+    3) Files in the account folder are considered as "public", for hiding files each user_account
+       folder may contain subfolders. This local subfolder is "secret", so only clients knowing
+       this path can list them or download from it. For keeping them secret, such subfolders can
+       not be listed by the web service.
+       Files starting with "." are not considered as public !
 
-@get("/+files/<path:path>/<password>")
-def list_packages(path, password):
-    files = os.listdir(path)
-    files = [f for f in files if not f.startswith(".") and os.path.isfile(os.path.join(path,f))]
-    return dict(packages=files)
+    4) Public files must have a unique name across all user accounts !
 
+    Some URLs look a bit complicated, but bottle had some problems resolving routes I tried
+    before.
 
-@delete("/+files/<path:path>/<password>")
-def delete_file_from(path, password):
-    repos, __, __ =  path.partition("/")
-    check(password, repos)
-    if os.path.exists(path):
-        os.remove(path)
-    else:
-        raise HTTPError(404)
+    """
 
+    def __init__(self, data_dir):
+        self.data_dir = data_dir
 
-def _list_public_packages():
-    files = glob.glob("*/*")
-    files = [ f for f in files if not os.path.basename(f).startswith(".") and os.path.isfile(f)]
-    files = dict( (os.path.basename(f), f) for f in files)
-    return dict(packages=files)
-list_public_packages = get("/+files")(_list_public_packages)
+        self.app = Bottle()
+        self.setup_routes()
 
+    def setup_routes(self):
 
-@get("/<path:path>")
-def download_file(path):
-    if not os.path.exists(path):
-        raise HTTPError(404)
-    return static_file(path, root=".")
+        # collects all public files and returns dictionary mapping file name to full path
+        # in respect to root dir:
+        self.app.route("/+files", method="GET", callback=self.list_public)
 
+        # collects all public files and returns dictionary mapping file name to full path
+        # in respect to root dir:
+        self.app.route("/+dump", method="GET", callback=self.dump_repos)
 
-class StopableWSGIRefServer(ServerAdapter):
+        # upload file. here path is related to the root folder, so it is the concatenation of
+        # account name and subfolder in this account folder:
+        self.app.route("/+files/<path:path>/<password>", method="PUT", callback=self.upload)
 
-    started = False
-    srv = None
+        # list files. here path is related to the root folder, so it is the concatenation of
+        # account name and subfolder in this account folder:
+        # FOR EASIER ROUTING, PASSWORD IS A DUMMY, SO THE CLIENT CAN USE WHAT IT WANTS !
+        self.app.route("/+files/<path:path>/<password>", method="GET", callback=self.list_)
 
-    def run(self, handler): # pragma: no cover
-        from wsgiref.simple_server import make_server, WSGIRequestHandler
-        if self.quiet:
-            class QuietHandler(WSGIRequestHandler):
-                def log_request(*args, **kw): pass
-            self.options['handler_class'] = QuietHandler
-        self.srv = make_server(self.host, self.port, handler, **self.options)
-        self.srv.serve_forever()
+        # delete file. here path is related to the root folder, so it is the concatenation of
+        # account name and subfolder in this account folder:
+        self.app.route("/+files/<path:path>/<password>", method="DELETE", callback=self.delete)
 
-    def stop(self):
-        assert self.started
-        startat = time.time()
-        while self.srv is None and time.time() <= startat + 1.0: # wait one secoond to come up
-            time.sleep(0.1)
-        if self.srv is None:
-            raise Exception("sever did not come up !")
-        self.srv.shutdown()
+        # fetch file from known path. no auth check here, as the path is considered to be "secret"
+        # THIS ROUTE MUST BE THE LAST !
+        self.app.route("/<path:path>", method="GET", callback=self.download)
 
-
-class BackgroundWebserver(threading.Thread):
-
-    def __init__(self, path, port=54321, host="0.0.0.0"):
-        self.path = path
-        self.server = StopableWSGIRefServer(port=port, host=host)
-        super(BackgroundWebserver, self).__init__()
+    def run(self, server):
+        self.app.run(server=server)
 
     def create_account(self, name, password):
-        full_path = os.path.join(self.path, name, ".password")
+        full_path = os.path.join(self.data_dir, name, ".password")
         if os.path.exists(full_path):
             raise Exception("account already exists")
         try:
@@ -116,15 +86,111 @@ class BackgroundWebserver(threading.Thread):
         with open(full_path, "wt") as fp:
             print >> fp, "password=%s" % password
 
+    def check(self, password, repos):
+        pw_file_path = os.path.join(self.data_dir, repos, ".password")
+        password_tobe = parse_key_value_file(pw_file_path)["password"]
+        if password != password_tobe:
+            raise HTTPError(401)  # , "password '%s' does not match" % password)
+
+    def dump_repos(self):
+        for root, dirnames, filenames in os.walk(self.data_dir):
+            print "FOLDER", root
+            for d in dirnames:
+                print "  DIR ", d
+            for f in filenames:
+                print "  FILE", f
+
+    def upload(self, path, password):
+        full_path = os.path.join(self.data_dir, path)
+        repos, __, local_path = path.partition("/")
+        is_public = os.path.dirname(local_path) == ""
+        if is_public:
+            f_name = os.path.basename(local_path)
+            if f_name in self.list_public()["packages"].keys():
+                raise HTTPError(409)
+
+        self.check(password, repos)
+        folder, filename = os.path.split(full_path)
+        try:
+            os.makedirs(folder)
+        except:
+            pass
+        with open(full_path, "wb") as fp:
+            fp.write(request.body.getvalue())
+
+    def list_(self, path, password):
+        full_path = os.path.join(self.data_dir, path)
+        files = os.listdir(full_path)
+        files = [f for f in files
+                 if not f.startswith(".") and os.path.isfile(os.path.join(full_path, f))]
+        return dict(packages=files)
+
+    def delete(self, path, password):
+        full_path = os.path.join(self.data_dir, path)
+        repos, __, __ = path.partition("/")
+        self.check(password, repos)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        else:
+            raise HTTPError(404)
+
+    def list_public(self):
+        n = len(self.data_dir)
+        files = glob.glob(os.path.join(self.data_dir, "*", "*"))
+        files = [f for f in files if not os.path.basename(f).startswith(".") and os.path.isfile(f)]
+        files = dict((os.path.basename(f), f[n + 1:]) for f in files)
+        return dict(packages=files)
+
+    def download(self, path):
+        full_path = os.path.join(self.data_dir, path)
+        if not os.path.exists(full_path):
+            raise HTTPError(404)
+        return static_file(path, root=self.data_dir)
+
+
+class StopableWSGIRefServer(ServerAdapter):
+
+    started = False
+    srv = None
+
+    def run(self, handler):  # pragma: no cover
+        from wsgiref.simple_server import make_server, WSGIRequestHandler
+        if self.quiet:
+            class QuietHandler(WSGIRequestHandler):
+                def log_request(*args, **kw):
+                    pass
+            self.options['handler_class'] = QuietHandler
+        self.srv = make_server(self.host, self.port, handler, **self.options)
+        self.srv.serve_forever()
+
+    def stop(self):
+        assert self.started
+        startat = time.time()
+        while self.srv is None and time.time() <= startat + 1.0:  # wait one secoond to come up
+            time.sleep(0.1)
+        if self.srv is None:
+            raise Exception("sever did not come up !")
+        self.srv.shutdown()
+
+
+class BackgroundWebserver(threading.Thread):
+
+    def __init__(self, app, port, host):
+        self.port = port
+        self.host = host
+        self.url = "http://%s:%s" % (host, port)
+        self.server = StopableWSGIRefServer(port=port, host=host)
+        self.app = app
+        super(BackgroundWebserver, self).__init__()
+
     def start(self):
         self.server.started = True
         super(BackgroundWebserver, self).start()
         import time
-        time.sleep(1.0) # wait to come up
+        time.sleep(1.0)  # wait to come up
 
     def run(self):
-        os.chdir(self.path)
-        run(server=self.server)
+        self.app.run(self.server)
 
     def stop(self):
         self.server.stop()
@@ -134,12 +200,14 @@ class BackgroundWebserver(threading.Thread):
         return super(BackgroundWebserver, self).is_alive()
 
 
+def create_file_server(data_dir, port=54321, host="0.0.0.0"):
+    return BackgroundWebserver(FileServerApplication(data_dir), port, host)
+
 
 if __name__ == "__main__":
     import sys
     assert len(sys.argv) == 2, "need directory to server from"
 
     debug(True)
-    ws = BackgroundWebserver(sys.argv[1])
+    ws = create_file_server(sys.argv[1])
     ws.start()
-
