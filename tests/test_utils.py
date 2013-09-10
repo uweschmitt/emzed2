@@ -11,6 +11,21 @@ def test_formula():
     assert str(mf3) == "H2O"
 
 
+def test_recalc_peaks(path):
+    from_ = path(u"data/SHORT_MS2_FILE.mzData")
+    ds = emzed.io.loadPeakMap(from_)
+    t = emzed.utils.toTable("mzmin", [0.0])
+    t.addColumn("mzmax", [1000.0])
+    t.addColumn("rtmin", [0.0])
+    t.addColumn("rtmax", [1000.0])
+    t.addColumn("peakmap", [ds])
+
+    emzed.utils.recalculateMzPeaks(t)
+    t.info()
+    to_be = 807.354
+    diff = abs(t.mz.values[0] - to_be)
+    assert diff < 1e-3, to_be
+
 def test_load_map(path, tmpdir):
     from_ = path(u"data/SHORT_MS2_FILE.mzData")
     ds = emzed.io.loadPeakMap(from_)
