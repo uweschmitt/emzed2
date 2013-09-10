@@ -97,11 +97,11 @@ def openInBrowser(urlPath):
 def _recalculateMzPeakFor(postfix):
     def calculator(table, row, name, postfix=postfix):
 
-        mzmin = table.get(row, "mzmin"+postfix)
-        mzmax = table.get(row, "mzmax"+postfix)
-        rtmin = table.get(row, "rtmin"+postfix)
-        rtmax = table.get(row, "rtmax"+postfix)
-        pm    = table.get(row, "peakmap"+postfix)
+        mzmin = table.getValue(row, "mzmin"+postfix)
+        mzmax = table.getValue(row, "mzmax"+postfix)
+        rtmin = table.getValue(row, "rtmin"+postfix)
+        rtmax = table.getValue(row, "rtmax"+postfix)
+        pm    = table.getValue(row, "peakmap"+postfix)
         mz = pm.representingMzPeak(mzmin, mzmax, rtmin, rtmax)
         return mz if mz is not None else (mzmin+mzmax)/2.0
     return calculator
@@ -111,7 +111,6 @@ def _hasRangeColumns(table, postfix):
                                                  "mzmin", "mzmax", "peakmap"]])
 
 def recalculateMzPeaks(table):
-    #TODO: tests !
     """Adds mz value for peaks not detected with centwaves algorithm based on
        rt and mz window: needed are columns mzmin, mzmax, rtmin, rtmax and
        peakmap mz, postfixes are automaticaly taken into account"""
@@ -121,10 +120,10 @@ def recalculateMzPeaks(table):
             mz_col = "mz" + postfix
             if table.hasColumn(mz_col):
                 table.replaceColumn(mz_col, _recalculateMzPeakFor(postfix),
-                                    format="%.5f", type_=float)
+                                    format_="%.5f", type_=float)
             else:
                 table.addColumn(mz_col, _recalculateMzPeakFor(postfix),
-                                format="%.5f", type_=float)
+                                format_="%.5f", type_=float)
 
 def startfile(path):
     import sys, os
