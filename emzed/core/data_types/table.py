@@ -1625,6 +1625,7 @@ class Table(object):
             only if it appers in  ``tables``.
 
         """
+        assert isinstance(tables, (list, tuple)), "need list of tables as first argument"
         if reference_table is not None:
             final_colnames = reference_table._colNames
             start_with = reference_table.buildEmptyClone()
