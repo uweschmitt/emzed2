@@ -7,6 +7,15 @@ from metlin import matchMetlin
 
 from integration import integrate
 
+from ..core.data_types.table import Table
+
+mergeTables = Table.mergeTables
+
+try:
+    del Table
+except:
+    pass
+
 try:
     del integration
 except:
