@@ -29,16 +29,16 @@ def test_store_upload(tmpdir):
 
         base_url = "http://localhost:55556"
 
-        assert client.list_public_packages(base_url) == dict()
+        assert client.list_public_files(base_url) == dict()
 
         # list public files of test_account
-        assert client.list_files(base_url, "test_account", "") == []
+        assert client.list_files(base_url, "test_account", "") == dict()
 
         # upload public file
         data = StringIO.StringIO("abc123abccdd")  # cStringIO for upload does not work !
 
         client.upload_file(base_url, "test_account", "password", "/abc.txt", data)
-        assert client.list_files(base_url, "test_account", "/") == ["abc.txt"]
+        assert client.list_files(base_url, "test_account", "/") == {'abc.txt': "/test_account/abc.txt"}
 
         client.download_file(base_url, "test_account/abc.txt", tmpdir.strpath)
         tmp_file_path = tmpdir.join("abc.txt").strpath
@@ -48,19 +48,20 @@ def test_store_upload(tmpdir):
         data = StringIO.StringIO("abc123abccdd")
 
         client.upload_file(base_url, "test_account", "password", "/hidden/abcd.txt", data)
-        assert client.list_files(base_url, "test_account", "/") == ["abc.txt"]
-        assert client.list_files(base_url, "test_account", "/hidden") == ["abcd.txt"]
+        cl = client.list_files
+        assert cl(base_url, "test_account", "/") == {"abc.txt": "/test_account/abc.txt"}
+        assert cl(base_url, "test_account", "/hidden") == {"abcd.txt": "/test_account/hidden/abcd.txt"}
 
         client.download_file(base_url, "test_account/hidden/abcd.txt", tmpdir.strpath)
         tmp_file_path = tmpdir.join("abcd.txt").strpath
         assert open(tmp_file_path, "r").read() == data.getvalue()
 
         # list all public files
-        assert client.list_public_packages(base_url) == {'abc.txt': "test_account/abc.txt"}
+        assert client.list_public_files(base_url) == {'abc.txt': "/test_account/abc.txt"}
 
         # delete file
         client.delete_file(base_url, "test_account", "password", "/hidden/abcd.txt")
-        assert client.list_files(base_url, "test_account", "/hidden") == []
+        assert client.list_files(base_url, "test_account", "/hidden") == dict()
 
 
 def test_errors(tmpdir):

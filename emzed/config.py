@@ -1,12 +1,18 @@
+from emzed.core.config import _UserConfig, global_config
 
-from emzed.core.config import _UserConfig
 
 def _is_first_start():
-    _c = _UserConfig(_no_load=True)
-    return _c.load() is False
+    import os
+    return not os.path.exists(_UserConfig.config_file_path())
 
-def edit():
-    _c = _UserConfig()
-    aborted = _c.edit()
 
+def edit(reset_to_defaults=False):
+    if reset_to_defaults:
+        global_config.set_defaults()
+    aborted = global_config.edit()
+    if not aborted:
+        global_config.store()
+
+def load():
+    global_config.load()
 

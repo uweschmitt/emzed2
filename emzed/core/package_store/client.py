@@ -2,6 +2,8 @@ import requests
 import functools
 import os
 
+import html2text
+
 
 def guard(fun):
     @functools.wraps(fun)
@@ -9,11 +11,12 @@ def guard(fun):
         base_url = base_url.rstrip("/")
         assert resource.startswith("/")
         resp = fun(base_url + resource, *a, **kw)
-        try:
-            resp.raise_for_status()
-        except:
-            print "URL=", resp.url
-            raise
+        if resp.status_code != 200:
+            formatted = html2text.html2text(resp.content)
+            e = requests.HTTPError(resp.status_code)
+            e.message = formatted
+            e.response = resp
+            raise e
         return resp
     return wrapped
 
@@ -28,7 +31,7 @@ def get_json(base_url, resource):
     return get(base_url, resource).json()
 
 
-def list_public_packages(base_url, silent=False):
+def list_public_files(base_url, silent=False):
     if not silent:
         print "list public packages from %s" % base_url
     return get_json(base_url, "/+files")["packages"]

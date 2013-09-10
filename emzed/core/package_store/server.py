@@ -3,6 +3,7 @@ import os
 import glob
 import threading
 import time
+import functools
 
 
 def parse_key_value_file(path):
@@ -40,7 +41,7 @@ class FileServerApplication(object):
     """
 
     def __init__(self, data_dir):
-        self.data_dir = data_dir
+        self.data_dir = data_dir.rstrip("/")
 
         self.app = Bottle()
         self.setup_routes()
@@ -50,10 +51,6 @@ class FileServerApplication(object):
         # collects all public files and returns dictionary mapping file name to full path
         # in respect to root dir:
         self.app.route("/+files", method="GET", callback=self.list_public)
-
-        # collects all public files and returns dictionary mapping file name to full path
-        # in respect to root dir:
-        self.app.route("/+dump", method="GET", callback=self.dump_repos)
 
         # upload file. here path is related to the root folder, so it is the concatenation of
         # account name and subfolder in this account folder:
@@ -100,6 +97,24 @@ class FileServerApplication(object):
             for f in filenames:
                 print "  FILE", f
 
+    #
+    # exposed methods start here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #
+
+    def convert_exception(fun):
+        @functools.wraps(fun)
+        def wrapped(*a, **kw):
+            try:
+                return fun(*a, **kw)
+            except Exception, e:
+                if isinstance(e, HTTPError):
+                    raise e
+                import traceback
+                tb = traceback.format_exc()
+                raise HTTPError(500, body=tb)
+        return wrapped
+
+    @convert_exception
     def upload(self, path, password):
         full_path = os.path.join(self.data_dir, path)
         repos, __, local_path = path.partition("/")
@@ -118,13 +133,7 @@ class FileServerApplication(object):
         with open(full_path, "wb") as fp:
             fp.write(request.body.getvalue())
 
-    def list_(self, path, password):
-        full_path = os.path.join(self.data_dir, path)
-        files = os.listdir(full_path)
-        files = [f for f in files
-                 if not f.startswith(".") and os.path.isfile(os.path.join(full_path, f))]
-        return dict(packages=files)
-
+    @convert_exception
     def delete(self, path, password):
         full_path = os.path.join(self.data_dir, path)
         repos, __, __ = path.partition("/")
@@ -134,13 +143,24 @@ class FileServerApplication(object):
         else:
             raise HTTPError(404)
 
+    @convert_exception
     def list_public(self):
         n = len(self.data_dir)
         files = glob.glob(os.path.join(self.data_dir, "*", "*"))
         files = [f for f in files if not os.path.basename(f).startswith(".") and os.path.isfile(f)]
-        files = dict((os.path.basename(f), f[n + 1:]) for f in files)
+        files = dict((os.path.basename(f), f[n:]) for f in files)
         return dict(packages=files)
 
+    @convert_exception
+    def list_(self, path, password):
+        full_path = os.path.join(self.data_dir, path)
+        files = os.listdir(full_path)
+        files = [f for f in files
+                 if not f.startswith(".") and os.path.isfile(os.path.join(full_path, f))]
+        files = dict((os.path.basename(f), os.path.join("/", path, f)) for f in files)
+        return dict(packages=files)
+
+    @convert_exception
     def download(self, path):
         full_path = os.path.join(self.data_dir, path)
         if not os.path.exists(full_path):
@@ -200,7 +220,7 @@ class BackgroundWebserver(threading.Thread):
         return super(BackgroundWebserver, self).is_alive()
 
 
-def create_file_server(data_dir, port=54321, host="0.0.0.0"):
+def create_file_server(data_dir, port=37614, host="0.0.0.0"):
     return BackgroundWebserver(FileServerApplication(data_dir), port, host)
 
 

@@ -1,5 +1,4 @@
-import pdb
-#encoding: latin-1
+# encoding: latin-1
 
 # keep namespace clean:
 
@@ -30,9 +29,9 @@ class _FolderLocations(object):
     @staticmethod
     def _query(subKey):
         import _winreg
-        key =_winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
-                            "Software\\Microsoft\\Windows\\CurrentVersion"
-                            "\\Explorer\\User Shell Folders")
+        key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+                              "Software\\Microsoft\\Windows\\CurrentVersion"
+                              "\\Explorer\\User Shell Folders")
         val, _ = _winreg.QueryValueEx(key, subKey)
         return _winreg.ExpandEnvironmentStrings(val)
 
@@ -46,13 +45,13 @@ class _FolderLocations(object):
     @staticmethod
     @_linuxdefault(os.environ.get("HOME"))
     def getAppDataFolder():
-        return _FolderLocations._query( "AppData")
+        return _FolderLocations._query("AppData")
 
     # order of decorators counts
     @staticmethod
     @_linuxdefault(os.environ.get("HOME"))
     def getLocalAppDataFolder():
-        return _FolderLocations._query( "Local AppData")
+        return _FolderLocations._query("Local AppData")
 
     @staticmethod
     def getEmzedFolder():
@@ -97,8 +96,8 @@ class _FolderLocations(object):
 folders = _FolderLocations
 
 
-
 _is_expert = _dt.ValueProp(False)
+
 
 def _apply_patch_for_allowing_empty_value(diretory_item):
     def check_value(self, value):
@@ -136,9 +135,9 @@ class _UserConfig(object):
                                   help="usefull when submitting to package store")
 
         project_home = _di.DirectoryItem("Folder for emzed projects",
-                default="",
-                help="here you can configure a folder in which emzed package projects "\
-                "will be created")
+                                         default="",
+                                         help="here you can configure a folder in which emzed package projects "
+                                         "will be created")
         _apply_patch_for_allowing_empty_value(project_home)
 
         _g1 = _dt.EndGroup("User Settings")
@@ -146,8 +145,8 @@ class _UserConfig(object):
         g11 = _dt.BeginGroup("Exchange Folder Settings")
 
         exchange_folder = _di.DirectoryItem("Exchange Folder", default="",
-                             help="here you can configure a shared folder, see emezed "\
-                             "installation guide on emzed website for more information")
+                                            help="here you can configure a shared folder, see emezed "
+                                            "installation guide on emzed website for more information")
 
         _apply_patch_for_allowing_empty_value(exchange_folder)
 
@@ -155,48 +154,49 @@ class _UserConfig(object):
 
         g2 = _dt.BeginGroup("Webservice Settings")
 
-        metlin_token  = _di.StringItem("Metlin SOAP Token",
-                                       help="needed for metlin matching. you can request this "\
-                                       "token from metlins website")
+        metlin_token = _di.StringItem("Metlin SOAP Token",
+                                      help="needed for metlin matching. you can request this "
+                                      "token from metlins website")
 
         _g2 = _dt.EndGroup("Webservice Settings")
 
         g3 = _dt.BeginGroup("Emzed Store User Account")
 
         emzed_store_user = _di.StringItem("User Name",
-                help="please request name and password from emzed google group")
+                                          help="please request name and password from emzed google group")
         emzed_store_password = _di.StringItem("User Password",
-                help="please request name and password from emzed google group")
+                                              help="please request name and password from emzed google group")
 
         _g3 = _dt.EndGroup("Emzed Store Settings")
 
         g4 = _dt.BeginGroup("Emzed Store Expert Settings")
         enable_expert_settings = _di.BoolItem("Enable Settings",
-                help="only check this box if you really know what you do !!!").set_prop("display",
-                store=_is_expert)
+                                              help="only check this box if you really know what you do !!!"
+                                              ).set_prop("display", store=_is_expert)
 
         emzed_store_url = _di.StringItem("Emzed Store URL").set_prop("display",
-                active=_is_expert)
+                                                                     active=_is_expert)
 
         pypi_url = _di.StringItem("PyPi URL").set_prop("display",
-                active=_is_expert)
+                                                       active=_is_expert)
 
         _g4 = _dt.EndGroup("Expert Settings")
 
         g5 = _dt.BeginGroup("Internal Settings")
 
-        last_active_project = _di.StringItem("Last active project").set_prop("display", active=False)
+        last_active_project = _di.StringItem(
+            "Last active project").set_prop("display", active=False)
 
         _g5 = _dt.EndGroup("Internal Settings")
 
     def __init__(self, *a, **kw):
         self.parameters = _UserConfig.Parameters()
-        if "_no_load" not in kw:
-            loaded = self.load()
-            if not loaded:
-                self.set_defaults()
-        else:
-            self.set_defaults()
+        #if "_no_load" not in kw:
+        #    loaded = self.load()
+        #    if not loaded:
+        #        self.set_defaults()
+        #else:
+        #    self.set_defaults()
 
     def get(self, key):
         env_key = "EMZED_%s" % key.upper()
@@ -214,7 +214,7 @@ class _UserConfig(object):
         global_config = self
 
     def get_url(self, key):
-        return self.get(key).rstrip("/") + "/"
+        return self.get(key).rstrip("/")
 
     def store(self, path=None):
 
@@ -226,7 +226,7 @@ class _UserConfig(object):
         try:
             guidata.userconfig.UserConfig.__save = lambda self: None
             if path is None:
-                path = self.config_file_path()
+                path = _UserConfig.config_file_path()
             cf = guidata.userconfig.UserConfig(dict())
             self.parameters.write_config(cf, "emzed2", "")
             dir_name = os.path.dirname(path)
@@ -243,7 +243,7 @@ class _UserConfig(object):
         import guidata.userconfig
         cf = guidata.userconfig.UserConfig(dict())
         if path is None:
-            path = self.config_file_path()
+            path = _UserConfig.config_file_path()
         if os.path.exists(path):
             with open(path, "rt") as fp:
                 try:
@@ -263,11 +263,12 @@ class _UserConfig(object):
         global_config = self
         return aborted
 
-    def config_file_path(self):
+    @staticmethod
+    def config_file_path():
         return os.path.join(folders.getEmzedFolder(), "config_emzed2.ini")
 
     def set_defaults(self):
-        self.parameters.emzed_store_url = "http://0.0.0.0:54321"
+        self.parameters.emzed_store_url = "http://uweschmitt.info:37614"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
         self.parameters.last_active_project = ""
@@ -276,8 +277,4 @@ class _UserConfig(object):
         except:
             pass
 
-
 global_config = _UserConfig()
-
-
-

@@ -34,7 +34,12 @@ def install_emzed(user_ns=None):
 
     import emzed
     if emzed.config._is_first_start():
-        emzed.config.edit()
+        emzed.config.edit(reset_to_defaults=True)
+    else:
+        emzed.config.load()
+
+    emzed.project.install_builtins()
+    emzed.project.activate_last_project()
 
     import os, sys
     user_ns.update(locals())

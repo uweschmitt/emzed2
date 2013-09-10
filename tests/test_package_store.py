@@ -3,7 +3,6 @@
 import pytest
 
 import emzed.core.package_store.server as server
-# import emzed.core.package_store.client as client
 import emzed.core.packages
 
 from contextlib import contextmanager
@@ -30,17 +29,11 @@ def setup_config():
 
     global_config.parameters.emzed_store_user = "uweschmitt"
     global_config.parameters.emzed_store_password = "pillepalle"
-
-    global_config.parameters.emzed_store_url = "http://0.0.0.0:33336"
-
-    # for testing implicit unicode conversions:
-    global_config.store()
-    global_config.load()
+    global_config.set_("emzed_store_url", "http://localhost:33336")
 
 
 def test_basics(tmpdir):
-    from emzed.core.config import global_config
-    global_config.set_("package_store_url", "http://localhost:33336")
+    setup_config()
 
     with run_background_server(tmpdir.strpath, 33336):
         assert emzed.core.packages.list_packages_from_emzed_store() == dict()
@@ -48,6 +41,7 @@ def test_basics(tmpdir):
 
 def test_project_scaffold(tmpdir):
     import os.path
+    setup_config()
 
     tmpdir = os.path.join(tmpdir.strpath, "minimal_package")
 
@@ -81,9 +75,9 @@ def test_project_scaffold(tmpdir):
 
 
 def test_minimal_package(tmpdir):
+    setup_config()
 
     from emzed.core.config import global_config
-    global_config.set_("package_store_url", "http://localhost:33336")
 
     tmp_repos = tmpdir.join("data_dir").strpath
     tmp_project_folder = tmpdir.join("projects").strpath

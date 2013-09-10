@@ -10,6 +10,8 @@ import subprocess
 import sys
 import tempfile
 
+import requests
+
 from collections import defaultdict
 
 from config import global_config
@@ -24,6 +26,14 @@ EMZED_PKG_MARKER_FILE = ".emzed_pkg_marker"
 def match_name(f):
     match = re.match("(.*)-(\d+\.\d+\.\d+)\.(tar\.gz|zip)", f)
     return match
+
+
+def check_secret(secret):
+    return re.match("[a-zA-Z0-9]*$", secret) is not None
+
+
+def assert_valid_secret(secret):
+    assert check_secret(secret), "only a-z, a-Z and 0-9 are allowed for secret string"
 
 SETUP_PY_TEMPLATE = """
 
@@ -71,18 +81,19 @@ LICENSE = "http://opensource.org/licenses/GPL-3.0"
 
 
 ######################################################################################
-#
-# DO NOT TOUCH THE CODE BELOW UNLESS YOU KNOW WHAT YOU DO !!!!
-#
-#       _.--""--._
-#      /  _    _  \
-#   _  ( (_\  /_) )  _
-#  { \._\   /\   /_./ }
-#  /_"=-.}______{.-="_\
-#   _  _.=('""')=._  _
-#  (_'"_.-"`~~`"-._"'_)
-#   {_"            "_}
-#
+#                                                                                    #
+# DO NOT TOUCH THE CODE BELOW UNLESS YOU KNOW WHAT YOU DO !!!!                       #
+#                                                                                    #
+#                                                                                    #
+#       _.--""--._                                                                   #
+#      /  _    _  \                                                                  #
+#   _  ( (_\  /_) )  _                                                               #
+#  { \._\   /\   /_./ }                                                              #
+#  /_"=-.}______{.-="_\                                                              #
+#   _  _.=('""')=._  _                                                               #
+#  (_'"_.-"`~~`"-._"'_)                                                              #
+#   {_"            "_}                                                               #
+#                                                                                    #
 ######################################################################################
 
 
@@ -150,7 +161,7 @@ def check_name(pkg_name):
 
 
 def is_project_folder(path):
-    return os.path.exists(path) and EMZED_PKG_MARKER_FILE in os.listdir(path)
+    return os.path.exists(path) and os.path.isdir(path) and EMZED_PKG_MARKER_FILE in os.listdir(path)
 
 
 def _test_if_folder_is_inside_existing_pkg(folder):
@@ -259,12 +270,21 @@ def create_package_scaffold(folder, pkg_name, version=(0, 0, 1)):
 
 
 def delete_from_emzed_store(pkg_name, version_string, secret=""):
+    assert_valid_secret(secret)
     assert version_string, "empty version_string not allowed"
     user = global_config.get("emzed_store_user")
     password = global_config.get("emzed_store_password")
     url = global_config.get_url("emzed_store_url")  # + pkg_name + "/" + version_string
 
-    files = client.list_files(url, user, secret)
+    folder = "/" + secret
+    try:
+        files = client.list_files(url, user, folder)
+    except requests.HTTPError, e:
+        print e.message
+        print
+        print "MAYBE USER %s IS NOT KNOWN OR SECRET %r IS NOT VALID" % (user, secret)
+        print
+        return False
     deleted = False
     for f in files:
         match = match_name(f)
@@ -288,6 +308,7 @@ def changed_working_directory(target):
 
 
 def upload_to_emzed_store(pkg_folder, secret=""):
+    assert_valid_secret(secret)
     with changed_working_directory(pkg_folder):
         # make sure we load the right setup.py
         sys.path.insert(0, os.path.abspath(pkg_folder))
@@ -295,8 +316,10 @@ def upload_to_emzed_store(pkg_folder, secret=""):
         reload(setup)
         sys.path.pop(0)
 
-        for p, versions in list_packages_from_emzed_store():
-            if p == setup.PKG_NAME and setup.VERSION in versions:
+        existing_versions = list_packages_from_emzed_store()[setup.PKG_NAME]
+        if existing_versions:
+            if any(setup.VERSION == v for (v, __) in existing_versions):
+
                 raise Exception("package %s with version %s already exists" % (setup.PKG_NAME,
                                                                                setup.VERSION))
         if os.path.exists("dist"):
@@ -313,7 +336,13 @@ def upload_to_emzed_store(pkg_folder, secret=""):
         for p in glob.glob("dist/*"):
             if os.path.isfile(p):
                 path = "/" + os.path.join(secret, os.path.basename(p))
-                client.upload_file(url, user, password, path, open(p))
+                try:
+                    client.upload_file(url, user, password, path, open(p))
+                except requests.HTTPError, e:
+                    print e.message
+                    print
+                    print "MAYBE USER %s IS UNKNOWN OR PASSWORD DOES NOT MATCH" % user
+                    break
 
 
 def install_from_emzed_store(pkg_name, wanted_version=None):
@@ -364,10 +393,22 @@ def installed_emzed_packages():
     return [(p, p in extensions, p in apps) for p in packages]
 
 
-def list_packages_from_emzed_store():
+def list_packages_from_emzed_store(secret=""):
     url = global_config.get_url("emzed_store_url")
-    packages = client.list_public_packages(url)
     result = defaultdict(list)
+    if not secret:
+        packages = client.list_public_files(url)
+    else:
+        user = global_config.get("emzed_store_user")
+        folder = "/" + secret
+        try:
+            packages = client.list_files(url, user, folder)
+        except requests.HTTPError, e:
+            print e.message
+            print
+            print "MAYBE USER %s IS UNKNOWN OR SECRET '%s' IS INVALID" % (user, secret)
+            print
+            return result
     for name, path in packages.items():
         m = match_name(name)
         if m is not None:
