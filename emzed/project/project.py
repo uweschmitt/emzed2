@@ -140,8 +140,8 @@ def _set_active_project(project):
 def install_builtins():
 
     __builtins__["___start_work"] = start_work
-    __builtins__["___init"] = init
-    __builtins__["___list_projects"] = list_projects
+    __builtins__["___init_new_project"] = init
+    __builtins__["___list_my_projects"] = list_projects
 
     for _n in list_projects():
         __builtins__["___start_work_on_%s" % _n] = lambda _n=_n: start_work(_n)
@@ -152,7 +152,7 @@ def _install_builtins_after_workon():
     __builtins__["___run_tests"] = run_tests
     __builtins__["___upload_to_package_store"] = upload
     __builtins__["___remove_from_package_store"] = remove_from_package_store
-    __builtins__["___list_versions"] = list_versions
+    __builtins__["___list_versions_on_package_store"] = list_versions
 
 
 def _uninstall_builtins_after_stop_work():
@@ -160,7 +160,7 @@ def _uninstall_builtins_after_stop_work():
     del __builtins__["___run_tests"]
     del __builtins__["___upload_to_package_store"]
     del __builtins__["___remove_from_package_store"]
-    del __builtins__["___list_versions"]
+    del __builtins__["___list_versions_on_package_store"]
 
 
 def stop_work():
