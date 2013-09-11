@@ -62,11 +62,11 @@ def list_projects():
                 folder = os.path.dirname(pp.__file__)
                 folder = folder.rjust(60, " ")
                 if len(folder) > 60:
-                    print "/...", folder[5:]
+                    print "/...", folder[-55:]
                 else:
                     print folder
             except:
-                print "INAKTVE"
+                print "INACTIVE".rjust(60, " ")
     if not result:
         print "NO PROJECTS FOUND"
     print
@@ -100,7 +100,7 @@ def init(name=None):
         showWarning(str(e))
         return
 
-    __builtins__["___activate_%s" % name] = lambda: activate(name)
+    __builtins__["___activate_%s" % name] = lambda: start_work(name)
     print
     print "project scaffold created, enter emzed.project.start_work() to start working on it."
     print
@@ -112,7 +112,7 @@ def init(name=None):
     except:
         pass
     start_work(name)
-    builtins__["___start_work_%s" % _name] = lambda name=name: start_work(name)
+    __builtins__["___start_work_on_%s" % name] = lambda name=name: start_work(name)
 
 
 def _get_active_project():
@@ -135,15 +135,13 @@ def install_builtins():
     __builtins__["___list_projects"] = list_projects
 
     for _n in list_projects():
-        __builtins__["___start_work_%s" % _n] = lambda _n=_n: start_work(_n)
-        __builtins__["___activate_%s" % _n] = lambda _n=_n: activate(_n)
-        __builtins__["___deactivate_%s" % _n] = lambda _n=_n: activate(_n)
+        __builtins__["___start_work_on_%s" % _n] = lambda _n=_n: start_work(_n)
 
 
 def _install_builtins_after_workon():
     __builtins__["___stop_work"] = stop_work
     __builtins__["___run_tests"] = run_tests
-    __builtins__["___upload"] = upload
+    __builtins__["___upload_to_package_store"] = upload
     __builtins__["___remove_from_package_store"] = remove_from_package_store
     __builtins__["___list_versions"] = list_versions
 
@@ -151,7 +149,7 @@ def _install_builtins_after_workon():
 def _uninstall_builtins_after_stop_work():
     del __builtins__["___stop_work"]
     del __builtins__["___run_tests"]
-    del __builtins__["___upload"]
+    del __builtins__["___upload_to_package_store"]
     del __builtins__["___remove_from_package_store"]
     del __builtins__["___list_versions"]
 
@@ -207,10 +205,7 @@ def list_versions(secret=""):
     ap = _get_active_project()
     from ..core.packages import list_packages_from_emzed_store
     __, name = os.path.split(ap)
-    versions = []
-    packages = list_packages_from_emzed_store(secret).get(name)
-    if packages:
-         versions = [v for (v, __) in packages]
+    packages = list_packages_from_emzed_store().get(name)
     print
     if not packages:
         print "PACKAGE NOT FOUND ON EMZED PACKAGE STORE"
@@ -269,7 +264,6 @@ def start_work(name=None):
                 p = p.strip()
                 if is_emzed_package(p):
                     activate(p)
-
 
 
 def activate_last_project():
