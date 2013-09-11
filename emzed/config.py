@@ -16,3 +16,5 @@ def edit(reset_to_defaults=False):
 def load():
     global_config.load()
 
+def store():
+    global_config.store()

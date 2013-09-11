@@ -258,9 +258,9 @@ class _UserConfig(object):
         import guidata
         app = guidata.qapplication()
         aborted = self.parameters.edit(size=(600, 800)) == 0
-        self.store()
-        global global_config
-        global_config = self
+        if not aborted:
+            global global_config
+            global_config = self
         return aborted
 
     @staticmethod
