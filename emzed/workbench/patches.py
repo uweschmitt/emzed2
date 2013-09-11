@@ -198,6 +198,7 @@ def patch_userconfig():
                              { "close_parentheses" : False,
                                "outline_explorer": True,
                                "object_inspector": True,
+                               "edge_line_column": 99,
                              }
                  ,
             }
