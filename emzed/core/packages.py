@@ -173,7 +173,6 @@ def _test_if_folder_is_inside_existing_pkg(folder):
         # go one folder level upwards:
         folder, __ = os.path.split(folder)
         if is_project_folder(folder):
-        # if os.path.exists(os.path.join(folder, EMZED_PKG_MARKER_FILE)):
                 return folder
     raise Exception("unlimited loop for folder %r" % folder)
 
@@ -291,7 +290,7 @@ def delete_from_emzed_store(pkg_name, version_string, secret=""):
         if match is not None:
             name, vstr, __ = match.groups()
             if name == pkg_name and vstr == version_string:
-                path = os.path.join("/", secret, f)
+                path = "/%s/%s" % (secret, f)
                 client.delete_file(url, user, password, path)
                 deleted = True
     return deleted
@@ -335,7 +334,7 @@ def upload_to_emzed_store(pkg_folder, secret=""):
 
         for p in glob.glob("dist/*"):
             if os.path.isfile(p):
-                path = "/" + os.path.join(secret, os.path.basename(p))
+                path = "/%s/%s" % (secret, os.path.basename(p))
                 try:
                     client.upload_file(url, user, password, path, open(p))
                 except requests.HTTPError, e:
