@@ -324,7 +324,9 @@ def upload_to_emzed_store(pkg_folder, secret=""):
         if os.path.exists("dist"):
             shutil.rmtree("dist")
 
-        rc = subprocess.call("python setup.py sdist", shell=True)
+        rc = subprocess.call("python setup.py sdist", shell=True,
+                stdout=sys.__stdout__,
+                stderr= sys.__stdout__)
         if rc:
             raise Exception("upload failed")
 
@@ -335,13 +337,14 @@ def upload_to_emzed_store(pkg_folder, secret=""):
         for p in glob.glob("dist/*"):
             if os.path.isfile(p):
                 path = "/%s/%s" % (secret, os.path.basename(p))
-                try:
-                    client.upload_file(url, user, password, path, open(p))
-                except requests.HTTPError, e:
-                    print e.message
-                    print
-                    print "MAYBE USER %s IS UNKNOWN OR PASSWORD DOES NOT MATCH" % user
-                    break
+                with open(p, "rb") as fp:
+                    try:
+                        client.upload_file(url, user, password, path, fp)
+                    except requests.HTTPError, e:
+                        print e.message
+                        print
+                        print "MAYBE USER %s IS UNKNOWN OR PASSWORD DOES NOT MATCH" % user
+                        break
 
 
 def install_from_emzed_store(pkg_name, wanted_version=None):
