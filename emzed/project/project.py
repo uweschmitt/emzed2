@@ -27,7 +27,6 @@ def _run_setup_py_develop(p, flag):
         try:
             os.chdir(f)
             subprocess.call("python setup.py develop %s" % flag, shell=True)
-            print "ACTIVATED", p
         finally:
             os.chdir(old_dir)
     else:
@@ -37,7 +36,9 @@ def _run_setup_py_develop(p, flag):
 def deactivate(p):
     """ after calling deactivate the package p can not be imported any more """
     _run_setup_py_develop(p, "-u")
-
+    if p in sys.modules:
+        del sys.modules[p]
+        
 
 def activate(p):
     """ after calling activate the package p can be imported """
@@ -92,12 +93,20 @@ def init(name=None):
             if not complaint:
                 break
             showWarning(complaint)
+            
+    try:
+        mod = __import__(name)
+    except:
+        pass
+    else:
+        raise Exception("package with name %s already exists: %s" % (name, mod.__file__))
 
     folder = os.path.join(project_home, name)
     try:
         create_package_scaffold(folder, name)
     except Exception, e:
-        showWarning(str(e))
+        raise
+        #showWarning(str(e))
         return
 
     __builtins__["___activate_%s" % name] = lambda: start_work(name)
