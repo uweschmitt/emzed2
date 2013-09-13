@@ -27,5 +27,6 @@ setup(name="emzed",
           "emzed.core.r_connect": [ "*.txt"]
           },
       zip_safe=False,
+      install_requires = [ "emzed_optimizations"]
 
      )

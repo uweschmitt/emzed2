@@ -5,6 +5,13 @@ import copy
 from   collections import defaultdict
 import warnings
 
+OPTIMIZATIONS_INSTALLED=False
+try:
+    import emzed_optimizations
+    OPTIMIZATIONS_INSTALLED=True
+except:
+    pass
+
 def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=2)
 
@@ -55,7 +62,7 @@ class Spectrum(object):
         peaks = peaks[peaks[:,1]>0] # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:,0])
-        self.peaks = peaks[perm,:]
+        self.peaks = peaks[perm,:].astype(np.float32)
 
     @classmethod
     def fromMSSpectrum(clz, mspec):
@@ -286,6 +293,9 @@ class PeakMap(object):
 
         if msLevel is None:
             msLevel = min(self.getMsLevels())
+
+        if OPTIMIZATIONS_INSTALLED:
+            return emzed_optimizations.chromatogram(self, mzmin, mzmax, rtmin, rtmax, msLevel)
 
         specs = self.levelNSpecsInRange(msLevel, rtmin, rtmax)
 
