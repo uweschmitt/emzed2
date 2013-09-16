@@ -7,6 +7,10 @@ from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobB
 
 from inspectors import inspect, inspectPeakMap
 
+from ..core.explorers.table_explorer import inspect
+from ..core.explorers.peakmap_explorer import inspectPeakMap as inspectChromatograms
+from ..core.explorers.peakmap_explorer_2d import inspectPeakMap
+
 try:
     del inspectors
 except:
