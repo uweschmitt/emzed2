@@ -59,10 +59,8 @@ class PeakMapExplorer(QDialog):
 
     def updateChromatogram(self):
         min_, max_ = self.minMZ, self.maxMZ
-        cc =[np.sum(spec.peaks[(spec.peaks[:,0] >= min_)\
-                              *(spec.peaks[:,0] <= max_)][:, 1])\
-             for spec in self.peakmap.spectra]
-        self.chromatogram = np.array(cc)
+        self.rts, self.chromatogram = self.peakmap.chromatogram(min_, max_, msLevel=1)
+
 
     def connectSignalsAndSlots(self):
         self.connect(self.selectButton, SIGNAL("clicked()"), self.selectButtonPressed)
