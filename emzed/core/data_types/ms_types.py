@@ -2,18 +2,20 @@ import pyopenms
 import numpy as np
 import os.path
 import copy
-from   collections import defaultdict
+from collections import defaultdict
 import warnings
 
-OPTIMIZATIONS_INSTALLED=False
+OPTIMIZATIONS_INSTALLED = False
 try:
     import emzed_optimizations
-    OPTIMIZATIONS_INSTALLED=True
+    OPTIMIZATIONS_INSTALLED = True
 except:
     pass
 
+
 def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=2)
+
 
 class Spectrum(object):
 
@@ -59,20 +61,20 @@ class Spectrum(object):
         self.msLevel = msLevel
         self.precursors = precursors
         self.polarity = polarity
-        peaks = peaks[peaks[:,1]>0] # remove zero intensities
+        peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
-        perm = np.argsort(peaks[:,0])
-        self.peaks = peaks[perm,:].astype(np.float32)
+        perm = np.argsort(peaks[:, 0])
+        self.peaks = peaks[perm, :].astype(np.float32)
 
     @classmethod
     def fromMSSpectrum(clz, mspec):
         """creates Spectrum from pyopenms.MSSpectrum"""
         assert type(mspec) == pyopenms.MSSpectrum, type(mspec)
-        pcs = [ (p.getMZ(), p.getIntensity()) for p in mspec.getPrecursors()]
-        pol = { pyopenms.IonSource.Polarity.POLNULL: '0',
-                pyopenms.IonSource.Polarity.POSITIVE: '+',
-                pyopenms.IonSource.Polarity.NEGATIVE: '-'
-              }.get(mspec.getInstrumentSettings().getPolarity())
+        pcs = [(p.getMZ(), p.getIntensity()) for p in mspec.getPrecursors()]
+        pol = {pyopenms.IonSource.Polarity.POLNULL: '0',
+               pyopenms.IonSource.Polarity.POSITIVE: '+',
+               pyopenms.IonSource.Polarity.NEGATIVE: '-'
+               }.get(mspec.getInstrumentSettings().getPolarity())
         res = clz(mspec.get_peaks(), mspec.getRT(),
                   mspec.getMSLevel(), pol, pcs)
         return res
@@ -81,13 +83,12 @@ class Spectrum(object):
         """number of peaks in spectrum"""
         return self.peaks.shape[0]
 
-
     def __iter__(self):
         return iter(self.peaks)
 
     def intensityInRange(self, mzmin, mzmax):
         """summed up intensities in given m/z range"""
-        return self.peaksInRange(mzmin, mzmax)[:,1].sum()
+        return self.peaksInRange(mzmin, mzmax)[:, 1].sum()
 
     def peaksInRange(self, mzmin=None, mzmax=None):
         """peaks in given m/z range as n x 2 matrix
@@ -97,7 +98,7 @@ class Spectrum(object):
         """
         mzs = None
         if mzmin is not None or mzmax is not None:
-            mzs = self.peaks[:,0]
+            mzs = self.peaks[:, 0]
         if mzmin is None and mzmax is None:
             raise Exception("no limits provided. need mzmin or mzmax")
         if mzmin is not None:
@@ -121,18 +122,18 @@ class Spectrum(object):
         """minimal m/z value in spectrum"""
 
         if len(self.peaks):
-            return float(self.peaks[:,0].min())
+            return float(self.peaks[:, 0].min())
         return None
 
     def mzMax(self):
         """maximal m/z value in spectrum"""
         if len(self.peaks):
-            return float(self.peaks[:,0].max())
+            return float(self.peaks[:, 0].max())
         return None
 
     def maxIntensity(self):
         """maximal intensity in spectrum"""
-        return float(self.peak[:,1].max())
+        return float(self.peak[:, 1].max())
 
     def toMSSpectrum(self):
         """converts to pyopenms.MSSpectrum"""
@@ -140,9 +141,9 @@ class Spectrum(object):
         spec.setRT(self.rt)
         spec.setMSLevel(self.msLevel)
         ins = spec.getInstrumentSettings()
-        pol = { '0' : pyopenms.IonSource.Polarity.POLNULL,
-                '+' : pyopenms.IonSource.Polarity.POSITIVE,
-                '-' : pyopenms.IonSource.Polarity.NEGATIVE}[self.polarity]
+        pol = {'0': pyopenms.IonSource.Polarity.POLNULL,
+               '+': pyopenms.IonSource.Polarity.POSITIVE,
+               '-': pyopenms.IonSource.Polarity.NEGATIVE}[self.polarity]
         ins.setPolarity(pol)
         spec.setInstrumentSettings(ins)
         oms_pcs = []
@@ -155,6 +156,7 @@ class Spectrum(object):
         spec.set_peaks(self.peaks)
         return spec
 
+
 class PeakMap(object):
     """
         This is the container object for spectra of type :ref:Spectrum.
@@ -165,7 +167,6 @@ class PeakMap(object):
         meta data about its source.
     """
 
-
     def __init__(self, spectra, meta=dict()):
         """
             spectra : iterable (list, tuple, ...)  of objects of type
@@ -174,10 +175,9 @@ class PeakMap(object):
             meta    : dictionary of meta values
         """
         try:
-            self.spectra = sorted(spectra, key = lambda spec : spec.rt)
+            self.spectra = sorted(spectra, key=lambda spec: spec.rt)
         except:
             raise Exception("spectra param is not iterable")
-
 
         self.meta = meta
         polarities = set(spec.polarity for spec in spectra)
@@ -185,17 +185,20 @@ class PeakMap(object):
             print
             print "INCONSISTENT POLARITIES"
             for i, s in enumerate(spectra):
-                print "%7.2fm : %s" % (s.rt/60.0, s.polarity),
-                if i%5==4:
+                print "%7.2fm : %s" % (s.rt / 60.0, s.polarity),
+                if i % 5 == 4:
                     print
             print
-        elif len(polarities)==1:
+        elif len(polarities) == 1:
             self.polarity = polarities.pop()
         else:
             self.polarity = None
 
+    def all_peaks(self, msLevel=1):
+        return np.vstack((s.peaks for s in self.spectra if s.msLevel == msLevel))
+
     def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None,
-                      mslevelmin=None, mslevelmax=None):
+                mslevelmin=None, mslevelmax=None):
         """ returns restricted Peakmap with given limits.
         Parameters with *None* value are not considered.
 
@@ -218,9 +221,9 @@ class PeakMap(object):
             spectra = [s for s in spectra if s.msLevel <= mslevelmax]
 
         if rtmin:
-            spectra = [ s for s in spectra if rtmin <= s.rt ]
+            spectra = [s for s in spectra if rtmin <= s.rt]
         if rtmax:
-            spectra = [ s for s in spectra if rtmax >= s.rt ]
+            spectra = [s for s in spectra if rtmax >= s.rt]
 
         if mzmin is not None or mzmax is not None:
             for s in spectra:
@@ -235,10 +238,10 @@ class PeakMap(object):
         mzsum = wsum = 0
         for s in self.spectra:
             if rtmin <= s.rt <= rtmax:
-                ix = (mzmin <= s.peaks[:,0]) * (s.peaks[:,0] <= mzmax)
-                weights = np.log(s.peaks[ix,1] + 1.0)
+                ix = (mzmin <= s.peaks[:, 0]) * (s.peaks[:, 0] <= mzmax)
+                weights = np.log(s.peaks[ix, 1] + 1.0)
                 wsum += np.sum(weights)
-                mzsum += np.sum(s.peaks[ix,0]*weights)
+                mzsum += np.sum(s.peaks[ix, 0] * weights)
         if wsum > 0.0:
             return mzsum / wsum
         else:
@@ -272,9 +275,9 @@ class PeakMap(object):
         # rt values can be truncated/rounded from gui or other sources,
         # so wie dither the limits a bit, spaces in realistic rt values
         # are much higher thae 1e-2 seconds
-        return [spec for spec in self.spectra if rtmin-1e-2 <= spec.rt \
-                                                            <= rtmax+1e-2
-                                             and spec.msLevel == n]
+        return [spec for spec in self.spectra if rtmin - 1e-2 <= spec.rt
+                <= rtmax + 1e-2
+                and spec.msLevel == n]
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """
@@ -318,9 +321,9 @@ class PeakMap(object):
         # following vstack does not like empty sequence, so:
         if len(specs):
             peaks = np.vstack([s.peaks for s in specs])
-            perm = np.argsort(peaks[:,0])
-            return peaks[perm,:]
-        return np.zeros((0,2), dtype=float)
+            perm = np.argsort(peaks[:, 0])
+            return peaks[perm, :]
+        return np.zeros((0, 2), dtype=float)
 
     def allRts(self):
         """returns all rt values in peakmap"""
@@ -361,7 +364,7 @@ class PeakMap(object):
     def fromMSExperiment(clz, mse):
         """creates Spectrum from pyopenms.MSExperiment"""
         assert type(mse) == pyopenms.MSExperiment
-        specs = [ Spectrum.fromMSSpectrum(mse[i]) for i in range(mse.size()) ]
+        specs = [Spectrum.fromMSSpectrum(mse[i]) for i in range(mse.size())]
         meta = dict()
         meta["full_source"] = mse.getLoadedFilePath()
         meta["source"] = os.path.basename(meta.get("full_source"))
@@ -385,7 +388,7 @@ class PeakMap(object):
             add_(spec.toMSSpectrum())
 
         exp.updateRanges()
-        exp.setLoadedFilePath(self.meta.get("source",""))
+        exp.setLoadedFilePath(self.meta.get("source", ""))
         return exp
 
     def splitLevelN(self, msLevel, significant_digits_precursor=2):
@@ -395,11 +398,11 @@ class PeakMap(object):
         """
         ms2_spectra = defaultdict(list)
         for spectrum in self.spectra:
-            if spectrum.msLevel==msLevel:
+            if spectrum.msLevel == msLevel:
                 spectrum = copy.copy(spectrum)
                 key = round(spectrum.precursors[0][0],
                             significant_digits_precursor)
                 ms2_spectra[key].append(spectrum)
 
-        return [(key, PeakMap(values, meta=self.meta.copy())) \
-                        for (key, values) in ms2_spectra.items()]
+        return [(key, PeakMap(values, meta=self.meta.copy()))
+                for (key, values) in ms2_spectra.items()]
