@@ -4,7 +4,7 @@ import os
 import types
 import numpy as np
 
-from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox)
+from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox, QApplication)
 from PyQt4.QtCore import Qt, SIGNAL, QRectF, QPointF
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
@@ -12,7 +12,7 @@ import guidata
 
 from guiqwt.builder import make
 from guiqwt.config import CONF
-from guiqwt.events import KeyEventMatch, setup_standard_tool_filter, QtDragHandler
+from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler)
 from guiqwt.image import RawImageItem, ImagePlot
 from guiqwt.label import ObjectInfo
 from guiqwt.plot import ImageWidget, CurveWidget
@@ -144,15 +144,18 @@ class CursorRangeInfo(ObjectInfo):
         rtmin, mzmin, rtmax, mzmax = self.marker.get_rect()
         if not np.isnan(rtmax):
             rtmin, rtmax = sorted((rtmin, rtmax))
-            rtmax /= 60.0
         if not np.isnan(mzmax):
             mzmin, mzmax = sorted((mzmin, mzmax))
-        rtmin /= 60.0
         if not np.isnan(rtmax):
-            return """<pre>mz: %9.5f ..  %9.5f<br>rt: %6.2fm   ..  %6.2fm</pre>""" % (mzmin, mzmax,
-                                                                                      rtmin, rtmax)
+            delta_mz = mzmax - mzmin
+            delta_rt = rtmax - rtmin
+            line0 = "mz: %10.5f ..  %10.5f (delta=%5.5f)" % (mzmin, mzmax, delta_mz)
+            line1 = "rt:  %6.2fm   ..   %6.2fm   (delta=%.1fs)" % (rtmin / 60.0,
+                                                                   rtmax / 60.0,
+                                                                   delta_rt)
+            return "<pre>%s</pre>" % "<br>".join((line0, line1))
         else:
-            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin)
+            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin/60.0)
 
 
 class PeakmapZoomTool(InteractiveTool):
@@ -168,18 +171,37 @@ class PeakmapZoomTool(InteractiveTool):
         # Initialisation du filtre
 
         start_state = filter.new_state()
-        handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
 
         filter.add_event(start_state,
                          KeyEventMatch((Qt.Key_Backspace,)),
                          baseplot.do_backspace_pressed, start_state)
 
+        handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
         self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
         self.connect(handler, SIG_START_TRACKING, baseplot.start_drag_mode)
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
         self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
 
-        return setup_standard_tool_filter(filter, start_state)
+        handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state, mods=Qt.ShiftModifier)
+        self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
+        self.connect(handler, SIG_START_TRACKING, baseplot.start_drag_mode)
+        self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
+        self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
+
+        # Bouton du milieu
+        PanHandler(filter, Qt.MidButton, start_state=start_state)
+        #AutoZoomHandler(filter, Qt.MidButton, start_state=start_state)
+
+        # Bouton droit
+        ZoomHandler(filter, Qt.RightButton, start_state=start_state)
+        #MenuHandler(filter, Qt.RightButton, start_state=start_state)
+
+        # Autres (touches, move)
+        MoveHandler(filter, start_state=start_state)
+        MoveHandler(filter, start_state=start_state, mods=Qt.ShiftModifier)
+        MoveHandler(filter, start_state=start_state, mods=Qt.AltModifier)
+
+        return start_state
 
 
 class ModifiedImagePlot(ImagePlot):
@@ -228,6 +250,16 @@ class ModifiedImagePlot(ImagePlot):
         return items.pop()
 
     @protect_signal_handler
+    def do_move_marker(self, event):
+        pos = event.pos()
+        self.set_marker_axes()
+        self.cross_marker.setZ(self.get_max_z()+1)
+        self.cross_marker.setVisible(True)
+        self.curve_marker.setVisible(False)
+        self.cross_marker.move_local_point_to(0, pos)
+        self.replot()
+
+    @protect_signal_handler
     def start_drag_mode(self, filter_, evt):
         self.start_at = self.get_coords(evt)
         self.moved = False
@@ -253,13 +285,14 @@ class ModifiedImagePlot(ImagePlot):
         marker = self.get_unique_item(RectangleShape)
         marker.setVisible(0)
 
-        self.rect_label.setVisible(1)
+        self.rect_label.setVisible(0)
 
         # passing None here arives as np.nan if you call get_rect later, so we use
         # np.nan here:
         marker.set_rect(stop_at[0], stop_at[1], np.nan, np.nan)
+        with_shift_key = evt.modifiers() == Qt.ShiftModifier
 
-        if self.moved:
+        if self.moved and not with_shift_key:
             rtmin, rtmax = self.start_at[0], stop_at[0]
             # be sure that rtmin <= rtmax:
             rtmin, rtmax = min(rtmin, rtmax), max(rtmin, rtmax)
