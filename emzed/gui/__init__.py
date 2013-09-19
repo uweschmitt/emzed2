@@ -5,11 +5,7 @@ from file_dialogs import (askForDirectory, askForSave, askForSingleFile, askForM
 from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobButton,
                             WorkflowFrontend)
 
-from inspectors import inspect, inspectPeakMap
-
-from ..core.explorers.table_explorer import inspect
-from ..core.explorers.peakmap_explorer import inspectPeakMap as inspectChromatograms
-from ..core.explorers.peakmap_explorer_2d import inspectPeakMap
+from ..core.explorers import inspect, inspectPeakMap, inspectChromatograms
 
 try:
     del inspectors
