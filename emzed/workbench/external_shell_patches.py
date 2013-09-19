@@ -157,17 +157,17 @@ def patch_oedit():
     # modified signature of patched method: added keeper arg, as this is
     # a module global variable in objecteditor.py:
 
-    @replace(objecteditor.oedit, verbose=True) 
+    @replace(objecteditor.oedit, verbose=True)
     def oedit(obj, modal=True, namespace=None, keeper=objecteditor.DialogKeeper()):
         """
         Edit the object 'obj' in a GUI-based editor and return the edited copy
         (if Cancel is pressed, return None)
 
         The object 'obj' is a container
-        
+
         Supported container types:
         dict, list, tuple, str/unicode or numpy.array
-        
+
         (instantiate a new QApplication if necessary,
         so it can be called directly from the interpreter)
         """
@@ -177,7 +177,7 @@ def patch_oedit():
                                                        Image, is_known_type)
         from spyderlib.widgets.dicteditor import DictEditor
         from spyderlib.widgets.arrayeditor import ArrayEditor
-        
+
         from spyderlib.utils.qthelpers import qapplication
         app = qapplication()
 
@@ -186,7 +186,7 @@ def patch_oedit():
         from emzed.core.explorers  import PeakMapExplorer, TableExplorer
         # ENDMODIFICATION EMZED
 
-        
+
         if modal:
             obj_name = ''
         else:
@@ -233,10 +233,10 @@ def patch_oedit():
         else:
             dialog = DictEditor()
             dialog.setup(obj, title=obj_name, readonly=readonly)
-        
+
         def end_func(dialog):
             return conv_func(dialog.get_value())
-        
+
         if modal:
             if dialog.exec_():
                 return end_func(dialog)
