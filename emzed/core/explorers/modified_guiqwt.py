@@ -3,13 +3,17 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
 from guiqwt.events import ObjectHandler, KeyEventMatch, setup_standard_tool_filter, QtDragHandler
-from guiqwt.signals import *
+from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING,
+                            SIG_RANGE_CHANGED)
+
+
 from guiqwt.tools import InteractiveTool
 
 from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
 import numpy as np
 
 from helpers import protect_signal_handler
+
 
 class ModifiedCurveItem(CurveItem):
     """ modification(s):
@@ -28,7 +32,6 @@ class RtSelectionTool(InteractiveTool):
     TITLE = "Rt Selection"
     ICON = "selection.png"
     CURSOR = Qt.ArrowCursor
-
 
     def setup_filter(self, baseplot):
         filter = baseplot.filter
@@ -57,37 +60,37 @@ class RtSelectionTool(InteractiveTool):
                          baseplot.do_left_pressed, start_state)
 
         filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_Backspace,)),
+                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
                          baseplot.do_backspace_pressed, start_state)
 
         return setup_standard_tool_filter(filter, start_state)
 
 
 class MzSelectionTool(InteractiveTool):
-     """
-        modified event handling:
-            - space and backspac keys trigger handlers in baseplot
-            - calling handlers for dragging with mouse
-     """
+    """
+       modified event handling:
+           - space and backspac keys trigger handlers in baseplot
+           - calling handlers for dragging with mouse
+    """
 
-     TITLE = "mZ Selection"
-     ICON = "selection.png"
-     CURSOR = Qt.CrossCursor
+    TITLE = "mZ Selection"
+    ICON = "selection.png"
+    CURSOR = Qt.CrossCursor
 
-     def setup_filter(self, baseplot):
+    def setup_filter(self, baseplot):
         filter = baseplot.filter
         # Initialisation du filtre
         start_state = filter.new_state()
         # Bouton gauche :
 
-        #start_state = filter.new_state()
+        # start_state = filter.new_state()
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
 
         filter.add_event(start_state,
                          KeyEventMatch((Qt.Key_Space,)),
                          baseplot.do_space_pressed, start_state)
         filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_Backspace,)),
+                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
                          baseplot.do_backspace_pressed, start_state)
 
         filter.add_event(start_state,
@@ -99,7 +102,7 @@ class MzSelectionTool(InteractiveTool):
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
         self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
 
-        #self.connect(handler, SIGNAL("doubleClicked()"), baseplot.do_c_pressed)
+        # self.connect(handler, SIGNAL("doubleClicked()"), baseplot.do_c_pressed)
         return setup_standard_tool_filter(filter, start_state)
 
 
@@ -122,7 +125,6 @@ class ModifiedCurvePlot(CurvePlot):
         dy = dy[2], dy[2], dy[2], dy[3]
         return super(ModifiedCurvePlot, self).do_pan_view(dx, dy)
 
-
     @protect_signal_handler
     def do_backspace_pressed(self, filter, evt):
         """ reset axes of plot """
@@ -141,7 +143,6 @@ class ModifiedCurvePlot(CurvePlot):
             raise Exception("%d instance(s) of %s among CurvePlots items !" % (len(items), clz))
         return items.pop()
 
-
     def set_limit(self, ix, value):
         limits = list(self.get_plot_limits())
         limits[ix] = value
@@ -155,32 +156,32 @@ class ModifiedCurvePlot(CurvePlot):
                 xvals.extend(list(x))
         if xmin is None:
             if len(xvals):
-                xmin = min(xvals)/fac
+                xmin = min(xvals) / fac
             else:
                 xmin = 0
         if xmax is None:
             if len(xvals):
-                xmax = max(xvals)*fac
+                xmax = max(xvals) * fac
             else:
                 xmax = 1.0
         self.update_plot_xlimits(xmin, xmax)
 
     def reset_y_limits(self, ymin=None, ymax=None, fac=1.2):
         yvals = []
-        #xmin, xmax, _, _ = self.get_plot_limits()
+        # xmin, xmax, _, _ = self.get_plot_limits()
 
         for item in self.items:
             if isinstance(item, CurveItem):
                 x, y = item.get_data()
                 yvals.extend(y)
         if ymin is None:
-            if len(yvals)>0:
-                ymin = min(yvals)/fac
+            if len(yvals) > 0:
+                ymin = min(yvals) / fac
             else:
                 ymin = 0
         if ymax is None:
-            if len(yvals)>0:
-                ymax = max(yvals)*fac
+            if len(yvals) > 0:
+                ymax = max(yvals) * fac
             else:
                 ymax = 1.0
         self.update_plot_ylimits(ymin, ymax)
@@ -188,7 +189,7 @@ class ModifiedCurvePlot(CurvePlot):
     def update_plot_xlimits(self, xmin, xmax):
         _, _, ymin, ymax = self.get_plot_limits()
         self.set_plot_limits(xmin, xmax, ymin, ymax)
-        self.setAxisAutoScale(self.yLeft) # y-achse
+        self.setAxisAutoScale(self.yLeft)  # y-achse
         self.updateAxes()
         self.replot()
 
@@ -273,12 +274,13 @@ class RtPlot(ModifiedCurvePlot):
         """ callback for marker: determine marked point based on cursors coordinates """
         marker = self.get_unique_item(Marker)
         rts = np.array(marker.rts)
-        if len(rts)==0:
+        if len(rts) == 0:
             return x, y
-        distances = np.abs(x-rts)
+        distances = np.abs(x - rts)
         imin = np.argmin(distances)
         self.current_peak = rts[imin], 0
         return self.current_peak
+
 
 class MzPlot(ModifiedCurvePlot):
 
@@ -300,16 +302,16 @@ class MzPlot(ModifiedCurvePlot):
 
     def next_peak_to(self, mz, I):
 
-        if self.all_peaks.shape[0] == 0: 
-            return mz,I
+        if self.all_peaks.shape[0] == 0:
+            return mz, I
 
-        all_peaks = self.all_peaks-np.array((mz,I))
+        all_peaks = self.all_peaks - np.array((mz, I))
 
         # scale according to zooms axis proportions:
         mzmin, mzmax, Imin, Imax = self.get_plot_limits()
-        all_peaks /= np.array((mzmax-mzmin, Imax-Imin))
+        all_peaks /= np.array((mzmax - mzmin, Imax - Imin))
         # find minimal distacne
-        distances = all_peaks[:,0] ** 2 + all_peaks[:,1]** 2
+        distances = all_peaks[:, 0] ** 2 + all_peaks[:, 1] ** 2
         imin = np.argmin(distances)
         return self.all_peaks[imin]
 
@@ -331,8 +333,8 @@ class MzPlot(ModifiedCurvePlot):
         else:
             mz = self.centralMz
 
-        self.update_plot_xlimits(mz-self.halfWindowWidth,\
-                                 mz+self.halfWindowWidth)
+        self.update_plot_xlimits(mz - self.halfWindowWidth,
+                                 mz + self.halfWindowWidth)
 
     def set_half_window_width(self, w2):
         self.halfWindowWidth = w2
@@ -372,8 +374,6 @@ class MzPlot(ModifiedCurvePlot):
         line = self.get_unique_item(SegmentShape)
         line.setVisible(0)
         self.replot()
-
-
 
 
 class ModifiedSegment(SegmentShape):
@@ -452,13 +452,13 @@ class SnappingRangeSelection(XRangeSelection):
 
     def move_point_to(self, hnd, pos, ctrl=True, emitsignal=True):
         xvals = self.get_xvals()
-        x,y = pos
+        x, y = pos
 
         # modify pos to the next x-value
         # fast enough
         if len(xvals) > 0:
             val, y = pos
-            imin = np.argmin(np.fabs(val-xvals))
+            imin = np.argmin(np.fabs(val - xvals))
             x = xvals[imin]
 
         if self._min == self._max and not ctrl:
@@ -468,9 +468,9 @@ class SnappingRangeSelection(XRangeSelection):
             if hnd == 0:
                 self._min = x
             elif hnd == 1:
-                self._max =  x
+                self._max = x
             elif hnd == 2:
-                move = val-(self._max+self._min)/2
+                move = val - (self._max + self._min) / 2
                 self._min += move
                 self._max += move
 
@@ -481,10 +481,12 @@ class SnappingRangeSelection(XRangeSelection):
         """ used for moving boundaries """
 
         xvals = self.get_xvals()
-        imin = np.argmin(np.fabs(x-xvals))
-        if imin == 0: return xvals[0], xvals[1]
-        if imin == len(xvals)-1 : return xvals[imin-1], xvals[imin]
-        return xvals[imin-1], xvals[imin+1]
+        imin = np.argmin(np.fabs(x - xvals))
+        if imin == 0:
+            return xvals[0], xvals[1]
+        if imin == len(xvals) - 1:
+            return xvals[imin - 1], xvals[imin]
+        return xvals[imin - 1], xvals[imin + 1]
 
     def move_shape(self, old_pos, new_pos):
         # disabled, that is: do nothing !

@@ -67,6 +67,10 @@ class TableExplorer(QDialog):
 
         self.setupViewForTable(0)
 
+    def keyPressEvent(self, e):
+        if e.key() != Qt.Key_Escape:
+            super(TableExplorer, self).keyPressEvent(e)
+
     def setupWidgets(self):
         self.setupMenuBar()
         self.setupTableViews()

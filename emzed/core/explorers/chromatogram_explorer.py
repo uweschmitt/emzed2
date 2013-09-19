@@ -37,6 +37,10 @@ class ChromatogramExplorer(QDialog):
         self.plotChromatogramm()
         self.plotMz()
 
+    def keyPressEvent(self, e):
+        if e.key() != Qt.Key_Escape:
+            super(ChromatogramExplorer, self).keyPressEvent(e)
+
     def processPeakmap(self, pm):
         levels = pm.getMsLevels()
         if len(levels) == 1 and levels[0] > 1:

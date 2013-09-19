@@ -173,7 +173,7 @@ class PeakmapZoomTool(InteractiveTool):
         start_state = filter.new_state()
 
         filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_Backspace,)),
+                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
                          baseplot.do_backspace_pressed, start_state)
 
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
@@ -232,6 +232,7 @@ class ModifiedImagePlot(ImagePlot):
         # we receiver won't see the new bounds (don't know why?)
         self.replot()
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
+        evt.accept()
 
     def get_coords(self, evt):
         return self.invTransform(self.xBottom, evt.x()), self.invTransform(self.yLeft, evt.y())
@@ -419,9 +420,13 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
+
+
+
 def create_image_widget(rtmin, rtmax, mzmin, mzmax):
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False)
+
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
     widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax)
@@ -523,6 +528,10 @@ class PeakMapExplorer(QDialog):
         self.gamma_min = 0.05
         self.gamma_max = 2.0
         self.gamma_start = 1.0
+
+    def keyPressEvent(self, e):
+        if e.key() != Qt.Key_Escape:
+            super(PeakMapExplorer, self).keyPressEvent(e)
 
     def setup(self, peakmap):
         self.process_peakmap(peakmap)
