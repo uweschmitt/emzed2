@@ -651,7 +651,7 @@ class PeakMapExplorer(QDialog):
         self.log_check_box.setCheckState(1)
         self.log_check_box.setTristate(0)
 
-        self.gamma_label = QLabel("Gamma Value:")
+        self.gamma_label = QLabel("Contrast Value:")
         self.gamma_slider = QSlider(Qt.Horizontal)
         self.gamma_slider.setMinimum(0)
         self.gamma_slider.setMaximum(50)
