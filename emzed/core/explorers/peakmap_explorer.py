@@ -13,10 +13,11 @@ import guidata
 
 from guiqwt.builder import make
 from guiqwt.config import CONF
-from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler)
+from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler,
+                        setup_standard_tool_filter)
 from guiqwt.image import RawImageItem, ImagePlot
 from guiqwt.label import ObjectInfo
-from guiqwt.plot import ImageWidget, CurveWidget
+from guiqwt.plot import ImageWidget, CurveWidget, CurvePlot
 from guiqwt.shapes import RectangleShape
 from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING,
                             SIG_PLOT_AXIS_CHANGED, )
@@ -138,7 +139,7 @@ class PeakMapImageItem(RawImageItem):
         RawImageItem.draw_image(self, painter, canvasRect, srcRect, (x1, y1, x2, y2), xMap, yMap)
 
 
-class CursorRangeInfo(ObjectInfo):
+class PeakmapCursorRangeInfo(ObjectInfo):
 
     def __init__(self, marker):
         ObjectInfo.__init__(self)
@@ -161,6 +162,30 @@ class CursorRangeInfo(ObjectInfo):
         else:
             return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin / 60.0)
 
+
+class RtCursorInfo(ObjectInfo):
+
+    def __init__(self):
+        ObjectInfo.__init__(self)
+        self.rt = None
+
+    def set_rt(self, rt):
+        self.rt = rt
+
+    def get_text(self):
+        if self.rt is None:
+            return ""
+        return "<pre>rt: %.1f sec<br>  = %.2fm</pre>" % (self.rt, self.rt / 60.0)
+
+
+class RtMovementTool(InteractiveTool):
+
+    TITLE = "Selection"
+    ICON = "selection.png"
+    CURSOR = Qt.CrossCursor
+    def setup_filter(self, baseplot):
+        start_state = baseplot.filter.new_state()
+        return setup_standard_tool_filter(baseplot.filter, start_state)
 
 class PeakmapZoomTool(InteractiveTool):
 
@@ -189,7 +214,7 @@ class PeakmapZoomTool(InteractiveTool):
                          baseplot.go_to_beginning_of_history, start_state)
 
         filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape, Qt.Key_End)),
+                         KeyEventMatch((Qt.Key_End,)),
                          baseplot.go_to_end_of_history, start_state)
 
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
@@ -261,6 +286,43 @@ class History(object):
             self.position = position
             return self.items[self.position]
         return None
+
+
+class ChromatogramPlot(CurvePlot):
+
+    def label_info(self, x, y):
+        return "label_info"
+
+    def on_plot(self, x, y):
+        return (x, y)
+
+    @protect_signal_handler
+    def do_move_marker(self, event):
+        pos = event.pos()
+        self.set_marker_axes()
+        self.cross_marker.setZ(self.get_max_z() + 1)
+        self.cross_marker.setVisible(True)
+        self.cross_marker.move_local_point_to(0, pos)
+        self.replot()
+
+    def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
+        """ disables zoom """
+        pass
+
+    def do_pan_view(self, dx, dy):
+        """ disables panning """
+        pass
+
+    def plot_chromatogram(self, rts, chroma):
+        self.del_all_items()
+        curve = make.curve(rts, chroma, linewidth=1.5, color="#666666")
+        self.add_item(curve)
+        self.add_item(self.rt_label)
+        rtmin = min(rts)
+        rtmax = max(rts)
+        self.set_plot_limits(rtmin, rtmax, 0, max(chroma) if len(chroma) else 1.0)
+        self.updateAxes()
+        self.replot()
 
 
 class ModifiedImagePlot(ImagePlot):
@@ -530,14 +592,61 @@ def create_image_widget():  # rtmin, rtmax, mzmin, mzmax):
     return widget
 
 
-def create_labels(plot):
+def create_chromatogram_widget():
+    widget = CurveWidget()
+    t = widget.add_tool(SelectTool)
+    widget.set_default_tool(t)
+    t.activate()
+    #t = widget.add_tool(RtMovementTool)
+
+    plot = widget.plot
+    plot.__class__ = ChromatogramPlot
+
+    plot.set_antialiasing(True)
+    plot.cross_marker.setZ(plot.get_max_z() + 1)
+    plot.cross_marker.setVisible(True)
+    plot.canvas_pointer = True  # x-cross marker on
+
+    cursor_info = RtCursorInfo()
+    label = make.info_label("TL", [cursor_info], title="None")
+    label.labelparam.label = ""
+    label.setVisible(1)
+    plot.rt_label = label
+
+    # we hack label_cb for updating legend:
+    def label_cb(rt, mz):
+        # passing None here arives as np.nan if you call get_rect later, so we use
+        # np.nan here:
+        cursor_info.set_rt(rt)
+        return ""
+    cross_marker = plot.cross_marker
+    cross_marker.label_cb = label_cb
+    params = {
+        "marker/cross/line/color": "#cccccc",
+        "marker/cross/line/width": 1.5,
+        "marker/cross/line/alpha": 0.4,
+        "marker/cross/markerstyle": "VLine",
+        "marker/cross/symbol/marker": "NoSymbol",
+    }
+    CONF.update_defaults(dict(plot=params))
+    cross_marker.markerparam.read_config(CONF, "plot", "marker/cross")
+    cross_marker.markerparam.update_marker(cross_marker)
+
+
+    return widget
+
+
+def create_peakmap_labels(plot):
     rect_marker = RectangleShape()
-    rect_label = make.info_label("TR", [CursorRangeInfo(rect_marker)], title=None)
+    rect_label = make.info_label("TR", [PeakmapCursorRangeInfo(rect_marker)], title=None)
     rect_label.labelparam.label = ""
+    rect_label.setVisible(1)
+    plot.rect_label = rect_label
+    plot.add_item(rect_label)
 
     params = {
         "shape/drag/symbol/size": 0,
-        "shape/drag/line/color": "#e0e0e0",
+        "shape/drag/line/color": "#cccccc",
         "shape/drag/line/width": 1.5,
         "shape/drag/line/alpha": 0.4,
         "shape/drag/line/style": "SolidLine",
@@ -546,14 +655,9 @@ def create_labels(plot):
     CONF.update_defaults(dict(plot=params))
     rect_marker.shapeparam.read_config(CONF, "plot", "shape/drag")
     rect_marker.shapeparam.update_shape(rect_marker)
-
     rect_marker.setVisible(0)
-    rect_label.setVisible(1)
-    plot.rect_label = rect_label
-
-    plot.add_item(rect_marker)
-    plot.add_item(rect_label)
     rect_marker.set_rect(0, 0, np.nan, np.nan)
+    plot.add_item(rect_marker)
 
     plot.canvas_pointer = True  # x-cross marker on
     # we hack label_cb for updating legend:
@@ -568,8 +672,10 @@ def create_labels(plot):
     cross_marker.label_cb = label_cb
     params = {
         "marker/cross/line/color": "#cccccc",
-        "shape/drag/line/width": 1.5,
+        "marker/cross/line/width": 1.5,
         "marker/cross/line/alpha": 0.4,
+        "marker/cross/symbol/marker": "NoSymbol",
+        "marker/cross/markerstyle": "Cross",
     }
     CONF.update_defaults(dict(plot=params))
     cross_marker.markerparam.read_config(CONF, "plot", "marker/cross")
@@ -599,7 +705,7 @@ class PeakMapPlotter(object):
         t = self.widget.add_tool(PeakmapZoomTool)
         t.activate()
 
-        create_labels(self.widget.plot)
+        create_peakmap_labels(self.widget.plot)
 
     def replot(self):
         self.widget.plot.replot()
@@ -677,8 +783,8 @@ class PeakMapExplorer(QDialog):
     def setup_plot_widgets(self):
         self.peakmap_plotter = PeakMapPlotter(self.peakmap)
 
-        self.chromatogram_widget = CurveWidget()
-        self.chromatogram_widget.plot.set_antialiasing(True)
+        self.chromatogram_widget = create_chromatogram_widget()
+
         set_x_axis_scale_draw(self.chromatogram_widget)
         set_y_axis_scale_draw(self.chromatogram_widget)
 
@@ -761,21 +867,17 @@ class PeakMapExplorer(QDialog):
             rtmin, rtmax = self.peakmap.rtRange()
             mzmin, mzmax = self.peakmap.mzRange()
 
-        rts, chromo = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+        rts, chroma = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
 
         p = self.chromatogram_widget.plot
-        p.del_all_items()
-        curve = make.curve(rts, chromo, linewidth=1.5, color="#666666")
-        p.add_item(curve)
-        p.set_plot_limits(rtmin, rtmax, 0, max(chromo) if len(chromo) else 1.0)
-        p.updateAxes()
-        p.replot()
+        p.plot_chromatogram(rts, chroma)
 
         peaks = self.peakmap.extract(rtmin, rtmax, mzmin, mzmax).all_peaks(msLevel=1)
         self.mz_plotter.plot_peaks(peaks)
-        self.mz_plotter.replot()
         self.mz_plotter.widget.plot.reset_x_limits()
         self.mz_plotter.widget.plot.reset_y_limits()
+        self.mz_plotter.updateAxes()
+        self.mz_plotter.replot()
 
     @protect_signal_handler
     def log_changed(self, is_log):

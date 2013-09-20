@@ -227,7 +227,7 @@ class MzCursorInfo(ObjectInfo):
             mean = (mz + mz2) / 2.0
             txt += "<br/><br/>dmz=%.6f<br/>rI=%.3e<br/>mean=%.6f" % (mz2 - mz, I2 / I, mean)
 
-        return txt
+        return "<pre>%s</pre>" % txt
 
 
 class MzPlotter(PlotterBase):
