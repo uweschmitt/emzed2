@@ -4,7 +4,8 @@ import os
 import types
 import numpy as np
 
-from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox, QApplication)
+from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
+                         QComboBox)
 from PyQt4.QtCore import Qt, SIGNAL, QRectF, QPointF
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
@@ -26,6 +27,9 @@ from emzed_optimizations.sample import sample_image
 from plotting_widgets import MzPlotter
 
 from helpers import protect_signal_handler
+
+
+SIG_HISTORY_CHANGED = SIGNAL('plot_history_changed(PyQt_PyObject)')
 
 
 def set_x_axis_scale_draw(widget):
@@ -184,6 +188,10 @@ class PeakmapZoomTool(InteractiveTool):
                          KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape, Qt.Key_Home)),
                          baseplot.go_to_beginning_of_history, start_state)
 
+        filter.add_event(start_state,
+                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape, Qt.Key_End)),
+                         baseplot.go_to_end_of_history, start_state)
+
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
         self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
         self.connect(handler, SIG_START_TRACKING, baseplot.start_drag_mode)
@@ -213,6 +221,48 @@ class PeakmapZoomTool(InteractiveTool):
         return start_state
 
 
+class History(object):
+
+    def __init__(self):
+        self.position = -1
+        self.items = []
+
+    def new_head(self, item):
+        del self.items[self.position + 1:]
+        self.items.append(item)
+        self.position += 1
+
+    def go_back(self):
+        if self.position > 0:
+            self.position -= 1
+            return self.items[self.position]
+        return None
+
+    def go_forward(self):
+        if self.position < len(self.items) - 1:
+            self.position += 1
+            return self.items[self.position]
+        return None
+
+    def skip_to_beginning(self):
+        if self.position > 0:
+            self.position = 0
+            return self.items[self.position]
+        return None
+
+    def skip_to_end(self):
+        if self.position < len(self.items) - 1:
+            self.position = len(self.items) - 1
+            return self.items[self.position]
+        return None
+
+    def set_position(self, position):
+        if 0 <= position < len(self.items) and position != self.position:
+            self.position = position
+            return self.items[self.position]
+        return None
+
+
 class ModifiedImagePlot(ImagePlot):
 
     """ special handlers for dragging selection, source is PeakmapZoomTool """
@@ -223,8 +273,7 @@ class ModifiedImagePlot(ImagePlot):
     rtmin = rtmax = mzmin = mzmax = None
     coords = (None, None)
 
-    history = []  # zooming history
-    history_pos = -1
+    history = History()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin
@@ -235,36 +284,57 @@ class ModifiedImagePlot(ImagePlot):
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
 
         if add_to_history:
-            del self.history[self.history_pos + 1:]
-            self.history.append((rtmin, rtmax, mzmin, mzmax))
-            self.history_pos += 1
+            self.history.new_head((rtmin, rtmax, mzmin, mzmax))
+            self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
     def go_back_in_history(self, filter_, evt):
-        if self.history_pos > 0:
-            self.history_pos -= 1
-            rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
+        item = self.history.go_back()
+        if item is not None:
+            rtmin, rtmax, mzmin, mzmax = item
             self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
             self.replot()
             self.emit(SIG_PLOT_AXIS_CHANGED, self)
+            self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
     def go_forward_in_history(self, filter_, evt):
-        if self.history_pos < len(self.history) - 1:
-            self.history_pos += 1
-            rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
+        item = self.history.go_forward()
+        if item is not None:
+            rtmin, rtmax, mzmin, mzmax = item
             self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
             self.replot()
             self.emit(SIG_PLOT_AXIS_CHANGED, self)
+            self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
     def go_to_beginning_of_history(self, filter_, evt):
         """ resets zoom """
-        self.history_pos = 0
-        rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
-        self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
-        self.replot()
-        self.emit(SIG_PLOT_AXIS_CHANGED, self)
+        item = self.history.skip_to_beginning()
+        if item is not None:
+            rtmin, rtmax, mzmin, mzmax = item
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            self.replot()
+            self.emit(SIG_PLOT_AXIS_CHANGED, self)
+            self.emit(SIG_HISTORY_CHANGED, self.history)
+
+    @protect_signal_handler
+    def go_to_end_of_history(self, filter_, evt):
+        item = self.history.skip_to_end()
+        if item is not None:
+            rtmin, rtmax, mzmin, mzmax = item
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            self.replot()
+            self.emit(SIG_PLOT_AXIS_CHANGED, self)
+            self.emit(SIG_HISTORY_CHANGED, self.history)
+
+    def set_history_position(self, idx):
+        item = self.history.set_position(idx)
+        if item is not None:
+            rtmin, rtmax, mzmin, mzmax = item
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            self.replot()
+            self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
     def get_coords(self, evt):
         return self.invTransform(self.xBottom, evt.x()), self.invTransform(self.yLeft, evt.y())
@@ -288,7 +358,6 @@ class ModifiedImagePlot(ImagePlot):
         self.set_marker_axes()
         self.cross_marker.setZ(self.get_max_z() + 1)
         self.cross_marker.setVisible(True)
-        self.curve_marker.setVisible(False)
         self.cross_marker.move_local_point_to(0, pos)
         self.replot()
 
@@ -304,25 +373,23 @@ class ModifiedImagePlot(ImagePlot):
     @protect_signal_handler
     def move_in_drag_mode(self, filter_, evt):
         now = self.get_coords(evt)
-        marker = self.get_unique_item(RectangleShape)
-        marker.setVisible(1)
+        rect_marker = self.get_unique_item(RectangleShape)
+        rect_marker.setVisible(1)
         now_rt = max(self.rtmin, min(now[0], self.rtmax))
         now_mz = max(self.mzmin, min(now[1], self.mzmax))
-        marker.set_rect(self.start_at[0], self.start_at[1], now_rt, now_mz)
+        rect_marker.set_rect(self.start_at[0], self.start_at[1], now_rt, now_mz)
         self.moved = True
         self.replot()
 
     @protect_signal_handler
     def stop_drag_mode(self, filter_, evt):
         stop_at = self.get_coords(evt)
-        marker = self.get_unique_item(RectangleShape)
-        marker.setVisible(0)
-
-        self.rect_label.setVisible(0)
+        rect_marker = self.get_unique_item(RectangleShape)
+        rect_marker.setVisible(0)
 
         # passing None here arives as np.nan if you call get_rect later, so we use
         # np.nan here:
-        marker.set_rect(stop_at[0], stop_at[1], np.nan, np.nan)
+        rect_marker.set_rect(stop_at[0], stop_at[1], np.nan, np.nan)
         with_shift_key = evt.modifiers() == Qt.ShiftModifier
 
         if self.moved and not with_shift_key:
@@ -452,13 +519,12 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-def create_image_widget(rtmin, rtmax, mzmin, mzmax):
+def create_image_widget():  # rtmin, rtmax, mzmin, mzmax):
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False)
 
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
-    widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
     widget.plot.set_axis_direction("left", False)
     widget.plot.set_axis_direction("right", False)
     return widget
@@ -514,10 +580,7 @@ class PeakMapPlotter(object):
 
     def __init__(self, peakmap):
 
-        rtmin, rtmax = peakmap.rtRange()
-        mzmin, mzmax = peakmap.mzRange()
-
-        self.widget = create_image_widget(rtmin, rtmax, mzmin, mzmax)
+        self.widget = create_image_widget()  # rtmin, rtmax, mzmin, mzmax)
 
         self.peakmap = peakmap
 
@@ -608,6 +671,9 @@ class PeakMapExplorer(QDialog):
         self.imax_slider.setMaximum(100)
         self.imax_slider.setSliderPosition(100)
 
+        self.history_list_label = QLabel("History:")
+        self.history_list = QComboBox()
+
     def setup_plot_widgets(self):
         self.peakmap_plotter = PeakMapPlotter(self.peakmap)
 
@@ -648,6 +714,10 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.imax_label, row, 0)
         controls_layout.addWidget(self.imax_slider, row, 1)
 
+        row += 1
+        controls_layout.addWidget(self.history_list_label, row, 0)
+        controls_layout.addWidget(self.history_list, row, 1)
+
         layout.addLayout(controls_layout, 0, 1)
 
         layout.addWidget(self.mz_plotter.widget, 1, 1)
@@ -665,6 +735,22 @@ class PeakMapExplorer(QDialog):
         self.connect(self.imax_slider, SIGNAL("valueChanged(int)"), self.imax_changed)
         self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
         self.connect(self.peakmap_plotter.widget.plot, SIG_PLOT_AXIS_CHANGED, self.changed_axis)
+        self.connect(self.peakmap_plotter.widget.plot, SIG_HISTORY_CHANGED, self.history_changed)
+        self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
+
+    @protect_signal_handler
+    def history_changed(self, history):
+        self.history_list.clear()
+        for item in history.items:
+            rtmin, rtmax, mzmin, mzmax = item
+            str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm" % (mzmin, mzmax, rtmin / 60.0,
+                                                             rtmax / 60.0)
+            self.history_list.addItem(str_item)
+        self.history_list.setCurrentIndex(history.position)
+
+    @protect_signal_handler
+    def history_item_selected(self, index):
+        self.peakmap_plotter.widget.plot.set_history_position(index)
 
     @protect_signal_handler
     def changed_axis(self, evt=None):
@@ -732,6 +818,9 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.replot()
 
     def plot_peakmap(self):
+        rtmin, rtmax = self.peakmap.rtRange()
+        mzmin, mzmax = self.peakmap.mzRange()
+        self.peakmap_plotter.widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
         self.peakmap_plotter.replot()
         self.changed_axis(evt=None)
 
