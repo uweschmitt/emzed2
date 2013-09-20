@@ -155,7 +155,7 @@ class CursorRangeInfo(ObjectInfo):
                                                                    delta_rt)
             return "<pre>%s</pre>" % "<br>".join((line0, line1))
         else:
-            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin/60.0)
+            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin / 60.0)
 
 
 class PeakmapZoomTool(InteractiveTool):
@@ -172,9 +172,17 @@ class PeakmapZoomTool(InteractiveTool):
 
         start_state = filter.new_state()
 
+        hist_back_keys = [(Qt.Key_Z, Qt.ControlModifier), Qt.Key_Left]
+        filter.add_event(start_state, KeyEventMatch(hist_back_keys),
+                         baseplot.go_back_in_history, start_state)
+
+        hist_forward_keys = [(Qt.Key_Y, Qt.ControlModifier), Qt.Key_Right]
+        filter.add_event(start_state, KeyEventMatch(hist_forward_keys),
+                         baseplot.go_forward_in_history, start_state)
+
         filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
-                         baseplot.do_backspace_pressed, start_state)
+                         KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape, Qt.Key_Home)),
+                         baseplot.go_to_beginning_of_history, start_state)
 
         handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state)
         self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
@@ -182,7 +190,8 @@ class PeakmapZoomTool(InteractiveTool):
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
         self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
 
-        handler = QtDragHandler(filter, Qt.LeftButton, start_state=start_state, mods=Qt.ShiftModifier)
+        handler = QtDragHandler(
+            filter, Qt.LeftButton, start_state=start_state, mods=Qt.ShiftModifier)
         self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
         self.connect(handler, SIG_START_TRACKING, baseplot.start_drag_mode)
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
@@ -190,11 +199,11 @@ class PeakmapZoomTool(InteractiveTool):
 
         # Bouton du milieu
         PanHandler(filter, Qt.MidButton, start_state=start_state)
-        #AutoZoomHandler(filter, Qt.MidButton, start_state=start_state)
+        # AutoZoomHandler(filter, Qt.MidButton, start_state=start_state)
 
         # Bouton droit
         ZoomHandler(filter, Qt.RightButton, start_state=start_state)
-        #MenuHandler(filter, Qt.RightButton, start_state=start_state)
+        # MenuHandler(filter, Qt.RightButton, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)
@@ -214,7 +223,10 @@ class ModifiedImagePlot(ImagePlot):
     rtmin = rtmax = mzmin = mzmax = None
     coords = (None, None)
 
-    def set_limits(self, rtmin, rtmax, mzmin, mzmax):
+    history = []  # zooming history
+    history_pos = -1
+
+    def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin
         self.rtmax = rtmax
         self.mzmin = mzmin
@@ -222,17 +234,37 @@ class ModifiedImagePlot(ImagePlot):
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
 
-    def do_backspace_pressed(self, filter_, evt):
+        if add_to_history:
+            del self.history[self.history_pos + 1:]
+            self.history.append((rtmin, rtmax, mzmin, mzmax))
+            self.history_pos += 1
+
+    @protect_signal_handler
+    def go_back_in_history(self, filter_, evt):
+        if self.history_pos > 0:
+            self.history_pos -= 1
+            rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            self.replot()
+            self.emit(SIG_PLOT_AXIS_CHANGED, self)
+
+    @protect_signal_handler
+    def go_forward_in_history(self, filter_, evt):
+        if self.history_pos < len(self.history) - 1:
+            self.history_pos += 1
+            rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            self.replot()
+            self.emit(SIG_PLOT_AXIS_CHANGED, self)
+
+    @protect_signal_handler
+    def go_to_beginning_of_history(self, filter_, evt):
         """ resets zoom """
-        axis_id = self.get_axis_id("bottom")
-        self.set_axis_limits(axis_id, self.rtmin, self.rtmax)
-        axis_id = self.get_axis_id("left")
-        self.set_axis_limits(axis_id, self.mzmin, self.mzmax)
-        # the signal MUST be emitted after replot, otherwise
-        # we receiver won't see the new bounds (don't know why?)
+        self.history_pos = 0
+        rtmin, rtmax, mzmin, mzmax = self.history[self.history_pos]
+        self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
         self.replot()
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
-        evt.accept()
 
     def get_coords(self, evt):
         return self.invTransform(self.xBottom, evt.x()), self.invTransform(self.yLeft, evt.y())
@@ -254,7 +286,7 @@ class ModifiedImagePlot(ImagePlot):
     def do_move_marker(self, event):
         pos = event.pos()
         self.set_marker_axes()
-        self.cross_marker.setZ(self.get_max_z()+1)
+        self.cross_marker.setZ(self.get_max_z() + 1)
         self.cross_marker.setVisible(True)
         self.curve_marker.setVisible(False)
         self.cross_marker.move_local_point_to(0, pos)
@@ -308,8 +340,8 @@ class ModifiedImagePlot(ImagePlot):
             mzmin = max(self.mzmin, min(self.mzmax, mzmin))
             mzmax = max(self.mzmin, min(self.mzmax, mzmax))
 
-            self.set_axis_limits("bottom", rtmin, rtmax)
-            self.set_axis_limits("left", mzmin, mzmax)
+            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+
             # first replot, then emit signal is important, so that new axis are avail in
             # signal handler
             self.replot()
@@ -420,16 +452,13 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-
-
-
 def create_image_widget(rtmin, rtmax, mzmin, mzmax):
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False)
 
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
-    widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax)
+    widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
     widget.plot.set_axis_direction("left", False)
     widget.plot.set_axis_direction("right", False)
     return widget
