@@ -13,8 +13,7 @@ import guidata
 
 from guiqwt.builder import make
 from guiqwt.config import CONF
-from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler,
-                        setup_standard_tool_filter)
+from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler,)
 from guiqwt.image import RawImageItem, ImagePlot
 from guiqwt.label import ObjectInfo
 from guiqwt.plot import ImageWidget, CurveWidget, CurvePlot
@@ -45,7 +44,7 @@ def set_x_axis_scale_draw(widget):
 def set_y_axis_scale_draw(widget):
     """ sets minimum extent for aligning chromatogram and peakmap plot """
     drawer = QwtScaleDraw()
-    drawer.setMinimumExtent(70)
+    drawer.setMinimumExtent(50)
     widget.plot.setAxisScaleDraw(widget.plot.yLeft, drawer)
 
 
@@ -177,15 +176,6 @@ class RtCursorInfo(ObjectInfo):
             return ""
         return "<pre>rt: %.1f sec<br>  = %.2fm</pre>" % (self.rt, self.rt / 60.0)
 
-
-class RtMovementTool(InteractiveTool):
-
-    TITLE = "Selection"
-    ICON = "selection.png"
-    CURSOR = Qt.CrossCursor
-    def setup_filter(self, baseplot):
-        start_state = baseplot.filter.new_state()
-        return setup_standard_tool_filter(baseplot.filter, start_state)
 
 class PeakmapZoomTool(InteractiveTool):
 
@@ -429,7 +419,9 @@ class ModifiedImagePlot(ImagePlot):
         self.moved = False
         marker = self.get_unique_item(RectangleShape)
         marker.set_rect(self.start_at[0], self.start_at[1], self.start_at[0], self.start_at[1])
+        self.cross_marker.setVisible(False)  # no cross marker when dragging
         self.rect_label.setVisible(1)
+        self.with_shift_key = evt.modifiers() == Qt.ShiftModifier
         self.replot()
 
     @protect_signal_handler
@@ -443,18 +435,26 @@ class ModifiedImagePlot(ImagePlot):
         self.moved = True
         self.replot()
 
+    def mouseReleaseEvent(self, evt):
+        # stop drag mode is not called immediatly when dragging and releasing shift
+        # during dragging.
+        self.stop_drag_mode(None, evt)
+
     @protect_signal_handler
     def stop_drag_mode(self, filter_, evt):
         stop_at = self.get_coords(evt)
         rect_marker = self.get_unique_item(RectangleShape)
         rect_marker.setVisible(0)
 
+        # reactivate cursor
+        self.cross_marker.set_pos(stop_at[0], stop_at[1])
+        self.cross_marker.setZ(self.get_max_z() + 1)
+
         # passing None here arives as np.nan if you call get_rect later, so we use
         # np.nan here:
         rect_marker.set_rect(stop_at[0], stop_at[1], np.nan, np.nan)
-        with_shift_key = evt.modifiers() == Qt.ShiftModifier
 
-        if self.moved and not with_shift_key:
+        if self.moved and not self.with_shift_key:
             rtmin, rtmax = self.start_at[0], stop_at[0]
             # be sure that rtmin <= rtmax:
             rtmin, rtmax = min(rtmin, rtmax), max(rtmin, rtmax)
@@ -583,7 +583,7 @@ class ModifiedImagePlot(ImagePlot):
 
 def create_image_widget():  # rtmin, rtmax, mzmin, mzmax):
     # patched plot in widget
-    widget = ImageWidget(lock_aspect_ratio=False)
+    widget = ImageWidget(lock_aspect_ratio=False, xlabel="rt", ylabel="m/z")
 
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
@@ -593,11 +593,10 @@ def create_image_widget():  # rtmin, rtmax, mzmin, mzmax):
 
 
 def create_chromatogram_widget():
-    widget = CurveWidget()
+    widget = CurveWidget(ylabel="I")
     t = widget.add_tool(SelectTool)
     widget.set_default_tool(t)
     t.activate()
-    #t = widget.add_tool(RtMovementTool)
 
     plot = widget.plot
     plot.__class__ = ChromatogramPlot
@@ -631,7 +630,6 @@ def create_chromatogram_widget():
     CONF.update_defaults(dict(plot=params))
     cross_marker.markerparam.read_config(CONF, "plot", "marker/cross")
     cross_marker.markerparam.update_marker(cross_marker)
-
 
     return widget
 
