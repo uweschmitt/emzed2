@@ -329,8 +329,13 @@ class ModifiedImagePlot(ImagePlot):
 
     rtmin = rtmax = mzmin = mzmax = None
     coords = (None, None)
+    dragging = False
 
     history = History()
+
+    def mouseDoubleClickEvent(self, evt):
+        if  evt.button() == Qt.RightButton:
+            self.go_to_beginning_of_history(None, evt)
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin
@@ -751,7 +756,6 @@ class PeakMapExplorer(QDialog):
         self.setup_initial_values()
         self.plot_peakmap()
 
-
     def process_peakmap(self, peakmap):
         levels = peakmap.getMsLevels()
         if len(levels) == 1 and levels[0] > 1:
@@ -762,7 +766,6 @@ class PeakMapExplorer(QDialog):
         self.peakmap = peakmap.getDominatingPeakmap()
         self.rtmin, self.rtmax = peakmap.rtRange()
         self.mzmin, self.mzmax = peakmap.mzRange()
-
 
     def setup_initial_values(self):
         self.i_min_input.setText("0")
@@ -776,18 +779,17 @@ class PeakMapExplorer(QDialog):
         old_rtmax = self.rtmax_input.text()
         old_mzmin = self.mzmin_input.text()
         old_mzmax = self.mzmax_input.text()
-        self.rtmin_input.setText("%.2f" % (rtmin/60.0))
-        self.rtmax_input.setText("%.2f" % (rtmax/60.0))
+        self.rtmin_input.setText("%.2f" % (rtmin / 60.0))
+        self.rtmax_input.setText("%.2f" % (rtmax / 60.0))
         self.mzmin_input.setText("%.5f" % mzmin)
         self.mzmax_input.setText("%.5f" % mzmax)
         rtmin = self.rtmin_input.text()
         rtmax = self.rtmax_input.text()
         mzmin = self.mzmin_input.text()
         mzmax = self.mzmax_input.text()
-        
+
         return any(v1 != v2 for (v1, v2) in ((old_rtmin, rtmin), (old_rtmax, rtmax),
                                              (old_mzmin, mzmin), (old_mzmax, mzmax),))
-
 
     def setup_input_widgets(self):
         self.log_label = QLabel("Logarithmic Scale:")
@@ -805,7 +807,7 @@ class PeakMapExplorer(QDialog):
 
         self.i_range_label = QLabel("Intensity Window:")
 
-        self.i_min_input  = QLineEdit()
+        self.i_min_input = QLineEdit()
         self.i_min_slider = QSlider(Qt.Horizontal)
         self.i_min_slider.setMinimum(0)
         self.i_min_slider.setMaximum(1000)
@@ -815,10 +817,10 @@ class PeakMapExplorer(QDialog):
         self.i_max_slider.setMinimum(0)
         self.i_max_slider.setMaximum(1000)
         self.i_max_slider.setSliderPosition(1000)
-        self.i_max_input  = QLineEdit()
+        self.i_max_input = QLineEdit()
 
         self.rt_range_label = QLabel("Retention Time Window:")
-        self.rtmin_input  = QLineEdit()
+        self.rtmin_input = QLineEdit()
         self.rtmin_input.setValidator(QDoubleValidator())
         self.rtmin_slider = QSlider(Qt.Horizontal)
         self.rtmin_slider.setMinimum(0)
@@ -829,12 +831,11 @@ class PeakMapExplorer(QDialog):
         self.rtmax_slider.setMinimum(0)
         self.rtmax_slider.setMaximum(100)
         self.rtmax_slider.setSliderPosition(100)
-        self.rtmax_input  = QLineEdit()
+        self.rtmax_input = QLineEdit()
         self.rtmax_input.setValidator(QDoubleValidator())
 
-
         self.mz_range_label = QLabel("Mass to Charge Window:")
-        self.mzmin_input  = QLineEdit()
+        self.mzmin_input = QLineEdit()
         self.mzmin_input.setValidator(QDoubleValidator())
         self.mzmin_slider = QSlider(Qt.Horizontal)
         self.mzmin_slider.setMinimum(0)
@@ -845,7 +846,7 @@ class PeakMapExplorer(QDialog):
         self.mzmax_slider.setMinimum(0)
         self.mzmax_slider.setMaximum(100)
         self.mzmax_slider.setSliderPosition(100)
-        self.mzmax_input  = QLineEdit()
+        self.mzmax_input = QLineEdit()
         self.mzmax_input.setValidator(QDoubleValidator())
 
         self.history_list_label = QLabel("History:")
@@ -953,7 +954,7 @@ class PeakMapExplorer(QDialog):
         for item in history.items:
             rtmin, rtmax, mzmin, mzmax = item
             str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm " % (mzmin, mzmax, rtmin / 60.0,
-                                                             rtmax / 60.0)
+                                                              rtmax / 60.0)
             self.history_list.addItem(str_item)
         self.history_list.setCurrentIndex(history.position)
 
@@ -1035,7 +1036,7 @@ class PeakMapExplorer(QDialog):
         i_abs = i_rel * pmi.get_total_i_max()  # total_i_max !
         if i_abs > 0:
             # only keep signifcant first digit:
-            tens = 10**int(math.log10(i_abs))
+            tens = 10 ** int(math.log10(i_abs))
             i_abs = round(i_abs / tens) * tens
         setter(i_abs)
         text_field.setText("%g" % i_abs)
@@ -1056,7 +1057,7 @@ class PeakMapExplorer(QDialog):
         pmi = self.peakmap_plotter.pmi
         self._i_slider_changed(value, self.i_max_slider, pmi.set_i_max, self.i_max_input)
         return
-    
+
     @protect_signal_handler
     def img_range_edited(self):
         # statt der folgenden beiden zeilen, diese werte auslesen:
@@ -1086,7 +1087,7 @@ class PeakMapExplorer(QDialog):
         mzmin, mzmax = sorted((mzmin, mzmax))
 
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        
+
         plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
         self.peakmap_plotter.replot()
         plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
@@ -1095,7 +1096,7 @@ class PeakMapExplorer(QDialog):
     def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
 
         for value, max_value, slider in ((rtmin, self.rtmax, self.rtmin_slider),
-                                            (rtmax, self.rtmax, self.rtmax_slider),):
+                                        (rtmax, self.rtmax, self.rtmax_slider),):
 
             slider_value = int(slider.maximum() * value / max_value)
             slider.blockSignals(True)
@@ -1118,9 +1119,9 @@ class PeakMapExplorer(QDialog):
             self.rtmax_slider.setSliderPosition(self.rtmin_slider.sliderPosition())
             rtmax = rtmin
         mzmin = self.mzmin + (self.mzmax - self.mzmin) * \
-                              self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
+            self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
         mzmax = self.mzmin + (self.mzmax - self.mzmin) * \
-                              self.mzmax_slider.sliderPosition() / self.mzmin_slider.maximum()
+            self.mzmax_slider.sliderPosition() / self.mzmin_slider.maximum()
 
         if mzmax < mzmin:
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
@@ -1134,7 +1135,6 @@ class PeakMapExplorer(QDialog):
 
     # ------- OLD CODE
 
-   
     def plot_peakmap(self):
         self.peakmap_plotter.widget.plot.set_limits(self.rtmin, self.rtmax,
                                                     self.mzmin, self.mzmax, add_to_history=True)
