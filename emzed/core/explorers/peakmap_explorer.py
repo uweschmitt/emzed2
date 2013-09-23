@@ -2,10 +2,11 @@
 
 import os
 import types
+import math
 import numpy as np
 
 from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
-                         QComboBox)
+                         QComboBox, QLineEdit, QDoubleValidator)
 from PyQt4.QtCore import Qt, SIGNAL, QRectF, QPointF
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
@@ -67,27 +68,27 @@ class PeakMapImageItem(RawImageItem):
         self.set_lut_range([0, self.IMAX])
         self.set_color_map("hot")
 
-        self.total_imin = 0.0
-        self.total_imax = max(np.max(s.peaks[:, 1]) for s in peakmap.spectra)
+        self.total_i_min = 0.0
+        self.total_i_max = max(np.max(s.peaks[:, 1]) for s in peakmap.spectra)
 
-        self.imin = self.total_imin
-        self.imax = self.total_imax
+        self.i_min = self.total_i_min
+        self.i_max = self.total_i_max
 
         self.gamma = 1.0
 
         self.is_log = 1
 
-    def set_imin(self, imin):
-        self.imin = imin
+    def set_i_min(self, i_min):
+        self.i_min = i_min
 
-    def set_imax(self, imax):
-        self.imax = imax
+    def set_i_max(self, i_max):
+        self.i_max = i_max
 
     def set_gamma(self, gamma):
         self.gamma = gamma
 
-    def get_total_imax(self):
-        return self.total_imax
+    def get_total_i_max(self):
+        return self.total_i_max
 
     def set_logarithmic_scale(self, is_log):
         self.is_log = is_log
@@ -108,17 +109,17 @@ class PeakMapImageItem(RawImageItem):
 
         # turn up/down
         data = data[::-1, :]
-        imin = self.imin
-        imax = self.imax
+        i_min = self.i_min
+        i_max = self.i_max
 
         if self.is_log:
             data = np.log(1.0 + data)
-            imin = np.log(1.0 + imin)
-            imax = np.log(1.0 + imax)
+            i_min = np.log(1.0 + i_min)
+            i_max = np.log(1.0 + i_max)
 
-        data[data < imin] = imin
-        data[data > imax] = imax
-        data -= imin
+        data[data < i_min] = i_min
+        data[data > i_max] = i_max
+        data -= i_min
 
         # enlarge single pixels to 2 x 2 pixels:
         smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
@@ -242,10 +243,14 @@ class History(object):
         self.position = -1
         self.items = []
 
-    def new_head(self, item):
+    def new_head(self, item, max_len=20):
         del self.items[self.position + 1:]
         self.items.append(item)
-        self.position += 1
+        if len(self.items) > max_len:
+            self.items = self.items[-max_len:]
+            self.position = len(self.items) - 1
+        else:
+            self.position += 1
 
     def go_back(self):
         if self.position > 0:
@@ -417,6 +422,7 @@ class ModifiedImagePlot(ImagePlot):
     def start_drag_mode(self, filter_, evt):
         self.start_at = self.get_coords(evt)
         self.moved = False
+        self.dragging = True
         marker = self.get_unique_item(RectangleShape)
         marker.set_rect(self.start_at[0], self.start_at[1], self.start_at[0], self.start_at[1])
         self.cross_marker.setVisible(False)  # no cross marker when dragging
@@ -438,7 +444,8 @@ class ModifiedImagePlot(ImagePlot):
     def mouseReleaseEvent(self, evt):
         # stop drag mode is not called immediatly when dragging and releasing shift
         # during dragging.
-        self.stop_drag_mode(None, evt)
+        if self.dragging:
+            self.stop_drag_mode(None, evt)
 
     @protect_signal_handler
     def stop_drag_mode(self, filter_, evt):
@@ -453,6 +460,8 @@ class ModifiedImagePlot(ImagePlot):
         # passing None here arives as np.nan if you call get_rect later, so we use
         # np.nan here:
         rect_marker.set_rect(stop_at[0], stop_at[1], np.nan, np.nan)
+
+        self.dragging = False
 
         if self.moved and not self.with_shift_key:
             rtmin, rtmax = self.start_at[0], stop_at[0]
@@ -522,10 +531,10 @@ class ModifiedImagePlot(ImagePlot):
             else:  # log scale
                 i_lbound = self.transform(axis_id, lbound)
                 i_hbound = self.transform(axis_id, hbound)
-                imin = start - F * (start - i_lbound)
-                imax = start + F * (i_hbound - start)
-                vmin = self.invTransform(axis_id, imin)
-                vmax = self.invTransform(axis_id, imax)
+                i_min = start - F * (start - i_lbound)
+                i_max = start + F * (i_hbound - start)
+                vmin = self.invTransform(axis_id, i_min)
+                vmax = self.invTransform(axis_id, i_max)
 
             # patch for not "zooming out"
             if axis_id in axis_ids_horizontal:
@@ -607,7 +616,7 @@ def create_chromatogram_widget():
     plot.canvas_pointer = True  # x-cross marker on
 
     cursor_info = RtCursorInfo()
-    label = make.info_label("TL", [cursor_info], title="None")
+    label = make.info_label("TR", [cursor_info], title="None")
     label.labelparam.label = ""
     label.setVisible(1)
     plot.rt_label = label
@@ -731,11 +740,17 @@ class PeakMapExplorer(QDialog):
 
     def setup(self, peakmap):
         self.process_peakmap(peakmap)
+
+        title = os.path.basename(self.peakmap.meta.get("source", ""))
+        self.setWindowTitle(title)
+
         self.setup_input_widgets()
         self.setup_plot_widgets()
         self.setup_layout()
         self.connect_signals_and_slots()
+        self.setup_initial_values()
         self.plot_peakmap()
+
 
     def process_peakmap(self, peakmap):
         levels = peakmap.getMsLevels()
@@ -745,9 +760,33 @@ class PeakMapExplorer(QDialog):
             self.levelNSpecs = [s for s in peakmap.spectra if s.msLevel > 1]
 
         self.peakmap = peakmap.getDominatingPeakmap()
+        self.rtmin, self.rtmax = peakmap.rtRange()
+        self.mzmin, self.mzmax = peakmap.mzRange()
 
-        title = os.path.basename(peakmap.meta.get("source", ""))
-        self.setWindowTitle(title)
+
+    def setup_initial_values(self):
+        self.i_min_input.setText("0")
+        pmi = self.peakmap_plotter.pmi
+        self.i_max_input.setText("%.0f" % pmi.get_total_i_max())
+
+        self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
+
+    def set_range_value_fields(self, rtmin, rtmax, mzmin, mzmax):
+        old_rtmin = self.rtmin_input.text()
+        old_rtmax = self.rtmax_input.text()
+        old_mzmin = self.mzmin_input.text()
+        old_mzmax = self.mzmax_input.text()
+        self.rtmin_input.setText("%.2f" % (rtmin/60.0))
+        self.rtmax_input.setText("%.2f" % (rtmax/60.0))
+        self.mzmin_input.setText("%.5f" % mzmin)
+        self.mzmax_input.setText("%.5f" % mzmax)
+        rtmin = self.rtmin_input.text()
+        rtmax = self.rtmax_input.text()
+        mzmin = self.mzmin_input.text()
+        mzmax = self.mzmax_input.text()
+        return any(v1 != v2 for (v1, v2) in ((old_rtmin, rtmin), (old_rtmax, rtmax),
+                                             (old_mzmin, mzmin), (old_mzmax, mzmax),))
+
 
     def setup_input_widgets(self):
         self.log_label = QLabel("Logarithmic Scale:")
@@ -755,7 +794,7 @@ class PeakMapExplorer(QDialog):
         self.log_check_box.setCheckState(1)
         self.log_check_box.setTristate(0)
 
-        self.gamma_label = QLabel("Contrast Value:")
+        self.gamma_label = QLabel("Contrast:")
         self.gamma_slider = QSlider(Qt.Horizontal)
         self.gamma_slider.setMinimum(0)
         self.gamma_slider.setMaximum(50)
@@ -763,17 +802,50 @@ class PeakMapExplorer(QDialog):
         rel_pos = (self.gamma_start - self.gamma_min) / (self.gamma_max - self.gamma_min)
         self.gamma_slider.setSliderPosition(50 * rel_pos)
 
-        self.imin_label = QLabel("Minimal Intensity:")
-        self.imin_slider = QSlider(Qt.Horizontal)
-        self.imin_slider.setMinimum(0)
-        self.imin_slider.setMaximum(100)
-        self.imin_slider.setSliderPosition(0)
+        self.i_range_label = QLabel("Intensity Window:")
 
-        self.imax_label = QLabel("Maximal Intensity:")
-        self.imax_slider = QSlider(Qt.Horizontal)
-        self.imax_slider.setMinimum(0)
-        self.imax_slider.setMaximum(100)
-        self.imax_slider.setSliderPosition(100)
+        self.i_min_input  = QLineEdit()
+        self.i_min_slider = QSlider(Qt.Horizontal)
+        self.i_min_slider.setMinimum(0)
+        self.i_min_slider.setMaximum(1000)
+        self.i_min_slider.setSliderPosition(0)
+
+        self.i_max_slider = QSlider(Qt.Horizontal)
+        self.i_max_slider.setMinimum(0)
+        self.i_max_slider.setMaximum(1000)
+        self.i_max_slider.setSliderPosition(1000)
+        self.i_max_input  = QLineEdit()
+
+        self.rt_range_label = QLabel("Retention Time Window:")
+        self.rtmin_input  = QLineEdit()
+        self.rtmin_input.setValidator(QDoubleValidator())
+        self.rtmin_slider = QSlider(Qt.Horizontal)
+        self.rtmin_slider.setMinimum(0)
+        self.rtmin_slider.setMaximum(100)
+        self.rtmin_slider.setSliderPosition(0)
+
+        self.rtmax_slider = QSlider(Qt.Horizontal)
+        self.rtmax_slider.setMinimum(0)
+        self.rtmax_slider.setMaximum(100)
+        self.rtmax_slider.setSliderPosition(100)
+        self.rtmax_input  = QLineEdit()
+        self.rtmax_input.setValidator(QDoubleValidator())
+
+
+        self.mz_range_label = QLabel("Mass to Charge Window:")
+        self.mzmin_input  = QLineEdit()
+        self.mzmin_input.setValidator(QDoubleValidator())
+        self.mzmin_slider = QSlider(Qt.Horizontal)
+        self.mzmin_slider.setMinimum(0)
+        self.mzmin_slider.setMaximum(100)
+        self.mzmin_slider.setSliderPosition(0)
+
+        self.mzmax_slider = QSlider(Qt.Horizontal)
+        self.mzmax_slider.setMinimum(0)
+        self.mzmax_slider.setMaximum(100)
+        self.mzmax_slider.setSliderPosition(100)
+        self.mzmax_input  = QLineEdit()
+        self.mzmax_input.setValidator(QDoubleValidator())
 
         self.history_list_label = QLabel("History:")
         self.history_list = QComboBox()
@@ -799,28 +871,45 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.widget.setMinimumSize(450, 250)
 
         controls_layout = QGridLayout()
-        controls_layout.setSpacing(15)
-        controls_layout.setMargin(20)
+        controls_layout.setSpacing(10)
+        controls_layout.setMargin(10)
 
         row = 0
         controls_layout.addWidget(self.log_label, row, 0)
         controls_layout.addWidget(self.log_check_box, row, 1)
+        controls_layout.addWidget(self.gamma_label, row, 2)
+        controls_layout.addWidget(self.gamma_slider, row, 3)
 
         row += 1
-        controls_layout.addWidget(self.gamma_label, row, 0)
-        controls_layout.addWidget(self.gamma_slider, row, 1)
+        controls_layout.addWidget(self.i_range_label, row, 0, 1, 4)
 
         row += 1
-        controls_layout.addWidget(self.imin_label, row, 0)
-        controls_layout.addWidget(self.imin_slider, row, 1)
+        controls_layout.addWidget(self.i_min_input, row, 0)
+        controls_layout.addWidget(self.i_min_slider, row, 1)
+        controls_layout.addWidget(self.i_max_slider, row, 2)
+        controls_layout.addWidget(self.i_max_input, row, 3)
 
         row += 1
-        controls_layout.addWidget(self.imax_label, row, 0)
-        controls_layout.addWidget(self.imax_slider, row, 1)
+        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 4)
+
+        row += 1
+        controls_layout.addWidget(self.rtmin_input, row, 0)
+        controls_layout.addWidget(self.rtmin_slider, row, 1)
+        controls_layout.addWidget(self.rtmax_slider, row, 2)
+        controls_layout.addWidget(self.rtmax_input, row, 3)
+
+        row += 1
+        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 4)
+
+        row += 1
+        controls_layout.addWidget(self.mzmin_input, row, 0)
+        controls_layout.addWidget(self.mzmin_slider, row, 1)
+        controls_layout.addWidget(self.mzmax_slider, row, 2)
+        controls_layout.addWidget(self.mzmax_input, row, 3)
 
         row += 1
         controls_layout.addWidget(self.history_list_label, row, 0)
-        controls_layout.addWidget(self.history_list, row, 1)
+        controls_layout.addWidget(self.history_list, row, 1, 1, 3)
 
         layout.addLayout(controls_layout, 0, 1)
 
@@ -835,8 +924,23 @@ class PeakMapExplorer(QDialog):
 
     def connect_signals_and_slots(self):
         self.connect(self.gamma_slider, SIGNAL("valueChanged(int)"), self.gamma_changed)
-        self.connect(self.imin_slider, SIGNAL("valueChanged(int)"), self.imin_changed)
-        self.connect(self.imax_slider, SIGNAL("valueChanged(int)"), self.imax_changed)
+
+        self.connect(self.i_min_input, SIGNAL("editingFinished()"), self.i_min_edited)
+        self.connect(self.i_max_input, SIGNAL("editingFinished()"), self.i_max_edited)
+
+        self.connect(self.i_min_slider, SIGNAL("valueChanged(int)"), self.i_min_changed)
+        self.connect(self.i_max_slider, SIGNAL("valueChanged(int)"), self.i_max_changed)
+
+        self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.img_range_edited)
+        self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.img_range_edited)
+        self.connect(self.mzmin_input, SIGNAL("returnPressed()"), self.img_range_edited)
+        self.connect(self.mzmax_input, SIGNAL("returnPressed()"), self.img_range_edited)
+
+        self.connect(self.rtmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
+        self.connect(self.rtmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
+        self.connect(self.mzmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
+        self.connect(self.mzmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
+
         self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
         self.connect(self.peakmap_plotter.widget.plot, SIG_PLOT_AXIS_CHANGED, self.changed_axis)
         self.connect(self.peakmap_plotter.widget.plot, SIG_HISTORY_CHANGED, self.history_changed)
@@ -847,7 +951,7 @@ class PeakMapExplorer(QDialog):
         self.history_list.clear()
         for item in history.items:
             rtmin, rtmax, mzmin, mzmax = item
-            str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm" % (mzmin, mzmax, rtmin / 60.0,
+            str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm " % (mzmin, mzmax, rtmin / 60.0,
                                                              rtmax / 60.0)
             self.history_list.addItem(str_item)
         self.history_list.setCurrentIndex(history.position)
@@ -864,6 +968,9 @@ class PeakMapExplorer(QDialog):
         else:
             rtmin, rtmax = self.peakmap.rtRange()
             mzmin, mzmax = self.peakmap.mzRange()
+
+        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        self.set_sliders(rtmin, rtmax, mzmin, mzmax)
 
         rts, chroma = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
 
@@ -886,30 +993,151 @@ class PeakMapExplorer(QDialog):
     def gamma_changed(self, value):
         self.set_range_limits()
 
-    @protect_signal_handler
-    def imin_changed(self, value):
-        if value >= self.imax_slider.value():
-            self.imax_slider.setSliderPosition(value)
-        self.set_range_limits()
+    # ---- handle intensity text field edits
+
+    def _i_edited(self, inp, setter, slider):
+        txt = inp.text()
+        try:
+            abs_value = float(txt)
+        except:
+            return
+        pmi = self.peakmap_plotter.pmi
+        setter(abs_value)
+
+        slider_value = (abs_value / pmi.get_total_i_max()) ** 0.3333333 * slider.maximum()
+
+        slider.blockSignals(True)
+        slider.setSliderPosition(slider_value)
+        slider.blockSignals(False)
+        self.peakmap_plotter.replot()
 
     @protect_signal_handler
-    def imax_changed(self, value):
-        if value <= self.imin_slider.value():
-            self.imin_slider.setSliderPosition(value)
-        self.set_range_limits()
+    def i_min_edited(self):
+        self._i_edited(self.i_min_input, self.peakmap_plotter.pmi.set_i_min, self.i_min_slider)
+
+    @protect_signal_handler
+    def i_max_edited(self):
+        self._i_edited(self.i_max_input, self.peakmap_plotter.pmi.set_i_max, self.i_max_slider)
+
+    # ---- handle intensity slider change
+
+    def _i_changed(self, value, slider, setter, text_field):
+        pmi = self.peakmap_plotter.pmi
+        i_rel = value / 1.0 / slider.maximum()
+        i_rel = i_rel ** 4
+        i_abs = i_rel * pmi.get_total_i_max()  # total_i_max !
+        if i_abs > 0:
+            # only keep signifcant first digit:
+            tens = 10**int(math.log10(i_abs))
+            i_abs = round(i_abs / tens) * tens
+        setter(i_abs)
+        text_field.setText("%g" % i_abs)
+        self.peakmap_plotter.replot()
+
+    @protect_signal_handler
+    def i_min_changed(self, value):
+        if value > self.i_max_slider.value():
+            self.i_max_slider.setSliderPosition(value)
+        pmi = self.peakmap_plotter.pmi
+        self._i_changed(value, self.i_min_slider, pmi.set_i_min, self.i_min_input)
+        return
+
+    @protect_signal_handler
+    def i_max_changed(self, value):
+        if value < self.i_min_slider.value():
+            self.i_min_slider.setSliderPosition(value)
+        pmi = self.peakmap_plotter.pmi
+        self._i_changed(value, self.i_max_slider, pmi.set_i_max, self.i_max_input)
+        return
+    
+    @protect_signal_handler
+    def img_range_edited(self):
+        # statt der folgenden beiden zeilen, diese werte auslesen:
+        plot = self.peakmap_plotter.widget.plot
+        try:
+            rtmin, rtmax, mzmin, mzmax = map(float, (self.rtmin_input.text(),
+                                                     self.rtmax_input.text(),
+                                                     self.mzmin_input.text(),
+                                                     self.mzmax_input.text(),)
+                                             )
+        except:
+            guidata.qapplication().beep()
+            return
+
+        rtmin *= 60.0
+        rtmax *= 60.0
+
+        if rtmin < self.rtmin:
+            rtmin = self.rtmin
+        if rtmax > self.rtmax:
+            rtmax = self.rtmax
+        if mzmin < self.mzmin:
+            mzmin = self.mzmin
+        if mzmax > self.mzmax:
+            mzmax = self.mzmax
+        rtmin, rtmax = sorted((rtmin, rtmax))
+        mzmin, mzmax = sorted((mzmin, mzmax))
+
+        input_changed = self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        if input_changed:
+
+            plot = self.peakmap_plotter.widget.plot
+            plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+            self.peakmap_plotter.replot()
+            plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
+            self.set_sliders(rtmin, rtmax, mzmin, mzmax)
+
+    def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
+
+        for value, max_value, slider in ((rtmin, self.rtmax, self.rtmin_slider),
+                                            (rtmax, self.rtmax, self.rtmax_slider),):
+
+            slider_value = int(slider.maximum() * value / max_value)
+            slider.blockSignals(True)
+            slider.setSliderPosition(slider_value)
+            slider.blockSignals(False)
+
+        min_v = self.mzmin
+        max_v = self.mzmax
+        for value, slider in ((mzmin, self.mzmin_slider), (mzmax, self.mzmax_slider)):
+            slider_value = int(slider.maximum() * (value - min_v) / (max_v - min_v))
+            slider.blockSignals(True)
+            slider.setSliderPosition(slider_value)
+            slider.blockSignals(False)
+
+    @protect_signal_handler
+    def img_range_slider_changed(self, int):
+        rtmin = self.rtmax * self.rtmin_slider.sliderPosition() / self.rtmin_slider.maximum()
+        rtmax = self.rtmax * self.rtmax_slider.sliderPosition() / self.rtmax_slider.maximum()
+        if rtmax < rtmin:
+            self.rtmax_slider.setSliderPosition(self.rtmin_slider.sliderPosition())
+            rtmax = rtmin
+        mzmin = self.mzmin + (self.mzmax - self.mzmin) * \
+                              self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
+        mzmax = self.mzmin + (self.mzmax - self.mzmin) * \
+                              self.mzmax_slider.sliderPosition() / self.mzmin_slider.maximum()
+
+        if mzmax < mzmin:
+            self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
+            mzmax = mzmin
+        input_changed = self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        if input_changed:
+            plot = self.peakmap_plotter.widget.plot
+            plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+            self.peakmap_plotter.replot()
+            plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
+
+    # ------- OLD CODE
 
     def set_range_limits(self):
-        value = self.imin_slider.value()
-        rel_imin = value / 1.0 / self.imin_slider.maximum()
-        rel_imin = rel_imin ** 4
 
-        value = self.imax_slider.value()
-        rel_imax = value / 1.0 / self.imax_slider.maximum()
-        rel_imax = rel_imax ** 4
+        value = self.i_max_slider.value()
+        rel_i_max = value / 1.0 / self.i_max_slider.maximum()
+        rel_i_max = rel_i_max ** 3
 
         pmi = self.peakmap_plotter.pmi
-        pmi.set_imin(rel_imin * pmi.get_total_imax())
-        pmi.set_imax(rel_imax * pmi.get_total_imax())
+        pmi.set_i_min(rel_i_min * pmi.get_total_i_max())
+        pmi.set_i_max(rel_i_max * pmi.get_total_i_max())
 
         value = self.gamma_slider.value()
         gamma = value / 1.0 / self.gamma_slider.maximum() * (self.gamma_max -
@@ -918,9 +1146,8 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.replot()
 
     def plot_peakmap(self):
-        rtmin, rtmax = self.peakmap.rtRange()
-        mzmin, mzmax = self.peakmap.mzRange()
-        self.peakmap_plotter.widget.plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        self.peakmap_plotter.widget.plot.set_limits(self.rtmin, self.rtmax,
+                                                    self.mzmin, self.mzmax, add_to_history=True)
         self.peakmap_plotter.replot()
         self.changed_axis(evt=None)
 
