@@ -784,6 +784,7 @@ class PeakMapExplorer(QDialog):
         rtmax = self.rtmax_input.text()
         mzmin = self.mzmin_input.text()
         mzmax = self.mzmax_input.text()
+        
         return any(v1 != v2 for (v1, v2) in ((old_rtmin, rtmin), (old_rtmax, rtmax),
                                              (old_mzmin, mzmin), (old_mzmax, mzmax),))
 
@@ -928,8 +929,8 @@ class PeakMapExplorer(QDialog):
         self.connect(self.i_min_input, SIGNAL("editingFinished()"), self.i_min_edited)
         self.connect(self.i_max_input, SIGNAL("editingFinished()"), self.i_max_edited)
 
-        self.connect(self.i_min_slider, SIGNAL("valueChanged(int)"), self.i_min_changed)
-        self.connect(self.i_max_slider, SIGNAL("valueChanged(int)"), self.i_max_changed)
+        self.connect(self.i_min_slider, SIGNAL("valueChanged(int)"), self.i_min_slider_changed)
+        self.connect(self.i_max_slider, SIGNAL("valueChanged(int)"), self.i_max_slider_changed)
 
         self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.img_range_edited)
         self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.img_range_edited)
@@ -991,7 +992,13 @@ class PeakMapExplorer(QDialog):
 
     @protect_signal_handler
     def gamma_changed(self, value):
-        self.set_range_limits()
+
+        pmi = self.peakmap_plotter.pmi
+        value = self.gamma_slider.value()
+        gamma = value / 1.0 / self.gamma_slider.maximum() * (self.gamma_max -
+                                                             self.gamma_min) + self.gamma_min
+        pmi.set_gamma(gamma)
+        self.peakmap_plotter.replot()
 
     # ---- handle intensity text field edits
 
@@ -1021,7 +1028,7 @@ class PeakMapExplorer(QDialog):
 
     # ---- handle intensity slider change
 
-    def _i_changed(self, value, slider, setter, text_field):
+    def _i_slider_changed(self, value, slider, setter, text_field):
         pmi = self.peakmap_plotter.pmi
         i_rel = value / 1.0 / slider.maximum()
         i_rel = i_rel ** 4
@@ -1035,19 +1042,19 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.replot()
 
     @protect_signal_handler
-    def i_min_changed(self, value):
+    def i_min_slider_changed(self, value):
         if value > self.i_max_slider.value():
             self.i_max_slider.setSliderPosition(value)
         pmi = self.peakmap_plotter.pmi
-        self._i_changed(value, self.i_min_slider, pmi.set_i_min, self.i_min_input)
+        self._i_slider_changed(value, self.i_min_slider, pmi.set_i_min, self.i_min_input)
         return
 
     @protect_signal_handler
-    def i_max_changed(self, value):
+    def i_max_slider_changed(self, value):
         if value < self.i_min_slider.value():
             self.i_min_slider.setSliderPosition(value)
         pmi = self.peakmap_plotter.pmi
-        self._i_changed(value, self.i_max_slider, pmi.set_i_max, self.i_max_input)
+        self._i_slider_changed(value, self.i_max_slider, pmi.set_i_max, self.i_max_input)
         return
     
     @protect_signal_handler
@@ -1078,14 +1085,12 @@ class PeakMapExplorer(QDialog):
         rtmin, rtmax = sorted((rtmin, rtmax))
         mzmin, mzmax = sorted((mzmin, mzmax))
 
-        input_changed = self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        if input_changed:
-
-            plot = self.peakmap_plotter.widget.plot
-            plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
-            self.peakmap_plotter.replot()
-            plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
-            self.set_sliders(rtmin, rtmax, mzmin, mzmax)
+        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        
+        plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        self.peakmap_plotter.replot()
+        plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
+        self.set_sliders(rtmin, rtmax, mzmin, mzmax)
 
     def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
 
@@ -1129,22 +1134,7 @@ class PeakMapExplorer(QDialog):
 
     # ------- OLD CODE
 
-    def set_range_limits(self):
-
-        value = self.i_max_slider.value()
-        rel_i_max = value / 1.0 / self.i_max_slider.maximum()
-        rel_i_max = rel_i_max ** 3
-
-        pmi = self.peakmap_plotter.pmi
-        pmi.set_i_min(rel_i_min * pmi.get_total_i_max())
-        pmi.set_i_max(rel_i_max * pmi.get_total_i_max())
-
-        value = self.gamma_slider.value()
-        gamma = value / 1.0 / self.gamma_slider.maximum() * (self.gamma_max -
-                                                             self.gamma_min) + self.gamma_min
-        pmi.set_gamma(gamma)
-        self.peakmap_plotter.replot()
-
+   
     def plot_peakmap(self):
         self.peakmap_plotter.widget.plot.set_limits(self.rtmin, self.rtmax,
                                                     self.mzmin, self.mzmax, add_to_history=True)
