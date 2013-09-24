@@ -312,8 +312,7 @@ class MzPlotter(PlotterBase):
         self.widget.plot.add_item(self.label)
 
         allpeaks = []
-        for i in range(len(spectra)):
-            peaks = spectra[i]
+        for i, peaks in enumerate(spectra):
             allpeaks.append(peaks)
             config = configs[i] if configs is not None else None
             if config is None:

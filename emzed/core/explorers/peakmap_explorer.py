@@ -1045,7 +1045,7 @@ class PeakMapExplorer(QDialog):
         p.plot_chromatogram(rts, chroma)
 
         peaks = sample_peaks(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)
-        self.mz_plotter.plot_peaks(peaks)
+        self.mz_plotter.plot([peaks])
         self.mz_plotter.widget.plot.reset_x_limits()
         self.mz_plotter.widget.plot.reset_y_limits()
         self.mz_plotter.updateAxes()
