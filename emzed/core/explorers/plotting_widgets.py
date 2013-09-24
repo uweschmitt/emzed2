@@ -15,6 +15,8 @@ import new
 
 from helpers import protect_signal_handler
 
+from emzed_optimizations.sample import sample_peaks
+
 
 def getColor(i):
     colors = "bgrkm"
@@ -210,6 +212,7 @@ class RtPlotter(PlotterBase):
         self.minRTRangeSelected = min_
         self.maxRTRangeSelected = max_
         if self.rangeSelectionCallback is not None:
+            print "call", self.rangeSelectionCallback
             self.rangeSelectionCallback()
 
 
@@ -290,20 +293,7 @@ class MzPlotter(PlotterBase):
         if self.c_callback:
             self.c_callback(p)
 
-    def plot_peaks(self, peaks, title=""):
-        """ do not forget to call replot() after calling this function ! """
-        self.widget.plot.del_all_items()
-        self.widget.plot.add_item(self.marker)
-        self.widget.plot.add_item(self.label)
-        config = dict(color=getColor(0))
-        curve = make.curve([], [], title=title, curvestyle="Sticks", **config)
-        curve.set_data(peaks[:, 0], peaks[:, 1])
-        curve.__class__ = ModifiedCurveItem
-        self.widget.plot.add_item(curve)
-        self.widget.plot.all_peaks = peaks
-        self.widget.plot.add_item(self.line)
-
-    def plot(self, spectra, configs=None, titles=None):
+    def plot(self, data, configs=None, titles=None):
         """ do not forget to call replot() after calling this function ! """
         self.widget.plot.del_all_items()
         self.widget.plot.add_item(self.marker)
@@ -311,9 +301,28 @@ class MzPlotter(PlotterBase):
             self.widget.plot.add_item(make.legend("TL"))
         self.widget.plot.add_item(self.label)
 
-        allpeaks = []
-        for i, peaks in enumerate(spectra):
-            allpeaks.append(peaks)
+        all_peaks = []
+        self.widget.plot.data = []
+        self.widget.plot.curves = []
+        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
+            if rtmin is None and rtmax is None:
+                rtmin, rtmax = pm.rtRange()
+            elif rtmin is None:
+                rtmin, __ = pm.rtRange()
+            elif rtmax is None:
+                __, rtmax = pm.rtRange()
+            if mzmin is None and mzmax is None:
+                mzmin, mzmax = pm.mzRange()
+            elif mzmin is None:
+                mzmin, __ = pm.mzRange()
+            elif mzmax is None:
+                __, mzmax = pm.mzRange()
+            if npeaks is None:
+                npeaks = 3000
+
+
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            all_peaks.append(peaks)
             config = configs[i] if configs is not None else None
             if config is None:
                 config = dict(color=getColor(i))
@@ -325,11 +334,14 @@ class MzPlotter(PlotterBase):
             curve.set_data(peaks[:, 0], peaks[:, 1])
             curve.__class__ = ModifiedCurveItem
             self.widget.plot.add_item(curve)
+            self.widget.plot.curves.append(curve)
+            self.widget.plot.data.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
         self.widget.plot.add_item(self.line)
-        if len(allpeaks):
-            self.widget.plot.all_peaks = np.vstack(allpeaks)
+        if len(all_peaks):
+            self.widget.plot.all_peaks = np.vstack(all_peaks)
         else:
             self.widget.plot.all_peaks = np.zeros((0, 2))
+
 
     def resetAxes(self):
         self.widget.plot.reset_x_limits()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyQt4.QtGui import  *
+from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 import guidata
@@ -13,28 +13,33 @@ from table_explorer_model import *
 
 from helpers import protect_signal_handler
 
-def getColors(i, light=False):
-     colors = [(0, 0, 200), (70, 70, 70), (0,150,0),
-                (200, 0, 0), (200, 200, 0), (100, 70, 0)]
-     c = colors[i % len(colors)]
-     if light:
-         c = tuple([min(i+50,  255) for i in c])
 
-     # create hex string  "#rrggbb":
-     return "#"+"".join( "%02x" % v  for v in c)
+def getColors(i, light=False):
+    colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0),
+              (200, 0, 0), (200, 200, 0), (100, 70, 0)]
+    c = colors[i % len(colors)]
+    if light:
+        c = tuple([min(i + 50, 255) for i in c])
+
+    # create hex string  "#rrggbb":
+    return "#" + "".join("%02x" % v for v in c)
+
 
 def configsForEics(eics):
     n = len(eics)
     return [dict(linewidth=1.5, color=getColors(i)) for i in range(n)]
+
 
 def configsForSmootheds(smootheds):
     n = len(smootheds)
     return [dict(shade=0.35, linestyle="NoPen",
                  color=getColors(i, light=True)) for i in range(n)]
 
-def configsForSpectra(spectra):
-    return [dict(color=getColors(i), linewidth=1)\
-                                      for i in range(len(spectra))]
+
+def configsForSpectra(n):
+    return [dict(color=getColors(i), linewidth=1) for i in range(n)]
+
+
 class TableExplorer(QDialog):
 
     def __init__(self, tables, offerAbortOption):
@@ -85,7 +90,7 @@ class TableExplorer(QDialog):
         menu = self.buildEditMenu()
         self.menubar.addMenu(menu)
         self.chooseTableActions = []
-        if len(self.models)>1:
+        if len(self.models) > 1:
             menu = self.buildChooseTableMenu()
             self.menubar.addMenu(menu)
 
@@ -130,21 +135,21 @@ class TableExplorer(QDialog):
     def buildChooseTableMenu(self):
         menu = QMenu("Choose Table", self.menubar)
         for i, model in enumerate(self.models):
-            action = QAction(" [%d]: %s" % (i,model.getTitle()), self)
+            action = QAction(" [%d]: %s" % (i, model.getTitle()), self)
             menu.addAction(action)
             self.chooseTableActions.append(action)
         return menu
 
     def setupPlottingWidgets(self):
-        self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g") )
-        self.rtPlotter = RtPlotter(rangeSelectionCallback=self.plotMz)
-        self.rtPlotter.setMinimumSize(300, 100)
-        self.mzPlotter = MzPlotter()
-        self.mzPlotter.setMinimumSize(300, 100)
+        self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g"))
+        self.rt_plotter = RtPlotter(rangeSelectionCallback=self.plotMz)
+        self.rt_plotter.setMinimumSize(300, 100)
+        self.mz_plotter = MzPlotter()
+        self.mz_plotter.setMinimumSize(300, 100)
         pol = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         pol.setVerticalStretch(5)
-        self.rtPlotter.widget.setSizePolicy(pol)
-        self.mzPlotter.widget.setSizePolicy(pol)
+        self.rt_plotter.widget.setSizePolicy(pol)
+        self.mz_plotter.widget.setSizePolicy(pol)
 
     def setupIntegrationWidgets(self):
         self.intLabel = QLabel("Integration")
@@ -161,7 +166,7 @@ class TableExplorer(QDialog):
     def setupAcceptButtons(self):
         self.okButton = QPushButton("Ok")
         self.abortButton = QPushButton("Abort")
-        self.result = 1 # default for closing
+        self.result = 1  # default for closing
 
     def setupLayout(self):
         vlayout = QVBoxLayout()
@@ -193,7 +198,7 @@ class TableExplorer(QDialog):
     def layoutWidgetsAboveTable(self):
         hsplitter = QSplitter()
         hsplitter.setOpaqueResize(False)
-        hsplitter.addWidget(self.rtPlotter.widget)
+        hsplitter.addWidget(self.rt_plotter.widget)
 
         integrationLayout = QVBoxLayout()
         integrationLayout.setSpacing(10)
@@ -211,7 +216,7 @@ class TableExplorer(QDialog):
         self.integrationFrame.setLayout(integrationLayout)
 
         hsplitter.addWidget(self.integrationFrame)
-        hsplitter.addWidget(self.mzPlotter.widget)
+        hsplitter.addWidget(self.mz_plotter.widget)
         return hsplitter
 
     def setupModelDependendLook(self):
@@ -232,16 +237,16 @@ class TableExplorer(QDialog):
             self.setIntegrationPanelVisiblity(isIntegrated)
             self.wasIntegrated = isIntegrated
         if hasFeatures:
-            self.rtPlotter.setEnabled(True)
+            self.rt_plotter.setEnabled(True)
             self.resetPlots()
 
     def setPlotVisibility(self, doShow):
-        self.rtPlotter.widget.setVisible(doShow)
-        self.mzPlotter.widget.setVisible(doShow)
+        self.rt_plotter.widget.setVisible(doShow)
+        self.mz_plotter.widget.setVisible(doShow)
 
     def resetPlots(self):
-        self.rtPlotter.reset()
-        self.mzPlotter.reset()
+        self.rt_plotter.reset()
+        self.mz_plotter.reset()
 
     def setIntegrationPanelVisiblity(self, doShow):
         self.integrationFrame.setVisible(doShow)
@@ -262,7 +267,7 @@ class TableExplorer(QDialog):
         for view in self.tableViews:
             vh = view.verticalHeader()
             vh.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.connect(vh, SIGNAL("customContextMenuRequested(QPoint)"),\
+            self.connect(vh, SIGNAL("customContextMenuRequested(QPoint)"),
                          self.openContextMenu)
 
             self.connect(vh, SIGNAL("sectionClicked(int)"), self.rowClicked)
@@ -284,20 +289,20 @@ class TableExplorer(QDialog):
 
     def disconnectModelSignals(self):
         self.disconnect(self.model,
-                   SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                   self.dataChanged)
-        self.menubar.disconnect(self.undoAction, SIGNAL("triggered()"),\
-                             protect_signal_handler(self.model.undoLastAction))
-        self.menubar.disconnect(self.redoAction, SIGNAL("triggered()"),\
-                             protect_signal_handler(self.model.redoLastAction))
+                        SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+                        self.dataChanged)
+        self.menubar.disconnect(self.undoAction, SIGNAL("triggered()"),
+                                protect_signal_handler(self.model.undoLastAction))
+        self.menubar.disconnect(self.redoAction, SIGNAL("triggered()"),
+                                protect_signal_handler(self.model.redoLastAction))
 
     def connectModelSignals(self):
         self.connect(self.model,
-                   SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                   self.dataChanged)
-        self.menubar.connect(self.undoAction, SIGNAL("triggered()"),\
+                     SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+                     self.dataChanged)
+        self.menubar.connect(self.undoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.undoLastAction))
-        self.menubar.connect(self.redoAction, SIGNAL("triggered()"),\
+        self.menubar.connect(self.redoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.redoLastAction))
 
     def updateMenubar(self):
@@ -312,15 +317,15 @@ class TableExplorer(QDialog):
 
     def setupViewForTable(self, i):
         for j, action in enumerate(self.chooseTableActions):
-            txt = str(action.text()) # QString -> Python str
+            txt = str(action.text())  # QString -> Python str
             if txt.startswith("*"):
-                txt = " "+txt[1:]
+                txt = " " + txt[1:]
                 action.setText(txt)
-            if i==j:
-                action.setText("*"+txt[1:])
+            if i == j:
+                action.setText("*" + txt[1:])
 
         for j in range(len(self.models)):
-            self.tableViews[j].setVisible(i==j)
+            self.tableViews[j].setVisible(i == j)
 
         if self.model is not None:
             self.disconnectModelSignals()
@@ -328,7 +333,7 @@ class TableExplorer(QDialog):
         self.tableView = self.tableViews[i]
         self.setupModelDependendLook()
         if self.isIntegrated:
-            self.model.setNonEditable("method", ["area", "rmse", "method",\
+            self.model.setNonEditable("method", ["area", "rmse", "method",
                                                  "params"])
         self.choosePostfix.clear()
         mod = self.model
@@ -345,8 +350,8 @@ class TableExplorer(QDialog):
     def dataChanged(self, ix1, ix2, src):
         minr, maxr = sorted((ix1.row(), ix2.row()))
         minc, maxc = sorted((ix1.column(), ix2.column()))
-        for r in range(minr, maxr+1):
-            for c in range(minc, maxc+1):
+        for r in range(minr, maxr + 1):
+            for c in range(minc, maxc + 1):
                 idx = self.model.createIndex(r, c)
                 self.tableView.update(idx)
 
@@ -367,7 +372,6 @@ class TableExplorer(QDialog):
     def ok(self):
         self.result = 0
         self.close()
-
 
     @protect_signal_handler
     def openContextMenu(self, point):
@@ -396,7 +400,7 @@ class TableExplorer(QDialog):
     @protect_signal_handler
     def doIntegrate(self):
         if self.currentRowIdx < 0:
-            return # no row selected
+            return  # no row selected
 
         # QString -> Python str:
         method = str(self.chooseIntMethod.currentText())
@@ -404,7 +408,7 @@ class TableExplorer(QDialog):
         # For better readibilty we put single quotes around the postfix
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
-        rtmin, rtmax = self.rtPlotter.getRangeSelectionLimits()
+        rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
         self.model.integrate(postfix, self.currentRowIdx, method, rtmin, rtmax)
 
     @protect_signal_handler
@@ -412,11 +416,10 @@ class TableExplorer(QDialog):
         if not self.hasFeatures:
             return
         self.currentRowIdx = rowIdx
-        self.rtPlotter.setEnabled(True)
+        self.rt_plotter.setEnabled(True)
         self.updatePlots(reset=True)
         if self.hasFeatures:
             self.setupSpectrumChooser()
-
 
     def setupSpectrumChooser(self):
         # delete QComboBox:
@@ -436,11 +439,11 @@ class TableExplorer(QDialog):
         self.chooseSpectrum.addItem("Show only Level 1 spectra")
         for postfix, s in zip(postfixes, spectra):
             if postfix != "":
-                txt = postfix+", "
+                txt = postfix + ", "
             else:
                 txt = ""
-            txt += "rt=%.2fm, level=%d" % (s.rt/60.0, s.msLevel)
-            mzs = [ mz for (mz, I) in s.precursors ]
+            txt += "rt=%.2fm, level=%d" % (s.rt / 60.0, s.msLevel)
+            mzs = [mz for (mz, I) in s.precursors]
             precursors = ", ".join("%.6f" % mz for mz in mzs)
             if precursors:
                 txt += ", precursor mzs=[%s]" % precursors
@@ -460,23 +463,23 @@ class TableExplorer(QDialog):
                 configs += configsForSmootheds(smootheds)
 
         if not reset:
-            rtmin, rtmax = self.rtPlotter.getRangeSelectionLimits()
-            xmin, xmax, ymin, ymax = self.rtPlotter.getLimits()
+            rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
+            xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
 
-        self.rtPlotter.plot(curves, configs=configs, titles=None,
-                            withmarker=True)
+        self.rt_plotter.plot(curves, configs=configs, titles=None,
+                             withmarker=True)
 
         # allrts are sorted !
         w = rtmax - rtmin
         if w == 0:
-            w = 30.0 # seconds
-        self.rtPlotter.setRangeSelectionLimits(rtmin, rtmax)
-        self.rtPlotter.setXAxisLimits(rtmin -w, rtmax + w)
-        self.rtPlotter.replot()
+            w = 30.0  # seconds
+        self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
+        self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
+        self.rt_plotter.replot()
         if not reset:
-            self.rtPlotter.setXAxisLimits(xmin, xmax)
-            self.rtPlotter.setYAxisLimits(ymin, ymax)
-            self.rtPlotter.updateAxes()
+            self.rt_plotter.setXAxisLimits(xmin, xmax)
+            self.rt_plotter.setYAxisLimits(ymin, ymax)
+            self.rt_plotter.updateAxes()
 
         reset = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset else None
@@ -484,54 +487,42 @@ class TableExplorer(QDialog):
 
     @protect_signal_handler
     def spectrumChosen(self, idx):
-        if idx==0:
-            self.rtPlotter.setEnabled(True)
+        if idx == 0:
+            self.rt_plotter.setEnabled(True)
             self.chooseIntMethod.setEnabled(True)
             self.reintegrateButton.setEnabled(True)
             self.plotMz()
         else:
-            self.rtPlotter.setEnabled(False)
+            self.rt_plotter.setEnabled(False)
             self.chooseIntMethod.setEnabled(False)
             self.reintegrateButton.setEnabled(False)
-            self.mzPlotter.plot([self.currentLevelNSpecs[idx-1].peaks])
-            self.mzPlotter.resetAxes()
-            self.mzPlotter.replot()
+            self.mz_plotter.plot([self.currentLevelNSpecs[idx - 1].peaks])
+            self.mz_plotter.resetAxes()
+            self.mz_plotter.replot()
 
     def plotMz(self, resetLimits=None):
         """ this one is used from updatePlots and the rangeselectors
             callback """
-        rtmin=self.rtPlotter.minRTRangeSelected
-        rtmax=self.rtPlotter.maxRTRangeSelected
-
-        # get spectra for current row in given rt-range:
+        rtmin = self.rt_plotter.minRTRangeSelected
+        rtmax = self.rt_plotter.maxRTRangeSelected
         peakmaps = self.model.getPeakmaps(self.currentRowIdx)
-
-        peaks = [pm.getDominatingPeakmap().msNPeaks(1, rtmin, rtmax) for pm in peakmaps]
-
-        # plot peaks
-        configs = configsForSpectra(peaks)
-        postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
-        titles = map(repr, postfixes)
-        self.mzPlotter.plot(peaks, configs, titles if len(titles)>1 else None)
-
         if resetLimits:
             mzmin, mzmax = resetLimits
-            Imaxes = []
-            for p  in peaks:
-                imin = p[:,0].searchsorted(mzmin)
-                imax = p[:,0].searchsorted(mzmax, side='right')
-                found = p[imin:imax,1]
-                if len(found):
-                    Imaxes.append(found.max())
+            data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
+        else:
+            data = []
+            for pm in peakmaps:
+                mzmin, mzmax = pm.mzRange()
+                data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
 
-            if len(Imaxes) == 0:
-                Imax = 1.0
-            else:
-                Imax = max(Imaxes) * 1.2
-            self.mzPlotter.setXAxisLimits(mzmin, mzmax)
-            self.mzPlotter.reset_y_limits(0, Imax)
-        # plot() needs replot() afterwards !
-        self.mzPlotter.replot()
+        configs = configsForSpectra(len(peakmaps))
+        postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
+        titles = map(repr, postfixes)
+        self.mz_plotter.plot(data, configs, titles if len(titles) > 1 else None)
+
+        self.mz_plotter.reset_x_limits()
+        self.mz_plotter.replot()
+
 
 def inspect(what, offerAbortOption=False):
     """
@@ -541,7 +532,7 @@ def inspect(what, offerAbortOption=False):
     """
     if isinstance(what, Table):
         what = [what]
-    app = guidata.qapplication() # singleton !
+    app = guidata.qapplication()  # singleton !
     explorer = TableExplorer(what, offerAbortOption)
     explorer.raise_()
     explorer.exec_()

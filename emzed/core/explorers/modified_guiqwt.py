@@ -2,10 +2,11 @@ from exceptions import Exception
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
-from guiqwt.events import ObjectHandler, KeyEventMatch, setup_standard_tool_filter, QtDragHandler
+from guiqwt.events import ObjectHandler, KeyEventMatch, QtDragHandler
 from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING,
-                            SIG_RANGE_CHANGED)
+                            SIG_RANGE_CHANGED, SIG_PLOT_AXIS_CHANGED)
 
+from guiqwt.events import ZoomHandler, PanHandler, MoveHandler
 
 from guiqwt.tools import InteractiveTool
 
@@ -13,6 +14,7 @@ from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
 import numpy as np
 
 from helpers import protect_signal_handler
+from emzed_optimizations import sample_peaks
 
 
 class ModifiedCurveItem(CurveItem):
@@ -63,7 +65,17 @@ class RtSelectionTool(InteractiveTool):
                          KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
                          baseplot.do_backspace_pressed, start_state)
 
-        return setup_standard_tool_filter(filter, start_state)
+        # Bouton du milieu
+        PanHandler(filter, Qt.MidButton, start_state=start_state)
+
+        # Bouton droit
+        ZoomHandler(filter, Qt.RightButton, start_state=start_state)
+
+        # Autres (touches, move)
+        MoveHandler(filter, start_state=start_state)
+        MoveHandler(filter, start_state=start_state, mods=Qt.ShiftModifier)
+        MoveHandler(filter, start_state=start_state, mods=Qt.AltModifier)
+        return start_state
 
 
 class MzSelectionTool(InteractiveTool):
@@ -102,8 +114,22 @@ class MzSelectionTool(InteractiveTool):
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
         self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
 
-        # self.connect(handler, SIGNAL("doubleClicked()"), baseplot.do_c_pressed)
-        return setup_standard_tool_filter(filter, start_state)
+        # Bouton du milieu
+        PanHandler(filter, Qt.MidButton, start_state=start_state)
+
+        # Bouton droit
+        class ZoomHandlerWithStopingEvent(ZoomHandler):
+            def stop_moving(self, filter_, event):
+                x_state, y_state = self.get_move_state(filter_, event.pos())
+                filter_.plot.do_finish_zoom_view(x_state, y_state)
+
+        ZoomHandlerWithStopingEvent(filter, Qt.RightButton, start_state=start_state)
+
+        # Autres (touches, move)
+        MoveHandler(filter, start_state=start_state)
+        MoveHandler(filter, start_state=start_state, mods=Qt.ShiftModifier)
+        MoveHandler(filter, start_state=start_state, mods=Qt.AltModifier)
+        return start_state
 
 
 class ModifiedCurvePlot(CurvePlot):
@@ -113,17 +139,101 @@ class ModifiedCurvePlot(CurvePlot):
             - handler for backspace, called by RtSelectionTool and MzSelectionTool
     """
 
+    @protect_signal_handler
     def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
-        """ modified do_zoom_view such that y=0 stays at bottom of plot """
+        """
+        modified version of do_zoom_view from base class,
+        we restrict zooming and panning to positive y-values
 
-        dy = dy[0], dy[1], self.transform(0, 0), dy[3]
-        return super(ModifiedCurvePlot, self).do_zoom_view(dx, dy, lock_aspect_ratio)
+        Change the scale of the active axes (zoom/dezoom) according to dx, dy
+        dx, dy are tuples composed of (initial pos, dest pos)
+        We try to keep initial pos fixed on the canvas as the scale changes
+        """
+        # See guiqwt/events.py where dx and dy are defined like this:
+        #   dx = (pos.x(), self.last.x(), self.start.x(), rct.width())
+        #   dy = (pos.y(), self.last.y(), self.start.y(), rct.height())
+        # where:
+        #   * self.last is the mouse position seen during last event
+        #   * self.start is the first mouse position (here, this is the
+        #     coordinate of the point which is at the center of the zoomed area)
+        #   * rct is the plot rect contents
+        #   * pos is the current mouse cursor position
+        auto = self.autoReplot()
+        self.setAutoReplot(False)
+        dx = (-1,) + dx  # adding direction to tuple dx
+        dy = (1,) + dy  # adding direction to tuple dy
+        if lock_aspect_ratio:
+            direction, x1, x0, start, width = dx
+            F = 1 + 3 * direction * float(x1 - x0) / width
+        axes_to_update = self.get_axes_to_update(dx, dy)
 
+        axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
+
+        for (direction, x1, x0, start, width), axis_id in axes_to_update:
+            lbound, hbound = self.get_axis_limits(axis_id)
+            if not lock_aspect_ratio:
+                F = 1 + 3 * direction * float(x1 - x0) / width
+            if F * (hbound - lbound) == 0:
+                continue
+            if self.get_axis_scale(axis_id) == 'lin':
+                orig = self.invTransform(axis_id, start)
+                vmin = orig - F * (orig - lbound)
+                vmax = orig + F * (hbound - orig)
+            else:  # log scale
+                i_lbound = self.transform(axis_id, lbound)
+                i_hbound = self.transform(axis_id, hbound)
+                imin = start - F * (start - i_lbound)
+                imax = start + F * (i_hbound - start)
+                vmin = self.invTransform(axis_id, imin)
+                vmax = self.invTransform(axis_id, imax)
+
+            # patch for not zooming into "negative space" ;) :
+            if axis_id in axis_ids_vertical:
+                vmin = 0
+                if vmax < 0:
+                    vmax = -vmax
+
+            self.set_axis_limits(axis_id, vmin, vmax)
+
+        self.setAutoReplot(auto)
+        # the signal MUST be emitted after replot, otherwise
+        # we receiver won't see the new bounds (don't know why?)
+        self.replot()
+        self.emit(SIG_PLOT_AXIS_CHANGED, self)
+
+    @protect_signal_handler
     def do_pan_view(self, dx, dy):
-        """ modified do_zoom_view such that only panning in x-direction happens """
+        """
+        modified version of do_pan_view from base class,
+        we restrict zooming and panning to ranges of peakmap.
 
-        dy = dy[2], dy[2], dy[2], dy[3]
-        return super(ModifiedCurvePlot, self).do_pan_view(dx, dy)
+        Translate the active axes by dx, dy
+        dx, dy are tuples composed of (initial pos, dest pos)
+        """
+        auto = self.autoReplot()
+        self.setAutoReplot(False)
+        axes_to_update = self.get_axes_to_update(dx, dy)
+        axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
+
+        for (x1, x0, _start, _width), axis_id in axes_to_update:
+            lbound, hbound = self.get_axis_limits(axis_id)
+            i_lbound = self.transform(axis_id, lbound)
+            i_hbound = self.transform(axis_id, hbound)
+            delta = x1 - x0
+            vmin = self.invTransform(axis_id, i_lbound - delta)
+            vmax = self.invTransform(axis_id, i_hbound - delta)
+            # patch for not zooming into "negative space" ;) :
+            if axis_id in axis_ids_vertical:
+                vmin = 0
+                if vmax < 0:
+                    vmax = -vmax
+            self.set_axis_limits(axis_id, vmin, vmax)
+
+        self.setAutoReplot(auto)
+        # the signal MUST be emitted after replot, otherwise
+        # we receiver won't see the new bounds (don't know why?)
+        self.replot()
+        self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
     @protect_signal_handler
     def do_backspace_pressed(self, filter, evt):
@@ -290,6 +400,11 @@ class MzPlot(ModifiedCurvePlot):
             - showing information about current peak and distances if in drag mode
     """
 
+    # as we have constructor, we provide default values here:
+    data = []
+    latest_mzmin = None
+    latest_mzmax = None
+
     def label_info(self, x, y):
         # label next to cursor turned off:
         return None
@@ -300,8 +415,40 @@ class MzPlot(ModifiedCurvePlot):
         self.current_peak = self.next_peak_to(x, y)
         return self.current_peak
 
-    def next_peak_to(self, mz, I):
+    def do_finish_zoom_view(self, dx, dy):
+        dx = (-1,) + dx  # adding direction to tuple dx
+        dy = (1,) + dy  # adding direction to tuple dy
+        axes_to_update = self.get_axes_to_update(dx, dy)
 
+        mzmins = []
+        mzmaxs = []
+
+        axis_ids_horizontal = (self.get_axis_id("bottom"), self.get_axis_id("top"))
+        all_peaks = []
+        for __, id_ in axes_to_update:
+            if id_ in axis_ids_horizontal:
+                mzmin, mzmax = self.get_axis_limits(id_)
+                mzmins.append(mzmin)
+                mzmaxs.append(mzmax)
+
+        self.update_plot_xlimits(min(mzmins), max(mzmaxs))
+        self.replot()
+
+    def do_backspace_pressed(self, filter, evt):
+        """ reset axes of plot """
+        all_peaks = []
+        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.data):
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            curve = self.curves[i]
+            curve.set_data(peaks[:, 0], peaks[:, 1])
+            all_peaks.append(peaks)
+        if len(all_peaks):
+            self.all_peaks = np.vstack(all_peaks)
+        else:
+            self.all_peaks = np.zeros((0, 2))
+        self.reset_x_limits()
+
+    def next_peak_to(self, mz, I):
         if self.all_peaks.shape[0] == 0:
             return mz, I
 
@@ -373,6 +520,37 @@ class MzPlot(ModifiedCurvePlot):
     def stop_drag_mode(self, filter_, evt):
         line = self.get_unique_item(SegmentShape)
         line.setVisible(0)
+        self.replot()
+
+    def resample_peaks(self, mzmin, mzmax):
+        if mzmin == self.latest_mzmin and mzmax == self.latest_mzmax:
+            return
+        self.latest_mzmin = mzmin
+        self.latest_mzmax = mzmax
+        all_peaks = []
+        for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.data):
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            curve = self.curves[i]
+            curve.set_data(peaks[:, 0], peaks[:, 1])
+            all_peaks.append(peaks)
+        if len(all_peaks):
+            self.all_peaks = np.vstack(all_peaks)
+        else:
+            self.all_peaks = np.zeros((0, 2))
+
+    def update_plot_xlimits(self, xmin, xmax):
+        _, _, ymin, ymax = self.get_plot_limits()
+        self.set_plot_limits(xmin, xmax, ymin, ymax)
+        self.resample_peaks(xmin, xmax)
+        self.setAxisAutoScale(self.yLeft)  # y-achse
+        self.updateAxes()
+        self.replot()
+
+    def update_plot_ylimits(self, ymin, ymax):
+        xmin, xmax, _, _ = self.get_plot_limits()
+        self.resample_peaks(xmin, xmax)
+        self.set_plot_limits(xmin, xmax, ymin, ymax)
+        self.updateAxes()
         self.replot()
 
 

@@ -24,7 +24,7 @@ from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, S
                             SIG_PLOT_AXIS_CHANGED, )
 from guiqwt.tools import SelectTool, InteractiveTool
 
-from emzed_optimizations.sample import sample_image, sample_peaks
+from emzed_optimizations.sample import sample_image # , sample_peaks
 
 from plotting_widgets import MzPlotter
 
@@ -1044,8 +1044,7 @@ class PeakMapExplorer(QDialog):
         p = self.chromatogram_widget.plot
         p.plot_chromatogram(rts, chroma)
 
-        peaks = sample_peaks(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)
-        self.mz_plotter.plot([peaks])
+        self.mz_plotter.plot([(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)])
         self.mz_plotter.widget.plot.reset_x_limits()
         self.mz_plotter.widget.plot.reset_y_limits()
         self.mz_plotter.updateAxes()

@@ -89,10 +89,10 @@ class ChromatogramExplorer(QDialog):
             self.plotMz()
         else:
             spec = self.levelNSpecs[idx - 1]
-            self.mzPlotter.plot([spec.peaks])
-            self.mzPlotter.resetAxes()
-            self.mzPlotter.replot()
-        self.rtPlotter.setEnabled(idx == 0)
+            self.mz_plotter.plot([spec.peaks])
+            self.mz_plotter.resetAxes()
+            self.mz_plotter.replot()
+        self.rt_plotter.setEnabled(idx == 0)
 
     @protect_signal_handler
     def resetButtonPressed(self):
@@ -119,10 +119,10 @@ class ChromatogramExplorer(QDialog):
 
         vlayout.addLayout(hlayout)
 
-        vlayout.addWidget(self.rtPlotter.widget)
+        vlayout.addWidget(self.rt_plotter.widget)
         if self.chooseLevelNSpec:
             vlayout.addWidget(self.chooseLevelNSpec)
-        vlayout.addWidget(self.mzPlotter.widget)
+        vlayout.addWidget(self.mz_plotter.widget)
 
     def setupInputWidgets(self):
         self.labelMin = QLabel("mz")
@@ -150,42 +150,46 @@ class ChromatogramExplorer(QDialog):
 
     @protect_signal_handler
     def w2Updated(self, txt):
-        self.mzPlotter.setHalfWindowWidth(float(txt))
+        self.mz_plotter.setHalfWindowWidth(float(txt))
 
     @protect_signal_handler
     def mzUpdated(self, txt):
         txt = str(txt)
         if txt.strip() == "":
-            self.mzPlotter.setCentralMz(None)
+            self.mz_plotter.setCentralMz(None)
             return
-        self.mzPlotter.setCentralMz(float(txt))
+        self.mz_plotter.setCentralMz(float(txt))
 
     def handleCPressed(self, (mz, I)):
         self.inputMZ.setText("%.6f" % mz)
 
     def setupPlotWidgets(self):
-        self.rtPlotter = RtPlotter(self.plotMz)
-        self.mzPlotter = MzPlotter(self.handleCPressed)
+        self.rt_plotter = RtPlotter(self.plotMz)
+        self.mz_plotter = MzPlotter(self.handleCPressed)
 
-        self.rtPlotter.setMinimumSize(600, 300)
-        self.mzPlotter.setMinimumSize(600, 300)
+        self.rt_plotter.setMinimumSize(600, 300)
+        self.mz_plotter.setMinimumSize(600, 300)
 
-        self.mzPlotter.setHalfWindowWidth(0.05)
+        self.mz_plotter.setHalfWindowWidth(0.05)
 
     def plotChromatogramm(self):
-        self.rtPlotter.plot([(self.rts, self.chromatogram)])
-        self.rtPlotter.setXAxisLimits(self.rts[0], self.rts[-1])
-        self.rtPlotter.setYAxisLimits(0, max(self.chromatogram) * 1.1)
-        self.rtPlotter.setRangeSelectionLimits(self.rts[0], self.rts[0])
-        self.rtPlotter.replot()
+        self.rt_plotter.plot([(self.rts, self.chromatogram)])
+        self.rt_plotter.setXAxisLimits(self.rts[0], self.rts[-1])
+        self.rt_plotter.setYAxisLimits(0, max(self.chromatogram) * 1.1)
+        self.rt_plotter.setRangeSelectionLimits(self.rts[0], self.rts[0])
+        self.rt_plotter.replot()
 
     def plotMz(self):
-        minRT = self.rtPlotter.minRTRangeSelected
-        maxRT = self.rtPlotter.maxRTRangeSelected
-        peaks = self.peakmap.msNPeaks(1, minRT, maxRT)
-        self.mzPlotter.resetAxes()
-        self.mzPlotter.plot([peaks])
-        self.mzPlotter.replot()
+        rtmin = self.rt_plotter.minRTRangeSelected
+        rtmax = self.rt_plotter.maxRTRangeSelected
+        mzmin, mzmax = self.peakmap.mzRange()
+
+        self.mz_plotter.resetAxes()
+        self.mz_plotter.plot([(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)])
+        self.mz_plotter.widget.plot.reset_x_limits()
+        self.mz_plotter.widget.plot.reset_y_limits()
+        self.mz_plotter.updateAxes()
+        self.mz_plotter.replot()
 
 
 def inspectChromatograms(peakmap):
