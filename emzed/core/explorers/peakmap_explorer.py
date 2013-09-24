@@ -637,6 +637,7 @@ def create_chromatogram_widget():
     params = {
         "marker/cross/line/color": "#cccccc",
         "marker/cross/line/width": 1.5,
+        "marker/cross/line/style": "DashLine",
         "marker/cross/line/alpha": 0.4,
         "marker/cross/markerstyle": "VLine",
         "marker/cross/symbol/marker": "NoSymbol",
@@ -644,7 +645,6 @@ def create_chromatogram_widget():
     CONF.update_defaults(dict(plot=params))
     cross_marker.markerparam.read_config(CONF, "plot", "marker/cross")
     cross_marker.markerparam.update_marker(cross_marker)
-
     return widget
 
 
@@ -686,6 +686,7 @@ def create_peakmap_labels(plot):
         "marker/cross/line/color": "#cccccc",
         "marker/cross/line/width": 1.5,
         "marker/cross/line/alpha": 0.4,
+        "marker/cross/line/style": "DashLine",
         "marker/cross/symbol/marker": "NoSymbol",
         "marker/cross/markerstyle": "Cross",
     }
