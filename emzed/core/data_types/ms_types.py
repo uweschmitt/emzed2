@@ -122,13 +122,13 @@ class Spectrum(object):
         """minimal m/z value in spectrum"""
 
         if len(self.peaks):
-            return float(self.peaks[:, 0].min())
+            return float(self.peaks[0, 0])
         return None
 
     def mzMax(self):
         """maximal m/z value in spectrum"""
         if len(self.peaks):
-            return float(self.peaks[:, 0].max())
+            return float(self.peaks[-1, 0])
         return None
 
     def maxIntensity(self):
@@ -348,11 +348,10 @@ class PeakMap(object):
 
     def mzRange(self):
         """returns mz-range *(mzmin, mzmax)* of current peakmap """
-
         mzranges = [s.mzRange() for s in self.spectra]
         mzmin = min(mzmin for (mzmin, mzmax) in mzranges if mzmin is not None)
         mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
-        return float(mzmin), float(mzmax)
+        return (float(mzmin), float(mzmax))
 
     def rtRange(self):
         """ returns rt-range *(rtmin, tax)* of current peakmap """
