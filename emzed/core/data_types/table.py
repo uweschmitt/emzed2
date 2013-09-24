@@ -419,7 +419,7 @@ class Table(object):
             Example: ``table.set(table.rows[0], "mz", 252.83332)``
         """
         if slow_but_checked:
-            assert row in self.rows
+            assert id(row) in map(id, self.rows)
         ix = self.getIndex(colName)
         if type(value) in [np.float32, np.float64]:
             value = float(value)
