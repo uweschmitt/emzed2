@@ -431,7 +431,7 @@ class MzPlot(ModifiedCurvePlot):
                 mzmins.append(mzmin)
                 mzmaxs.append(mzmax)
 
-        self.update_plot_xlimits(min(mzmins), max(mzmaxs))
+        self.update_plot_xlimits(min(mzmins), max(mzmaxs), rescale_y=False)
         self.replot()
 
     def do_backspace_pressed(self, filter, evt):
@@ -538,11 +538,12 @@ class MzPlot(ModifiedCurvePlot):
         else:
             self.all_peaks = np.zeros((0, 2))
 
-    def update_plot_xlimits(self, xmin, xmax):
+    def update_plot_xlimits(self, xmin, xmax, rescale_y=True):
         _, _, ymin, ymax = self.get_plot_limits()
         self.set_plot_limits(xmin, xmax, ymin, ymax)
         self.resample_peaks(xmin, xmax)
-        self.setAxisAutoScale(self.yLeft)  # y-achse
+        if rescale_y:
+            self.setAxisAutoScale(self.yLeft)  # y-achse
         self.updateAxes()
         self.replot()
 
