@@ -69,27 +69,27 @@ class PeakMapImageItem(RawImageItem):
         self.set_lut_range([0, self.IMAX])
         self.set_color_map("hot")
 
-        self.total_i_min = 0.0
-        self.total_i_max = max(np.max(s.peaks[:, 1]) for s in peakmap.spectra)
+        self.total_imin = 0.0
+        self.total_imax = max(np.max(s.peaks[:, 1]) for s in peakmap.spectra)
 
-        self.i_min = self.total_i_min
-        self.i_max = self.total_i_max
+        self.imin = self.total_imin
+        self.imax = self.total_imax
 
         self.gamma = 1.0
 
         self.is_log = 1
 
-    def set_i_min(self, i_min):
-        self.i_min = i_min
+    def set_imin(self, imin):
+        self.imin = imin
 
-    def set_i_max(self, i_max):
-        self.i_max = i_max
+    def set_imax(self, imax):
+        self.imax = imax
 
     def set_gamma(self, gamma):
         self.gamma = gamma
 
-    def get_total_i_max(self):
-        return self.total_i_max
+    def get_total_imax(self):
+        return self.total_imax
 
     def set_logarithmic_scale(self, is_log):
         self.is_log = is_log
@@ -110,17 +110,17 @@ class PeakMapImageItem(RawImageItem):
 
         # turn up/down
         data = data[::-1, :]
-        i_min = self.i_min
-        i_max = self.i_max
+        imin = self.imin
+        imax = self.imax
 
         if self.is_log:
             data = np.log(1.0 + data)
-            i_min = np.log(1.0 + i_min)
-            i_max = np.log(1.0 + i_max)
+            imin = np.log(1.0 + imin)
+            imax = np.log(1.0 + imax)
 
-        data[data < i_min] = i_min
-        data[data > i_max] = i_max
-        data -= i_min
+        data[data < imin] = imin
+        data[data > imax] = imax
+        data -= imin
 
         # enlarge single pixels to 2 x 2 pixels:
         smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
@@ -336,6 +336,7 @@ class ModifiedImagePlot(ImagePlot):
     # values as class atributes:
 
     rtmin = rtmax = mzmin = mzmax = None
+    abs_rtmin = abs_rtmax = abs_mzmin = abs_mzmax = None
     coords = (None, None)
     dragging = False
 
@@ -544,18 +545,18 @@ class ModifiedImagePlot(ImagePlot):
             else:  # log scale
                 i_lbound = self.transform(axis_id, lbound)
                 i_hbound = self.transform(axis_id, hbound)
-                i_min = start - F * (start - i_lbound)
-                i_max = start + F * (i_hbound - start)
-                vmin = self.invTransform(axis_id, i_min)
-                vmax = self.invTransform(axis_id, i_max)
+                imin = start - F * (start - i_lbound)
+                imax = start + F * (i_hbound - start)
+                vmin = self.invTransform(axis_id, imin)
+                vmax = self.invTransform(axis_id, imax)
 
             # patch for not "zooming out"
             if axis_id in axis_ids_horizontal:
-                vmin = max(vmin, self.rtmin)
-                vmax = min(vmax, self.rtmax)
+                vmin = max(vmin, self.abs_rtmin)
+                vmax = min(vmax, self.abs_rtmax)
             elif axis_id in axis_ids_vertical:
-                vmin = max(vmin, self.mzmin)
-                vmax = min(vmax, self.mzmax)
+                vmin = max(vmin, self.abs_mzmin)
+                vmax = min(vmax, self.abs_mzmax)
 
             self.set_axis_limits(axis_id, vmin, vmax)
 
@@ -589,11 +590,11 @@ class ModifiedImagePlot(ImagePlot):
             vmax = self.invTransform(axis_id, i_hbound - delta)
             # patch for not "panning out"
             if axis_id in axis_ids_horizontal:
-                vmin = max(vmin, self.rtmin)
-                vmax = min(vmax, self.rtmax)
+                vmin = max(vmin, self.abs_rtmin)
+                vmax = min(vmax, self.abs_rtmax)
             elif axis_id in axis_ids_vertical:
-                vmin = max(vmin, self.mzmin)
-                vmax = min(vmax, self.mzmax)
+                vmin = max(vmin, self.abs_mzmin)
+                vmax = min(vmax, self.abs_mzmax)
             self.set_axis_limits(axis_id, vmin, vmax)
 
         self.setAutoReplot(auto)
@@ -603,12 +604,14 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-def create_image_widget():  # rtmin, rtmax, mzmin, mzmax):
+def create_image_widget(peakmap): 
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False, xlabel="rt", ylabel="m/z")
 
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
+    widget.plot.abs_rtmin, widget.plot.abs_rtmax = peakmap.rtRange()
+    widget.plot.abs_mzmin, widget.plot.abs_mzmax = peakmap.mzRange()
     widget.plot.set_axis_direction("left", False)
     widget.plot.set_axis_direction("right", False)
     return widget
@@ -707,7 +710,7 @@ class PeakMapPlotter(object):
 
     def __init__(self, peakmap):
 
-        self.widget = create_image_widget()  # rtmin, rtmax, mzmin, mzmax)
+        self.widget = create_image_widget(peakmap) 
 
         self.peakmap = peakmap
 
@@ -777,9 +780,13 @@ class PeakMapExplorer(QDialog):
         self.mzmin, self.mzmax = peakmap.mzRange()
 
     def setup_initial_values(self):
-        self.i_min_input.setText("0")
+        self.imin_input.setText("0")
         pmi = self.peakmap_plotter.pmi
-        self.i_max_input.setText("%.0f" % pmi.get_total_i_max())
+
+        imax = pmi.get_total_imax()
+        imax = 10**math.ceil(math.log10(imax))
+
+        self.imax_input.setText("%g" % imax)
 
         self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
 
@@ -816,17 +823,17 @@ class PeakMapExplorer(QDialog):
 
         self.i_range_label = QLabel("Intensity:")
 
-        self.i_min_input = QLineEdit()
-        self.i_min_slider = QSlider(Qt.Horizontal)
-        self.i_min_slider.setMinimum(0)
-        self.i_min_slider.setMaximum(100)
-        self.i_min_slider.setSliderPosition(0)
+        self.imin_input = QLineEdit()
+        self.imin_slider = QSlider(Qt.Horizontal)
+        self.imin_slider.setMinimum(0)
+        self.imin_slider.setMaximum(100)
+        self.imin_slider.setSliderPosition(0)
 
-        self.i_max_slider = QSlider(Qt.Horizontal)
-        self.i_max_slider.setMinimum(0)
-        self.i_max_slider.setMaximum(100)
-        self.i_max_slider.setSliderPosition(1000)
-        self.i_max_input = QLineEdit()
+        self.imax_slider = QSlider(Qt.Horizontal)
+        self.imax_slider.setMinimum(0)
+        self.imax_slider.setMaximum(100)
+        self.imax_slider.setSliderPosition(1000)
+        self.imax_input = QLineEdit()
 
         self.rt_range_label = QLabel("Retention Time [minutes]:")
         self.rtmin_input = QLineEdit()
@@ -899,10 +906,10 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.i_range_label, row, 0, 1, 4)
 
         row += 1
-        controls_layout.addWidget(self.i_min_input, row, 0)
-        controls_layout.addWidget(self.i_min_slider, row, 1)
-        controls_layout.addWidget(self.i_max_slider, row, 2)
-        controls_layout.addWidget(self.i_max_input, row, 3)
+        controls_layout.addWidget(self.imin_input, row, 0)
+        controls_layout.addWidget(self.imin_slider, row, 1)
+        controls_layout.addWidget(self.imax_slider, row, 2)
+        controls_layout.addWidget(self.imax_input, row, 3)
 
         frame = QFrame()
         frame.setLineWidth(1)
@@ -970,11 +977,11 @@ class PeakMapExplorer(QDialog):
         self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
         self.connect(self.gamma_slider, SIGNAL("valueChanged(int)"), self.gamma_changed)
 
-        self.connect(self.i_min_input, SIGNAL("editingFinished()"), self.i_min_edited)
-        self.connect(self.i_max_input, SIGNAL("editingFinished()"), self.i_max_edited)
+        self.connect(self.imin_input, SIGNAL("editingFinished()"), self.imin_edited)
+        self.connect(self.imax_input, SIGNAL("editingFinished()"), self.imax_edited)
 
-        self.connect(self.i_min_slider, SIGNAL("valueChanged(int)"), self.i_min_slider_changed)
-        self.connect(self.i_max_slider, SIGNAL("valueChanged(int)"), self.i_max_slider_changed)
+        self.connect(self.imin_slider, SIGNAL("valueChanged(int)"), self.imin_slider_changed)
+        self.connect(self.imax_slider, SIGNAL("valueChanged(int)"), self.imax_slider_changed)
 
         self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.set_image_range)
         self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.set_image_range)
@@ -1070,7 +1077,7 @@ class PeakMapExplorer(QDialog):
         pmi = self.peakmap_plotter.pmi
         setter(abs_value)
 
-        slider_value = (abs_value / pmi.get_total_i_max()) ** 0.3333333 * slider.maximum()
+        slider_value = (abs_value / pmi.get_total_imax()) ** 0.3333333 * slider.maximum()
 
         slider.blockSignals(True)
         slider.setSliderPosition(slider_value)
@@ -1078,12 +1085,12 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.replot()
 
     @protect_signal_handler
-    def i_min_edited(self):
-        self._i_edited(self.i_min_input, self.peakmap_plotter.pmi.set_i_min, self.i_min_slider)
+    def imin_edited(self):
+        self._i_edited(self.imin_input, self.peakmap_plotter.pmi.set_imin, self.imin_slider)
 
     @protect_signal_handler
-    def i_max_edited(self):
-        self._i_edited(self.i_max_input, self.peakmap_plotter.pmi.set_i_max, self.i_max_slider)
+    def imax_edited(self):
+        self._i_edited(self.imax_input, self.peakmap_plotter.pmi.set_imax, self.imax_slider)
 
     # ---- handle intensity slider change
 
@@ -1091,7 +1098,7 @@ class PeakMapExplorer(QDialog):
         pmi = self.peakmap_plotter.pmi
         i_rel = value / 1.0 / slider.maximum()
         i_rel = i_rel ** 4
-        i_abs = i_rel * pmi.get_total_i_max()  # total_i_max !
+        i_abs = i_rel * pmi.get_total_imax()  # total_imax !
         if i_abs > 0:
             # only keep signifcant first digit:
             tens = 10 ** int(math.log10(i_abs))
@@ -1101,19 +1108,19 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.replot()
 
     @protect_signal_handler
-    def i_min_slider_changed(self, value):
-        if value > self.i_max_slider.value():
-            self.i_max_slider.setSliderPosition(value)
+    def imin_slider_changed(self, value):
+        if value > self.imax_slider.value():
+            self.imax_slider.setSliderPosition(value)
         pmi = self.peakmap_plotter.pmi
-        self._i_slider_changed(value, self.i_min_slider, pmi.set_i_min, self.i_min_input)
+        self._i_slider_changed(value, self.imin_slider, pmi.set_imin, self.imin_input)
         return
 
     @protect_signal_handler
-    def i_max_slider_changed(self, value):
-        if value < self.i_min_slider.value():
-            self.i_min_slider.setSliderPosition(value)
+    def imax_slider_changed(self, value):
+        if value < self.imin_slider.value():
+            self.imin_slider.setSliderPosition(value)
         pmi = self.peakmap_plotter.pmi
-        self._i_slider_changed(value, self.i_max_slider, pmi.set_i_max, self.i_max_input)
+        self._i_slider_changed(value, self.imax_slider, pmi.set_imax, self.imax_input)
         return
 
     @protect_signal_handler
