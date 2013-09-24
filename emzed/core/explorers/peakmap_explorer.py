@@ -6,7 +6,8 @@ import math
 import numpy as np
 
 from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
-                         QComboBox, QLineEdit, QDoubleValidator)
+                         QComboBox, QLineEdit, QDoubleValidator, QFrame, QSpacerItem,
+                         QSizePolicy, QHBoxLayout, QPushButton)
 from PyQt4.QtCore import Qt, SIGNAL, QRectF, QPointF
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
@@ -192,12 +193,12 @@ class PeakmapZoomTool(InteractiveTool):
 
         start_state = filter.new_state()
 
-        hist_back_keys = [(Qt.Key_Z, Qt.ControlModifier), Qt.Key_Left]
-        filter.add_event(start_state, KeyEventMatch(hist_back_keys),
+        history_back_keys = [(Qt.Key_Z, Qt.ControlModifier), Qt.Key_Left]
+        filter.add_event(start_state, KeyEventMatch(history_back_keys),
                          baseplot.go_back_in_history, start_state)
 
-        hist_forward_keys = [(Qt.Key_Y, Qt.ControlModifier), Qt.Key_Right]
-        filter.add_event(start_state, KeyEventMatch(hist_forward_keys),
+        history_forward_keys = [(Qt.Key_Y, Qt.ControlModifier), Qt.Key_Right]
+        filter.add_event(start_state, KeyEventMatch(history_forward_keys),
                          baseplot.go_forward_in_history, start_state)
 
         filter.add_event(start_state,
@@ -247,10 +248,17 @@ class History(object):
         del self.items[self.position + 1:]
         self.items.append(item)
         if len(self.items) > max_len:
-            self.items = self.items[-max_len:]
+            # keep head !
+            self.items = [self.items[0]] + self.items[-max_len-1:]
             self.position = len(self.items) - 1
         else:
             self.position += 1
+
+    def current_position_is_beginning(self):
+        return self.position == 0
+
+    def current_position_is_end(self):
+        return self.position == len(self.items) - 1
 
     def go_back(self):
         if self.position > 0:
@@ -335,7 +343,7 @@ class ModifiedImagePlot(ImagePlot):
 
     def mouseDoubleClickEvent(self, evt):
         if  evt.button() == Qt.RightButton:
-            self.go_to_beginning_of_history(None, evt)
+            self.go_to_beginning_of_history()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin
@@ -350,7 +358,7 @@ class ModifiedImagePlot(ImagePlot):
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
-    def go_back_in_history(self, filter_, evt):
+    def go_back_in_history(self, filter_=None, evt=None):
         item = self.history.go_back()
         if item is not None:
             rtmin, rtmax, mzmin, mzmax = item
@@ -360,7 +368,7 @@ class ModifiedImagePlot(ImagePlot):
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
-    def go_forward_in_history(self, filter_, evt):
+    def go_forward_in_history(self, filter_=None, evt=None):
         item = self.history.go_forward()
         if item is not None:
             rtmin, rtmax, mzmin, mzmax = item
@@ -370,7 +378,7 @@ class ModifiedImagePlot(ImagePlot):
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
-    def go_to_beginning_of_history(self, filter_, evt):
+    def go_to_beginning_of_history(self, filter_=None, evt=None):
         """ resets zoom """
         item = self.history.skip_to_beginning()
         if item is not None:
@@ -381,7 +389,7 @@ class ModifiedImagePlot(ImagePlot):
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
-    def go_to_end_of_history(self, filter_, evt):
+    def go_to_end_of_history(self, filter_=None, evt=None):
         item = self.history.skip_to_end()
         if item is not None:
             rtmin, rtmax, mzmin, mzmax = item
@@ -806,21 +814,21 @@ class PeakMapExplorer(QDialog):
         rel_pos = (self.gamma_start - self.gamma_min) / (self.gamma_max - self.gamma_min)
         self.gamma_slider.setSliderPosition(50 * rel_pos)
 
-        self.i_range_label = QLabel("Intensity Window:")
+        self.i_range_label = QLabel("Intensity:")
 
         self.i_min_input = QLineEdit()
         self.i_min_slider = QSlider(Qt.Horizontal)
         self.i_min_slider.setMinimum(0)
-        self.i_min_slider.setMaximum(1000)
+        self.i_min_slider.setMaximum(100)
         self.i_min_slider.setSliderPosition(0)
 
         self.i_max_slider = QSlider(Qt.Horizontal)
         self.i_max_slider.setMinimum(0)
-        self.i_max_slider.setMaximum(1000)
+        self.i_max_slider.setMaximum(100)
         self.i_max_slider.setSliderPosition(1000)
         self.i_max_input = QLineEdit()
 
-        self.rt_range_label = QLabel("Retention Time Window:")
+        self.rt_range_label = QLabel("Retention Time [minutes]:")
         self.rtmin_input = QLineEdit()
         self.rtmin_input.setValidator(QDoubleValidator())
         self.rtmin_slider = QSlider(Qt.Horizontal)
@@ -835,7 +843,7 @@ class PeakMapExplorer(QDialog):
         self.rtmax_input = QLineEdit()
         self.rtmax_input.setValidator(QDoubleValidator())
 
-        self.mz_range_label = QLabel("Mass to Charge Window:")
+        self.mz_range_label = QLabel("Mass to Charge [Da]:")
         self.mzmin_input = QLineEdit()
         self.mzmin_input.setValidator(QDoubleValidator())
         self.mzmin_slider = QSlider(Qt.Horizontal)
@@ -849,6 +857,10 @@ class PeakMapExplorer(QDialog):
         self.mzmax_slider.setSliderPosition(100)
         self.mzmax_input = QLineEdit()
         self.mzmax_input.setValidator(QDoubleValidator())
+
+        self.history_back_button = QPushButton("Hist Back")
+        self.history_forward_button = QPushButton("Hist Fwd")
+        self.set_img_range_button = QPushButton("Set Bounds")
 
         self.history_list_label = QLabel("History:")
         self.history_list = QComboBox()
@@ -868,14 +880,14 @@ class PeakMapExplorer(QDialog):
 
     def setup_layout(self):
         layout = QGridLayout()
-        layout.addWidget(self.chromatogram_widget, 0, 0)
+        layout.addWidget(self.chromatogram_widget, 1, 0, 2, 1)
 
-        layout.addWidget(self.peakmap_plotter.widget, 1, 0)
-        self.peakmap_plotter.widget.setMinimumSize(450, 250)
+        layout.addWidget(self.peakmap_plotter.widget, 3, 0)
+        self.peakmap_plotter.widget.setMinimumSize(550, 450)
 
         controls_layout = QGridLayout()
-        controls_layout.setSpacing(10)
-        controls_layout.setMargin(10)
+        controls_layout.setSpacing(5)
+        controls_layout.setMargin(5)
 
         row = 0
         controls_layout.addWidget(self.log_label, row, 0)
@@ -892,7 +904,17 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.i_max_slider, row, 2)
         controls_layout.addWidget(self.i_max_input, row, 3)
 
-        row += 1
+        frame = QFrame()
+        frame.setLineWidth(1)
+        frame.setFrameStyle(QFrame.Box | QFrame.Plain)
+        frame.setLayout(controls_layout)
+        layout.addWidget(frame, 0, 1)
+
+        controls_layout = QGridLayout()
+        controls_layout.setSpacing(5)
+        controls_layout.setMargin(5)
+
+        row = 0
         controls_layout.addWidget(self.rt_range_label, row, 0, 1, 4)
 
         row += 1
@@ -910,22 +932,42 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.mzmax_slider, row, 2)
         controls_layout.addWidget(self.mzmax_input, row, 3)
 
+        self.set_img_range_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        lo = QHBoxLayout()
+        lo.addWidget(self.history_back_button)
+        lo.addWidget(self.set_img_range_button)
+        lo.addWidget(self.history_forward_button)
+        lo.setMargin(5)
+        lo.setSpacing(25)
+        row += 1
+        controls_layout.addLayout(lo, row, 0, 1, 4)
+
         row += 1
         controls_layout.addWidget(self.history_list_label, row, 0)
         controls_layout.addWidget(self.history_list, row, 1, 1, 3)
 
-        layout.addLayout(controls_layout, 0, 1)
+        frame = QFrame()
+        frame.setLineWidth(1)
+        frame.setFrameStyle(QFrame.Box | QFrame.Plain)
+        frame.setLayout(controls_layout)
 
-        layout.addWidget(self.mz_plotter.widget, 1, 1)
+        layout.addWidget(frame, 1, 1)
 
-        layout.setRowStretch(0, 2)
-        layout.setRowStretch(1, 5)
+        layout.addWidget(self.mz_plotter.widget, 3, 1)
+
+        layout.setRowStretch(0, 1)
+        layout.setRowStretch(1, 1)
+        layout.setRowStretch(2, 2)
+        layout.setRowStretch(3, 10)
+
         layout.setColumnStretch(0, 3)
         layout.setColumnStretch(1, 2)
 
         self.setLayout(layout)
 
     def connect_signals_and_slots(self):
+        self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
         self.connect(self.gamma_slider, SIGNAL("valueChanged(int)"), self.gamma_changed)
 
         self.connect(self.i_min_input, SIGNAL("editingFinished()"), self.i_min_edited)
@@ -934,20 +976,24 @@ class PeakMapExplorer(QDialog):
         self.connect(self.i_min_slider, SIGNAL("valueChanged(int)"), self.i_min_slider_changed)
         self.connect(self.i_max_slider, SIGNAL("valueChanged(int)"), self.i_max_slider_changed)
 
-        self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.img_range_edited)
-        self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.img_range_edited)
-        self.connect(self.mzmin_input, SIGNAL("returnPressed()"), self.img_range_edited)
-        self.connect(self.mzmax_input, SIGNAL("returnPressed()"), self.img_range_edited)
+        self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.set_image_range)
+        self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.set_image_range)
+        self.connect(self.mzmin_input, SIGNAL("returnPressed()"), self.set_image_range)
+        self.connect(self.mzmax_input, SIGNAL("returnPressed()"), self.set_image_range)
 
         self.connect(self.rtmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
         self.connect(self.rtmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
         self.connect(self.mzmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
         self.connect(self.mzmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
 
-        self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
+        self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
+        self.connect(self.history_back_button, SIGNAL("pressed()"),
+                     self.history_back_button_pressed)
+        self.connect(self.history_forward_button, SIGNAL("pressed()"),
+                     self.history_forward_button_pressed)
+        self.connect(self.set_img_range_button, SIGNAL("pressed()"), self.set_image_range)
         self.connect(self.peakmap_plotter.widget.plot, SIG_PLOT_AXIS_CHANGED, self.changed_axis)
         self.connect(self.peakmap_plotter.widget.plot, SIG_HISTORY_CHANGED, self.history_changed)
-        self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
 
     @protect_signal_handler
     def history_changed(self, history):
@@ -957,7 +1003,18 @@ class PeakMapExplorer(QDialog):
             str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm " % (mzmin, mzmax, rtmin / 60.0,
                                                               rtmax / 60.0)
             self.history_list.addItem(str_item)
+
+        self.history_back_button.setEnabled(not history.current_position_is_beginning())
+        self.history_forward_button.setEnabled(not history.current_position_is_end())
         self.history_list.setCurrentIndex(history.position)
+
+    @protect_signal_handler
+    def history_back_button_pressed(self):
+        self.peakmap_plotter.widget.plot.go_back_in_history()
+
+    @protect_signal_handler
+    def history_forward_button_pressed(self):
+        self.peakmap_plotter.widget.plot.go_forward_in_history()
 
     @protect_signal_handler
     def history_item_selected(self, index):
@@ -1060,7 +1117,7 @@ class PeakMapExplorer(QDialog):
         return
 
     @protect_signal_handler
-    def img_range_edited(self):
+    def set_image_range(self):
         # statt der folgenden beiden zeilen, diese werte auslesen:
         plot = self.peakmap_plotter.widget.plot
         try:
@@ -1128,11 +1185,11 @@ class PeakMapExplorer(QDialog):
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
             mzmax = mzmin
         input_changed = self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        if input_changed:
-            plot = self.peakmap_plotter.widget.plot
-            plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
-            self.peakmap_plotter.replot()
-            plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
+        #if input_changed:
+        #    plot = self.peakmap_plotter.widget.plot
+        #    plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        #    self.peakmap_plotter.replot()
+        #    plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
 
     # ------- OLD CODE
 
