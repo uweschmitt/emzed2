@@ -1177,15 +1177,19 @@ class PeakMapExplorer(QDialog):
 
     @protect_signal_handler
     def img_range_slider_changed(self, int):
-        rtmin = self.rtmax * self.rtmin_slider.sliderPosition() / self.rtmin_slider.maximum()
-        rtmax = self.rtmax * self.rtmax_slider.sliderPosition() / self.rtmax_slider.maximum()
+        rtmin = self.rtmin + (self.rtmax - self.rtmin) * \
+            self.rtmin_slider.sliderPosition() / self.rtmin_slider.maximum()
+        rtmax = self.rtmin + (self.rtmax - self.rtmin) * \
+            self.rtmax_slider.sliderPosition() / self.rtmax_slider.maximum()
+
         if rtmax < rtmin:
             self.rtmax_slider.setSliderPosition(self.rtmin_slider.sliderPosition())
             rtmax = rtmin
+
         mzmin = self.mzmin + (self.mzmax - self.mzmin) * \
             self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
         mzmax = self.mzmin + (self.mzmax - self.mzmin) * \
-            self.mzmax_slider.sliderPosition() / self.mzmin_slider.maximum()
+            self.mzmax_slider.sliderPosition() / self.mzmax_slider.maximum()
 
         if mzmax < mzmin:
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
