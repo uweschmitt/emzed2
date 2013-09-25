@@ -344,7 +344,7 @@ class ModifiedImagePlot(ImagePlot):
 
     def mouseDoubleClickEvent(self, evt):
         if  evt.button() == Qt.RightButton:
-            self.go_to_beginning_of_history()
+            self.go_back_in_history()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin
