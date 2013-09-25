@@ -479,3 +479,11 @@ def test_getters_and_setters():
     assert t.getColType("a") == float
     t.setColFormat("a", "%.3f")
     assert t.getColFormat("a") == "%.3f"
+
+
+def test_unique_not_none_for_empty_list():
+    t = emzed.utils.toTable("z", [], type_=int)
+    # those did raise exceptions:
+    t.z.uniqueNotNone.values
+    t.z.value()
+    t.z.mean()

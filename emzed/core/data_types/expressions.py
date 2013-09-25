@@ -406,8 +406,7 @@ class BaseExpression(object):
 
         Example: ``tab.area.mean``
         """
-        return AggregateExpression(self, lambda v: np.mean(v).tolist(),\
-                                   "mean(%s)", float)
+        return AggregateExpression(self, lambda v: np.mean(v).tolist(), "mean(%s)", float)
 
     @property
     def std(self):
@@ -417,8 +416,8 @@ class BaseExpression(object):
 
         Example: ``tab.area.std``
         """
-        return AggregateExpression(self, lambda v: np.std(v).tolist(),\
-                                   "stddev(%s)", float)
+        return AggregateExpression(self, lambda v: np.std(v).tolist(), "stddev(%s)", float)
+
     @property
     def len(self):
         """
@@ -497,7 +496,7 @@ class BaseExpression(object):
     @property
     def values(self):
         values, _, t = self._eval(None)
-        if t in _basic_num_types:
+        if len(values) and t in _basic_num_types:
             return values.tolist()
         return values
 
@@ -523,7 +522,7 @@ class BaseExpression(object):
 
     def value(self):
         values, _, t = self._eval(None)
-        if t in _basic_num_types:
+        if len(values) and t in _basic_num_types:
             return values.tolist()
         return values
 
