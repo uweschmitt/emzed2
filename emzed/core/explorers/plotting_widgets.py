@@ -235,7 +235,7 @@ class MzCursorInfo(ObjectInfo):
 
 class MzPlotter(PlotterBase):
 
-    def __init__(self, c_callback=None):
+    def __init__(self, c_callback=None, image_plot=None):
         super(MzPlotter, self).__init__("m/z", "I")
 
         self.c_callback = c_callback
@@ -245,6 +245,7 @@ class MzPlotter(PlotterBase):
         # inject mofified behaviour of wigets plot attribute:
         widget.plot.__class__ = MzPlot
         widget.plot.register_c_callback(self.handle_c_pressed)
+        widget.plot.image_plot = image_plot
         self.setHalfWindowWidth(0.05)
         self.centralMz = None
 

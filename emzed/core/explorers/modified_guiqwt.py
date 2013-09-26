@@ -1,5 +1,5 @@
 from exceptions import Exception
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import Qt, QPoint
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
 from guiqwt.events import ObjectHandler, KeyEventMatch, QtDragHandler
@@ -404,6 +404,7 @@ class MzPlot(ModifiedCurvePlot):
     data = []
     latest_mzmin = None
     latest_mzmax = None
+    image_plot   = None
 
     def label_info(self, x, y):
         # label next to cursor turned off:
@@ -413,7 +414,17 @@ class MzPlot(ModifiedCurvePlot):
     def on_plot(self, x, y):
         """ callback for marker: determine marked point based on cursors coordinates """
         self.current_peak = self.next_peak_to(x, y)
+        if self.image_plot is not None:
+            self.image_plot.set_mz(self.current_peak[0])
         return self.current_peak
+
+    def set_mz(self, mz):
+        mz, I = self.next_peak_to(mz)
+        marker = self.get_unique_item(Marker)
+        new_x = self.transform(self.xBottom, mz)
+        new_y = self.transform(self.yLeft, I)
+        marker.setValue(mz, I)  # avoids sending signal
+        self.replot()
 
     def do_finish_zoom_view(self, dx, dy):
         dx = (-1,) + dx  # adding direction to tuple dx
@@ -448,19 +459,23 @@ class MzPlot(ModifiedCurvePlot):
             self.all_peaks = np.zeros((0, 2))
         self.reset_x_limits()
 
-    def next_peak_to(self, mz, I):
+    def next_peak_to(self, mz, I=None):
         if self.all_peaks.shape[0] == 0:
             return mz, I
+        if I is None:
+            distances  = (self.all_peaks[:, 0] - mz)**2
+            imin = np.argmin(distances)
+        else:
+            peaks = self.all_peaks - np.array((mz, I))
 
-        all_peaks = self.all_peaks - np.array((mz, I))
-
-        # scale according to zooms axis proportions:
-        mzmin, mzmax, Imin, Imax = self.get_plot_limits()
-        all_peaks /= np.array((mzmax - mzmin, Imax - Imin))
-        # find minimal distacne
-        distances = all_peaks[:, 0] ** 2 + all_peaks[:, 1] ** 2
-        imin = np.argmin(distances)
+            # scale according to zooms axis proportions:
+            mzmin, mzmax, Imin, Imax = self.get_plot_limits()
+            peaks /= np.array((mzmax - mzmin, Imax - Imin))
+            # find minimal distacne
+            distances = peaks[:, 0] ** 2 + peaks[:, 1] ** 2
+            imin = np.argmin(distances)
         return self.all_peaks[imin]
+
 
     @protect_signal_handler
     def do_move_marker(self, evt):

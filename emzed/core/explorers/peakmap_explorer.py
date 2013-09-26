@@ -11,7 +11,8 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QSizePolicy, QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
                          QMessageBox)
-from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
+
+from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF, QPoint)
 from PyQt4.QtWebKit import (QWebView, QWebSettings)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
@@ -70,8 +71,7 @@ class PeakMapImageItem(RawImageItem):
         rtmin, rtmax = self.peakmap.rtRange()
         mzmin, mzmax = self.peakmap.mzRange()
 
-        self.bounds = QRectF(QPointF(rtmin, mzmin),
-                             QPointF(rtmax, mzmax))
+        self.bounds = QRectF(QPointF(rtmin, mzmin), QPointF(rtmax, mzmax))
         self.update_border()
         self.IMAX = 255
         self.set_lut_range([0, self.IMAX])
@@ -108,7 +108,7 @@ class PeakMapImageItem(RawImageItem):
     def set_logarithmic_scale(self, is_log):
         self.is_log = is_log
 
-    def paint_pixmap(self, device):
+    def paint_pixmap(self, widget):
         assert self.last_canvas_rect is not None
         x1, y1 = self.last_canvas_rect.left(), self.last_canvas_rect.top()
         x2, y2 = self.last_canvas_rect.right(), self.last_canvas_rect.bottom()
@@ -117,7 +117,7 @@ class PeakMapImageItem(RawImageItem):
         NY = y2 - y1
         pix = QPixmap(NX, NY)
         painter = QPainter(pix)
-        painter.begin(device)
+        painter.begin(widget)
         try:
             self.draw_border(painter, self.last_xmap, self.last_ymap, self.last_canvas_rect)
             self.draw_image(painter, self.last_canvas_rect, self.last_src_rect, self.last_dst_rect,
@@ -339,6 +339,11 @@ class History(object):
 
 class ChromatogramPlot(CurvePlot):
 
+    # as we use this class for patching by setting this class as super class of a given 
+    # CurvePlot instance, we do not call __init__, instead we set defaults here:
+
+    image_plot = None
+
     def label_info(self, x, y):
         return "label_info"
 
@@ -348,10 +353,17 @@ class ChromatogramPlot(CurvePlot):
     @protect_signal_handler
     def do_move_marker(self, event):
         pos = event.pos()
+        rt = self.invTransform(self.xBottom, pos.x())
+        if self.image_plot:
+            self.image_plot.set_rt(rt)
         self.set_marker_axes()
         self.cross_marker.setZ(self.get_max_z() + 1)
         self.cross_marker.setVisible(True)
         self.cross_marker.move_local_point_to(0, pos)
+        self.replot()
+
+    def set_rt(self, rt):
+        self.cross_marker.setValue(rt, self.cross_marker.yValue())
         self.replot()
 
     def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
@@ -385,6 +397,9 @@ class ModifiedImagePlot(ImagePlot):
     abs_rtmin = abs_rtmax = abs_mzmin = abs_mzmax = None
     coords = (None, None)
     dragging = False
+
+    chromatogram_plot = None
+    mz_plot = None
 
     history = History()
 
@@ -476,6 +491,20 @@ class ModifiedImagePlot(ImagePlot):
         self.cross_marker.setZ(self.get_max_z() + 1)
         self.cross_marker.setVisible(True)
         self.cross_marker.move_local_point_to(0, pos)
+        self.replot()
+        if self.chromatogram_plot is not None:
+            rt = self.invTransform(self.xBottom, pos.x())
+            self.chromatogram_plot.set_rt(rt)
+        if self.mz_plot is not None:
+            mz = self.invTransform(self.yLeft, pos.y())
+            self.mz_plot.set_mz(mz)
+
+    def set_rt(self, rt):
+        self.cross_marker.setValue(rt, self.cross_marker.yValue())
+        self.replot()
+
+    def set_mz(self, mz):
+        self.cross_marker.setValue(self.cross_marker.xValue(), mz)
         self.replot()
 
     @protect_signal_handler
@@ -663,7 +692,7 @@ def create_image_widget(peakmap):
     return widget
 
 
-def create_chromatogram_widget():
+def create_chromatogram_widget(image_plot):
     widget = CurveWidget(ylabel="I")
     t = widget.add_tool(SelectTool)
     widget.set_default_tool(t)
@@ -671,6 +700,8 @@ def create_chromatogram_widget():
 
     plot = widget.plot
     plot.__class__ = ChromatogramPlot
+    plot.image_plot = image_plot
+    image_plot.chromatogram_plot = plot
 
     plot.set_antialiasing(True)
     plot.cross_marker.setZ(plot.get_max_z() + 1)
@@ -943,12 +974,13 @@ class PeakMapExplorer(QDialog):
     def setup_plot_widgets(self):
         self.peakmap_plotter = PeakMapPlotter(self.peakmap)
 
-        self.chromatogram_widget = create_chromatogram_widget()
+        self.chromatogram_widget = create_chromatogram_widget(self.peakmap_plotter.widget.plot)
 
         set_x_axis_scale_draw(self.chromatogram_widget)
         set_y_axis_scale_draw(self.chromatogram_widget)
 
-        self.mz_plotter = MzPlotter(None)
+        self.mz_plotter = MzPlotter(None, image_plot=self.peakmap_plotter.widget.plot)
+        self.peakmap_plotter.widget.plot.mz_plot = self.mz_plotter.widget.plot
 
         self.peakmap_plotter.pmi.set_logarithmic_scale(1)
         self.peakmap_plotter.pmi.set_gamma(self.gamma_start)
@@ -1095,7 +1127,7 @@ class PeakMapExplorer(QDialog):
 
     @protect_signal_handler
     def do_save(self):
-        pix = self.peakmap_plotter.pmi.paint_pixmap(self)
+        pix = self.peakmap_plotter.pmi.paint_pixmap(self.peakmap_plotter.widget)
         while True:
             path = self._ask_for_file(self.last_used_directory_for_save, QFileDialog.AnyFile,
                                       "Save Image", "(*.png *.PNG)")
@@ -1129,7 +1161,7 @@ class PeakMapExplorer(QDialog):
         QWebSettings.globalSettings().setFontSize(QWebSettings.DefaultFontSize, 12)
         v = QWebView()
         v.setHtml(html)
-        dlg = QDialog(self)
+        dlg = QDialog(self, Qt.Window)
         dlg.setMinimumSize(300, 300)
         l = QVBoxLayout()
         l.addWidget(v)
