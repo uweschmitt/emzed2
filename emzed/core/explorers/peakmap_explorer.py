@@ -4,12 +4,15 @@ import os
 import types
 import math
 import numpy as np
+import sys
 
 from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
-                         QComboBox, QLineEdit, QDoubleValidator, QFrame, QSpacerItem,
-                         QSizePolicy, QHBoxLayout, QPushButton)
-from PyQt4.QtCore import Qt, SIGNAL, QRectF, QPointF
-from PyQt4.Qwt5 import QwtScaleDraw, QwtText
+                         QComboBox, QLineEdit, QDoubleValidator, QFrame,
+                         QSizePolicy, QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
+                         QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
+                         QMessageBox)
+from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
+from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
 import guidata
 
@@ -24,11 +27,13 @@ from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, S
                             SIG_PLOT_AXIS_CHANGED, )
 from guiqwt.tools import SelectTool, InteractiveTool
 
-from emzed_optimizations.sample import sample_image # , sample_peaks
+from emzed_optimizations.sample import sample_image
 
 from plotting_widgets import MzPlotter
 
 from helpers import protect_signal_handler
+
+from ...io.load_utils import loadPeakMap
 
 
 SIG_HISTORY_CHANGED = SIGNAL('plot_history_changed(PyQt_PyObject)')
@@ -79,6 +84,12 @@ class PeakMapImageItem(RawImageItem):
 
         self.is_log = 1
 
+        self.last_canvas_rect = None
+        self.last_src_rect = None
+        self.last_dst_rect = None
+        self.last_xmap = None
+        self.last_ymap = None
+
     def set_imin(self, imin):
         self.imin = imin
 
@@ -94,8 +105,39 @@ class PeakMapImageItem(RawImageItem):
     def set_logarithmic_scale(self, is_log):
         self.is_log = is_log
 
+    def paint_pixmap(self, device):
+        assert self.last_canvas_rect is not None
+        x1, y1 = self.last_canvas_rect.left(), self.last_canvas_rect.top()
+        x2, y2 = self.last_canvas_rect.right(), self.last_canvas_rect.bottom()
+
+        NX = x2 - x1
+        NY = y2 - y1
+        pix = QPixmap(NX, NY)
+        painter = QPainter(pix)
+        painter.begin(device)
+        try:
+            self.draw_border(painter, self.last_xmap, self.last_ymap, self.last_canvas_rect)
+            self.draw_image(painter, self.last_canvas_rect, self.last_src_rect, self.last_dst_rect,
+                            self.last_xmap, self.last_xmap)
+            # somehow guiqwt paints a distorted border at left/top, so we remove it:
+            return pix.copy(2, 2, NX - 2, NY - 2)
+        finally:
+            painter.end()
+
     #---- QwtPlotItem API ------------------------------------------------------
     def draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap):
+
+        # normally we use this method indirectly from quiqwt which takes the burden of constructing
+        # the right parameters. if we want to call this method manually, eg for painting on on a
+        # QPixmap for saving the image, we just use the last set of parmeters passed to this
+        # method, this is much easier than constructing the params seperatly, and so we get the
+        # exact same result as we see on screen:
+        self.last_canvas_rect = canvasRect
+        self.last_src_rect = srcRect
+        self.last_dst_rect = dstRect
+        self.last_xmap = xMap
+        self.last_ymap = yMap
+
         x1, y1 = canvasRect.left(), canvasRect.top()
         x2, y2 = canvasRect.right(), canvasRect.bottom()
         i1, j1, i2, j2 = srcRect
@@ -106,24 +148,25 @@ class PeakMapImageItem(RawImageItem):
         mzmin, mzmax = j2, j1
 
         # optimized:
-        data = sample_image(self.peakmap, rtmin, rtmax, mzmin, mzmax, NX, NY)
+        # one additional row / col as we loose one row and col during smoothing:
+        data = sample_image(self.peakmap, rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
+
+        # enlarge single pixels to 2 x 2 pixels:
+        smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
 
         # turn up/down
-        data = data[::-1, :]
+        smoothed = smoothed[::-1, :]
         imin = self.imin
         imax = self.imax
 
         if self.is_log:
-            data = np.log(1.0 + data)
+            smoothed = np.log(1.0 + smoothed)
             imin = np.log(1.0 + imin)
             imax = np.log(1.0 + imax)
 
-        data[data < imin] = imin
-        data[data > imax] = imax
-        data -= imin
-
-        # enlarge single pixels to 2 x 2 pixels:
-        smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
+        smoothed[smoothed < imin] = imin
+        smoothed[smoothed > imax] = imax
+        smoothed -= imin
 
         # scale to 1.0
         maxd = np.max(smoothed)
@@ -249,7 +292,7 @@ class History(object):
         self.items.append(item)
         if len(self.items) > max_len:
             # keep head !
-            self.items = [self.items[0]] + self.items[-max_len-1:]
+            self.items = [self.items[0]] + self.items[-max_len - 1:]
             self.position = len(self.items) - 1
         else:
             self.position += 1
@@ -343,7 +386,7 @@ class ModifiedImagePlot(ImagePlot):
     history = History()
 
     def mouseDoubleClickEvent(self, evt):
-        if  evt.button() == Qt.RightButton:
+        if evt.button() == Qt.RightButton:
             self.go_back_in_history()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
@@ -604,7 +647,7 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-def create_image_widget(peakmap): 
+def create_image_widget(peakmap):
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False, xlabel="rt", ylabel="m/z")
 
@@ -710,7 +753,7 @@ class PeakMapPlotter(object):
 
     def __init__(self, peakmap):
 
-        self.widget = create_image_widget(peakmap) 
+        self.widget = create_image_widget(peakmap)
 
         self.peakmap = peakmap
 
@@ -748,8 +791,11 @@ class PeakMapExplorer(QDialog):
         self.setWindowFlags(Qt.Window)
 
         self.gamma_min = 0.05
-        self.gamma_max = 2.0
-        self.gamma_start = 1.0
+        self.gamma_max = 4.0
+        self.gamma_start = 3.0
+
+        self.last_used_directory_for_load = None
+        self.last_used_directory_for_save = None
 
     def keyPressEvent(self, e):
         if e.key() != Qt.Key_Escape:
@@ -763,10 +809,28 @@ class PeakMapExplorer(QDialog):
 
         self.setup_input_widgets()
         self.setup_plot_widgets()
+        self.setup_menu_bar()
         self.setup_layout()
         self.connect_signals_and_slots()
         self.setup_initial_values()
         self.plot_peakmap()
+
+    def setup_menu_bar(self):
+        self.menu_bar = QMenuBar(self)
+
+        self.load_action = QAction("Load Peakmap", self)
+        self.load_action.setShortcut(QKeySequence("Ctrl+L"))
+        self.save_action = QAction("Save selected range as image", self)
+        self.save_action.setShortcut(QKeySequence("Ctrl+S"))
+        menu = QMenu("Peakmap Explorer", self.menu_bar)
+        menu.addAction(self.load_action)
+        menu.addAction(self.save_action)
+        self.menu_bar.addMenu(menu)
+
+        menu = QMenu("Help", self.menu_bar)
+        self.help_action = QAction("Help", self)
+        menu.addAction(self.help_action)
+        self.menu_bar.addMenu(menu)
 
     def process_peakmap(self, peakmap):
         levels = peakmap.getMsLevels()
@@ -784,7 +848,7 @@ class PeakMapExplorer(QDialog):
         pmi = self.peakmap_plotter.pmi
 
         imax = pmi.get_total_imax()
-        imax = 10**math.ceil(math.log10(imax))
+        imax = 10 * math.ceil(math.log10(imax))
 
         self.imax_input.setText("%g" % imax)
 
@@ -886,6 +950,9 @@ class PeakMapExplorer(QDialog):
         self.peakmap_plotter.pmi.set_gamma(self.gamma_start)
 
     def setup_layout(self):
+        outer_layout = QVBoxLayout()
+        outer_layout.addWidget(self.menu_bar)
+
         layout = QGridLayout()
         layout.addWidget(self.chromatogram_widget, 1, 0, 2, 1)
 
@@ -971,7 +1038,9 @@ class PeakMapExplorer(QDialog):
         layout.setColumnStretch(0, 3)
         layout.setColumnStretch(1, 2)
 
-        self.setLayout(layout)
+        outer_layout.addLayout(layout)
+
+        self.setLayout(outer_layout)
 
     def connect_signals_and_slots(self):
         self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
@@ -1001,6 +1070,54 @@ class PeakMapExplorer(QDialog):
         self.connect(self.set_img_range_button, SIGNAL("pressed()"), self.set_image_range)
         self.connect(self.peakmap_plotter.widget.plot, SIG_PLOT_AXIS_CHANGED, self.changed_axis)
         self.connect(self.peakmap_plotter.widget.plot, SIG_HISTORY_CHANGED, self.history_changed)
+
+        self.connect(self.load_action, SIGNAL("triggered()"), self.do_load)
+        self.connect(self.save_action, SIGNAL("triggered()"), self.do_save)
+
+
+    def _ask_for_file(self, last_dir, flag, caption, filter_):
+        dlg = QFileDialog(directory=last_dir or "", caption=caption)
+        dlg.setNameFilter(filter_)
+        dlg.setFileMode(flag)
+        dlg.setWindowFlags(Qt.Window)
+        dlg.activateWindow()
+        dlg.raise_()
+        if dlg.exec_():
+            path = str(dlg.selectedFiles()[0].toLatin1())
+            if sys.platform == "win32":
+                # sometimes probs with network paths like "//gram/omics/....":
+                path = path.replace("/", "\\")
+            return path
+
+    @protect_signal_handler
+    def do_save(self):
+        pix = self.peakmap_plotter.pmi.paint_pixmap(self)
+        while True:
+            path = self._ask_for_file(self.last_used_directory_for_save, QFileDialog.AnyFile,
+                                    "Save Image", "(*.png *.PNG)")
+            if path is None:
+                break
+            __, ext = os.path.splitext(path)
+            if not ext in (".png", ".PNG"):
+                QMessageBox.warning(None, "Warning", "wrong/missing extension '.png'")
+            else:
+                self.last_used_directory_for_save = os.path.dirname(path)
+                pix.save(path)
+                break
+        return
+
+    @protect_signal_handler
+    def do_load(self):
+        path = self._ask_for_file(self.last_used_directory_for_load, QFileDialog.ExistingFile,
+                                  "Load Peakmap", "(*.mzML *.mzData *.mzXML)")
+        if path is not None:
+            self.peakmap = loadPeakMap(path)
+            self.process_peakmap(self.peakmap)
+            title = os.path.basename(self.peakmap.meta.get("source", ""))
+            self.setWindowTitle(title)
+            self.setup_initial_values()
+            self.plot_peakmap()
+            self.last_used_directory_for_load = os.path.dirname(path)
 
     @protect_signal_handler
     def history_changed(self, history):
@@ -1194,14 +1311,6 @@ class PeakMapExplorer(QDialog):
         if mzmax < mzmin:
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
             mzmax = mzmin
-        input_changed = self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        #if input_changed:
-        #    plot = self.peakmap_plotter.widget.plot
-        #    plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
-        #    self.peakmap_plotter.replot()
-        #    plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
-
-    # ------- OLD CODE
 
     def plot_peakmap(self):
         self.peakmap_plotter.widget.plot.set_limits(self.rtmin, self.rtmax,
