@@ -12,6 +12,7 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
                          QMessageBox)
 from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
+from PyQt4.QtWebKit import (QWebView, QWebSettings)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
 import guidata
@@ -26,6 +27,8 @@ from guiqwt.shapes import RectangleShape
 from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING,
                             SIG_PLOT_AXIS_CHANGED, )
 from guiqwt.tools import SelectTool, InteractiveTool
+
+from pkg_resources import resource_string
 
 from emzed_optimizations.sample import sample_image
 
@@ -829,6 +832,7 @@ class PeakMapExplorer(QDialog):
 
         menu = QMenu("Help", self.menu_bar)
         self.help_action = QAction("Help", self)
+        self.help_action.setShortcut(QKeySequence("F1"))
         menu.addAction(self.help_action)
         self.menu_bar.addMenu(menu)
 
@@ -1073,7 +1077,7 @@ class PeakMapExplorer(QDialog):
 
         self.connect(self.load_action, SIGNAL("triggered()"), self.do_load)
         self.connect(self.save_action, SIGNAL("triggered()"), self.do_save)
-
+        self.connect(self.help_action, SIGNAL("triggered()"), self.show_help)
 
     def _ask_for_file(self, last_dir, flag, caption, filter_):
         dlg = QFileDialog(directory=last_dir or "", caption=caption)
@@ -1094,7 +1098,7 @@ class PeakMapExplorer(QDialog):
         pix = self.peakmap_plotter.pmi.paint_pixmap(self)
         while True:
             path = self._ask_for_file(self.last_used_directory_for_save, QFileDialog.AnyFile,
-                                    "Save Image", "(*.png *.PNG)")
+                                      "Save Image", "(*.png *.PNG)")
             if path is None:
                 break
             __, ext = os.path.splitext(path)
@@ -1118,6 +1122,19 @@ class PeakMapExplorer(QDialog):
             self.setup_initial_values()
             self.plot_peakmap()
             self.last_used_directory_for_load = os.path.dirname(path)
+
+    def show_help(self):
+        html = resource_string("emzed.core.explorers", "help_peakmapexplorer.html")
+        QWebSettings.globalSettings().setFontFamily(QWebSettings.StandardFont, 'Courier')
+        QWebSettings.globalSettings().setFontSize(QWebSettings.DefaultFontSize, 12)
+        v = QWebView()
+        v.setHtml(html)
+        dlg = QDialog(self)
+        dlg.setMinimumSize(300, 300)
+        l = QVBoxLayout()
+        l.addWidget(v)
+        dlg.setLayout(l)
+        dlg.show()
 
     @protect_signal_handler
     def history_changed(self, history):

@@ -9,6 +9,11 @@ def patched(self):
                 )
 distutils.config.PyPIRCCommand._read_pypirc = patched
 
+import os
+p = os.getcwd()
+os.chdir("emzed/core/explorers")
+os.system("rst2html help_peakmapexplorer.rst > help_peakmapexplorer.html")
+os.chdir(p)
 
 version_str = "2.0.1"
 
