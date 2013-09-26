@@ -487,3 +487,8 @@ def test_unique_not_none_for_empty_list():
     t.z.uniqueNotNone.values
     t.z.value()
     t.z.mean()
+
+def test_drop_last_column():
+    t = emzed.utils.toTable("z", [1, 2])
+    t.dropColumns("z")
+    assert len(t) == 0

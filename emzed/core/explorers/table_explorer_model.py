@@ -1,7 +1,6 @@
-import pdb
 # -*- coding: utf-8 -*-
 
-from PyQt4.QtGui import  *
+from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 from ..data_types import PeakMap
@@ -13,10 +12,10 @@ import re
 
 from ... import _algorithm_configs
 
-from helpers import protect_signal_handler
 
 def isUrl(what):
     return what.startswith("http://")
+
 
 class TableAction(object):
 
@@ -29,7 +28,7 @@ class TableAction(object):
         self.memory = None
 
     def undo(self):
-        assert self.memory != None
+        assert self.memory is not None
 
     def beginDelete(self, idx, idx2=None):
         if idx2 is None:
@@ -51,13 +50,14 @@ class TableAction(object):
         args = ", ".join("%s: %s" % it for it in self.toview.items())
         return "%s(%s)" % (self.actionName, args)
 
+
 class DeleteRowAction(TableAction):
 
     actionName = "delete row"
 
     def __init__(self, model, rowIdx):
         super(DeleteRowAction, self).__init__(model, rowIdx=rowIdx)
-        self.toview = dict(row = rowIdx)
+        self.toview = dict(row=rowIdx)
 
     def do(self):
         self.beginDelete(self.rowIdx)
@@ -74,18 +74,19 @@ class DeleteRowAction(TableAction):
         table.rows.insert(self.rowIdx, self.memory)
         self.endInsert()
 
+
 class CloneRowAction(TableAction):
 
     actionName = "clone row"
 
     def __init__(self, model, rowIdx):
         super(CloneRowAction, self).__init__(model, rowIdx=rowIdx)
-        self.toview = dict(row = rowIdx)
+        self.toview = dict(row=rowIdx)
 
     def do(self):
-        self.beginInsert(self.rowIdx+1)
+        self.beginInsert(self.rowIdx + 1)
         table = self.model.table
-        table.rows.insert(self.rowIdx+1, table.rows[self.rowIdx][:])
+        table.rows.insert(self.rowIdx + 1, table.rows[self.rowIdx][:])
         self.memory = True
         self.endInsert()
         return True
@@ -93,9 +94,10 @@ class CloneRowAction(TableAction):
     def undo(self):
         super(CloneRowAction, self).undo()
         table = self.model.table
-        self.beginDelete(self.rowIdx+1)
-        del table.rows[self.rowIdx+1]
+        self.beginDelete(self.rowIdx + 1)
+        del table.rows[self.rowIdx + 1]
         self.endDelete()
+
 
 class SortTableAction(TableAction):
 
@@ -103,9 +105,9 @@ class SortTableAction(TableAction):
 
     def __init__(self, model, dataColIdx, colIdx, order):
         super(SortTableAction, self).__init__(model, dataColIdx=dataColIdx,
-                                        colIdx=colIdx, order=order)
-        self.toview = dict(sortByColumn = colIdx,
-                           ascending = (order == Qt.AscendingOrder))
+                                              colIdx=colIdx, order=order)
+        self.toview = dict(sortByColumn=colIdx,
+                           ascending=(order == Qt.AscendingOrder))
 
     def do(self):
         table = self.model.table
@@ -121,11 +123,12 @@ class SortTableAction(TableAction):
         super(SortTableAction, self).undo()
         table = self.model.table
         # calc inverse permuation:
-        decorated = [ (self.memory[i], i) for i in range(len(self.memory))]
+        decorated = [(self.memory[i], i) for i in range(len(self.memory))]
         decorated.sort()
         invperm = [i for (_, i) in decorated]
         table._applyRowPermutation(invperm)
         self.model.reset()
+
 
 class ChangeValueAction(TableAction):
 
@@ -141,13 +144,14 @@ class ChangeValueAction(TableAction):
         table = self.model.table
         row = table.rows[self.idx.row()]
         self.memory = row[self.dataColIdx]
-        if self.memory == self.value: return False
+        if self.memory == self.value:
+            return False
         row[self.dataColIdx] = self.value
         self.model.emit(
-                  SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                  self.idx,
-                  self.idx,
-                  self)
+            SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+            self.idx,
+            self.idx,
+            self)
         return True
 
     def undo(self):
@@ -155,10 +159,11 @@ class ChangeValueAction(TableAction):
         table = self.model.table
         table.rows[self.idx.row()][self.dataColIdx] = self.memory
         self.model.emit(
-                  SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                  self.idx,
-                  self.idx,
-                  self)
+            SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+            self.idx,
+            self.idx,
+            self)
+
 
 class IntegrateAction(TableAction):
 
@@ -172,25 +177,25 @@ class IntegrateAction(TableAction):
                            postfix=postfix)
 
     def do(self):
-        #pyqtRemoveInputHook()
+        # pyqtRemoveInputHook()
         integrator = dict(_algorithm_configs.peakIntegrators).get(self.method)
         table = self.model.table
         # returns Bunch which sublcasses dict
         args = table.getValues(table.rows[self.idx])
         postfix = self.postfix
 
-        if integrator and all(args[f+postfix]
-               is not None
-               for f in ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]):
+        if integrator and all(args[f + postfix]
+                              is not None
+                              for f in ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]):
 
             # TODO: restructure datatypes to avoid this dirty workaround
             # for ms 2 spectra:
-            pm = args["peakmap"+postfix].getDominatingPeakmap()
+            pm = args["peakmap" + postfix].getDominatingPeakmap()
             integrator.setPeakMap(pm)
 
             # integrate
-            mzmin = args["mzmin"+postfix]
-            mzmax = args["mzmax"+postfix]
+            mzmin = args["mzmin" + postfix]
+            mzmax = args["mzmax" + postfix]
             res = integrator.integrate(mzmin, mzmax, self.rtmin, self.rtmax)
 
             area = res["area"]
@@ -208,13 +213,13 @@ class IntegrateAction(TableAction):
 
         # write values to table
         row = table.rows[self.idx]
-        table.setValue(row, "method"+postfix, self.method)
-        table.setValue(row, "rtmin"+postfix, self.rtmin)
-        table.setValue(row, "rtmax"+postfix, self.rtmax)
-        table.setValue(row, "area"+postfix, area)
-        table.setValue(row, "rmse"+postfix, rmse)
-        table.setValue(row, "params"+postfix, params)
-        #args = table.get(table.rows[self.idx], None)
+        table.setValue(row, "method" + postfix, self.method)
+        table.setValue(row, "rtmin" + postfix, self.rtmin)
+        table.setValue(row, "rtmax" + postfix, self.rtmax)
+        table.setValue(row, "area" + postfix, area)
+        table.setValue(row, "rmse" + postfix, rmse)
+        table.setValue(row, "params" + postfix, params)
+        # args = table.get(table.rows[self.idx], None)
         self.notifyGUI()
         return True
 
@@ -227,13 +232,13 @@ class IntegrateAction(TableAction):
 
     def notifyGUI(self):
         tl = self.model.createIndex(self.idx, 0)
-        tr = self.model.createIndex(self.idx, self.model.columnCount()-1)
+        tr = self.model.createIndex(self.idx, self.model.columnCount() - 1)
         # this one updates plots
         self.model.emit(
-                  SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                  tl,
-                  tr,
-                  self)
+            SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+            tl,
+            tr,
+            self)
         # this one updates cells in table
         self.model.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), tl, tr)
 
@@ -249,11 +254,11 @@ class TableModel(QAbstractTableModel):
         self.parent = parent
         nc = len(self.table._colNames)
         indizesOfVisibleCols = (j for j in range(nc)
-                                  if self.table._colFormats[j] is not None)
+                                if self.table._colFormats[j] is not None)
         self.widgetColToDataCol = dict(enumerate(indizesOfVisibleCols))
         self.emptyActionStack()
 
-        self.nonEditables=set()
+        self.nonEditables = set()
 
     def addNonEditable(self, name):
         dataColIdx = self.table.getIndex(name)
@@ -277,7 +282,7 @@ class TableModel(QAbstractTableModel):
             return QVariant()
         cidx = self.widgetColToDataCol[index.column()]
         value = self.table.rows[index.row()][cidx]
-        shown =  self.table.colFormatters[cidx](value)
+        shown = self.table.colFormatters[cidx](value)
         if role == Qt.DisplayRole:
             return shown
         if role == Qt.EditRole:
@@ -315,7 +320,7 @@ class TableModel(QAbstractTableModel):
         if not index.isValid():
             return Qt.ItemIsEnabled
         default = super(TableModel, self).flags(index)
-        #urls are not editable
+        # urls are not editable
         if isUrl(str(self.data(index))):
             return default
         if self.widgetColToDataCol[index.column()] in self.nonEditables:
@@ -327,7 +332,7 @@ class TableModel(QAbstractTableModel):
         if index.isValid() and 0 <= index.row() < len(self.table):
             dataIdx = self.widgetColToDataCol[index.column()]
             expectedType = self.table._colTypes[dataIdx]
-            if value.toString().trimmed()=="-":
+            if value.toString().trimmed() == "-":
                 value = None
             elif expectedType != object:
                 # QVariant -> QString -> str + strip:
@@ -370,7 +375,6 @@ class TableModel(QAbstractTableModel):
             self.redoActions.append(action)
             self.parent.updateMenubar()
 
-
     def redoLastAction(self):
         if len(self.redoActions):
             action = self.redoActions.pop()
@@ -388,8 +392,9 @@ class TableModel(QAbstractTableModel):
         return True
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
-        dataColIdx = self.widgetColToDataCol[colIdx]
-        self.runAction(SortTableAction, dataColIdx, colIdx, order)
+        if len(self.widgetColToDataCol):
+            dataColIdx = self.widgetColToDataCol[colIdx]
+            self.runAction(SortTableAction, dataColIdx, colIdx, order)
 
     def integrate(self, idx, postfix, method, rtmin, rtmax):
         self.runAction(IntegrateAction, postfix, idx, method, rtmin, rtmax)
@@ -404,30 +409,30 @@ class TableModel(QAbstractTableModel):
         return ["area", "rmse", "method", "params"]
 
     def getIntegrationValues(self, rowIdx, p):
-        get = lambda nn: self.table.getValue(self.table.rows[rowIdx], nn+p)
-        return dict((nn+p, get(nn)) for nn in self.integrationColNames())
+        get = lambda nn: self.table.getValue(self.table.rows[rowIdx], nn + p)
+        return dict((nn + p, get(nn)) for nn in self.integrationColNames())
 
     def isIntegrated(self):
         return self.hasFeatures()\
-               and self.checkForAny(*self.integrationColNames())
+            and self.checkForAny(*self.integrationColNames())
 
     def checkForAny(self, *names):
         """
         checks if names appear at least once as prefixes in current colNames
         """
-        return len(self.table.supportedPostfixes(names))>0
+        return len(self.table.supportedPostfixes(names)) > 0
 
     def setNonEditable(self, colBaseName, group):
         for postfix in self.table.supportedPostfixes(group):
-            if self.table.hasColumns(colBaseName+postfix):
-                self.addNonEditable(colBaseName+postfix)
+            if self.table.hasColumns(colBaseName + postfix):
+                self.addNonEditable(colBaseName + postfix)
 
     def getTitle(self):
         table = self.table
         if table.title:
             title = table.title
         else:
-            title = os.path.basename(table.meta.get("source",""))
+            title = os.path.basename(table.meta.get("source", ""))
         if self.hasFeatures():
             title += " rt_aligned=%s" % table.meta.get("rt_aligned", "False")
             title += " mz_aligned=%s" % table.meta.get("mz_aligned", "False")
@@ -437,8 +442,8 @@ class TableModel(QAbstractTableModel):
         allsmoothed = []
         for p in self.table.supportedPostfixes(self.integrationColNames()):
             values = self.getIntegrationValues(rowIdx, p)
-            method = values["method"+p]
-            params = values["params"+p]
+            method = values["method" + p]
+            params = values["params" + p]
             integrator = dict(_algorithm_configs.peakIntegrators).get(method)
             data = ([], [])
             if method is not None:
@@ -453,20 +458,20 @@ class TableModel(QAbstractTableModel):
     def getPeakmaps(self, rowIdx):
         peakMaps = []
         for p in self.table.supportedPostfixes(["peakmap"]):
-            pm = self.table.getValue(self.table.rows[rowIdx], "peakmap"+p)
+            pm = self.table.getValue(self.table.rows[rowIdx], "peakmap" + p)
             if pm is None:
                 pm = PeakMap([])
             peakMaps.append(pm)
         return peakMaps
 
     def getLevelNSpectra(self, rowIdx, minLevel=2, maxLevel=999):
-        spectra=[]
+        spectra = []
         postfixes = []
         for p in self.table.supportedPostfixes(self.eicColNames()):
             values = self.table.getValues(self.table.rows[rowIdx])
-            pm = values["peakmap"+p]
-            rtmin = values["rtmin"+p]
-            rtmax = values["rtmax"+p]
+            pm = values["peakmap" + p]
+            rtmin = values["rtmin" + p]
+            rtmax = values["rtmax" + p]
             if pm is not None and rtmin is not None and rtmax is not None:
                 for spec in pm.levelNSpecs(minLevel, maxLevel):
                     if rtmin <= spec.rt <= rtmax:
@@ -483,13 +488,13 @@ class TableModel(QAbstractTableModel):
         allrts = []
         for p in self.table.supportedPostfixes(self.eicColNames()):
             values = self.table.getValues(self.table.rows[rowIdx])
-            pm = values["peakmap"+p]
-            mzmin = values["mzmin"+p]
-            mzmax = values["mzmax"+p]
-            rtmin = values["rtmin"+p]
-            rtmax = values["rtmax"+p]
+            pm = values["peakmap" + p]
+            mzmin = values["mzmin" + p]
+            mzmax = values["mzmax" + p]
+            rtmin = values["rtmin" + p]
+            rtmax = values["rtmax" + p]
             if mzmin is None or mzmax is None or rtmin is None or rtmax is None:
-                chromo = [],[]
+                chromo = [], []
             else:
                 chromo = pm.chromatogram(mzmin, mzmax)
                 mzmins.append(mzmin)
@@ -501,4 +506,4 @@ class TableModel(QAbstractTableModel):
         if not mzmins:
             return eics, 0, 0, 0, 0, sorted(allrts)
         return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
-               sorted(allrts)
+            sorted(allrts)

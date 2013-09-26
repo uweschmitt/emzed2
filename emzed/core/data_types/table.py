@@ -733,6 +733,10 @@ class Table(object):
             del self._colTypes[ix]
             for row in self.rows:
                 del row[ix]
+        if len(self._colNames) == 0:
+            # in this case we have here len(table) empty lists as rows, so we empty the tabl
+            # totally:
+            self.rows = []
         self.resetInternals()
 
     def splitBy(self, *colNames):
