@@ -1,3 +1,4 @@
+import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -21,7 +22,7 @@ import guidata
 from guiqwt.builder import make
 from guiqwt.config import CONF
 from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler,)
-from guiqwt.image import RawImageItem, ImagePlot
+from guiqwt.image import ImageItem, ImagePlot, RGBImageItem
 from guiqwt.label import ObjectInfo
 from guiqwt.plot import ImageWidget, CurveWidget, CurvePlot
 from guiqwt.shapes import RectangleShape
@@ -59,23 +60,18 @@ def set_y_axis_scale_draw(widget):
     widget.plot.setAxisScaleDraw(widget.plot.yLeft, drawer)
 
 
-class PeakMapImageItem(RawImageItem):
+class PeakMapImageItem(RGBImageItem):
 
     """ draws peakmap 2d view dynamically based on given limits """
 
-    def __init__(self, peakmap):
-        super(PeakMapImageItem, self).__init__(np.zeros((1, 1), np.uint8))
-
+    def __init__(self, peakmap, color_map_name):
+        param = super(PeakMapImageItem, self).get_default_param()
         self.peakmap = peakmap
-
-        rtmin, rtmax = self.peakmap.rtRange()
-        mzmin, mzmax = self.peakmap.mzRange()
-
+        rtmin, rtmax = peakmap.rtRange()
+        mzmin, mzmax = peakmap.mzRange()
+        super(PeakMapImageItem, self).__init__(256*np.random.random((1, 1, 3)))
         self.bounds = QRectF(QPointF(rtmin, mzmin), QPointF(rtmax, mzmax))
         self.update_border()
-        self.IMAX = 255
-        self.set_lut_range([0, self.IMAX])
-        self.set_color_map("hot")
 
         self.total_imin = 0.0
         self.total_imax = max(np.max(s.peaks[:, 1]) for s in peakmap.spectra)
@@ -92,6 +88,15 @@ class PeakMapImageItem(RawImageItem):
         self.last_dst_rect = None
         self.last_xmap = None
         self.last_ymap = None
+
+    #--- BaseImageItem API ----------------------------------------------------
+    # Override lut/bg handling
+
+#    def set_background_color(self, qcolor):
+#        self.lut = None
+
+#    def set_color_map(self, name_or_table):
+#        self.lut = None
 
     def set_imin(self, imin):
         self.imin = imin
@@ -158,7 +163,7 @@ class PeakMapImageItem(RawImageItem):
         smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
 
         # turn up/down
-        smoothed = smoothed[::-1, :]
+        # smoothed = smoothed[::-1, :]
         imin = self.imin
         imax = self.imax
 
@@ -177,13 +182,18 @@ class PeakMapImageItem(RawImageItem):
             smoothed /= maxd
 
         # apply gamma
-        smoothed = smoothed ** (self.gamma) * 256
-        self.data = smoothed
+        smoothed = (smoothed ** (self.gamma) * 256).astype(np.uint32)
+        self.data = np.zeros_like(smoothed, dtype=np.uint32)
+        self.data[:] = 255 << 24  # alpha = 1.0
+        self.data += smoothed
+        self.data += smoothed * 256
+        self.data += smoothed * 256 * 256
 
-        # draw
-        srcRect = (0, 0, NX, NY)
+        self.bounds = QRectF(rtmin, mzmin, rtmax-rtmin, mzmax-mzmin)
+
         x1, y1, x2, y2 = canvasRect.getCoords()
-        RawImageItem.draw_image(self, painter, canvasRect, srcRect, (x1, y1, x2, y2), xMap, yMap)
+        RGBImageItem.draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap)
+
 
 
 class PeakmapCursorRangeInfo(ObjectInfo):
@@ -414,6 +424,9 @@ class ModifiedImagePlot(ImagePlot):
         self.mzmax = mzmax
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
+
+        pmi = self.get_unique_item(RGBImageItem)
+        pmi.bounds = QRectF(QPointF(rtmin, mzmin), QPointF(rtmax, mzmax))
 
         if add_to_history:
             self.history.new_head((rtmin, rtmax, mzmin, mzmax))
@@ -794,7 +807,7 @@ class PeakMapPlotter(object):
         set_x_axis_scale_draw(self.widget)
         set_y_axis_scale_draw(self.widget)
 
-        self.pmi = PeakMapImageItem(peakmap)
+        self.pmi = PeakMapImageItem(peakmap, "red")
         self.widget.plot.add_item(self.pmi)
         self.widget.plot.enableAxis(self.widget.plot.colormap_axis, False)
 
@@ -1341,6 +1354,7 @@ class PeakMapExplorer(QDialog):
             slider.setSliderPosition(slider_value)
             slider.blockSignals(False)
 
+
     @protect_signal_handler
     def img_range_slider_changed(self, int):
         rtmin = self.rtmin + (self.rtmax - self.rtmin) * \
@@ -1360,6 +1374,12 @@ class PeakMapExplorer(QDialog):
         if mzmax < mzmin:
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
             mzmax = mzmin
+
+        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+
+        plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        self.peakmap_plotter.replot()
+        plot.emit(SIG_PLOT_AXIS_CHANGED, plot)
 
     def plot_peakmap(self):
         self.peakmap_plotter.widget.plot.set_limits(self.rtmin, self.rtmax,
