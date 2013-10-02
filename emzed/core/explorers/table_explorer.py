@@ -15,11 +15,10 @@ from helpers import protect_signal_handler
 
 
 def getColors(i, light=False):
-    colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0),
-              (200, 0, 0), (200, 200, 0), (100, 70, 0)]
+    colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
     c = colors[i % len(colors)]
     if light:
-        c = tuple([min(i + 50, 255) for i in c])
+        c = tuple([min(ii + 50, 255) for ii in c])
 
     # create hex string  "#rrggbb":
     return "#" + "".join("%02x" % v for v in c)
@@ -32,8 +31,7 @@ def configsForEics(eics):
 
 def configsForSmootheds(smootheds):
     n = len(smootheds)
-    return [dict(shade=0.35, linestyle="NoPen",
-                 color=getColors(i, light=True)) for i in range(n)]
+    return [dict(shade=0.35, linestyle="NoPen", color=getColors(i, light=True)) for i in range(n)]
 
 
 def configsForSpectra(n):
@@ -267,8 +265,7 @@ class TableExplorer(QDialog):
         for view in self.tableViews:
             vh = view.verticalHeader()
             vh.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.connect(vh, SIGNAL("customContextMenuRequested(QPoint)"),
-                         self.openContextMenu)
+            self.connect(vh, SIGNAL("customContextMenuRequested(QPoint)"), self.openContextMenu)
 
             self.connect(vh, SIGNAL("sectionClicked(int)"), self.rowClicked)
 
@@ -277,19 +274,15 @@ class TableExplorer(QDialog):
             handler = protect_signal_handler(handler)
             self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
 
-        self.connect(self.reintegrateButton, SIGNAL("clicked()"),
-                     self.doIntegrate)
-
-        self.connect(self.chooseSpectrum, SIGNAL("activated(int)"),
-                     self.spectrumChosen)
+        self.connect(self.reintegrateButton, SIGNAL("clicked()"), self.doIntegrate)
+        self.connect(self.chooseSpectrum, SIGNAL("activated(int)"), self.spectrumChosen)
 
         if self.offerAbortOption:
             self.connect(self.okButton, SIGNAL("clicked()"), self.ok)
             self.connect(self.abortButton, SIGNAL("clicked()"), self.abort)
 
     def disconnectModelSignals(self):
-        self.disconnect(self.model,
-                        SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+        self.disconnect(self.model, SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
                         self.dataChanged)
         self.menubar.disconnect(self.undoAction, SIGNAL("triggered()"),
                                 protect_signal_handler(self.model.undoLastAction))
@@ -297,8 +290,7 @@ class TableExplorer(QDialog):
                                 protect_signal_handler(self.model.redoLastAction))
 
     def connectModelSignals(self):
-        self.connect(self.model,
-                     SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+        self.connect(self.model, SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
                      self.dataChanged)
         self.menubar.connect(self.undoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.undoLastAction))
@@ -308,8 +300,8 @@ class TableExplorer(QDialog):
     def updateMenubar(self):
         undoInfo = self.model.infoLastAction()
         redoInfo = self.model.infoRedoAction()
-        self.undoAction.setEnabled(undoInfo != None)
-        self.redoAction.setEnabled(redoInfo != None)
+        self.undoAction.setEnabled(undoInfo is not None)
+        self.redoAction.setEnabled(redoInfo is not None)
         if undoInfo:
             self.undoAction.setText("Undo: %s" % undoInfo)
         if redoInfo:
@@ -333,8 +325,7 @@ class TableExplorer(QDialog):
         self.tableView = self.tableViews[i]
         self.setupModelDependendLook()
         if self.isIntegrated:
-            self.model.setNonEditable("method", ["area", "rmse", "method",
-                                                 "params"])
+            self.model.setNonEditable("method", ["area", "rmse", "method", "params"])
         self.choosePostfix.clear()
         mod = self.model
         for p in mod.table.supportedPostfixes(mod.integrationColNames()):
@@ -466,8 +457,7 @@ class TableExplorer(QDialog):
             rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
             xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
 
-        self.rt_plotter.plot(curves, configs=configs, titles=None,
-                             withmarker=True)
+        self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
 
         # allrts are sorted !
         w = rtmax - rtmin

@@ -1,4 +1,3 @@
-import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -11,7 +10,7 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QComboBox, QLineEdit, QDoubleValidator, QFrame,
                          QSizePolicy, QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
-                         QMessageBox)
+                         QMessageBox, QTableWidget, QTableWidgetItem)
 
 from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF, QPoint)
 from PyQt4.QtWebKit import (QWebView, QWebSettings)
@@ -509,7 +508,6 @@ class ModifiedImagePlot(ImagePlot):
 
     def reset_history(self):
         self.history = History()
-        print "EMIT"
         self.emit(SIG_HISTORY_CHANGED, self.history)
 
     def mouseDoubleClickEvent(self, evt):
@@ -517,10 +515,10 @@ class ModifiedImagePlot(ImagePlot):
             self.go_back_in_history()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
-        self.rtmin = rtmin
-        self.rtmax = rtmax
-        self.mzmin = mzmin
-        self.mzmax = mzmax
+        self.rtmin = rtmin = max(rtmin, self.peakmap_range[0])
+        self.rtmax = rtmax = min(rtmax, self.peakmap_range[1])
+        self.mzmin = mzmin = max(mzmin, self.peakmap_range[2])
+        self.mzmax = mzmax = min(mzmax, self.peakmap_range[3])
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
 
@@ -781,6 +779,30 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
+def create_table_widget(table):
+    formats = table.getColFormats()
+    names = table.getColNames()
+    indices_of_visible_columns = [j for (j, f) in enumerate(formats) if f is not None]
+    headers = ["ok"] + [names[j] for j in indices_of_visible_columns]
+    n_rows = len(table)
+
+    widget = QTableWidget(n_rows, 1 + len(indices_of_visible_columns))
+    widget.setHorizontalHeaderLabels(headers)
+
+    for i, row in enumerate(table.rows):
+        item = QTableWidgetItem()
+        item.setCheckState(Qt.Unchecked)
+        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable)
+        widget.setItem(i, 0, item)
+        for j0, j in enumerate(indices_of_visible_columns):
+            value = row[j]
+            formatter = table.colFormatters[j]
+            item = QTableWidgetItem(formatter(value))
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            widget.setItem(i, j0 + 1, item)
+    return widget
+
+
 def get_range(peakmap, peakmap2):
     rtmin, rtmax = peakmap.rtRange()
     mzmin, mzmax = peakmap.mzRange()
@@ -808,6 +830,7 @@ def create_image_widget():
     widget.plot.enableAxis(widget.plot.colormap_axis, False)
 
     return widget
+
 
 def set_image_plot(widget, image_item, peakmap_range):
     widget.plot.peakmap_range = peakmap_range
@@ -1013,9 +1036,11 @@ class PeakMapExplorer(QDialog):
             title = "yellow=%s, blue=%s" % (p1, p2)
         super(PeakMapExplorer, self).setWindowTitle(title)
 
-    def setup(self, peakmap, peakmap2=None):
+    def setup(self, peakmap, peakmap2=None, table=None):
+        self.table = table
         self.process_peakmap(peakmap, peakmap2)
 
+        self.setup_table_widgets()
         self.setup_input_widgets()
         self.setup_plot_widgets()
         self.setup_menu_bar()
@@ -1023,6 +1048,13 @@ class PeakMapExplorer(QDialog):
         self.connect_signals_and_slots()
         self.setup_initial_values()
         self.plot_peakmap()
+
+    def setup_table_widgets(self):
+        if self.table is not None:
+            self.table_widget = create_table_widget(self.table)
+            self.ok_button = QPushButton("All ok")
+            self.not_ok_button = QPushButton("Any not ok")
+            self.use_checkbox_button = QPushButton("Use checkboxes")
 
     def setup_menu_bar(self):
         self.menu_bar = QMenuBar(self)
@@ -1156,6 +1188,20 @@ class PeakMapExplorer(QDialog):
         outer_layout.addWidget(self.menu_bar)
 
         layout = QGridLayout()
+        if self.table is not None:
+
+            table_col_layout = QVBoxLayout()
+            table_col_layout.addWidget(self.table_widget)
+
+            button_row_layout = QHBoxLayout()
+            button_row_layout.addWidget(self.ok_button)
+            button_row_layout.addWidget(self.not_ok_button)
+            button_row_layout.addWidget(self.use_checkbox_button)
+
+            table_col_layout.addLayout(button_row_layout)
+
+            layout.addLayout(table_col_layout, 0, 2, 0, 3)
+
         layout.addWidget(self.chromatogram_plotter.widget, 1, 0, 2, 1)
 
         layout.addWidget(self.peakmap_plotter.widget, 3, 0)
@@ -1239,6 +1285,8 @@ class PeakMapExplorer(QDialog):
 
         layout.setColumnStretch(0, 3)
         layout.setColumnStretch(1, 2)
+        if self.table_widget:
+            layout.setColumnStretch(2, 3)
 
         outer_layout.addLayout(layout)
 
@@ -1281,6 +1329,14 @@ class PeakMapExplorer(QDialog):
             self.connect(self.load_action, SIGNAL("triggered()"), self.do_load)
         self.connect(self.save_action, SIGNAL("triggered()"), self.do_save)
         self.connect(self.help_action, SIGNAL("triggered()"), self.show_help)
+
+        if self.table is not None:
+            self.connect(self.table_widget.verticalHeader(), SIGNAL("sectionClicked(int)"),
+                         self.row_selected)
+            self.connect(self.ok_button, SIGNAL("pressed()"), self.ok_button_pressed)
+            self.connect(self.not_ok_button, SIGNAL("pressed()"), self.not_ok_button_pressed)
+            self.connect(self.use_checkbox_button, SIGNAL("pressed()"),
+                         self.use_checkbox_button_pressed)
 
     def _ask_for_file(self, last_dir, flag, caption, filter_):
         dlg = QFileDialog(directory=last_dir or "", caption=caption)
@@ -1330,6 +1386,7 @@ class PeakMapExplorer(QDialog):
     def do_load(self):
         self._do_load("Load Peakmap", "peakmap")
 
+    @protect_signal_handler
     def do_load_yellow(self):
         self._do_load("Load Yellow Peakmap", "peakmap")
 
@@ -1337,6 +1394,32 @@ class PeakMapExplorer(QDialog):
     def do_load_blue(self):
         self._do_load("Load Blue Peakmap", "peakmap2")
 
+    @protect_signal_handler
+    def ok_button_pressed(self):
+        self.ok_rows = range(len(self.table))
+        self.accept()
+
+    @protect_signal_handler
+    def not_ok_button_pressed(self):
+        self.ok_rows = []
+        self.accept()
+
+    @protect_signal_handler
+    def use_checkbox_button_pressed(self):
+        self.ok_rows = [i for i in range(len(self.table))
+                        if self.table_widget.item(i, 0).checkState() == Qt.Checked]
+        self.accept()
+
+    @protect_signal_handler
+    def row_selected(self, row_idx):
+        row = self.table.getValues(self.table.rows[row_idx])
+        needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
+        if all(n in row for n in needed):
+            rtmin, rtmax, mzmin, mzmax = [row.get(n) for n in needed]
+            print rtmin, rtmax, mzmin, mzmax
+            self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+
+    @protect_signal_handler
     def show_help(self):
         html = resource_string("emzed.core.explorers", "help_peakmapexplorer.html")
         QWebSettings.globalSettings().setFontFamily(QWebSettings.StandardFont, 'Courier')
@@ -1352,7 +1435,6 @@ class PeakMapExplorer(QDialog):
 
     @protect_signal_handler
     def history_changed(self, history):
-        print "got", history.items
         self.history_list.clear()
         for item in history.items:
             rtmin, rtmax, mzmin, mzmax = item
@@ -1556,7 +1638,7 @@ class PeakMapExplorer(QDialog):
             self.rtmin, self.rtmax, self.mzmin, self.mzmax, add_to_history=True)
 
 
-def inspectPeakMap(peakmap, peakmap2=None):
+def inspectPeakMap(peakmap, peakmap2=None, table=None):
     """
     allows the visual inspection of a peakmap
     """
@@ -1566,9 +1648,11 @@ def inspectPeakMap(peakmap, peakmap2=None):
 
     app = guidata.qapplication()  # singleton !
     win = PeakMapExplorer()
-    win.setup(peakmap, peakmap2)
+    win.setup(peakmap, peakmap2, table)
     win.raise_()
     win.exec_()
+    if table is not None:
+        return win.ok_rows
 
 if __name__ == "__main__":
     import emzed.io

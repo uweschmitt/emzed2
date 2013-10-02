@@ -436,6 +436,11 @@ class Table(object):
         """
             if ``colName`` is not provided, one gets the content of
             the ``row`` as a dictionary mapping column names to values.
+
+            Example::
+
+                row = table.getValues(table.rows[0])
+                print row["mz"]
         """
         return Bunch((n, self.getValue(row, n)) for n in self._colNames)
 
@@ -445,10 +450,6 @@ class Table(object):
             Example: ``table.getValue(table.rows[0], "mz")``
 
 
-            Example::
-
-                row = table.getValue(table.rows[0])
-                print row["mz"]
 
         """
         return row[self.getIndex(colName)]
