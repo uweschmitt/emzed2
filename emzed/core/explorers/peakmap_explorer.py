@@ -64,12 +64,12 @@ class PeakMapImageBase(object):
 
     def __init__(self, peakmaps):
         self.peakmaps = peakmaps
-        self.rtmins, self.rtmaxs = zip(*[pm.rtRange() for pm in peakmaps])
-        self.mzmins, self.mzmaxs = zip(*[pm.mzRange() for pm in peakmaps])
-        self.rtmin = min(self.rtmins)
-        self.rtmax = max(self.rtmaxs)
-        self.mzmin = min(self.mzmins)
-        self.mzmax = max(self.mzmaxs)
+        rtmins, rtmaxs = zip(*[pm.rtRange() for pm in peakmaps])
+        mzmins, mzmaxs = zip(*[pm.mzRange() for pm in peakmaps])
+        self.rtmin = min(rtmins)
+        self.rtmax = max(rtmaxs)
+        self.mzmin = min(mzmins)
+        self.mzmax = max(mzmaxs)
 
         self.bounds = QRectF(QPointF(self.rtmin, self.mzmin), QPointF(self.rtmax, self.mzmax))
 
@@ -93,6 +93,9 @@ class PeakMapImageBase(object):
 
     def set_gamma(self, gamma):
         self.gamma = gamma
+
+    def get_gamma(self):
+        return self.gamma
 
     def get_total_imax(self):
         return self.total_imax
@@ -137,7 +140,6 @@ class PeakMapImageBase(object):
 
         # apply gamma
         smoothed = smoothed ** (self.gamma) * 255
-
         return smoothed.astype(np.uint8)
 
 
@@ -469,13 +471,21 @@ class ChromatogramPlot(CurvePlot):
             curve = make.curve(rts2, chroma2, linewidth=1.5, color="#0000aa")
             self.add_item(curve)
 
+        def mmin(seq, default=1.0):
+            return min(seq) if len(seq) else default
+
+        def mmax(seq, default=1.0):
+            return max(seq) if len(seq) else default
+
         self.add_item(self.rt_label)
-        rtmin = min(rts)
-        rtmax = max(rts)
+        rtmin = mmin(rts, default=0.0)
+        rtmax = mmax(rts)
+        maxchroma = mmax(chroma)
         if rts2 is not None:
-            rtmin = min(rtmin, min(rts2))
-            rtmax = max(rtmax, max(rts2))
-        self.set_plot_limits(rtmin, rtmax, 0, max(chroma) if len(chroma) else 1.0)
+            rtmin = min(rtmin, mmin(rts2, rtmin))
+            rtmax = max(rtmax, mmax(rts2, rtmax))
+            maxchroma = max(maxchroma, mmax(chroma2, maxchroma))
+        self.set_plot_limits(rtmin, rtmax, 0, maxchroma)
         self.updateAxes()
         self.replot()
 
@@ -488,14 +498,19 @@ class ModifiedImagePlot(ImagePlot):
     # values as class atributes:
 
     rtmin = rtmax = mzmin = mzmax = None
-    abs_rtmin = abs_rtmax = abs_mzmin = abs_mzmax = None
+    peakmap_range = (None, None, None, None)
     coords = (None, None)
     dragging = False
 
     chromatogram_plot = None
     mz_plot = None
 
-    history = History()
+    history = None
+
+    def reset_history(self):
+        self.history = History()
+        print "EMIT"
+        self.emit(SIG_HISTORY_CHANGED, self.history)
 
     def mouseDoubleClickEvent(self, evt):
         if evt.button() == Qt.RightButton:
@@ -714,11 +729,11 @@ class ModifiedImagePlot(ImagePlot):
 
             # patch for not "zooming out"
             if axis_id in axis_ids_horizontal:
-                vmin = max(vmin, self.abs_rtmin)
-                vmax = min(vmax, self.abs_rtmax)
+                vmin = max(vmin, self.peakmap_range[0])
+                vmax = min(vmax, self.peakmap_range[1])
             elif axis_id in axis_ids_vertical:
-                vmin = max(vmin, self.abs_mzmin)
-                vmax = min(vmax, self.abs_mzmax)
+                vmin = max(vmin, self.peakmap_range[2])
+                vmax = min(vmax, self.peakmap_range[3])
 
             self.set_axis_limits(axis_id, vmin, vmax)
 
@@ -752,11 +767,11 @@ class ModifiedImagePlot(ImagePlot):
             vmax = self.invTransform(axis_id, i_hbound - delta)
             # patch for not "panning out"
             if axis_id in axis_ids_horizontal:
-                vmin = max(vmin, self.abs_rtmin)
-                vmax = min(vmax, self.abs_rtmax)
+                vmin = max(vmin, self.peakmap_range[0])
+                vmax = min(vmax, self.peakmap_range[1])
             elif axis_id in axis_ids_vertical:
-                vmin = max(vmin, self.abs_mzmin)
-                vmax = min(vmax, self.abs_mzmax)
+                vmin = max(vmin, self.peakmap_range[2])
+                vmax = min(vmax, self.peakmap_range[3])
             self.set_axis_limits(axis_id, vmin, vmax)
 
         self.setAutoReplot(auto)
@@ -766,24 +781,40 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-def create_image_widget(peakmap, image_item):
+def get_range(peakmap, peakmap2):
+    rtmin, rtmax = peakmap.rtRange()
+    mzmin, mzmax = peakmap.mzRange()
+    if peakmap2 is not None:
+        rtmin2, rtmax2 = peakmap2.rtRange()
+        mzmin2, mzmax2 = peakmap2.mzRange()
+        rtmin = min(rtmin, rtmin2)
+        rtmax = max(rtmax, rtmax2)
+        mzmin = min(mzmin, mzmin2)
+        mzmax = max(mzmax, mzmax2)
+    return rtmin, rtmax, mzmin, mzmax
+
+
+def create_image_widget():
     # patched plot in widget
     widget = ImageWidget(lock_aspect_ratio=False, xlabel="rt", ylabel="m/z")
 
     # patch memeber's methods:
     widget.plot.__class__ = ModifiedImagePlot
-    widget.plot.abs_rtmin, widget.plot.abs_rtmax = peakmap.rtRange()
-    widget.plot.abs_mzmin, widget.plot.abs_mzmax = peakmap.mzRange()
     widget.plot.set_axis_direction("left", False)
     widget.plot.set_axis_direction("right", False)
 
-    widget.plot.add_item(image_item)
     set_x_axis_scale_draw(widget)
     set_y_axis_scale_draw(widget)
     widget.plot.enableAxis(widget.plot.colormap_axis, False)
 
-    create_peakmap_labels(widget.plot)
+    return widget
 
+def set_image_plot(widget, image_item, peakmap_range):
+    widget.plot.peakmap_range = peakmap_range
+    widget.plot.del_all_items()
+    widget.plot.add_item(image_item)
+    widget.plot.reset_history()
+    create_peakmap_labels(widget.plot)
     # for zooming and panning with mouse drag:
     t = widget.add_tool(SelectTool)
     widget.set_default_tool(t)
@@ -791,8 +822,6 @@ def create_image_widget(peakmap, image_item):
     # for selecting zoom window
     t = widget.add_tool(PeakmapZoomTool)
     t.activate()
-
-    return widget
 
 
 def create_chromatogram_widget(image_plot):
@@ -888,17 +917,29 @@ def create_peakmap_labels(plot):
 
 class PeakMapPlotter(object):
 
-    def __init__(self, peakmap, peakmap2):
+    def __init__(self):
+        self.widget = create_image_widget()
+        self.peakmap_item = None
+
+    def set_peakmaps(self, peakmap, peakmap2):
 
         self.peakmap = peakmap
         self.peakmap2 = peakmap2
 
+        # only makes sense for gamma, after reload imin/imax and rt/mz bounds will not be
+        # valid any more
+
+        if self.peakmap_item is not None:
+            gamma_before = self.peakmap_item.get_gamma()
+        else:
+            gamma_before = None
         if peakmap2 is not None:
             self.peakmap_item = RGBPeakMapImageItem(peakmap, peakmap2)
         else:
             self.peakmap_item = PeakMapImageItem(peakmap)
-
-        self.widget = create_image_widget(peakmap, self.peakmap_item)
+        set_image_plot(self.widget, self.peakmap_item, get_range(peakmap, peakmap2))
+        if gamma_before is not None:
+            self.peakmap_item.set_gamma(gamma_before)
 
     def replot(self):
         self.widget.plot.replot()
@@ -937,6 +978,7 @@ class ChromatogramPlotter(object):
 
     def plot(self, rts, chroma, rts2=None, chroma2=None):
         self.widget.plot.plot_chromatograms(rts, chroma, rts2, chroma2)
+        self.widget.plot.updateAxes()
 
 
 class PeakMapExplorer(QDialog):
@@ -962,16 +1004,17 @@ class PeakMapExplorer(QDialog):
         if e.key() != Qt.Key_Escape:
             super(PeakMapExplorer, self).keyPressEvent(e)
 
-    def setup(self, peakmap, peakmap2=None):
-        self.process_peakmap(peakmap, peakmap2)
-
-        if peakmap2 is None:
+    def setWindowTitle(self):
+        if self.peakmap2 is None:
             title = os.path.basename(self.peakmap.meta.get("source", ""))
         else:
             p1 = os.path.basename(self.peakmap.meta.get("source", ""))
             p2 = os.path.basename(self.peakmap2.meta.get("source", ""))
             title = "yellow=%s, blue=%s" % (p1, p2)
-        self.setWindowTitle(title)
+        super(PeakMapExplorer, self).setWindowTitle(title)
+
+    def setup(self, peakmap, peakmap2=None):
+        self.process_peakmap(peakmap, peakmap2)
 
         self.setup_input_widgets()
         self.setup_plot_widgets()
@@ -1009,19 +1052,13 @@ class PeakMapExplorer(QDialog):
     def process_peakmap(self, peakmap, peakmap2):
 
         self.peakmap = peakmap.getDominatingPeakmap()
-        self.rtmin, self.rtmax = peakmap.rtRange()
-        self.mzmin, self.mzmax = peakmap.mzRange()
-
         self.dual_mode = peakmap2 is not None
         self.peakmap2 = peakmap2
         if self.dual_mode:
             self.peakmap2 = peakmap2.getDominatingPeakmap()
-            rtmin, rtmax = peakmap2.rtRange()
-            mzmin, mzmax = peakmap2.mzRange()
-            self.rtmin = min(rtmin, self.rtmin)
-            self.rtmax = max(rtmax, self.rtmax)
-            self.mzmin = min(mzmin, self.mzmin)
-            self.mzmax = max(mzmax, self.mzmax)
+
+        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
+        self.setWindowTitle()
 
     def setup_initial_values(self):
         self.imin_input.setText("0")
@@ -1104,7 +1141,8 @@ class PeakMapExplorer(QDialog):
         self.history_list = QComboBox()
 
     def setup_plot_widgets(self):
-        self.peakmap_plotter = PeakMapPlotter(self.peakmap, self.peakmap2)
+        self.peakmap_plotter = PeakMapPlotter()
+        self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
         image_plot = self.peakmap_plotter.widget.plot
         self.chromatogram_plotter = ChromatogramPlotter(image_plot=image_plot)
         self.mz_plotter = MzPlotter(None, image_plot=image_plot)
@@ -1275,20 +1313,29 @@ class PeakMapExplorer(QDialog):
                 break
         return
 
-    @protect_signal_handler
-    def do_load(self):
+    def _do_load(self, title, attribute):
         path = self._ask_for_file(self.last_used_directory_for_load, QFileDialog.ExistingFile,
-                                  "Load Peakmap", "(*.mzML *.mzData *.mzXML)")
+                                  title, "(*.mzML *.mzData *.mzXML)")
         if path is not None:
-            self.peakmap = loadPeakMap(path)
-            self.process_peakmap(self.peakmap)
-            title = os.path.basename(self.peakmap.meta.get("source", ""))
-            self.setWindowTitle(title)
+            setattr(self, attribute, loadPeakMap(path))
+            self.process_peakmap(self.peakmap, self.peakmap2)
+            self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
             self.setup_initial_values()
+            self.setWindowTitle()
+            self.peakmap_plotter.replot()
             self.plot_peakmap()
             self.last_used_directory_for_load = os.path.dirname(path)
 
-    do_load_yellow = do_load_blue = do_load
+    @protect_signal_handler
+    def do_load(self):
+        self._do_load("Load Peakmap", "peakmap")
+
+    def do_load_yellow(self):
+        self._do_load("Load Yellow Peakmap", "peakmap")
+
+    @protect_signal_handler
+    def do_load_blue(self):
+        self._do_load("Load Blue Peakmap", "peakmap2")
 
     def show_help(self):
         html = resource_string("emzed.core.explorers", "help_peakmapexplorer.html")
@@ -1305,6 +1352,7 @@ class PeakMapExplorer(QDialog):
 
     @protect_signal_handler
     def history_changed(self, history):
+        print "got", history.items
         self.history_list.clear()
         for item in history.items:
             rtmin, rtmax, mzmin, mzmax = item
@@ -1342,7 +1390,8 @@ class PeakMapExplorer(QDialog):
 
         rts, chroma = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
         if self.dual_mode:
-            rts2, chroma2 = self.peakmap2.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+            rts2, chroma2 = self.peakmap2.chromatogram(
+                rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
             self.chromatogram_plotter.plot(rts, chroma, rts2, chroma2)
         else:
             self.chromatogram_plotter.plot(rts, chroma)
@@ -1433,7 +1482,6 @@ class PeakMapExplorer(QDialog):
     @protect_signal_handler
     def set_image_range(self):
         # statt der folgenden beiden zeilen, diese werte auslesen:
-        plot = self.peakmap_plotter.widget.plot
         try:
             rtmin, rtmax, mzmin, mzmax = map(float, (self.rtmin_input.text(),
                                                      self.rtmax_input.text(),
@@ -1460,7 +1508,7 @@ class PeakMapExplorer(QDialog):
 
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
 
-        plot.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
         self.set_sliders(rtmin, rtmax, mzmin, mzmax)
 
     def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
