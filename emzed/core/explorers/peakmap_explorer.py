@@ -10,9 +10,9 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QComboBox, QLineEdit, QDoubleValidator, QFrame,
                          QSizePolicy, QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
-                         QMessageBox, QTableWidget, QTableWidgetItem)
+                         QMessageBox, QTableWidget, QTableWidgetItem, QSplitter, QHeaderView)
 
-from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF, QPoint)
+from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
 from PyQt4.QtWebKit import (QWebView, QWebSettings)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
@@ -21,7 +21,7 @@ import guidata
 from guiqwt.builder import make
 from guiqwt.config import CONF
 from guiqwt.events import (KeyEventMatch, QtDragHandler, PanHandler, MoveHandler, ZoomHandler,)
-from guiqwt.image import ImageItem, ImagePlot, RGBImageItem, RawImageItem
+from guiqwt.image import ImagePlot, RGBImageItem, RawImageItem
 from guiqwt.label import ObjectInfo
 from guiqwt.plot import ImageWidget, CurveWidget, CurvePlot
 from guiqwt.shapes import RectangleShape
@@ -789,6 +789,8 @@ def create_table_widget(table):
     widget = QTableWidget(n_rows, 1 + len(indices_of_visible_columns))
     widget.setHorizontalHeaderLabels(headers)
 
+    widget.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+
     for i, row in enumerate(table.rows):
         item = QTableWidgetItem()
         item.setCheckState(Qt.Unchecked)
@@ -1186,26 +1188,63 @@ class PeakMapExplorer(QDialog):
     def setup_layout(self):
         outer_layout = QVBoxLayout()
         outer_layout.addWidget(self.menu_bar)
+        outer_layout.setStretch(0, 1)
 
-        layout = QGridLayout()
-        if self.table is not None:
+        h_splitter = QSplitter()
+        h_splitter.setOrientation(Qt.Horizontal)
 
-            table_col_layout = QVBoxLayout()
-            table_col_layout.addWidget(self.table_widget)
+        # FIRST COLUMN of h_splitter is chromatogram + peakmap:  ############################
+
+        v_splitter1 = QSplitter()
+        v_splitter1.setOrientation(Qt.Vertical)
+        v_splitter1.addWidget(self.chromatogram_plotter.widget)
+        v_splitter1.addWidget(self.peakmap_plotter.widget)
+        self.peakmap_plotter.widget.setMinimumSize(550, 450)
+        v_splitter1.setStretchFactor(0, 1)
+        v_splitter1.setStretchFactor(1, 3)
+
+        h_splitter.addWidget(v_splitter1)
+        h_splitter.setStretchFactor(0, 2)
+
+        # SECOND COLUMN of h_splittier holds controlx boxes + mz plot #######################
+
+        frame1, frame2 = self.layout_control_boxes()
+
+        v_splitter2 = QSplitter()
+        v_splitter2.setOrientation(Qt.Vertical)
+
+        v_splitter2.addWidget(frame1)
+        v_splitter2.addWidget(frame2)
+        v_splitter2.addWidget(self.mz_plotter.widget)
+
+        v_splitter2.setStretchFactor(0, 1)
+        v_splitter2.setStretchFactor(1, 1)
+        v_splitter2.setStretchFactor(2, 2)
+
+        h_splitter.addWidget(v_splitter2)
+        h_splitter.setStretchFactor(1, 1)
+
+        # THIRD COLUMN of h_splittier holds control table + buttons ##########################
+        if self.table:
+            frame = QFrame()
+            layout = QVBoxLayout()
+            frame.setLayout(layout)
+            layout.addWidget(self.table_widget)
 
             button_row_layout = QHBoxLayout()
             button_row_layout.addWidget(self.ok_button)
             button_row_layout.addWidget(self.not_ok_button)
             button_row_layout.addWidget(self.use_checkbox_button)
 
-            table_col_layout.addLayout(button_row_layout)
+            layout.addLayout(button_row_layout)
+            h_splitter.addWidget(frame)
+            h_splitter.setStretchFactor(2, 2)
 
-            layout.addLayout(table_col_layout, 0, 2, 0, 3)
+        outer_layout.addWidget(h_splitter)
+        self.setLayout(outer_layout)
+        outer_layout.setStretch(1, 99)
 
-        layout.addWidget(self.chromatogram_plotter.widget, 1, 0, 2, 1)
-
-        layout.addWidget(self.peakmap_plotter.widget, 3, 0)
-        self.peakmap_plotter.widget.setMinimumSize(550, 450)
+    def layout_control_boxes(self):
 
         controls_layout = QGridLayout()
         controls_layout.setSpacing(5)
@@ -1230,7 +1269,7 @@ class PeakMapExplorer(QDialog):
         frame.setLineWidth(1)
         frame.setFrameStyle(QFrame.Box | QFrame.Plain)
         frame.setLayout(controls_layout)
-        layout.addWidget(frame, 0, 1)
+        #layout.addWidget(frame, 0, 1)
 
         controls_layout = QGridLayout()
         controls_layout.setSpacing(5)
@@ -1269,28 +1308,12 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.history_list_label, row, 0)
         controls_layout.addWidget(self.history_list, row, 1, 1, 3)
 
-        frame = QFrame()
-        frame.setLineWidth(1)
-        frame.setFrameStyle(QFrame.Box | QFrame.Plain)
-        frame.setLayout(controls_layout)
+        frame2 = QFrame()
+        frame2.setLineWidth(1)
+        frame2.setFrameStyle(QFrame.Box | QFrame.Plain)
+        frame2.setLayout(controls_layout)
 
-        layout.addWidget(frame, 1, 1)
-
-        layout.addWidget(self.mz_plotter.widget, 3, 1)
-
-        layout.setRowStretch(0, 1)
-        layout.setRowStretch(1, 1)
-        layout.setRowStretch(2, 2)
-        layout.setRowStretch(3, 10)
-
-        layout.setColumnStretch(0, 3)
-        layout.setColumnStretch(1, 2)
-        if self.table_widget:
-            layout.setColumnStretch(2, 3)
-
-        outer_layout.addLayout(layout)
-
-        self.setLayout(outer_layout)
+        return frame, frame2
 
     def connect_signals_and_slots(self):
         self.connect(self.log_check_box, SIGNAL("stateChanged(int)"), self.log_changed)
@@ -1415,8 +1438,7 @@ class PeakMapExplorer(QDialog):
         row = self.table.getValues(self.table.rows[row_idx])
         needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
         if all(n in row for n in needed):
-            rtmin, rtmax, mzmin, mzmax = [row.get(n) for n in needed]
-            print rtmin, rtmax, mzmin, mzmax
+            rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
             self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
 
     @protect_signal_handler
