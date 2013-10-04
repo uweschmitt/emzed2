@@ -179,6 +179,8 @@ class _UserConfig(object):
 
         pypi_url = _di.StringItem("PyPi URL").set_prop("display",
                                                        active=_is_expert)
+        pypi_index_url = _di.StringItem("PyPi Index URL").set_prop("display",
+                                                       active=_is_expert)
 
         _g4 = _dt.EndGroup("Expert Settings")
 
@@ -191,12 +193,6 @@ class _UserConfig(object):
 
     def __init__(self, *a, **kw):
         self.parameters = _UserConfig.Parameters()
-        #if "_no_load" not in kw:
-        #    loaded = self.load()
-        #    if not loaded:
-        #        self.set_defaults()
-        #else:
-        #    self.set_defaults()
 
     def get(self, key):
         env_key = "EMZED_%s" % key.upper()
@@ -270,6 +266,7 @@ class _UserConfig(object):
     def set_defaults(self):
         self.parameters.emzed_store_url = "http://uweschmitt.info:37614"
         self.parameters.pypi_url = "http://testpypi.python.org/pypi"
+        self.parameters.pypi_index_url = "http://testpypi.python.org/simple"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
         self.parameters.last_active_project = ""
         try:

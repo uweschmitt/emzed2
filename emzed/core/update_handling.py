@@ -1,19 +1,15 @@
 # encoding:latin-1
 
-import requests
 import os
 import time
 import random
-from  ..core import config
 import glob
+import subprocess
 
+import requests
 
-def get_latest_emzed_version_from_pypi():
-    url = config.global_config.get_url("pypi_url")
-    response = requests.get(url + "emzed/json")
-    response.raise_for_status()
-    version_str = response.json()["info"]["version"]
-    return tuple(map(int, version_str.split(".")))
+from .. import version
+from ..core import config
 
 
 def is_writable(folder):
@@ -212,3 +208,47 @@ registry = UpdaterRegistry()
 #    -> schöne printausgag
 # 5: pro zeile: anelitung emzed.updaters.update("id") aufzurufen
 
+
+class EmzedUpdateImpl(AbstractUpdaterImpl):
+
+    @staticmethod
+    def get_id():
+        return "emzed_updater"
+
+    def get_update_time_delta_in_seconds(self):
+        days = 1
+        return days * 24 * 60 * 60
+
+    def query_update_info(self, limit):
+        url = config.global_config.get_url("pypi_url")
+        response = requests.get(url + "/emzed/json")
+        response.raise_for_status()
+        version_str = response.json()["info"]["version"]
+        latest_version = tuple(map(int, version_str.split(".")))
+        if latest_version > version.version:
+            return "new emzed version %s available" % version_str
+        return "emzed still up to date"
+
+    def do_update(self, limit):
+        is_venv = os.getenv("VIRTUAL_ENV") is not None
+        # install / locally
+        user_flag = "" if is_venv else "--user"
+        url = config.global_config.get_url("pypi_index_url")
+        exit_code = subprocess.call("pip install %s -vvvU -i %s emzed" % (user_flag, url), shell=True)
+        assert exit_code == 0, "exit code rom pip is %d" % exit_code
+
+    def upload_to_exchange_folder(self):
+        pass
+
+    def touch_data_home_files(self):
+        pass
+
+    def check_for_newer_version_on_exchange_folder(self):
+        return False
+
+    def update_from_exchange_folder(self):
+        pass
+
+
+updater = Updater(EmzedUpdateImpl(), None, None)
+registry.register(updater)

@@ -1,4 +1,3 @@
-import pdb
 from emzed.core.data_bases import PubChemDB
 
 import os.path
@@ -6,16 +5,16 @@ import pytest
 
 
 @pytest.mark.slow
-def x_testPubChemUpdate(tmpdir):
+def testPubChemUpdate(tmpdir):
 
     dp = tmpdir.strpath
     dbPath = os.path.join(dp, "pubchem.db")
     db = PubChemDB(dbPath)
-    assert len(db.table)==0
+    assert len(db.table) == 0
 
     unknown, missing = db.getDiff(100)
-    assert len(unknown)==100, len(unknown)
-    assert len(missing)==0, len(missing)
+    assert len(unknown) == 100, len(unknown)
+    assert len(missing) == 0, len(missing)
 
     db.update(100)
     assert len(db.table) == 100
@@ -24,19 +23,20 @@ def x_testPubChemUpdate(tmpdir):
     assert db.table.getColNames()[0] == "m0"
 
     row = db.table.rows[0]
-    assert db.table.getValue(row, "is_in_kegg") in [0,1]
-    assert db.table.getValue(row, "is_in_hmdb") in [0,1]
+    assert db.table.getValue(row, "is_in_kegg") in [0, 1]
+    assert db.table.getValue(row, "is_in_hmdb") in [0, 1]
 
     unknown, missing = db.getDiff(100)
-    assert len(unknown)==100, len(unknown)
-    #assert len(missing)==100, len(missing)
-    assert len(set(unknown) & set(db.table.cid.values)) == 0 # no interscetion
+    assert len(unknown) == 100, len(unknown)
+    # assert len(missing)==100, len(missing)
+    assert len(set(unknown) & set(db.table.cid.values)) == 0  # no interscetion
 
     db.store()
     db = PubChemDB(dbPath)
     assert len(db.table) == 100
     assert db.table.rows[0][-1].startswith("http")
     assert len(db.table.rows[0]) == len(db.getColNames())
+
 
 @pytest.mark.slow
 def unicodeWorkaround():
@@ -48,10 +48,12 @@ def unicodeWorkaround():
 import emzed.db
 import emzed.updaters
 
+
 def test_pubchem_import():
     db = emzed.db.load_pubchem()
     assert db is not None
     assert len(db) >= 0
+
 
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
@@ -114,7 +116,7 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     os.utime(_db_path(exchange_folder), None)  # like "touch" command on linux
 
     # now we should get back that a more update version on exchange folder exists
-    flag, msg =  updater.check_for_newer_version_on_exchange_folder()
+    flag, msg = updater.check_for_newer_version_on_exchange_folder()
     assert flag is True
     assert msg is None
 
@@ -124,9 +126,3 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     assert msg is None
 
     # todo: test local version for time stamp !
-
-
-
-
-
-
