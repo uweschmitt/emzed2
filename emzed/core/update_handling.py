@@ -127,8 +127,8 @@ class Updater(object):
 
     def query_update_info(self, limit=None):
         """ queries if update is available and delivers info about that"""
-        info = self.impl.query_update_info(limit)
-        return (self.impl.get_id(), self.get_latest_update_ts(), info)
+        info, offer_update = self.impl.query_update_info(limit)
+        return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
     def do_update(self, limit=None):
         """ returns flag, message """
@@ -226,8 +226,8 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         version_str = response.json()["info"]["version"]
         latest_version = tuple(map(int, version_str.split(".")))
         if latest_version > version.version:
-            return "new emzed version %s available" % version_str
-        return "emzed still up to date"
+            return "new emzed version %s available" % version_str, True
+        return "emzed still up to date", False
 
     def do_update(self, limit):
         is_venv = os.getenv("VIRTUAL_ENV") is not None

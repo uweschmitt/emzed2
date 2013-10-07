@@ -8,9 +8,11 @@ def _db_path(master_folder):
     path = os.path.join(master_folder, version_str, FILE_NAME)
     return path
 
+
 def _default_pubchem_folder():
     from ..core import config
     return config.folders.getDataHome()
+
 
 def _load_pubchem(folder=None):
 
@@ -21,11 +23,13 @@ def _load_pubchem(folder=None):
     path = _db_path(folder)
     return PubChemDB.cached_load_from(path)
 
+
 def load_pubchem(folder=None):
     return _load_pubchem(folder).table
 
 
 from ..core import update_handling as _update_handling
+
 
 class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
 
@@ -43,8 +47,9 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
     def query_update_info(self, limit):
         unknown, missing = self.get_db().getDiff(limit)
         if unknown or missing:
-            return "%d unknown and %d deleted entries on website" % (len(unknown), len(missing))
-        return "data on website unchanged"
+            return ("%d unknown and %d deleted entries on website" % (len(unknown), len(missing)),
+                    True)
+        return "data on website unchanged", False
 
     def do_update(self, limit):
         import os
@@ -70,10 +75,11 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
     def check_for_newer_version_on_exchange_folder(self):
         import os
         return os.stat(_db_path(self.data_home)).st_mtime \
-            <  os.stat(_db_path(self.exchange_folder)).st_mtime
+            < os.stat(_db_path(self.exchange_folder)).st_mtime
 
     def update_from_exchange_folder(self):
-        import os, shutil
+        import os
+        import shutil
         source_path = _db_path(self.exchange_folder)
         target_path = _db_path(self.data_home)
 
@@ -83,6 +89,7 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         shutil.copy(source_path, target_path)
         self.get_db().reload_()
 
+
 def _register_pubchem_updater():
 
     from ..core.config import folders
@@ -90,4 +97,3 @@ def _register_pubchem_updater():
 
     updater = _update_handling.Updater(_PubChemUpdateImpl(), _default_pubchem_folder(), ecf)
     _update_handling.registry.register(updater)
-
