@@ -1,106 +1,154 @@
-#encoding: utf-8
+# encoding: utf-8
 from r_executor import RExecutor
-from ..data_types.table  import fms as formatSeconds
+from ..data_types.table import fms as formatSeconds
 from ..data_types.table_parser import TableParser
 from ..data_types import PeakMap
 
-import os, sys
+import os
+import sys
+import shutil
+import time
+import glob
 
 from ..temp_file_utils import TemporaryDirectoryWithBackup
 from pyopenms import FileHandler
 
-from .. import config
-
 from pkg_resources import resource_string
 
-def exchangeFolderAvailable():
-    return config.folders.getExchangeSubFolder(None) is not None
-
-class XCMSFeatureParser(TableParser):
+from .. import update_handling
 
 
-    typeDefaults = dict( mz= float, mzmin= float, mzmax=float,
-                      rt= float, rtmin= float, rtmax=float,
-                      into= float, intb= float,
-                      maxo= float, sn= float,
-                      sample= int )
-
-    formatDefaults = dict( mz= "%10.5f", mzmin= "%10.5f", mzmax= "%10.5f",
-                           rt=  formatSeconds, rtmin=formatSeconds,
-                           rtmax=formatSeconds, into= "", intb= "", intf="",
-                           maxo= "", sn= "%.1e",
-                           sample= "")
+def is_xcms_installed():
+    status = RExecutor().run_command(
+        """ if (require("xcms") == FALSE) q(status=1); q(status=0); """)
+    return status == 0
 
 
+class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
 
-def install_xmcs_if_needed_statements():
-    r_libs = RExecutor().getRLibsFolder().replace("\\", "\\\\")
+    @staticmethod
+    def get_id():
+        return "xcms_updater"
 
-    script = """
-                if (require("xcms") == FALSE)
-                {
+    def get_update_time_delta_in_seconds(self):
+        days = 1
+        return days * 24 * 60 * 60
+
+    def _get_rlibs_sub_folder(self):
+        r_version = RExecutor().get_r_version()
+        if r_version is None:
+            subfolder = "r_libs"
+        else:
+            subfolder = "r_libs_%s" % r_version
+        return subfolder
+
+    def _get_local_rlibs_folder(self):
+        subfolder = self._get_rlibs_sub_folder()
+        folder = os.path.join(self.data_home, subfolder).replace("\\", "\\\\")
+        return folder
+
+    def _get_rlibs_exchange_folder(self):
+        subfolder = self._get_rlibs_sub_folder()
+        folder = os.path.join(self.exchange_folder, subfolder).replace("\\", "\\\\")
+        return folder
+
+    def query_update_info(self, limit):
+        if not is_xcms_installed():
+            return "not installed yet", True
+        script = """
                     source("http://bioconductor.org/biocLite.R")
-                    biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
-                    q(status=1);
-                }
-                q(status=0);
-            """ % (r_libs, r_libs)
+                    todo <- old.packages(repos=biocinstallRepos(), lib="%s")
+                    q(status=length(todo))
+                """ % self._get_local_rlibs_folder()
 
-    return script
+        num = RExecutor().run_command(script)
+        if not num:
+            return "no update found", False
+        else:
+            return "updates for %d packages found" % num, True
+
+    def do_update(self, limit):
+        local_folder = self._get_local_rlibs_folder()
+        if not is_xcms_installed():
+            status = RExecutor().run_command(
+                """source("http://bioconductor.org/biocLite.R")
+                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
+                q(status=1);""" % (local_folder, local_folder))
+            assert status == 1, "installing XCMS failed"
+        else:
+            RExecutor().run_command(
+                """
+                source("http://bioconductor.org/biocLite.R")
+                todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
+                                        lib="%s", destdir="%s", quiet=F)
+                q(status=length(todo))
+                """ % (local_folder, local_folder))
+
+    def upload_to_exchange_folder(self):
+        local_folder = self._get_local_rlibs_folder()
+        exchange_folder = self._get_rlibs_exchange_folder()
+        # maybe we have a race condition from other userse so we upload first to a unique # folder:
+        first_destination_folder = exchange_folder + "_%017d" % int(100000 * time.time())
+        shutil.copytree(local_folder, first_destination_folder)
+        try:
+            os.rmtree(exchange_folder)
+        except:
+            pass
+
+        existing = glob.glob(exchange_folder + "_*")
+        latest = sorted(existing)[-1]
+        shutil.move(latest, exchange_folder)
+
+    def touch_data_home_files(self):
+        local_folder = self._get_local_rlibs_folder()
+        os.utime(local_folder, None)
+
+    def check_for_newer_version_on_exchange_folder(self):
+        local_folder = self._get_local_rlibs_folder()
+        exchange_folder = self._get_rlibs_exchange_folder()
+        return os.stat(local_folder).st_mtime < os.stat(exchange_folder).st_mtime
+
+    def update_from_exchange_folder(self):
+        local_folder = self._get_local_rlibs_folder()
+        exchange_folder = self._get_rlibs_exchange_folder()
+        os.rmtree(local_folder)
+        shutil.copytree(exchange_folder, local_folder)
 
 
-def checkIfxcmsIsInstalled():
+def _register_xcms_updater():
 
-    status = RExecutor().run_command(""" if (require("xcms") == FALSE) q(status=1); q(status=0); """)
-    return status==0
-
-
-def installXcmsIfNeeded():
-
-    status = RExecutor().run_command(install_xmcs_if_needed_statements())
-    did_install = status == 1
-    return did_install
-
-
-def lookForXcmsUpgrades():
-
-    script = """
-                 source("http://bioconductor.org/biocLite.R")
-                 todo <- old.packages(repos=biocinstallRepos(), lib="%s", quiet=F)
-                 q(status=length(todo))
-             """ % RExecutor().getRLibsFolder().replace("\\", "\\\\")
-
-    num = RExecutor().run_command(script)
-    if not num:
-        print "No update needed"
-    else:
-        print num, "updates found"
-
-
-def doXcmsUpgrade():
-
-    r_libs = RExecutor().getRLibsFolder().replace("\\", "\\\\")
-
-    script = """
-     source("http://bioconductor.org/biocLite.R")
-     todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE, lib="%s", destdir="%s", quiet=F)
-     q(status=length(todo))
-    """ % (r_libs, r_libs)
-
-    return RExecutor().run_command(script)
+    from ..config import folders
+    ecf = folders.getExchangeSubFolder(None)
+    updater = update_handling.Updater(XCMSUpdateImpl(), folders.getDataHome(), ecf)
+    update_handling.registry.register(updater)
 
 
 def _get_temp_peakmap(msLevel, peakMap):
     if msLevel is None:
         msLevels = peakMap.getMsLevels()
         if len(msLevels) > 1:
-            raise Exception("multiple msLevels in peakmap "\
+            raise Exception("multiple msLevels in peakmap "
                             "please specify msLevel in config")
         msLevel = msLevels[0]
 
-    temp_peakmap =  peakMap.extract(mslevelmin=msLevel, mslevelmax=msLevel)
-    temp_peakmap.spectra.sort(key = lambda s: s.rt)
+    temp_peakmap = peakMap.extract(mslevelmin=msLevel, mslevelmax=msLevel)
+    temp_peakmap.spectra.sort(key=lambda s: s.rt)
     return temp_peakmap
+
+
+class XCMSFeatureParser(TableParser):
+
+    typeDefaults = dict(mz=float, mzmin=float, mzmax=float,
+                        rt=float, rtmin=float, rtmax=float,
+                        into=float, intb=float,
+                        maxo=float, sn=float,
+                        sample=int)
+
+    formatDefaults = dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
+                          rt=formatSeconds, rtmin=formatSeconds,
+                          rtmax=formatSeconds, into="", intb="", intf="",
+                          maxo="", sn="%.1e",
+                          sample="")
 
 
 class CentwaveFeatureDetector(object):
@@ -119,26 +167,24 @@ class CentwaveFeatureDetector(object):
 
     """
 
-
     __doc__ += resource_string("emzed.core.r_connect", "centwave.txt")
     __doc__ = unicode(__doc__, "utf-8")
 
-    standardConfig = dict(   ppm=25,
-                             peakwidth=(20,50),
-                             prefilter=(3,100),
-                             snthresh = 10,
-                             integrate = 1,
-                             mzdiff=-0.001,
-                             noise=0,
-                             mzCenterFun="wMean",
-                             fitgauss=False,
-                             msLevel=None,
-                             verbose_columns = False )
+    standardConfig = dict(ppm=25,
+                          peakwidth=(20, 50),
+                          prefilter=(3, 100),
+                          snthresh = 10,
+                          integrate = 1,
+                          mzdiff=-0.001,
+                          noise=0,
+                          mzCenterFun="wMean",
+                          fitgauss=False,
+                          msLevel=None,
+                          verbose_columns = False)
 
     def __init__(self, **kw):
 
-        installed = checkIfxcmsIsInstalled()
-        if not installed:
+        if not is_xcms_installed():
             raise Exception("XCMS not installed yet")
 
         self.config = self.standardConfig.copy()
@@ -158,7 +204,7 @@ class CentwaveFeatureDetector(object):
 
             # needed for network shares:
             if sys.platform == "win32":
-                temp_input = temp_input.replace("/","\\")
+                temp_input = temp_input.replace("/", "\\")
 
             FileHandler().storeExperiment(temp_input, temp_peakmap.toMSExperiment())
 
@@ -167,8 +213,6 @@ class CentwaveFeatureDetector(object):
             dd["temp_output"] = temp_output
             dd["fitgauss"] = str(dd["fitgauss"]).upper()
             dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
-
-
 
             script = """
                         library(xcms)
@@ -202,8 +246,8 @@ class CentwaveFeatureDetector(object):
             decorate(table, temp_peakmap)
             return table
 
-class MatchedFilterFeatureDetector(object):
 
+class MatchedFilterFeatureDetector(object):
 
     __doc__ = """ MatchedFilterFeatureDetector
 
@@ -219,22 +263,21 @@ class MatchedFilterFeatureDetector(object):
 
     """
 
-    __doc__  += resource_string("emzed.core.r_connect", "matched_filter.txt")
+    __doc__ += resource_string("emzed.core.r_connect", "matched_filter.txt")
     __doc__ = unicode(__doc__, "utf-8")
 
-    standardConfig = dict(   fwhm = 30,
-                             sigma = 30/2.3548,
-                             max_ = 5,
-                             snthresh = 10,
-                             step = 0.1,
-                             steps = 2,
-                             mzdiff = 0.8 - 2*2,
-                             msLevel = None,
-                             index = False )
+    standardConfig = dict(fwhm=30,
+                          sigma=30 / 2.3548,
+                          max_=5,
+                          snthresh=10,
+                          step=0.1,
+                          steps=2,
+                          mzdiff=0.8 - 2 * 2,
+                          msLevel=None,
+                          index=False)
 
     def __init__(self, **kw):
-        installed = checkIfxcmsIsInstalled()
-        if not installed:
+        if not is_xcms_installed():
             raise Exception("XCMS not installed yet")
         self.config = self.standardConfig.copy()
         self.config.update(kw)
@@ -249,7 +292,7 @@ class MatchedFilterFeatureDetector(object):
         # matched filter  does not like rt <= 0, so we shift that rt starts
         # with 1.0: we have to undo this shift later when parsing the output of
         # xcms
-        shift = minRt-1.0
+        shift = minRt - 1.0
         peakMap.shiftRt(-shift)
 
         with TemporaryDirectoryWithBackup() as td:
@@ -259,7 +302,7 @@ class MatchedFilterFeatureDetector(object):
 
             # needed for network shares:
             if sys.platform == "win32":
-                temp_input = temp_input.replace("/","\\")
+                temp_input = temp_input.replace("/", "\\")
 
             FileHandler().storeExperiment(temp_input, peakMap.toMSExperiment())
 
@@ -300,9 +343,10 @@ class MatchedFilterFeatureDetector(object):
             table.rt += shift
             return table
 
+
 def decorate(table, peakMap):
     table.addConstantColumn("peakmap", peakMap, object, None)
-    src = peakMap.meta.get("source","")
+    src = peakMap.meta.get("source", "")
     table.addConstantColumn("source", src, str, None)
     table.addConstantColumn("polarity", peakMap.polarity, str, None)
     table.addEnumeration()
