@@ -51,18 +51,41 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
                     True)
         return "data on website unchanged", False
 
-    def do_update(self, limit):
+    def do_update_with_gui(self, limit):
+        from PyQt4.QtGui import QProgressDialog, QApplication
+        from PyQt4.QtCore import Qt
+        from guidata import qapplication
+
+        dlg = QProgressDialog("pubchem update", "Cancel", 0, 100)
+        dlg.setWindowModality(Qt.WindowModal)
+        dlg.show()
+        dlg.setValue(0)
+        QApplication.processEvents()
+
+        class Callback(object):
+            def __init__(self):
+                self.abort = False
+
+            def __call__(self, i, imax):
+                if dlg.wasCanceled():
+                    raise Exception("aborted")
+                dlg.setValue(int(i * 100 / imax))
+                QApplication.processEvents()
+
+        self.do_update(500, Callback())
+
+    def do_update(self, limit, callback=None):
         import os
-        self.get_db().update(maxIds=limit)
+        self.get_db().update(maxIds=limit, callback=callback)
         target_path = _db_path(self.data_home)
         target_dir = os.path.dirname(target_path)
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
         self.get_db().store(target_path)
 
-    def upload_to_exchange_folder(self):
+    def upload_to_exchange_folder(self, exchange_folder):
         import os
-        target_path = _db_path(self.exchange_folder)
+        target_path = _db_path(exchange_folder)
         target_dir = os.path.dirname(target_path)
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
@@ -72,15 +95,17 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         import os
         os.utime(_db_path(self.data_home), None)
 
-    def check_for_newer_version_on_exchange_folder(self):
+    def check_for_newer_version_on_exchange_folder(self, exchange_folder):
         import os
+        if not os.path.exists(_db_path(exchange_folder)):
+            return False
         return os.stat(_db_path(self.data_home)).st_mtime \
-            < os.stat(_db_path(self.exchange_folder)).st_mtime
+            < os.stat(_db_path(exchange_folder)).st_mtime
 
-    def update_from_exchange_folder(self):
+    def update_from_exchange_folder(self, exchange_folder):
         import os
         import shutil
-        source_path = _db_path(self.exchange_folder)
+        source_path = _db_path(exchange_folder)
         target_path = _db_path(self.data_home)
 
         target_dir = os.path.dirname(target_path)
@@ -92,8 +117,5 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
 
 def _register_pubchem_updater():
 
-    from ..core.config import folders
-    ecf = folders.getExchangeSubFolder(None)
-
-    updater = _update_handling.Updater(_PubChemUpdateImpl(), _default_pubchem_folder(), ecf)
+    updater = _update_handling.Updater(_PubChemUpdateImpl(), _default_pubchem_folder())
     _update_handling.registry.register(updater)

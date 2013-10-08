@@ -58,7 +58,7 @@ def test_pubchem_import():
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
     updater = emzed.updaters.get("pubchem_updater")
-    updater.set_folders(tmpdir.join("data_home").strpath, None)
+    updater.set_folders(tmpdir.join("data_home").strpath)
 
     # reset updater
     emzed.updaters.reset("pubchem_updater")
@@ -67,10 +67,11 @@ def test_pubchem_updaters_without_exchange_folder(tmpdir):
     assert updater.offer_update_lookup() is True
 
     # ask pubchem for info about eventual update:
-    id_, ts, info = updater.query_update_info(limit=10)
+    id_, ts, info, offer_update = updater.query_update_info(limit=10)
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
+    assert offer_update
 
     # download 10 items
     updater.do_update(limit=10)
@@ -89,8 +90,10 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     updater = emzed.updaters.get("pubchem_updater")
 
     exchange_folder = tmpdir.join("exchange_folder").strpath
-    updater.set_folders(tmpdir.join("data_home").strpath,
-                        exchange_folder)
+
+    emzed.config.global_config.set_("exchange_folder", exchange_folder)
+
+    updater.set_folders(tmpdir.join("data_home").strpath)
     os.makedirs(exchange_folder)
 
     # reset updater
@@ -100,10 +103,11 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     assert updater.offer_update_lookup() is True
 
     # ask pubchem for info about eventual update:
-    id_, ts, info = updater.query_update_info(limit=10)
+    id_, ts, info, offer_update = updater.query_update_info(limit=10)
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
+    assert offer_update
 
     # download 10 items
     assert updater.do_update(limit=10) == (True, "ok")

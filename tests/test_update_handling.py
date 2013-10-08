@@ -30,22 +30,22 @@ class TestUpdaterImpl(emzed.core.update_handling.AbstractUpdaterImpl):
         return 0.5 # seconds
 
     def query_update_info(self, limit):
-        return "new_update_available"
+        return "new_update_available", True
 
     def do_update(self, limit):
         open(os.path.join(self.data_home, "test_data"), "w").close()
 
-    def upload_to_exchange_folder(self):
+    def upload_to_exchange_folder(self, exchange_folder):
         shutil.copy(os.path.join(self.data_home, "test_data"),
-                    os.path.join(self.exchange_folder))
+                    os.path.join(exchange_folder))
 
     def touch_data_home_files(self):
         pass
 
-    def check_for_newer_version_on_exchange_folder(self):
+    def check_for_newer_version_on_exchange_folder(self, exchange_folder):
         return True
 
-    def update_from_exchange_folder(self):
+    def update_from_exchange_folder(self, exchange_folder):
         pass
 
 
@@ -54,18 +54,21 @@ def test_01(tmpdir):
     exchange_folder = tmpdir.join("exchange_folder").strpath
     os.makedirs(exchange_folder)
     os.makedirs(data_home)
+    import emzed.config
+    emzed.config.global_config.set_("exchange_folder", exchange_folder)
 
-    tt = emzed.core.update_handling.Updater(TestUpdaterImpl(), data_home, exchange_folder)
+    tt = emzed.core.update_handling.Updater(TestUpdaterImpl(), data_home)
 
     # prepare
     tt.remove_ts_file()
 
     assert tt.offer_update_lookup()
 
-    id_, ts, info = tt.query_update_info()
+    id_, ts, info, offer_update = tt.query_update_info()
     assert id_ == TestUpdaterImpl.get_id()
     assert info == "new_update_available"
     assert ts < 0.0
+    assert offer_update
 
     flag, msg = tt.do_update()
 

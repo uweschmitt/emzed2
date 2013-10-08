@@ -1,6 +1,9 @@
-import os, glob, subprocess, sys, re
-
-from ..temp_file_utils import TemporaryDirectoryWithBackup
+import os
+import glob
+import subprocess
+import sys
+import re
+import tempfile
 
 from .. import config
 
@@ -11,19 +14,20 @@ class RExecutor(object):
 
     # RExecutor is a singleton:
     _instance = None
+
     def __new__(cls, *args, **kwargs):
 
         if not cls._instance:
             cls._instance = super(RExecutor, cls).__new__(
-                                cls, *args, **kwargs)
+                cls, *args, **kwargs)
         return cls._instance
 
     def __init__(self):
         if sys.platform == "win32":
             self.rHome = RExecutor.findRHome()
-            rExe  = RExecutor.findRExe(self.rHome)
-            #import win32api
-            self.rExe = rExe # win32api.GetShortPathName(rExe)
+            rExe = RExecutor.findRExe(self.rHome)
+            # import win32api
+            self.rExe = rExe  # win32api.GetShortPathName(rExe)
         else:
             self.rExe = "R"
 
@@ -33,11 +37,11 @@ class RExecutor(object):
         import _winreg
         pathToR = None
         for finder in [
-                       lambda : RExecutor._path_from(_winreg.HKEY_CURRENT_USER),
-                       lambda : RExecutor._path_from(_winreg.HKEY_LOCAL_MACHINE),
-                       lambda : os.environ.get("R_HOME"),
-                       RExecutor._parse_path_variable,
-                       ]:
+            lambda: RExecutor._path_from(_winreg.HKEY_CURRENT_USER),
+            lambda: RExecutor._path_from(_winreg.HKEY_LOCAL_MACHINE),
+            lambda: os.environ.get("R_HOME"),
+            RExecutor._parse_path_variable,
+        ]:
             try:
                 pathToR = finder()
                 if pathToR != None:
@@ -60,7 +64,7 @@ class RExecutor(object):
 
     @staticmethod
     def _parse_path_variable():
-        for path in os.environ.get("PATH","").split(os.pathsep):
+        for path in os.environ.get("PATH", "").split(os.pathsep):
             # windows
             if os.path.exists(os.path.join(path, "R.exe")):
                 print "Found R at", path
@@ -78,25 +82,39 @@ class RExecutor(object):
         key = _winreg.OpenKey(regsection, "Software\\R-core\\R")
         return _winreg.QueryValueEx(key, "InstallPath")[0]
 
-
-    def runScript(self, path):
-
+    def create_process(self, path):
         self.setup_r_libs_variable()
         with open(path, "r") as fp:
             # do not know why diff platforms behave differntly:
             if sys.platform == "win32":
                 proc = subprocess.Popen(['%s' % self.rExe, '--vanilla', '--silent'],
-                                        stdin = fp, stdout = sys.__stdout__,
+                                        stdin=fp, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         bufsize=0, shell=True)
             else:
                 proc = subprocess.Popen(['%s --vanilla --silent' % self.rExe],
-                                        stdin = fp, stdout = sys.__stdout__,
+                                        stdin=fp, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                         bufsize=0, shell=True)
-            out, err = proc.communicate()
-            if err is not None:
-                print err
+            while True:
+                line_out = proc.stdout.readline().rstrip()
+                yield line_out
+                if not line_out:
+                    break
 
-        return proc.returncode
+            proc.wait()
+            err = proc.stderr.read()
+            yield err
+            yield proc.returncode
+
+    def run_script(self, path):
+        proc = self.create_process(path)
+        for rv in proc:
+            if not rv:
+                break
+            print rv
+        err = proc.next()
+        rc = proc.next()
+        print err
+        return rc
 
     def get_r_version(self):
         if sys.platform == "win32":
@@ -107,7 +125,7 @@ class RExecutor(object):
             answer = err
         else:
             proc = subprocess.Popen(['%s --version' % self.rExe],
-                                    stdout = subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
                                     bufsize=0, shell=True)
             out, err = proc.communicate()
             answer = out
@@ -116,28 +134,21 @@ class RExecutor(object):
             return None
         return match.groups(0)[0]
 
-    def getRLibsFolder(self):
+    def get_r_libs_folder(self):
 
         if RExecutor._patched_rlibs_folder is not None:
             return RExecutor._patched_rlibs_folder
-
         r_version = RExecutor().get_r_version()
         if r_version is None:
             subfolder = "r_libs"
-            r_libs_folder = config.folders.getExchangeSubFolder(subfolder)
-            if r_libs_folder is None:
-                r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
         else:
             subfolder = "r_libs_%s" % r_version
-            r_libs_folder = config.folders.getExchangeSubFolder(subfolder)
-            if r_libs_folder is None:
-                r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
+        r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
         return r_libs_folder
 
     def setup_r_libs_variable(self):
 
-        r_libs_folder = self.getRLibsFolder()
-
+        r_libs_folder = self.get_r_libs_folder()
         print "SET R_LIBS ENVIRONMENT VARIABLE TO", r_libs_folder
         if r_libs_folder is not None:
             r_libs = [path for path in os.environ.get("R_LIBS", "").split(os.pathsep) if path]
@@ -147,22 +158,23 @@ class RExecutor(object):
                 r_libs.insert(0, r_libs_folder)
                 os.environ["R_LIBS"] = os.pathsep.join(r_libs)
 
-
-    def run_command(self, command, dir_=None):
-
-        def run(dir_, command):
-            fp = file(os.path.join(dir_, "script.R"), "w")
+    def run_command(self, command):
+        dir_ = tempfile.mkdtemp(prefix="emzed_r_script_")
+        with open(os.path.join(dir_, "script.R"), "w") as fp:
             print >> fp, command
-            fp.close()
-            fp2 = file(os.path.join(dir_, "R_exe"), "w")
-            print >> fp2, os.path.abspath(self.rExe)
-            fp2.close()
-            return self.runScript(fp.name)
+        fp.close()
+        return self.run_script(fp.name)
 
-        if dir_ is not None:
-            return run(dir_, command)
-
-        else:
-            with TemporaryDirectoryWithBackup() as dir_:
-                return run(dir_, command)
+    def start_command(self, command):
+        """
+        yields stdout line by line, empty line marks end of process, then stderr in one string
+        and process return code as integer are yielded.
+        """
+        dir_ = tempfile.mkdtemp(prefix="emzed_r_script_")
+        with open(os.path.join(dir_, "script.R"), "w") as fp:
+            print >> fp, command
+        fp.close()
+        proc = self.create_process(fp.name)
+        for answer in proc:
+            yield answer
 

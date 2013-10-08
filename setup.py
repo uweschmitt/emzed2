@@ -33,7 +33,9 @@ setup(name="emzed",
             ]
           },
       package_data={
-          "emzed.core.r_connect": [ "*.txt"]
+          "emzed.core.r_connect": [ "*.txt"],
+          "emzed.core.explorers": [ "*.html"],
+          "emzed.workbench": [ "*.png"],
           },
       zip_safe=False,
       install_requires = [ "emzed_optimizations", 

@@ -57,8 +57,11 @@ class AbstractUpdaterImpl(object):
     def do_update(self, limit):
         pass
 
+    def do_update_with_gui(self, limit):
+        self.do_update(limit)  # default implementation
+
     @abc.abstractmethod
-    def upload_to_exchange_folder(self):
+    def upload_to_exchange_folder(self, exchange_folder):
         pass
 
     @abc.abstractmethod
@@ -66,25 +69,22 @@ class AbstractUpdaterImpl(object):
         pass
 
     @abc.abstractmethod
-    def check_for_newer_version_on_exchange_folder(self):
+    def check_for_newer_version_on_exchange_folder(self, exchange_folder):
         pass
 
     @abc.abstractmethod
-    def update_from_exchange_folder(self):
+    def update_from_exchange_folder(self, exchange_folder):
         pass
 
 class Updater(object):
 
-    def __init__(self, impl, data_home, exchange_folder):
+    def __init__(self, impl, data_home):
         self.impl = impl
-        self.set_folders(data_home, exchange_folder)
+        self.set_folders(data_home)
 
-    def set_folders(self, data_home, exchange_folder):
+    def set_folders(self, data_home):
         self.data_home = data_home
         self.impl.data_home = data_home
-
-        self.exchange_folder = exchange_folder
-        self.impl.exchange_folder = exchange_folder
 
     def get_id(self):
         return self.impl.get_id()
@@ -130,50 +130,64 @@ class Updater(object):
         info, offer_update = self.impl.query_update_info(limit)
         return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
+
+    def do_update_with_gui(self, limit=None):
+        try:
+            self.impl.do_update_with_gui(limit)
+        except Exception, e:
+            return False, str(e)
+        return self._finalize_update()
+
     def do_update(self, limit=None):
         """ returns flag, message """
         try:
             self.impl.do_update(limit)
         except Exception, e:
             return False, str(e)
+        return self._finalize_update()
+
+    def _finalize_update(self):
         # update succeeded
         ts = time.time()
         self._update_latest_update_ts(ts)
-        if self.exchange_folder is not None:
-            if is_writable(self.exchange_folder):
-                self.impl.upload_to_exchange_folder()
+        exchange_folder = config.global_config.get("exchange_folder")
+        if exchange_folder is not None:
+            if is_writable(exchange_folder):
+                self.impl.upload_to_exchange_folder(exchange_folder)
                 # make data_home data "newer" than those on exchange folder:
                 self.impl.touch_data_home_files()
-
         return True, "ok"
 
     def check_for_newer_version_on_exchange_folder(self):
         """ returns flag, message
             flag = None means: no exchange folder configuered
         """
-        if not self.exchange_folder:
+        exchange_folder = config.global_config.get("exchange_folder")
+        if not exchange_folder:
             return None, None
         try:
             # is readable ?
-            os.listdir(self.exchange_folder)
+            os.listdir(exchange_folder)
         except Exception, e:
             return None, str(e)
-        is_newer  = self.impl.check_for_newer_version_on_exchange_folder()
+        is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
         return is_newer, None
 
     def fetch_update_from_exchange_folder(self):
         """ returns flag, message
             flag = None means: no exchange folder configuered
         """
-        if not self.exchange_folder:
+        exchange_folder = config.global_config.get("exchange_folder")
+        if not exchange_folder:
             return None, None
         try:
             # is readable ?
-            os.listdir(self.exchange_folder)
+            os.listdir(exchange_folder)
         except Exception, e:
             return False, str(e)
-        message = self.impl.update_from_exchange_folder()
+        message = self.impl.update_from_exchange_folder(exchange_folder)
         self._update_latest_update_ts(time.time())
+        self.impl.touch_data_home_files()
         return True, message
 
 
@@ -237,18 +251,18 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         exit_code = subprocess.call("pip install %s -vvvU -i %s emzed" % (user_flag, url), shell=True)
         assert exit_code == 0, "exit code rom pip is %d" % exit_code
 
-    def upload_to_exchange_folder(self):
+    def upload_to_exchange_folder(self, exchange_folder):
         pass
 
     def touch_data_home_files(self):
         pass
 
-    def check_for_newer_version_on_exchange_folder(self):
-        return False
+    def check_for_newer_version_on_exchange_folder(self, exchange_folder):
+        return None, ""
 
-    def update_from_exchange_folder(self):
+    def update_from_exchange_folder(self, exchange_folder):
         pass
 
 
-updater = Updater(EmzedUpdateImpl(), None, None)
+updater = Updater(EmzedUpdateImpl(), None)
 registry.register(updater)

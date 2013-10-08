@@ -4,13 +4,15 @@ from ..data_types.table import fms as formatSeconds
 from ..data_types.table_parser import TableParser
 from ..data_types import PeakMap
 
+from ..dialogs.r_output_dialog import ROutputDialog
+
 import os
 import sys
 import shutil
 import time
 import glob
+import tempfile
 
-from ..temp_file_utils import TemporaryDirectoryWithBackup
 from pyopenms import FileHandler
 
 from pkg_resources import resource_string
@@ -47,9 +49,9 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         folder = os.path.join(self.data_home, subfolder).replace("\\", "\\\\")
         return folder
 
-    def _get_rlibs_exchange_folder(self):
+    def _get_rlibs_exchange_folder(self, exchange_folder):
         subfolder = self._get_rlibs_sub_folder()
-        folder = os.path.join(self.exchange_folder, subfolder).replace("\\", "\\\\")
+        folder = os.path.join(exchange_folder, subfolder).replace("\\", "\\\\")
         return folder
 
     def query_update_info(self, limit):
@@ -66,6 +68,22 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
             return "no update found", False
         else:
             return "updates for %d packages found" % num, True
+
+    def do_update_with_gui(self, limit):
+        local_folder = self._get_local_rlibs_folder()
+        if not is_xcms_installed():
+            script = """source("http://bioconductor.org/biocLite.R")
+                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
+                q(status=1);""" % (local_folder, local_folder)
+        else:
+            script = """
+                source("http://bioconductor.org/biocLite.R")
+                todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
+                                        lib="%s", destdir="%s", quiet=F)
+                q(status=length(todo))
+                """ % (local_folder, local_folder)
+        dlg = ROutputDialog(script)
+        dlg.exec_()
 
     def do_update(self, limit):
         local_folder = self._get_local_rlibs_folder()
@@ -84,42 +102,43 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
                 q(status=length(todo))
                 """ % (local_folder, local_folder))
 
-    def upload_to_exchange_folder(self):
+    def upload_to_exchange_folder(self, exchange_folder):
         local_folder = self._get_local_rlibs_folder()
-        exchange_folder = self._get_rlibs_exchange_folder()
+        r_libs_exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
         # maybe we have a race condition from other userse so we upload first to a unique # folder:
-        first_destination_folder = exchange_folder + "_%017d" % int(100000 * time.time())
+        first_destination_folder = r_libs_exchange_folder + "_%017d" % int(100000 * time.time())
         shutil.copytree(local_folder, first_destination_folder)
         try:
-            os.rmtree(exchange_folder)
+            shutil.rmtree(r_libs_exchange_folder)
         except:
             pass
 
-        existing = glob.glob(exchange_folder + "_*")
+        existing = glob.glob(r_libs_exchange_folder + "_*")
         latest = sorted(existing)[-1]
-        shutil.move(latest, exchange_folder)
+        os.rename(latest, r_libs_exchange_folder)
 
     def touch_data_home_files(self):
         local_folder = self._get_local_rlibs_folder()
         os.utime(local_folder, None)
 
-    def check_for_newer_version_on_exchange_folder(self):
+    def check_for_newer_version_on_exchange_folder(self, exchange_folder):
         local_folder = self._get_local_rlibs_folder()
-        exchange_folder = self._get_rlibs_exchange_folder()
+        exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
+        if not os.path.exists(exchange_folder):
+            return False
         return os.stat(local_folder).st_mtime < os.stat(exchange_folder).st_mtime
 
-    def update_from_exchange_folder(self):
+    def update_from_exchange_folder(self, exchange_folder):
         local_folder = self._get_local_rlibs_folder()
-        exchange_folder = self._get_rlibs_exchange_folder()
-        os.rmtree(local_folder)
+        exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
+        shutil.rmtree(local_folder)
         shutil.copytree(exchange_folder, local_folder)
 
 
 def _register_xcms_updater():
 
     from ..config import folders
-    ecf = folders.getExchangeSubFolder(None)
-    updater = update_handling.Updater(XCMSUpdateImpl(), folders.getDataHome(), ecf)
+    updater = update_handling.Updater(XCMSUpdateImpl(), folders.getDataHome())
     update_handling.registry.register(updater)
 
 
@@ -197,54 +216,54 @@ class CentwaveFeatureDetector(object):
 
         temp_peakmap = _get_temp_peakmap(self.config.get("msLevel"), peakMap)
 
-        with TemporaryDirectoryWithBackup() as td:
+        td = tempfile.mkdtemp(prefix="emzed_r_script_centwave_")
 
-            temp_input = os.path.join(td, "input.mzData")
-            temp_output = os.path.join(td, "output.csv")
+        temp_input = os.path.join(td, "input.mzData")
+        temp_output = os.path.join(td, "output.csv")
 
-            # needed for network shares:
-            if sys.platform == "win32":
-                temp_input = temp_input.replace("/", "\\")
+        # needed for network shares:
+        if sys.platform == "win32":
+            temp_input = temp_input.replace("/", "\\")
 
-            FileHandler().storeExperiment(temp_input, temp_peakmap.toMSExperiment())
+        FileHandler().storeExperiment(temp_input, temp_peakmap.toMSExperiment())
 
-            dd = self.config.copy()
-            dd["temp_input"] = temp_input
-            dd["temp_output"] = temp_output
-            dd["fitgauss"] = str(dd["fitgauss"]).upper()
-            dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
+        dd = self.config.copy()
+        dd["temp_input"] = temp_input
+        dd["temp_output"] = temp_output
+        dd["fitgauss"] = str(dd["fitgauss"]).upper()
+        dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
 
-            script = """
-                        library(xcms)
-                        xs <- xcmsSet(%(temp_input)r, method="centWave",
-                                          ppm=%(ppm)d,
-                                          peakwidth=c%(peakwidth)r,
-                                          prefilter=c%(prefilter)r,
-                                          snthresh = %(snthresh)f,
-                                          integrate= %(integrate)d,
-                                          mzdiff   = %(mzdiff)f,
-                                          noise    = %(noise)f,
-                                          fitgauss = %(fitgauss)s,
-                                          verbose.columns = %(verbose_columns)s,
-                                          mzCenterFun = %(mzCenterFun)r
-                                     )
-                        write.table(xs@peaks, file=%(temp_output)r)
-                        q(status=123)
-                     """ % dd
+        script = """
+                    library(xcms)
+                    xs <- xcmsSet(%(temp_input)r, method="centWave",
+                                        ppm=%(ppm)d,
+                                        peakwidth=c%(peakwidth)r,
+                                        prefilter=c%(prefilter)r,
+                                        snthresh = %(snthresh)f,
+                                        integrate= %(integrate)d,
+                                        mzdiff   = %(mzdiff)f,
+                                        noise    = %(noise)f,
+                                        fitgauss = %(fitgauss)s,
+                                        verbose.columns = %(verbose_columns)s,
+                                        mzCenterFun = %(mzCenterFun)r
+                                    )
+                    write.table(xs@peaks, file=%(temp_output)r)
+                    q(status=123)
+                    """ % dd
 
-            del dd["temp_input"]
-            del dd["temp_output"]
+        del dd["temp_input"]
+        del dd["temp_output"]
 
-            if RExecutor().run_command(script, td) != 123:
-                raise Exception("R operation failed")
+        if RExecutor().run_command(script) != 123:
+            raise Exception("R operation failed")
 
-            # parse csv and shift rt related values to undo rt modifiaction
-            # as described above
-            table = XCMSFeatureParser.parse(file(temp_output).readlines())
-            table.addConstantColumn("centwave_config", dd, dict, None)
-            table.meta["generator"] = "xcms.centwave"
-            decorate(table, temp_peakmap)
-            return table
+        # parse csv and shift rt related values to undo rt modifiaction
+        # as described above
+        table = XCMSFeatureParser.parse(file(temp_output).readlines())
+        table.addConstantColumn("centwave_config", dd, dict, None)
+        table.meta["generator"] = "xcms.centwave"
+        decorate(table, temp_peakmap)
+        return table
 
 
 class MatchedFilterFeatureDetector(object):
@@ -295,53 +314,53 @@ class MatchedFilterFeatureDetector(object):
         shift = minRt - 1.0
         peakMap.shiftRt(-shift)
 
-        with TemporaryDirectoryWithBackup() as td:
+        td = tempfile.mkdtemp(prefix="emzed_r_script_matched_filter_")
 
-            temp_input = os.path.join(td, "input.mzData")
-            temp_output = os.path.join(td, "output.csv")
+        temp_input = os.path.join(td, "input.mzData")
+        temp_output = os.path.join(td, "output.csv")
 
-            # needed for network shares:
-            if sys.platform == "win32":
-                temp_input = temp_input.replace("/", "\\")
+        # needed for network shares:
+        if sys.platform == "win32":
+            temp_input = temp_input.replace("/", "\\")
 
-            FileHandler().storeExperiment(temp_input, peakMap.toMSExperiment())
+        FileHandler().storeExperiment(temp_input, peakMap.toMSExperiment())
 
-            dd = self.config.copy()
-            dd["temp_input"] = temp_input
-            dd["temp_output"] = temp_output
-            dd["index"] = str(dd["index"]).upper()
+        dd = self.config.copy()
+        dd["temp_input"] = temp_input
+        dd["temp_output"] = temp_output
+        dd["index"] = str(dd["index"]).upper()
 
-            script = """
-                        library(xcms)
-                        xs <- xcmsSet(%(temp_input)r, method="matchedFilter",
-                                       fwhm = %(fwhm)f, sigma = %(sigma)f,
-                                       max = %(max_)d,
-                                       snthresh = %(snthresh)f,
-                                       step = %(step)f, steps=%(steps)d,
-                                       mzdiff = %(mzdiff)f,
-                                       index = %(index)s,
-                                       sleep=0
-                                     )
-                        write.table(xs@peaks, file=%(temp_output)r)
-                        q(status=123)
-                     """ % dd
+        script = """
+                    library(xcms)
+                    xs <- xcmsSet(%(temp_input)r, method="matchedFilter",
+                                    fwhm = %(fwhm)f, sigma = %(sigma)f,
+                                    max = %(max_)d,
+                                    snthresh = %(snthresh)f,
+                                    step = %(step)f, steps=%(steps)d,
+                                    mzdiff = %(mzdiff)f,
+                                    index = %(index)s,
+                                    sleep=0
+                                    )
+                    write.table(xs@peaks, file=%(temp_output)r)
+                    q(status=123)
+                    """ % dd
 
-            del dd["temp_input"]
-            del dd["temp_output"]
+        del dd["temp_input"]
+        del dd["temp_output"]
 
-            if RExecutor().run_command(script, td) != 123:
-                raise Exception("R opreation failed")
+        if RExecutor().run_command(script) != 123:
+            raise Exception("R opreation failed")
 
-            # parse csv and
-            table = XCMSFeatureParser.parse(file(temp_output).readlines())
-            table.addConstantColumn("matchedfilter_config", dd, dict, None)
-            table.meta["generator"] = "xcms.matchedfilter"
-            decorate(table, temp_peakmap)
-            # undo shiftRt done above:
-            table.rtmin += shift
-            table.rtmax += shift
-            table.rt += shift
-            return table
+        # parse csv and
+        table = XCMSFeatureParser.parse(file(temp_output).readlines())
+        table.addConstantColumn("matchedfilter_config", dd, dict, None)
+        table.meta["generator"] = "xcms.matchedfilter"
+        decorate(table, temp_peakmap)
+        # undo shiftRt done above:
+        table.rtmin += shift
+        table.rtmax += shift
+        table.rt += shift
+        return table
 
 
 def decorate(table, peakMap):

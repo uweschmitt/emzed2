@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pdb
 #
 # Copyright © 2009-2011 Pierre Raybaut
 # Licensed under the terms of the MIT License
@@ -121,7 +122,7 @@ except ImportError:
 from spyderlib.qt.QtGui import (QApplication, QMainWindow, QSplashScreen,
                                 QPixmap, QMessageBox, QMenu, QColor, QShortcut,
                                 QKeySequence, QDockWidget, QAction, QLineEdit,
-                                QInputDialog, QDesktopServices)
+                                QInputDialog, QDesktopServices, QImage)
 from spyderlib.qt.QtCore import SIGNAL, QPoint, Qt, QSize, QByteArray, QUrl
 from spyderlib.qt.compat import (from_qvariant, getopenfilename,
                                  getsavefilename)
@@ -419,8 +420,10 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(icon_name))
 
         # EMZD MODIFIED: Showing splash screen
-        splash_path = os.path.join(here, "splash.png")
-        pixmap = QPixmap(splash_path, "png")
+        data = pkg_resources.resource_string("emzed.workbench", "splash.png")
+        img = QImage()
+        img.loadFromData(data)
+        pixmap = QPixmap.fromImage(img)
         self.splash = QSplashScreen(pixmap)
         import time
         self.splash_started = time.time()

@@ -6,7 +6,7 @@ def run(id_):
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
-    updater.do_update(10)
+    updater.do_update()
 
 
 def reset(id_):
@@ -35,7 +35,9 @@ def print_update_status():
         flag, msg = updater.check_for_newer_version_on_exchange_folder()
         if flag is True:
             flag, msg = updater.fetch_update_from_exchange_folder()
-            if flag:
+            if flag is None:
+                print "%s: no exchange folder configured" % name
+            elif flag:
                 print "%s: copied update from exchange folder" % name
             else:
                 print "%s: failed to update from exchange folder: %s" % (name, msg)
@@ -43,7 +45,10 @@ def print_update_status():
             print "local version still up to date"
         else:
             assert flag is None
-            print "no exchange folder configured"
+            if msg is None:
+                print "%s: no exchange folder configured" % name
+            else:
+                print "%s: can not reach exchange folder: %s" % (name, msg)
 
     print
 
@@ -64,33 +69,49 @@ def print_update_status():
 def interactive_update():
     from core.update_handling import registry
     from core.dialogs.update_dialog import UpdateDialog, qapplication
+    from core.config import global_config
 
-    def script(dlg):
+    def script(add_info_line, add_update_info):
+        exchange_folder = global_config.get("exchange_folder")
+        if exchange_folder:
+            yield add_info_line, ("configured exchange folder is %s" % exchange_folder,)
+        else:
+            yield add_info_line, ("no exchange folder configured. use emzed.config.edit() to "
+                                    "configure an exchange folder",)
+
         for name, updater in registry.updaters.items():
+
             flag, msg = updater.check_for_newer_version_on_exchange_folder()
             if flag is True:
                 flag, msg = updater.fetch_update_from_exchange_folder()
                 if flag:
-                    yield dlg.add_info_line("%s: copied update from exchange folder" % name)
+                    yield add_info_line, ("%s: copied update from exchange folder" % name,)
+                elif flag is None:
+                    pass
                 else:
-                    yield dlg.add_info_line("%s: failed to update from exchange folder: %s" % (name, msg))
+                    yield add_info_line, ("%s: failed to update from exchange folder: %s" % (name,
+                        msg),)
             elif flag is False:
-                yield dlg.add_info_line("%s: local version still up to date" % name)
-            else:
-                yield dlg.add_info_line("%s: no exchange folder configured" % name)
+                yield add_info_line, ("%s: local version still up to date" % name,)
+            elif flag is None:
+                if msg is None:
+                    pass
+                else:
+                    yield add_info_line, ("%s: %s" % (name, msg),)
+
             if updater.offer_update_lookup():
                 id_, ts, info, offer_update = updater.query_update_info()
-                yield dlg.add_update_info(name, info, offer_update)
+                yield add_update_info, (name, info, offer_update)
             else:
-                yield dlg.add_update_info(name, "no lookup today", False)
+                yield add_update_info, (name, "no update lookup today", False)
 
     app = qapplication()
     dlg = UpdateDialog(script)
     dlg.exec_()
 
     for id_ in dlg.get_updates_to_run():
-        run(id_)
-
+        updater = registry.get(id_)
+        updater.do_update(None)
 
 
 from db import _register_pubchem_updater

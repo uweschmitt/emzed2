@@ -3,7 +3,7 @@ import sys
 from guidata import qapplication
 from PyQt4.QtCore import Qt, SIGNAL, QThread
 from PyQt4.QtGui import (QTableWidget, QTableWidgetItem, QDialog, QTextEdit, QPushButton,
-                         QVBoxLayout, QHBoxLayout, QHeaderView, QApplication, QCursor)
+                         QVBoxLayout, QHBoxLayout, QHeaderView, QApplication, QCursor, QLabel)
 
 
 class UpdateDialog(QDialog):
@@ -19,39 +19,57 @@ class UpdateDialog(QDialog):
         self.setup_layout()
         self.connect_signals()
 
+        wd = QApplication.desktop().width()
+        hd = QApplication.desktop().height()
+        w = self.size().width()
+        h = self.size().height()
+        self.move((wd - w) / 2, (hd - h) / 2)
+
     def showEvent(self, evt):
 
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+
         class WorkerThread(QThread):
 
             def run(self, script=self.update_script, parent=self):
-                for _ in script(parent):
-                    pass
+                for method, args in script(parent.add_info_line, parent.add_update_info):
+                    self.emit(SIGNAL("execute_method(PyQt_PyObject, PyQt_PyObject)"), method, args)
                 self.emit(SIGNAL("update_query_finished()"))
 
         self.t = WorkerThread()
         self.connect(self.t, SIGNAL("update_query_finished()"), self.start_to_interact)
+        self.connect(
+            self.t, SIGNAL("execute_method(PyQt_PyObject,PyQt_PyObject)"), self.execute_method)
         self.t.start()
+
+    def execute_method(self, meth, args):
+        meth(*args)
 
     def start_to_interact(self):
         self.ok_button.setEnabled(True)
         QApplication.restoreOverrideCursor()
 
     def setup_widgets(self):
+        self.label_info = QLabel("updates from exchange folder:")
         self.info = QTextEdit(self)
         self.info.setReadOnly(1)
+
+        self.label_updates = QLabel("updates from internet:")
         self.updates = QTableWidget(0, 3)
-        self.updates.setHorizontalHeaderLabels(["updater", "info", "do_update ?"])
+        self.updates.setHorizontalHeaderLabels(["updater", "info", "try updatde ?"])
         self.updates.verticalHeader().hide()
         self.updates.horizontalHeader().setResizeMode(0, QHeaderView.Stretch)
         self.updates.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
+
         self.ok_button = QPushButton("OK")
         self.ok_button.setEnabled(False)
 
     def setup_layout(self):
         layout = QVBoxLayout()
         self.setLayout(layout)
+        layout.addWidget(self.label_info)
         layout.addWidget(self.info)
+        layout.addWidget(self.label_updates)
         layout.addWidget(self.updates)
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -77,7 +95,7 @@ class UpdateDialog(QDialog):
         self.updates.insertRow(i)
         self.updates.setItem(i, 0, self._item(updater_id, False))
         self.updates.setItem(i, 1, self._item(info, False))
-        if with_checkbox:
+        if True or with_checkbox:
             self.updates.setItem(i, 2, self._item("", True))
 
     def add_info_line(self, txt):

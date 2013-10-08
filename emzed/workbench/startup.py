@@ -43,6 +43,8 @@ def install_emzed(user_ns=None):
     emzed.project.install_builtins()
     emzed.project.activate_last_project()
 
+    emzed.updaters.interactive_update()
+
     import os, sys
     user_ns.update(locals())
 
