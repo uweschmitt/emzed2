@@ -73,13 +73,13 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         local_folder = self._get_local_rlibs_folder()
         if not is_xcms_installed():
             script = """source("http://bioconductor.org/biocLite.R")
-                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
+                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
                 q(status=1);""" % (local_folder, local_folder)
         else:
             script = """
                 source("http://bioconductor.org/biocLite.R")
                 todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
-                                        lib="%s", destdir="%s", quiet=F)
+                                        lib="%s", destdir="%s", quiet=T)
                 q(status=length(todo))
                 """ % (local_folder, local_folder)
         dlg = ROutputDialog(script)
@@ -90,7 +90,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         if not is_xcms_installed():
             status = RExecutor().run_command(
                 """source("http://bioconductor.org/biocLite.R")
-                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=F)
+                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
                 q(status=1);""" % (local_folder, local_folder))
             assert status == 1, "installing XCMS failed"
         else:
@@ -98,7 +98,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
                 """
                 source("http://bioconductor.org/biocLite.R")
                 todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
-                                        lib="%s", destdir="%s", quiet=F)
+                                        lib="%s", destdir="%s", quiet=T)
                 q(status=length(todo))
                 """ % (local_folder, local_folder))
 
