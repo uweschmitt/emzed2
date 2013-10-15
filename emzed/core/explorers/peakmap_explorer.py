@@ -1461,21 +1461,21 @@ class PeakMapExplorer(QDialog):
     @protect_signal_handler
     def row_selected(self, row_idx):
         row = self.table.getValues(self.table.rows[row_idx])
-        print "", row_idx
         needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
         if all(n in row for n in needed):
             rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
             self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+        else:
+            needed = ["mzmin", "mzmax"]
+            if all(n in row for n in needed):
+                mzmin, mzmax = [row.get(ni) for ni in needed]
+                self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, mzmin, mzmax, True)
 
     @protect_signal_handler
     def cell_clicked(self, item):
         row = item.row()
         self.table_widget.selectRow(row)
         self.table_widget.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
-
-    @protect_signal_handler
-    def key_in_table_pressed(self, evt):
-        print evt
 
     @protect_signal_handler
     def show_help(self):
