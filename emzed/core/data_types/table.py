@@ -864,7 +864,7 @@ class Table(object):
         rv = self._addColumnWithoutNameCheck(name + "__tmp", what, type_, format_,
                                              insertBefore=name)
         self.dropColumns(name)
-        self.renameColumns(**{name + "__tmp": name})
+        self._renameColumnsUnchecked(**{name + "__tmp": name})
         return rv
 
     def _updateColumnWithoutNameCheck(self, name, what, type_=None, format_="",

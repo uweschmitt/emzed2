@@ -492,3 +492,12 @@ def test_drop_last_column():
     t = emzed.utils.toTable("z", [1, 2])
     t.dropColumns("z")
     assert len(t) == 0
+
+
+def test_replace_dunder_coloumn():
+    t = emzed.utils.toTable("z", [1, 2])
+    t = t.join(t, True)
+    # should not throw exception, as we do not create a new columns with "__" in its name:
+    t.replaceColumn("z__0", t.z__0.apply(float))
+    t.print_()
+
