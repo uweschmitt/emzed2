@@ -12,7 +12,7 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
                          QMessageBox, QTableWidget, QTableWidgetItem, QSplitter, QHeaderView)
 
-from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
+from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF, QEvent)
 from PyQt4.QtWebKit import (QWebView, QWebSettings)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
@@ -1054,9 +1054,9 @@ class PeakMapExplorer(QDialog):
     def setup_table_widgets(self):
         if self.table is not None:
             self.table_widget = create_table_widget(self.table)
-            self.ok_button = QPushButton("All ok")
-            self.not_ok_button = QPushButton("Any not ok")
-            self.use_checkbox_button = QPushButton("Use checkboxes")
+            self.select_all_peaks = QPushButton("Select all peaks")
+            self.unselect_all_peaks = QPushButton("Unselect all peaks")
+            self.use_checkbox_button = QPushButton("Done")
 
     def setup_menu_bar(self):
         self.menu_bar = QMenuBar(self)
@@ -1232,8 +1232,8 @@ class PeakMapExplorer(QDialog):
             layout.addWidget(self.table_widget)
 
             button_row_layout = QHBoxLayout()
-            button_row_layout.addWidget(self.ok_button)
-            button_row_layout.addWidget(self.not_ok_button)
+            button_row_layout.addWidget(self.select_all_peaks)
+            button_row_layout.addWidget(self.unselect_all_peaks)
             button_row_layout.addWidget(self.use_checkbox_button)
 
             layout.addLayout(button_row_layout)
@@ -1356,10 +1356,33 @@ class PeakMapExplorer(QDialog):
         if self.table is not None:
             self.connect(self.table_widget.verticalHeader(), SIGNAL("sectionClicked(int)"),
                          self.row_selected)
-            self.connect(self.ok_button, SIGNAL("pressed()"), self.ok_button_pressed)
-            self.connect(self.not_ok_button, SIGNAL("pressed()"), self.not_ok_button_pressed)
+            self.connect(self.table_widget, SIGNAL("itemClicked(QTableWidgetItem*)"),
+                         self.cell_clicked)
+            self.connect(self.select_all_peaks, SIGNAL("pressed()"),
+                         self.select_all_peaks_button_pressed)
+            self.connect(self.unselect_all_peaks, SIGNAL("pressed()"),
+                         self.unselect_all_peaks_button_pressed)
             self.connect(self.use_checkbox_button, SIGNAL("pressed()"),
                          self.use_checkbox_button_pressed)
+
+            def handler(evt):
+                tw = self.table_widget
+                active_rows = set(ix.row() for ix in tw.selectionModel().selection().indexes())
+                if active_rows:
+                    active_row = active_rows.pop()
+                    if evt.key() == Qt.Key_Up:
+                        row = active_row - 1
+                        if row >= 0:
+                            tw.selectRow(row)
+                            tw.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
+                    if evt.key() == Qt.Key_Down:
+                        row = active_row + 1
+                        if row < len(self.table):
+                            tw.selectRow(row)
+                            tw.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
+                return QTableWidget.keyPressEvent(tw, evt)
+
+            self.table_widget.keyPressEvent = handler
 
     def _ask_for_file(self, last_dir, flag, caption, filter_):
         dlg = QFileDialog(directory=last_dir or "", caption=caption)
@@ -1418,14 +1441,16 @@ class PeakMapExplorer(QDialog):
         self._do_load("Load Blue Peakmap", "peakmap2")
 
     @protect_signal_handler
-    def ok_button_pressed(self):
-        self.ok_rows = range(len(self.table))
-        self.accept()
+    def select_all_peaks_button_pressed(self):
+        for row in range(self.table_widget.rowCount()):
+            item = self.table_widget.item(row, 0)
+            item.setCheckState(Qt.Checked)
 
     @protect_signal_handler
-    def not_ok_button_pressed(self):
-        self.ok_rows = []
-        self.accept()
+    def unselect_all_peaks_button_pressed(self):
+        for row in range(self.table_widget.rowCount()):
+            item = self.table_widget.item(row, 0)
+            item.setCheckState(Qt.Unchecked)
 
     @protect_signal_handler
     def use_checkbox_button_pressed(self):
@@ -1436,10 +1461,21 @@ class PeakMapExplorer(QDialog):
     @protect_signal_handler
     def row_selected(self, row_idx):
         row = self.table.getValues(self.table.rows[row_idx])
+        print "", row_idx
         needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
         if all(n in row for n in needed):
             rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
             self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+
+    @protect_signal_handler
+    def cell_clicked(self, item):
+        row = item.row()
+        self.table_widget.selectRow(row)
+        self.table_widget.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
+
+    @protect_signal_handler
+    def key_in_table_pressed(self, evt):
+        print evt
 
     @protect_signal_handler
     def show_help(self):
