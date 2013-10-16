@@ -1705,3 +1705,60 @@ class Table(object):
                 if isinstance(cell, PeakMap):
                     row[i] = peak_maps[cell._digest]
         self.resetInternals()
+
+    @staticmethod
+    def _conv_nan(val):
+        try:
+            is_nan = np.isnan(val)  # does not work for str values etc !
+            return None if is_nan else val
+        except:
+            return val
+
+    @staticmethod
+    def from_pandas(df, title=None, meta=None, formats=None):
+        import pandas
+        assert isinstance(df, pandas.DataFrame)
+        col_names = df.columns.values.tolist()
+        kinds = dict(i=int, f=float, O=object)
+
+        col_types = [kinds.get(t.kind) for t in df.dtypes]
+        rows = df.as_matrix().tolist()
+
+        rows = [map(Table._conv_nan, row) for row in rows]
+
+        for i, t in enumerate(col_types[:]):
+            if t in (object, None):
+                column = [row[i] for row in rows]
+                t = common_type_for(column)
+                col_types[i] = t
+
+        _formats = {int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
+        if formats is not None:
+            _formats.update(formats)
+
+        # first resolfe types by name
+        col_formats = [_formats.get(n) for n in col_names]
+        # then by type
+        col_formats = [_formats.get(t) if f is None else f
+                       for (f, t) in zip(col_formats, col_types)]
+
+        table = Table(col_names, col_types, col_formats, rows, title, meta)
+        return table
+
+    @staticmethod
+    def from_numpy_array(data, col_names, col_types, col_formats, title=None, meta=None):
+        assert isinstance(data, np.ndarray)
+        assert data.ndim == 2, data.ndim
+        rows = [map(Table._conv_nan, row) for row in data.tolist()]
+
+        table = Table(col_names, col_types, col_formats, rows, title, meta)
+        rows = []
+        for row in table.rows[:]:
+            for i, t in enumerate(col_types):
+                if t in (int, float, str):
+                    val = row[i]
+                    if val is not None:
+                        row[i] = t(val)
+            rows.append(row)
+        table.rows = rows
+        return table
