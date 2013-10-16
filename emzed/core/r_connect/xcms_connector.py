@@ -36,7 +36,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         days = 1
         return days * 24 * 60 * 60
 
-    def _get_rlibs_sub_folder(self):
+    def get_rlibs_sub_folder(self):
         r_version = RExecutor().get_r_version()
         if r_version is None:
             subfolder = "r_libs"
@@ -44,25 +44,28 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
             subfolder = "r_libs_%s" % r_version
         return subfolder
 
-    def _get_local_rlibs_folder(self):
-        subfolder = self._get_rlibs_sub_folder()
+    def get_local_rlibs_folder(self):
+        subfolder = self.get_rlibs_sub_folder()
         folder = os.path.join(self.data_home, subfolder)
         return folder
 
-    def _get_rlibs_exchange_folder(self, exchange_folder):
-        subfolder = self._get_rlibs_sub_folder()
+    def get_rlibs_exchange_folder(self, exchange_folder):
+        subfolder = self.get_rlibs_sub_folder()
         folder = os.path.join(exchange_folder, subfolder)
         return folder
 
-    def query_update_info(self, limit):
-        if not is_xcms_installed():
-            return "not installed yet", True
+    def _update_info_script(self):
         script = """
                     source("http://bioconductor.org/biocLite.R")
                     todo <- old.packages(repos=biocinstallRepos(), lib="%s")
                     q(status=length(todo))
-                """ % self._get_local_rlibs_folder().replace("\\", "\\\\")
+                """ % self.get_local_rlibs_folder().replace("\\", "\\\\")
+        return script
 
+    def query_update_info(self, limit):
+        if not is_xcms_installed():
+            return "not installed yet", True
+        script = self._update_info_script()
         num = RExecutor().run_command(script)
         if not num:
             return "no update found", False
@@ -70,7 +73,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
             return "updates for %d packages found" % num, True
 
     def do_update_with_gui(self, limit):
-        local_folder = self._get_local_rlibs_folder().replace("\\", "\\\\")
+        local_folder = self.get_local_rlibs_folder().replace("\\", "\\\\")
         if not is_xcms_installed():
             script = """source("http://bioconductor.org/biocLite.R")
                 biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
@@ -86,7 +89,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         dlg.exec_()
 
     def do_update(self, limit):
-        local_folder = self._get_local_rlibs_folder().replace("\\", "\\\\")
+        local_folder = self.get_local_rlibs_folder().replace("\\", "\\\\")
         if not is_xcms_installed():
             status = RExecutor().run_command(
                 """source("http://bioconductor.org/biocLite.R")
@@ -103,8 +106,8 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
                 """ % (local_folder, local_folder))
 
     def upload_to_exchange_folder(self, exchange_folder):
-        local_folder = self._get_local_rlibs_folder()
-        r_libs_exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
+        local_folder = self.get_local_rlibs_folder()
+        r_libs_exchange_folder = self.get_rlibs_exchange_folder(exchange_folder)
         # maybe we have a race condition from other userse so we upload first to a unique # folder:
         first_destination_folder = r_libs_exchange_folder + "_%017d" % int(100000 * time.time())
         shutil.copytree(local_folder, first_destination_folder)
@@ -118,27 +121,29 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         os.rename(latest, r_libs_exchange_folder)
 
     def touch_data_home_files(self):
-        local_folder = self._get_local_rlibs_folder()
+        local_folder = self.get_local_rlibs_folder()
         os.utime(local_folder, None)
 
     def check_for_newer_version_on_exchange_folder(self, exchange_folder):
-        local_folder = self._get_local_rlibs_folder()
-        exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
+        local_folder = self.get_local_rlibs_folder()
+        exchange_folder = self.get_rlibs_exchange_folder(exchange_folder)
         if not os.path.exists(exchange_folder):
             return False
         return os.stat(local_folder).st_mtime < os.stat(exchange_folder).st_mtime
 
     def update_from_exchange_folder(self, exchange_folder):
-        local_folder = self._get_local_rlibs_folder()
-        exchange_folder = self._get_rlibs_exchange_folder(exchange_folder)
+        local_folder = self.get_local_rlibs_folder()
+        exchange_folder = self.get_rlibs_exchange_folder(exchange_folder)
         shutil.rmtree(local_folder)
         shutil.copytree(exchange_folder, local_folder)
 
 
-def _register_xcms_updater():
+def _register_xcms_updater(data_home=None):
 
     from ..config import folders
-    updater = update_handling.Updater(XCMSUpdateImpl(), folders.getDataHome())
+    if data_home is None:
+        data_home = folders.getDataHome()
+    updater = update_handling.Updater(XCMSUpdateImpl(), data_home)
     update_handling.registry.register(updater)
 
 
