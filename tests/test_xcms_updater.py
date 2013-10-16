@@ -1,6 +1,8 @@
 def test_xcms_updater():
-    import emzed.updaters
     import emzed.core.config
+    import emzed.updaters
+
+    emzed.updaters.setup_updaters()
 
     updater = emzed.updaters.get("xcms_updater")
     emzed.updaters.reset("xcms_updater")

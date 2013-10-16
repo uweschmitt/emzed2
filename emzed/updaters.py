@@ -1,5 +1,18 @@
 # encoding: latin-1
 
+def setup_updaters(data_home=None):
+
+    from core.update_handling import registry
+    registry.reset()
+
+    from db import _register_pubchem_updater
+    _register_pubchem_updater(data_home)
+
+    from core.r_connect.xcms_connector import _register_xcms_updater
+    _register_xcms_updater(data_home)
+
+    return registry
+
 
 def run(id_):
     from core.update_handling import registry
@@ -67,9 +80,10 @@ def print_update_status():
     print
 
 def interactive_update():
-    from core.update_handling import registry
     from core.dialogs.update_dialog import UpdateDialog, qapplication
     from core.config import global_config
+
+    registry = setup_updaters()
 
     def script(add_info_line, add_update_info):
         exchange_folder = global_config.get("exchange_folder")
@@ -114,8 +128,3 @@ def interactive_update():
         updater.do_update(None)
 
 
-from db import _register_pubchem_updater
-_register_pubchem_updater()
-
-from core.r_connect.xcms_connector import _register_xcms_updater
-_register_xcms_updater()

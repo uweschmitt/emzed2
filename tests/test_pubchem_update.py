@@ -57,6 +57,8 @@ def test_pubchem_import():
 
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
+    emzed.updaters.setup_updaters()
+
     updater = emzed.updaters.get("pubchem_updater")
     updater.set_folders(tmpdir.join("data_home").strpath)
 
@@ -86,6 +88,7 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
 
     # create folders
     import os
+    emzed.updaters.setup_updaters()
 
     updater = emzed.updaters.get("pubchem_updater")
 

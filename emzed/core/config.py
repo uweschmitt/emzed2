@@ -62,8 +62,9 @@ class _FolderLocations(object):
 
     @staticmethod
     def getDataHome():
-        dataHome = os.path.join(_FolderLocations.getDocumentFolder(), "emzed2_files")
-        return dataHome
+        default = os.path.join(_FolderLocations.getDocumentFolder(), "emzed2_files")
+        folder = global_config.get("emzed_files_folder")
+        return folder or default
 
     @staticmethod
     def getDataHomeSubFolder(subfolder=None):
@@ -142,15 +143,19 @@ class _UserConfig(object):
 
         _g1 = _dt.EndGroup("User Settings")
 
-        g11 = _dt.BeginGroup("Exchange Folder Settings")
+        g11 = _dt.BeginGroup("Folder Settings")
 
         exchange_folder = _di.DirectoryItem("Exchange Folder", default="",
                                             help="here you can configure a shared folder, see emezed "
                                             "installation guide on emzed website for more information")
 
+        emzed_files_folder = _di.DirectoryItem("Emzed data files", default="",
+                                            help="place for installing data files etc")
+
+
         _apply_patch_for_allowing_empty_value(exchange_folder)
 
-        _g11 = _dt.EndGroup("Exchange Folder Settings")
+        _g11 = _dt.EndGroup("Folder Settings")
 
         g2 = _dt.BeginGroup("Webservice Settings")
 
@@ -194,12 +199,12 @@ class _UserConfig(object):
     def __init__(self, *a, **kw):
         self.parameters = _UserConfig.Parameters()
 
-    def get(self, key):
+    def get(self, key, default=None):
         env_key = "EMZED_%s" % key.upper()
         if env_key in os.environ:
-            val = os.environ.get(env_key)
+            val = os.environ.get(env_key, default)
         else:
-            val = getattr(self.parameters, key)
+            val = getattr(self.parameters, key, default)
         if isinstance(val, unicode):
             val = val.encode("latin-1")
         return val
@@ -269,6 +274,9 @@ class _UserConfig(object):
         self.parameters.pypi_index_url = "http://testpypi.python.org/simple"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
         self.parameters.last_active_project = ""
+        self.parameters.emzed_files_folder = os.path.join(_FolderLocations.getDocumentFolder(),
+                                                          "emzed2_files")
+        return dataHome
         try:
             os.makedirs(self.parameters.project_home)
         except:

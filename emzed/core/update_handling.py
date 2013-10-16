@@ -191,23 +191,6 @@ class Updater(object):
         return True, message
 
 
-class UpdaterRegistry(object):
-
-    def __init__(self):
-        self.updaters = dict()
-
-    def register(self, updater):
-        assert isinstance(updater, Updater)
-        self.updaters[updater.get_id()]=updater
-
-    def get(self, id_):
-        return self.updaters.get(id_)
-
-    def install(self, module):
-        for name, updater in self.updaters.items():
-            setattr(module, name, updater.do_update)
-
-registry = UpdaterRegistry()
 #
 # workflow gui
 # 1. versuche von exchange folder zu laden
@@ -264,5 +247,25 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         pass
 
 
-updater = Updater(EmzedUpdateImpl(), None)
-registry.register(updater)
+class UpdaterRegistry(object):
+
+    def reset(self):
+        self.updaters = dict()
+        updater = Updater(EmzedUpdateImpl(), None)
+        self.register(updater)
+
+    def register(self, updater):
+        assert isinstance(updater, Updater)
+        self.updaters[updater.get_id()]=updater
+
+    def get(self, id_):
+        return self.updaters.get(id_)
+
+    def install(self, module):
+        for name, updater in self.updaters.items():
+            setattr(module, name, updater.do_update)
+
+
+
+registry = UpdaterRegistry()
+registry.reset()

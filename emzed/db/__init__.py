@@ -11,7 +11,7 @@ def _db_path(master_folder):
 
 def _default_pubchem_folder():
     from ..core import config
-    return config.folders.getDataHome()
+    return config.global_config.get("emzed_files_folder")
 
 
 def _load_pubchem(folder=None):
@@ -115,7 +115,10 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         self.get_db().reload_()
 
 
-def _register_pubchem_updater():
-
-    updater = _update_handling.Updater(_PubChemUpdateImpl(), _default_pubchem_folder())
+def _register_pubchem_updater(data_home=None):
+    if data_home is None:
+        folder = _default_pubchem_folder()
+    else:
+        folder = data_home
+    updater = _update_handling.Updater(_PubChemUpdateImpl(), folder)
     _update_handling.registry.register(updater)
