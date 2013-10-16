@@ -79,7 +79,8 @@ def print_update_status():
             print "local version is new enough"
     print
 
-def interactive_update():
+def _interactive_update():
+    from core.update_handling import registry
     from core.dialogs.update_dialog import UpdateDialog, qapplication
     from core.config import global_config
 
@@ -128,3 +129,10 @@ def interactive_update():
         updater.do_update(None)
 
 
+def interactive_update():
+    # called at emzed.workbench startup, uncaught exception might freeze shell/console !
+    try:
+        _interactive_update()
+    except:
+        import traceback
+        traceback.print_exc()
