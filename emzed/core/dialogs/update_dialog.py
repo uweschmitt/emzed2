@@ -27,7 +27,7 @@ class UpdateDialog(QDialog):
 
     def showEvent(self, evt):
 
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        self.setCursor(Qt.WaitCursor)
 
         class WorkerThread(QThread):
 
@@ -40,14 +40,17 @@ class UpdateDialog(QDialog):
         self.connect(self.t, SIGNAL("update_query_finished()"), self.start_to_interact)
         self.connect(
             self.t, SIGNAL("execute_method(PyQt_PyObject,PyQt_PyObject)"), self.execute_method)
-        self.t.start()
+
+        try:
+            self.t.start()
+        finally:
+            self.setCursor(Qt.ArrowCursor)
 
     def execute_method(self, meth, args):
         meth(*args)
 
     def start_to_interact(self):
         self.ok_button.setEnabled(True)
-        QApplication.restoreOverrideCursor()
 
     def setup_widgets(self):
         self.label_info = QLabel("updates from exchange folder:")
