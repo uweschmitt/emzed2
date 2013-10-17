@@ -187,7 +187,6 @@ else:
 
     def sendAll(p, s):
         p.stdin.write(_mybytes(s))
-        # os.write(p.stdin.fileno(), s)
         p.stdin.flush()
 
     def readLine(p, dump_stdout=False, **b):
@@ -590,6 +589,7 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         }
     if(identical(.Platform$OS.type, 'windows')) .addLibs()
     rm(.addLibs)
+    print('')
     '''
     _DEBUG_MODE = True
 
@@ -703,6 +703,7 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
             if sys.platform == 'cli':
                 os.close(fh)  # this is necessary on IronPython
             CMD = 'source("%s")' % fn.replace('\\', '/')
+            CMD += "; file.remove(%r)" % fn
         # CMD = (use_try and 'try({%s})%s%s' or '%s%s%s') % (CMD, newline, tail_cmd)
         CMD = (use_try and 'try({%s})%s%s' or '%s%s%s') % (
             CMD.replace('\\', '\\\\'), newline, tail_cmd)
@@ -719,8 +720,6 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
             rlt = re_tail.sub('', rlt)
             if rlt.startswith('> '):
                 rlt = rlt[2:]
-        if fn is not None:
-            os.unlink(fn)
         return rlt
 
     def __call__(self, CMDS=[], use_try=None):
