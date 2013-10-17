@@ -107,7 +107,7 @@ class Updater(object):
                     line = line.split("#")[0]
                 seconds_since_epoch = float(line)
                 return seconds_since_epoch
-            except Exception, e:
+            except BaseException, e:
                 raise "reading %s failed: %s" % (path, str(e))
 
     def remove_ts_file(self):
@@ -116,6 +116,7 @@ class Updater(object):
             os.remove(path)
 
     def _update_latest_update_ts(self, seconds_since_epoch):
+        print "update_latest_update_ts", self.impl.get_id(), seconds_since_epoch
         path = self._get_ts_file_path()
         with open(path, "wt") as fp:
             readable = time.asctime(time.localtime(seconds_since_epoch))
@@ -134,22 +135,26 @@ class Updater(object):
     def do_update_with_gui(self, limit=None):
         try:
             self.impl.do_update_with_gui(limit)
-        except Exception, e:
+        except BaseException, e:
+            import traceback
+            traceback.print_exc()
             return False, str(e)
         return self._finalize_update()
 
     def do_update(self, limit=None):
         """ returns flag, message """
+        print "do_update"
         try:
             self.impl.do_update(limit)
-        except Exception, e:
+        except BaseException, e:
+            import traceback
+            traceback.print_exc()
             return False, str(e)
         return self._finalize_update()
 
     def _finalize_update(self):
         # update succeeded
-        ts = time.time()
-        self._update_latest_update_ts(ts)
+        self._update_latest_update_ts(time.time())
         exchange_folder = config.global_config.get("exchange_folder")
         if exchange_folder is not None:
             if is_writable(exchange_folder):
@@ -168,7 +173,7 @@ class Updater(object):
         try:
             # is readable ?
             os.listdir(exchange_folder)
-        except Exception, e:
+        except BaseException, e:
             return None, str(e)
         is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
         return is_newer, None
@@ -183,7 +188,7 @@ class Updater(object):
         try:
             # is readable ?
             os.listdir(exchange_folder)
-        except Exception, e:
+        except BaseException, e:
             return False, str(e)
         message = self.impl.update_from_exchange_folder(exchange_folder)
         self._update_latest_update_ts(time.time())

@@ -45,6 +45,7 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         return days * 24 * 60 * 60
 
     def query_update_info(self, limit):
+        print "query_update_info"
         unknown, missing = self.get_db().getDiff(limit)
         if unknown or missing:
             return ("%d unknown and %d deleted entries on website" % (len(unknown), len(missing)),
@@ -75,6 +76,7 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         self.do_update(500, Callback())
 
     def do_update(self, limit, callback=None):
+        print "do_update"
         import os
         self.get_db().update(maxIds=limit, callback=callback)
         target_path = _db_path(self.data_home)
@@ -84,6 +86,7 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         self.get_db().store(target_path)
 
     def upload_to_exchange_folder(self, exchange_folder):
+        print "upload_to_exchange_folder"
         import os
         target_path = _db_path(exchange_folder)
         target_dir = os.path.dirname(target_path)

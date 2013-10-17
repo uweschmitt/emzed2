@@ -1,3 +1,4 @@
+import pdb
 import requests
 import time
 import os
@@ -161,20 +162,24 @@ class PubChemDB(object):
 
     def getDiff(self, maxIds=None):
         try:
+            print "_get_count()"
             counts = PubChemDB._get_count()
             unknown = []
             missing = []
             if counts != len(self.table):
+                print "get uis"
                 uis = set(PubChemDB._get_uilist(maxIds))
+                print "got uis"
                 if uis is not None:
                     known_uis = set(self.table.cid.values)
                     unknown = list(uis - known_uis)
                     missing = list(known_uis - uis)
             return unknown, missing
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            return [], []  # failed
+        except:
+            raise
+            #import traceback
+            #traceback.print_exc()
+            #return [], []  # failed
 
     def reset(self):
         self.table = self._emptyTable()
@@ -209,7 +214,7 @@ class PubChemDB(object):
                     if i % 20 == 0:
                         callback(i, len(newIds))
                 callback(i, len(newIds))
-            except Exception, e:
+            except BaseException, e:
                 if e != "aborted":
                     raise
         try:

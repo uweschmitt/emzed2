@@ -19,7 +19,11 @@ def run(id_):
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
-    updater.do_update()
+    ok, msg = updater.do_update()
+    if not ok:
+        print
+        print "UPDATE FAILED:", msg
+        print
 
 
 def reset(id_):
@@ -126,7 +130,11 @@ def _interactive_update():
 
     for id_ in dlg.get_updates_to_run():
         updater = registry.get(id_)
-        updater.do_update(None)
+        ok, msg = updater.do_update(None)
+        if not ok:
+            print
+            print "UPDATE FAILED:", msg
+            print
 
 
 def interactive_update():
@@ -136,3 +144,4 @@ def interactive_update():
     except:
         import traceback
         traceback.print_exc()
+        raise
