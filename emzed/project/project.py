@@ -38,7 +38,7 @@ def deactivate(p):
     _run_setup_py_develop(p, "-u")
     if p in sys.modules:
         del sys.modules[p]
-        
+
 
 def activate(p):
     """ after calling activate the package p can be imported """
@@ -93,7 +93,7 @@ def init(name=None):
             if not complaint:
                 break
             showWarning(complaint)
-            
+
     try:
         mod = __import__(name)
     except:
@@ -106,8 +106,6 @@ def init(name=None):
         create_package_scaffold(folder, name)
     except Exception, e:
         raise
-        #showWarning(str(e))
-        return
 
     __builtins__["___activate_%s" % name] = lambda: start_work(name)
     print
@@ -180,11 +178,16 @@ def stop_work():
     global_config.store()
 
 
-def run_tests():
+def run_tests(filter_=None):
     """ runs tests on current project """
     ap = _get_active_project()
     path = os.path.join(ap, "tests")
-    subprocess.call("py.test %s" % path, shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
+    if filter_ is not None:
+        fexpr = "-k '%s'" % filter_
+    else:
+        fexpr = ""
+    subprocess.call("py.test %s %s" % (fexpr, path), shell=True, stderr=sys.__stderr__,
+                    stdout=sys.__stdout__)
 
 
 def upload(secret=""):
