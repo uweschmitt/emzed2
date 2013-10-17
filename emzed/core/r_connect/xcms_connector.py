@@ -1,6 +1,5 @@
 # encoding: utf-8
-from r_executor import RExecutor
-from ..data_types.table import fms as formatSeconds
+from ..data_types.table import fms as formatSeconds, Table
 from ..data_types.table_parser import TableParser
 from ..data_types import PeakMap
 
@@ -17,13 +16,44 @@ from pyopenms import FileHandler
 
 from pkg_resources import resource_string
 
-from .. import update_handling
+from .. import update_handling, config
+
+from r_executor import RInterpreter
+
+
+def _get_r_version():
+    interp = RInterpreter()
+    version = interp.version
+    return "%s.%s" % (version["major"], version["minor"])
+
+
+def get_r_version():
+    if not hasattr(_get_r_version, "cached_value"):
+        r_version = _get_r_version()
+        _get_r_version.cached_value = r_version
+    return _get_r_version.cached_value
+
+
+def setup_r_libs_variable():
+    subfolder = "r_libs_%s" % get_r_version()
+    r_libs_folder = config.folders.getDataHomeSubFolder(subfolder)
+    r_libs = [path for path in os.environ.get("R_LIBS", "").split(os.pathsep) if path]
+    if r_libs_folder not in r_libs:
+        if not os.path.exists(r_libs_folder):
+            os.makedirs(r_libs_folder)
+        r_libs.insert(0, r_libs_folder)
+        os.environ["R_LIBS"] = os.pathsep.join(r_libs)
+
+
+def execute(*cmds):
+    setup_r_libs_variable()
+    interp = RInterpreter(dump_stdout=True)
+    interp.execute(*cmds)
+    return interp
 
 
 def is_xcms_installed():
-    status = RExecutor().run_command(
-        """ if (require("xcms") == FALSE) q(status=1); q(status=0); """)
-    return status == 0
+    return execute("""status <- require("xcms")""").status
 
 
 class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
@@ -37,7 +67,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         return days * 24 * 60 * 60
 
     def get_rlibs_sub_folder(self):
-        r_version = RExecutor().get_r_version()
+        r_version = get_r_version()
         if r_version is None:
             subfolder = "r_libs"
         else:
@@ -58,7 +88,7 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         script = """
                     source("http://bioconductor.org/biocLite.R")
                     todo <- old.packages(repos=biocinstallRepos(), lib="%s")
-                    q(status=length(todo))
+                    num_to_update = length(todo)
                 """ % self.get_local_rlibs_folder().replace("\\", "\\\\")
         return script
 
@@ -66,44 +96,43 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         if not is_xcms_installed():
             return "not installed yet", True
         script = self._update_info_script()
-        num = RExecutor().run_command(script)
-        if not num:
+
+        num_to_update = execute(script).num_to_update
+        if not num_to_update:
             return "no update found", False
         else:
-            return "updates for %d packages found" % num, True
+            return "updates for %d packages found" % num_to_update, True
 
-    def do_update_with_gui(self, limit):
+    def _do_update_with_gui(self, limit):
         local_folder = self.get_local_rlibs_folder().replace("\\", "\\\\")
         if not is_xcms_installed():
             script = """source("http://bioconductor.org/biocLite.R")
-                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
-                q(status=1);""" % (local_folder, local_folder)
+                        biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
+                        """ % (local_folder, local_folder)
         else:
             script = """
                 source("http://bioconductor.org/biocLite.R")
                 todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
                                         lib="%s", destdir="%s", quiet=T)
-                q(status=length(todo))
                 """ % (local_folder, local_folder)
+        assert False, "not tested yet, must be adapted to pyper"
+        execute(script)
         dlg = ROutputDialog(script)
         dlg.exec_()
 
     def do_update(self, limit):
         local_folder = self.get_local_rlibs_folder().replace("\\", "\\\\")
         if not is_xcms_installed():
-            status = RExecutor().run_command(
-                """source("http://bioconductor.org/biocLite.R")
-                biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
-                q(status=1);""" % (local_folder, local_folder))
-            assert status == 1, "installing XCMS failed"
+            script = """source("http://bioconductor.org/biocLite.R")
+                        biocLite("xcms", dep=T, lib="%s", destdir="%s", quiet=T)
+                        """ % (local_folder, local_folder)
         else:
-            RExecutor().run_command(
-                """
+            script = """
                 source("http://bioconductor.org/biocLite.R")
                 todo <- update.packages(repos=biocinstallRepos(), ask=FALSE, checkBuilt=TRUE,
                                         lib="%s", destdir="%s", quiet=T)
-                q(status=length(todo))
-                """ % (local_folder, local_folder))
+            """ % (local_folder, local_folder)
+        execute(script)
 
     def upload_to_exchange_folder(self, exchange_folder):
         local_folder = self.get_local_rlibs_folder()
@@ -252,19 +281,31 @@ class CentwaveFeatureDetector(object):
                                         verbose.columns = %(verbose_columns)s,
                                         mzCenterFun = %(mzCenterFun)r
                                     )
-                    write.table(xs@peaks, file=%(temp_output)r)
-                    q(status=123)
+                    print(xs@peaks)
+                    peaks <- data.frame(xs@peaks)
                     """ % dd
 
         del dd["temp_input"]
         del dd["temp_output"]
 
-        if RExecutor().run_command(script) != 123:
-            raise Exception("R operation failed")
+        peaks = execute(script).peaks
 
         # parse csv and shift rt related values to undo rt modifiaction
         # as described above
-        table = XCMSFeatureParser.parse(file(temp_output).readlines())
+        #table = XCMSFeatureParser.parse(file(temp_output).readlines())
+        table = Table.from_pandas(peaks,
+                                  types=dict(mz=float, mzmin=float, mzmax=float,
+                                             rt=float, rtmin=float, ftmax=float,
+                                             into=float, intb=float, maxo=float,
+                                             sn=float, sample=int),
+                                  formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
+                                               rt=formatSeconds, rtmin=formatSeconds,
+                                               rtmax=formatSeconds,
+                                               into="%.2e", intb="%.2e", maxo="%.2e")
+                                  )
+
+        table.print_()
+
         table.addConstantColumn("centwave_config", dd, dict, None)
         table.meta["generator"] = "xcms.centwave"
         decorate(table, temp_peakmap)
@@ -346,18 +387,17 @@ class MatchedFilterFeatureDetector(object):
                                     index = %(index)s,
                                     sleep=0
                                     )
-                    write.table(xs@peaks, file=%(temp_output)r)
-                    q(status=123)
+                    peaks <- data.frame(xs@peaks)
                     """ % dd
 
         del dd["temp_input"]
         del dd["temp_output"]
 
-        if RExecutor().run_command(script) != 123:
-            raise Exception("R opreation failed")
+        peaks = execute(script).peaks
+        table = Table.from_pandas(peaks)
 
         # parse csv and
-        table = XCMSFeatureParser.parse(file(temp_output).readlines())
+        table = Table.from_pandas(peaks)
         table.addConstantColumn("matchedfilter_config", dd, dict, None)
         table.meta["generator"] = "xcms.matchedfilter"
         decorate(table, temp_peakmap)
@@ -365,6 +405,7 @@ class MatchedFilterFeatureDetector(object):
         table.rtmin += shift
         table.rtmax += shift
         table.rt += shift
+        table[:2].print_()
         return table
 
 

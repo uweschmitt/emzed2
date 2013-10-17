@@ -4,11 +4,106 @@ import subprocess
 import sys
 import re
 import tempfile
+import pandas
+import numpy
+from ..data_types import Table
 
 from .. import config
 
+import patched_pyper as pyper
 
-class RExecutor(object):
+
+class RInterpreter(object):
+
+    """
+    This class is the bridge to R. It creates a connection to a R process, it allows code
+    execution and passes data to and from this process. For convinience R data.frame objects
+    are converted to and from emzed Table objects.
+
+    Example::
+
+        >>> ip = emzed.r.RInterpreter()
+
+        >>> ip.execute("a <- 3")
+        >>> print ip.a
+        3
+
+        >>> ip.execute("tab <- data.frame(a=c(1, 2), b=c(2.1, 3))")
+        >>> print ip.tab
+        <emzed.core.data_types.table.Table object at 0x.......>
+
+        >>> ip.tab.print_()
+        a        b
+        int      float
+        ------   ------
+        1        2.100000
+        2        3.000000
+
+        >>> print ip.get_raw("x")    # returns pandas DataFrame
+           a    b
+        1  1  2.1
+        2  2  3.0
+
+    """
+
+    def __init__(self, dump_stdout=True, **kw):
+        """Starts a R process.
+
+           In case of ``dump_stdout`` being ``True``, console output from R is imediatly
+           dumped to the stdout of Python. This is helpful for long running scripts indicating
+           their progress by printing status information, but may clutter the console,
+           as lots of internal conversion operations are printed too.
+        """
+        self.__dict__["session"] = pyper.R(dump_stdout=dump_stdout, **kw)
+
+    def __dir__(self):
+        """ avoid completion in IPython shell, as attributes are automatically looked up in
+        overriden __getattr__ method
+        """
+        return ["execute", "get_df_as_table", "get_raw"]
+
+    def execute(self, *cmds):
+        """executes commands. Each command by be a multiline command. """
+        for cmd in cmds:
+            self.session(cmd)
+        return self
+
+    def get_df_as_table(self, name, title=None, meta=None, types=None, formats=None):
+        """
+        Transfers R data.frame object with name ``name`` to emzed Table object.
+        For the remaining paramters see :py:meth:`~emzed.core.data_types.table.Table.from_pandas`
+        """
+        native = getattr(self.session, name)
+        assert isinstance(native, pandas.DataFrame), "expected data frame, got %s" % type(native)
+        return Table.from_pandas(native, title, meta, types, formats)
+
+    def get_raw(self, name):
+        """
+        returns data.frame as pandas DataFrame, etc.
+        no converstion to emzed Table data structure
+        """
+        return self.__getattr__(name, False)
+
+    def __getattr__(self, name, convert_to_table=True):
+        # IPython 0.10 does strange things for completion, so we circument them:
+        if name == "trait_names" or name == "_getAttributeNames":
+            return []
+        # IPython 0.10 has an error for ip.execute("x <- data.frame()") as it tries to lookup
+        # attribute 'execute("x <- data")', I think this is driven by the dot in "data.frame"
+        if name.startswith("execute("):
+            return []
+        value = getattr(self.session, name)
+        if convert_to_table and isinstance(value, pandas.DataFrame):
+            return Table.from_pandas(value)
+        return value
+
+    def __setattr__(self, name, value):
+        if isinstance(value, Table):
+            value = value.to_pandas()
+        setattr(self.session, name, value)
+
+
+class _RExecutor(object):
 
     _patched_rlibs_folder = None
 
@@ -44,7 +139,7 @@ class RExecutor(object):
         ]:
             try:
                 pathToR = finder()
-                if pathToR != None:
+                if pathToR is not None:
                     break
             except (KeyError, WindowsError):
                 pass
@@ -136,8 +231,6 @@ class RExecutor(object):
 
     def get_r_libs_folder(self):
 
-        if RExecutor._patched_rlibs_folder is not None:
-            return RExecutor._patched_rlibs_folder
         r_version = RExecutor().get_r_version()
         if r_version is None:
             subfolder = "r_libs"
@@ -177,4 +270,3 @@ class RExecutor(object):
         proc = self.create_process(fp.name)
         for answer in proc:
             yield answer
-

@@ -49,7 +49,7 @@ setup(name="emzed",
           "pyopenms",
           "spyder==2.1.13",
           "html2text",
-          "pyper",
+          "pandas",
           ]
 
      )

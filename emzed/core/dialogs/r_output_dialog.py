@@ -2,7 +2,7 @@ from PyQt4.Qt import QApplication
 from PyQt4.QtCore import Qt, SIGNAL, QThread
 from PyQt4.QtGui import (QDialog, QTextEdit, QPushButton, QVBoxLayout, QHBoxLayout, QCursor)
 
-from ..r_connect.r_executor import RExecutor
+from ..r_connect.r_executor import RInterpreter
 
 
 class ROutputDialog(QDialog):
@@ -44,6 +44,8 @@ class ROutputDialog(QDialog):
         class WorkerThread(QThread):
 
             def run(self, command=self.command, stdout=self.stdout):
+                raise Exception("depreciated, please adapt to new r interpreter")
+                #RInterpreter().execute(command)
                 proc = RExecutor().start_command(command)
                 for line in proc:
                     stdout.append(line)

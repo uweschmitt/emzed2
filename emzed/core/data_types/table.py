@@ -190,8 +190,8 @@ class Table(object):
         is_numpy_type = lambda t: np.number in t.__mro__
 
         if any(is_numpy_type(t) for t in colTypes):
-            raise Exception("using numpy floats instead of python floats "
-                            "is not a good idea.\nTable operations may crash")
+            raise Exception("using numpy floats instead of python floats is not a good idea. "
+                            "Table operations may crash")
 
         self._colFormats = [None if f == "" else f for f in colFormats]
 
@@ -448,9 +448,6 @@ class Table(object):
         """ returns value of column ``colName`` in a given ``row``
 
             Example: ``table.getValue(table.rows[0], "mz")``
-
-
-
         """
         return row[self.getIndex(colName)]
 
@@ -1714,14 +1711,55 @@ class Table(object):
         except:
             return val
 
+    def to_pandas(self):
+        """ converts table to pandas DataFrame object """
+        import pandas
+        data = dict((name, getattr(self, name).values) for name in self.getColNames())
+        return pandas.DataFrame(data, columns=self.getColNames())
+
     @staticmethod
-    def from_pandas(df, title=None, meta=None, formats=None):
+    def from_pandas(df, title=None, meta=None, types=None, formats=None):
+        """ creates Table from pandas DataFrame
+
+            * ``title`` and ``meta`` are parametrs according to the consctructor of ``Table``,
+                see :py:meth:`~.__init__`
+
+            * ``types`` is a mapping of column names to python types. If this parameter misses
+              types are derived automatically from the pandas column types, missing colum names
+              in this mapping are handled in the same way.
+
+              This parameter is intended for non standard or special type conversions.
+
+            * ``formats`` is a mapping for declaring column formats. The keys can be column_names,
+              python types, or a mixture of them. Types are resolved in the first place, then
+              column names.
+
+              The values of this mapping are similar to the format declarations used in
+              :py:meth:`~.__init__`
+
+              For missing declarations, or a missing formats argument the formats are guessed
+              from the column types.
+
+            Comment: type resolution is done before determining the formats, so values in the
+            ``types`` dictionary may appear as keys in ``formats``.
+
+        """
         import pandas
         assert isinstance(df, pandas.DataFrame)
-        col_names = df.columns.values.tolist()
-        kinds = dict(i=int, f=float, O=object)
+        if types is None:
+            types = dict()
 
-        col_types = [kinds.get(t.kind) for t in df.dtypes]
+        col_names = df.columns.values.tolist()
+
+        col_types = [types.get(n) for n in col_names]
+
+        kinds_to_type = dict(i=int, f=float, O=object, V=object, U=unicode, a=str, u=int, b=bool,
+                             c=complex)
+
+        # overwrite not declared types by guessing from dtype:
+        col_types = [kinds_to_type.get(dt.kind) if t is None else t
+                     for (t, dt) in zip(col_types, df.dtypes)]
+
         rows = df.as_matrix().tolist()
 
         rows = [map(Table._conv_nan, row) for row in rows]
@@ -1747,6 +1785,14 @@ class Table(object):
 
     @staticmethod
     def from_numpy_array(data, col_names, col_types, col_formats, title=None, meta=None):
+        """
+        Creates a Table from a numpy 2dim array. Arguments are given in the same manner as
+        in the Table constructor :py:meth:`~.__init__`
+
+        numpy.nan values are converted to None values for indicating missing values.
+        numpy numerical types are converted to python types.
+
+        """
         assert isinstance(data, np.ndarray)
         assert data.ndim == 2, data.ndim
         rows = [map(Table._conv_nan, row) for row in data.tolist()]

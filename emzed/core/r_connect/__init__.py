@@ -1,3 +1,2 @@
 from xcms_connector import *
-from r_executor import RExecutor
-
+from r_executor import RInterpreter
