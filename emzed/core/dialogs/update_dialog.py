@@ -32,9 +32,15 @@ class UpdateDialog(QDialog):
         class WorkerThread(QThread):
 
             def run(self, script=self.update_script, parent=self):
-                for method, args in script(parent.add_info_line, parent.add_update_info):
-                    self.emit(SIGNAL("execute_method(PyQt_PyObject, PyQt_PyObject)"), method, args)
+                try:
+                    for method, args in script(parent.add_info_line, parent.add_update_info):
+                        self.emit(SIGNAL("execute_method(PyQt_PyObject, PyQt_PyObject)"), method, args)
+                except:
+                    import traceback
+                    tb = traceback.format_exc()
+                    self.emit(SIGNAL("execute_method(PyQt_PyObject, PyQt_PyObject)"), parent.add_info_line, (tb,))
                 self.emit(SIGNAL("update_query_finished()"))
+
 
         self.t = WorkerThread()
         self.connect(self.t, SIGNAL("update_query_finished()"), self.start_to_interact)
