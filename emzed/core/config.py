@@ -276,7 +276,6 @@ class _UserConfig(object):
         self.parameters.last_active_project = ""
         self.parameters.emzed_files_folder = os.path.join(_FolderLocations.getDocumentFolder(),
                                                           "emzed2_files")
-        return dataHome
         try:
             os.makedirs(self.parameters.project_home)
         except:
