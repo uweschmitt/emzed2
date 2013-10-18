@@ -1745,7 +1745,7 @@ class Table(object):
 
         """
         import pandas
-        assert isinstance(df, pandas.DataFrame)
+        assert isinstance(df, pandas.DataFrame), df
         if types is None:
             types = dict()
 
@@ -1757,7 +1757,14 @@ class Table(object):
                              c=complex)
 
         # overwrite not declared types by guessing from dtype:
-        col_types = [kinds_to_type.get(dt.kind) if t is None else t
+        col_types = [kinds_to_type.get(dt.kind) if t is None and hasattr(dt, "kind") else t
+                     for (t, dt) in zip(col_types, df.dtypes)]
+
+        # some numpy types have no kind, as numpy.float64
+        col_types = [float if t is None and float in dt.__class__.__mro__ else t
+                     for (t, dt) in zip(col_types, df.dtypes)]
+
+        col_types = [int if t is None and int in dt.__class__.__mro__ else t
                      for (t, dt) in zip(col_types, df.dtypes)]
 
         rows = df.as_matrix().tolist()
