@@ -12,6 +12,51 @@ from .. import config
 
 import patched_pyper as pyper
 
+def find_r_exe():
+
+    assert sys.platform == "win32"
+    import _winreg
+    pathToR = None
+    for finder in [
+        lambda: _path_from(_winreg.HKEY_CURRENT_USER),
+        lambda: _path_from(_winreg.HKEY_LOCAL_MACHINE),
+        lambda: os.environ.get("R_HOME"),
+        _parse_path_variable,
+    ]:
+        try:
+            pathToR = finder()
+            if pathToR is not None:
+                break
+        except (KeyError, WindowsError):
+            pass
+    if pathToR is None:
+        raise Exception("install dir of R not found, neither in registry, nor is R_HOME set.")
+
+    found = glob.glob("%s/bin/x64/R.exe" % rHome)
+    if not found:
+        found = glob.glob("%s/bin/R.exe" % rHome)
+        if not found:
+            raise Exception("could not find R.exe")
+    return found[0]
+
+def _parse_path_variable():
+    for path in os.environ.get("PATH", "").split(os.pathsep):
+        # windows
+        if os.path.exists(os.path.join(path, "R.exe")):
+            print "Found R at", path
+            return path
+        # non windows:
+        test = os.path.join(path, "R")
+        if os.path.exists(test) and not os.path.isdir(test):
+            return test
+    return None
+
+def _path_from(regsection):
+    assert sys.platform == "win32"
+    import _winreg
+    key = _winreg.OpenKey(regsection, "Software\\R-core\\R")
+    return _winreg.QueryValueEx(key, "InstallPath")[0]
+
 
 class RInterpreter(object):
 
@@ -46,7 +91,7 @@ class RInterpreter(object):
 
     """
 
-    def __init__(self, dump_stdout=True, **kw):
+    def __init__(self, dump_stdout=True, r_exe=None, **kw):
         """Starts a R process.
 
            In case of ``dump_stdout`` being ``True``, console output from R is imediatly
@@ -54,7 +99,13 @@ class RInterpreter(object):
            their progress by printing status information, but may clutter the console,
            as lots of internal conversion operations are printed too.
         """
-        self.__dict__["session"] = pyper.R(dump_stdout=dump_stdout, **kw)
+        if r_exe is None:
+            if sys.platform == "win32":
+                r_exe = find_r_exe()
+            else:
+                r_exe = "R"
+
+        self.__dict__["session"] = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
 
     def __dir__(self):
         """ avoid completion in IPython shell, as attributes are automatically looked up in
@@ -119,15 +170,15 @@ class _RExecutor(object):
 
     def __init__(self):
         if sys.platform == "win32":
-            self.rHome = RExecutor.findRHome()
-            rExe = RExecutor.findRExe(self.rHome)
+            rExe = RExecutor.findRExe()
             # import win32api
             self.rExe = rExe  # win32api.GetShortPathName(rExe)
         else:
             self.rExe = "R"
 
     @staticmethod
-    def findRHome():
+    def findRExe():
+
         assert sys.platform == "win32"
         import _winreg
         pathToR = None
@@ -145,10 +196,6 @@ class _RExecutor(object):
                 pass
         if pathToR is None:
             raise Exception("install dir of R not found, neither in registry, nor is R_HOME set.")
-        return pathToR
-
-    @staticmethod
-    def findRExe(rHome):
 
         found = glob.glob("%s/bin/x64/R.exe" % rHome)
         if not found:

@@ -790,8 +790,9 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         self.__call__('rm(%s)' % obj)
 
     def __del__(self):  # to model "del r"
-        sendAll(self.prog, 'q("no")' + self.newline)
-        self.prog = None
+        if self.prog:
+            sendAll(self.prog, 'q("no")' + self.newline)
+            self.prog = None
 
     def __getattr__(self, obj, use_dict=None):  # to model object attribute: "r.XXX"
         '''
