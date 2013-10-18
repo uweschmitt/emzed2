@@ -193,21 +193,6 @@ def _get_temp_peakmap(msLevel, peakMap):
     return temp_peakmap
 
 
-class XCMSFeatureParser(TableParser):
-
-    typeDefaults = dict(mz=float, mzmin=float, mzmax=float,
-                        rt=float, rtmin=float, rtmax=float,
-                        into=float, intb=float,
-                        maxo=float, sn=float,
-                        sample=int)
-
-    formatDefaults = dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
-                          rt=formatSeconds, rtmin=formatSeconds,
-                          rtmax=formatSeconds, into="", intb="", intf="",
-                          maxo="", sn="%.1e",
-                          sample="")
-
-
 class CentwaveFeatureDetector(object):
 
     __doc__ = """ CentwaveFeatureDetector
@@ -292,12 +277,7 @@ class CentwaveFeatureDetector(object):
         del dd["temp_input"]
         del dd["temp_output"]
 
-        peaks = execute(script).peaks
-
-        # parse csv and shift rt related values to undo rt modifiaction
-        # as described above
-        #table = XCMSFeatureParser.parse(file(temp_output).readlines())
-        table = Table.from_pandas(peaks,
+        table = execute(script).get_df_as_table("peaks",
                                   types=dict(mz=float, mzmin=float, mzmax=float,
                                              rt=float, rtmin=float, ftmax=float,
                                              into=float, intb=float, maxo=float,
@@ -305,10 +285,9 @@ class CentwaveFeatureDetector(object):
                                   formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
                                                rt=formatSeconds, rtmin=formatSeconds,
                                                rtmax=formatSeconds,
-                                               into="%.2e", intb="%.2e", maxo="%.2e")
+                                               into="%.2e", intb="%.2e", maxo="%.2e",
+                                               sn="%.2e")
                                   )
-
-        table.print_()
 
         table.addConstantColumn("centwave_config", dd, dict, None)
         table.meta["generator"] = "xcms.centwave"
@@ -397,11 +376,21 @@ class MatchedFilterFeatureDetector(object):
         del dd["temp_input"]
         del dd["temp_output"]
 
-        peaks = execute(script).peaks
-        table = Table.from_pandas(peaks)
+        table = execute(script).get_df_as_table("peaks",
+                                  types=dict(mz=float, mzmin=float, mzmax=float,
+                                             rt=float, rtmin=float, ftmax=float,
+                                             into=float, intf=float, maxo=float,
+                                             maxf=float, i=int,
+                                             sn=float, sample=int),
+                                  formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
+                                               rt=formatSeconds, rtmin=formatSeconds,
+                                               rtmax=formatSeconds,
+                                               into="%.2e", intf="%.2e", maxo="%.2e",
+                                               maxf="%.2e", sn="%.2e")
+                                  )
+        table.print_()
 
         # parse csv and
-        table = Table.from_pandas(peaks)
         table.addConstantColumn("matchedfilter_config", dd, dict, None)
         table.meta["generator"] = "xcms.matchedfilter"
         decorate(table, temp_peakmap)
