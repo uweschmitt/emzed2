@@ -5,7 +5,6 @@ import sys
 import re
 import tempfile
 import pandas
-import numpy
 from ..data_types import Table
 
 from .. import config
@@ -32,9 +31,9 @@ def find_r_exe():
     if pathToR is None:
         raise Exception("install dir of R not found, neither in registry, nor is R_HOME set.")
 
-    found = glob.glob("%s/bin/x64/R.exe" % rHome)
+    found = glob.glob("%s/bin/x64/R.exe" % pathToR)
     if not found:
-        found = glob.glob("%s/bin/R.exe" % rHome)
+        found = glob.glob("%s/bin/R.exe" % pathToR)
         if not found:
             raise Exception("could not find R.exe")
     return found[0]
@@ -105,7 +104,11 @@ class RInterpreter(object):
             else:
                 r_exe = "R"
 
-        self.__dict__["session"] = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
+        try:
+            session = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
+        except:
+            raise Exception("could not start R, is R installed ?")
+        self.__dict__["session"] = session
 
     def __dir__(self):
         """ avoid completion in IPython shell, as attributes are automatically looked up in
@@ -164,13 +167,13 @@ class _RExecutor(object):
     def __new__(cls, *args, **kwargs):
 
         if not cls._instance:
-            cls._instance = super(RExecutor, cls).__new__(
+            cls._instance = super(_RExecutor, cls).__new__(
                 cls, *args, **kwargs)
         return cls._instance
 
     def __init__(self):
         if sys.platform == "win32":
-            rExe = RExecutor.findRExe()
+            rExe = _RExecutor.findRExe()
             # import win32api
             self.rExe = rExe  # win32api.GetShortPathName(rExe)
         else:
@@ -183,10 +186,10 @@ class _RExecutor(object):
         import _winreg
         pathToR = None
         for finder in [
-            lambda: RExecutor._path_from(_winreg.HKEY_CURRENT_USER),
-            lambda: RExecutor._path_from(_winreg.HKEY_LOCAL_MACHINE),
+            lambda: _RExecutor._path_from(_winreg.HKEY_CURRENT_USER),
+            lambda: _RExecutor._path_from(_winreg.HKEY_LOCAL_MACHINE),
             lambda: os.environ.get("R_HOME"),
-            RExecutor._parse_path_variable,
+            _RExecutor._parse_path_variable,
         ]:
             try:
                 pathToR = finder()
@@ -197,9 +200,9 @@ class _RExecutor(object):
         if pathToR is None:
             raise Exception("install dir of R not found, neither in registry, nor is R_HOME set.")
 
-        found = glob.glob("%s/bin/x64/R.exe" % rHome)
+        found = glob.glob("%s/bin/x64/R.exe" % pathToR)
         if not found:
-            found = glob.glob("%s/bin/R.exe" % rHome)
+            found = glob.glob("%s/bin/R.exe" % pathToR)
             if not found:
                 raise Exception("could not find R.exe")
         return found[0]
@@ -278,7 +281,7 @@ class _RExecutor(object):
 
     def get_r_libs_folder(self):
 
-        r_version = RExecutor().get_r_version()
+        r_version = _RExecutor().get_r_version()
         if r_version is None:
             subfolder = "r_libs"
         else:

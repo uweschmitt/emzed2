@@ -93,6 +93,10 @@ class XCMSUpdateImpl(update_handling.AbstractUpdaterImpl):
         return script
 
     def query_update_info(self, limit):
+        #from PyQt4.QtCore import pyqtRemoveInputHook
+        #import pdb
+        #pyqtRemoveInputHook()
+        #pdb.set_trace()
         if not is_xcms_installed():
             return "not installed yet", True
         script = self._update_info_script()
