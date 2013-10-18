@@ -678,10 +678,12 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
             else:  # Give up and point child stderr at nul
                 childstderr = file('nul', 'a')
 
-        self.__dict__.update({
-            'prog': Popen(RCMD, stdin=PIPE, stdout=PIPE, stderr=return_err and _STDOUT or childstderr, startupinfo=info),
-            'has_numpy': use_numpy and has_numpy, 'has_pandas': use_pandas and has_pandas,
-            'Rfun': self.__class__.__Rfun})
+        # as __setattr__ iso verriden, we have to set members like this:
+        self.__dict__['prog'] = None
+        self.__dict__['has_numpy'] = use_numpy and has_numpy
+        self.__dict__['has_pandas'] = use_pandas and has_pandas
+        self.__dict__['Rfun'] = self.__Rfun
+        self.__dict__['prog'] = Popen(RCMD, stdin=PIPE, stdout=PIPE, stderr=return_err and _STDOUT or childstderr, startupinfo=info)
         self.__call__(self.Rfun)
 
     def __runOnce(self, CMD, use_try=None):
@@ -790,9 +792,15 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         self.__call__('rm(%s)' % obj)
 
     def __del__(self):  # to model "del r"
-        if self.prog:
-            sendAll(self.prog, 'q("no")' + self.newline)
-            self.prog = None
+        try:
+            if self.prog:
+                sendAll(self.prog, 'q("no")' + self.newline)
+                self.prog = None
+                print "R interpreter shut down"
+        except:
+            import traceback
+            traceback.print_exc()
+            exit()
 
     def __getattr__(self, obj, use_dict=None):  # to model object attribute: "r.XXX"
         '''
