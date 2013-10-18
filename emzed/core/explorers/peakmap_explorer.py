@@ -1008,13 +1008,15 @@ class ChromatogramPlotter(object):
 
 class PeakMapExplorer(QDialog):
 
-    def __init__(self):
+    def __init__(self, ok_rows_container=[]):
         QDialog.__init__(self)
         self.setWindowFlags(Qt.Window)
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
         # (e.g. the editor's analysis thread in Spyder), thus leading to
         # a segmentation fault on UNIX or an application crash on Windows
+        self.ok_rows = ok_rows_container
+
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowFlags(Qt.Window)
 
@@ -1056,7 +1058,7 @@ class PeakMapExplorer(QDialog):
             self.table_widget = create_table_widget(self.table)
             self.select_all_peaks = QPushButton("Select all peaks")
             self.unselect_all_peaks = QPushButton("Unselect all peaks")
-            self.use_checkbox_button = QPushButton("Done")
+            self.done_button = QPushButton("Done")
 
     def setup_menu_bar(self):
         self.menu_bar = QMenuBar(self)
@@ -1234,7 +1236,7 @@ class PeakMapExplorer(QDialog):
             button_row_layout = QHBoxLayout()
             button_row_layout.addWidget(self.select_all_peaks)
             button_row_layout.addWidget(self.unselect_all_peaks)
-            button_row_layout.addWidget(self.use_checkbox_button)
+            button_row_layout.addWidget(self.done_button)
 
             layout.addLayout(button_row_layout)
             h_splitter.addWidget(frame)
@@ -1362,8 +1364,8 @@ class PeakMapExplorer(QDialog):
                          self.select_all_peaks_button_pressed)
             self.connect(self.unselect_all_peaks, SIGNAL("pressed()"),
                          self.unselect_all_peaks_button_pressed)
-            self.connect(self.use_checkbox_button, SIGNAL("pressed()"),
-                         self.use_checkbox_button_pressed)
+            self.connect(self.done_button, SIGNAL("pressed()"),
+                         self.done_button_pressed)
 
             def handler(evt):
                 tw = self.table_widget
@@ -1453,9 +1455,9 @@ class PeakMapExplorer(QDialog):
             item.setCheckState(Qt.Unchecked)
 
     @protect_signal_handler
-    def use_checkbox_button_pressed(self):
-        self.ok_rows = [i for i in range(len(self.table))
-                        if self.table_widget.item(i, 0).checkState() == Qt.Checked]
+    def done_button_pressed(self):
+        self.ok_rows[:] = [i for i in range(len(self.table))
+                           if self.table_widget.item(i, 0).checkState() == Qt.Checked]
         self.accept()
 
     @protect_signal_handler
@@ -1705,12 +1707,12 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None):
         raise Exception("empty peakmap")
 
     app = guidata.qapplication()  # singleton !
-    win = PeakMapExplorer()
+    ok_rows = []
+    win = PeakMapExplorer(ok_rows)
     win.setup(peakmap, peakmap2, table)
     win.raise_()
     win.exec_()
-    if table is not None:
-        return win.ok_rows
+    return ok_rows
 
 if __name__ == "__main__":
     import emzed.io
