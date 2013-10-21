@@ -286,17 +286,13 @@ class Table(object):
             Raises an ``AssertException`` if the length of ``row`` does not
             match to the numbers of columns of the table.
             """
-
-        assert len(row) == len(self._colNames), "length of row does not match"
-        # check for conversion !
-        for i, (v, t) in enumerate(zip(row, self._colTypes)):
-            if v is not None and t in [int, float, long, str]:
-                row[i] = t(v)
-            else:
-                row[i] = v
-        self.rows.append(row)
-        if doResetInternals:
-            self.resetInternals()
+        try:
+            self.rows.append([])
+            # includes checks which might throw exceptions:
+            self.setRow(len(self) - 1, row)
+        except:
+            self.rows.pop()
+            raise
 
     def isEditable(self, colName):
         return colName in self.editableColumns
@@ -457,6 +453,13 @@ class Table(object):
         """
         assert 0 <= idx < len(self)
         assert len(row) == len(self._colNames), "row as wrong length %d" % len(row)
+
+        # check for conversion !
+        for i, (v, t) in enumerate(zip(row, self._colTypes)):
+            if v is not None and t in [int, float, long, str]:
+                row[i] = t(v)
+            else:
+                row[i] = v
         self.rows[idx] = row
         self.resetInternals()
 
