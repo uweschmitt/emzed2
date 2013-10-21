@@ -428,15 +428,20 @@ class Table(object):
         row[ix] = value
         self.resetInternals()
 
+    def __iter__(self):
+        for row in self.rows:
+            yield self.getValues(row)
+
     def getValues(self, row):
         """
             if ``colName`` is not provided, one gets the content of
-            the ``row`` as a dictionary mapping column names to values.
+            the ``row`` as an enhanced dictionary mapping column names to values.
 
             Example::
 
                 row = table.getValues(table.rows[0])
                 print row["mz"]
+                print row.mz
         """
         return Bunch((n, self.getValue(row, n)) for n in self._colNames)
 

@@ -1,8 +1,10 @@
+import pdb
 from emzed.core.data_types import PeakMap, Spectrum
 from pyopenms import (FileHandler, Precursor, MSExperiment,
                       InstrumentSettings, IonSource)
 import numpy as np
 import os.path
+import copy
 
 import pytest
 
@@ -172,3 +174,26 @@ class TestMSTypes(object):
         assert spec.intensityInRange(2.0, 2.0) == 1.0
         assert spec.intensityInRange(2.1, 2.0) == 0.0
 
+    def test_remove(self):
+        mzs = np.array([ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 ]).reshape(-1,1)
+        ones = np.ones_like(mzs)
+        peaks = np.hstack((mzs, ones))
+        spectra = [Spectrum(peaks, 0.0, 1, "0"),
+                   Spectrum(peaks, 1.0, 1, "0"),
+                   Spectrum(peaks, 1.5, 2, "0"),
+                   Spectrum(peaks, 2.0, 1, "0")]
+
+        pm = PeakMap(spectra)
+
+        pmt = copy.deepcopy(pm)
+        pmt.remove(0.0, 10.0, 0.0, 2.0)
+        assert len(pmt) == 1
+        assert pmt.spectra[0] == Spectrum(peaks, 1.5, 2, "0")
+
+        pmt = copy.deepcopy(pm)
+        pmt.remove(1.0, 3.2, 1.0, 2.0)
+        assert len(pmt) == 4
+        assert np.all(pmt.spectra[0].peaks == peaks)
+        assert np.all(pmt.spectra[1].peaks.flatten() == [0., 1.0, 4.0, 1.0, 5.0, 1.0])
+        assert np.all(pmt.spectra[2].peaks == peaks)
+        assert np.all(pmt.spectra[3].peaks.flatten() == [0., 1.0, 4.0, 1.0, 5.0, 1.0])

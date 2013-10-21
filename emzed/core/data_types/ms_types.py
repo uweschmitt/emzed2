@@ -1,3 +1,4 @@
+import pdb
 import pyopenms
 import numpy as np
 import os.path
@@ -65,6 +66,17 @@ class Spectrum(object):
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
         self.peaks = peaks[perm, :].astype(np.float32)
+
+    def __eq__(self, other):
+
+        if self is other:
+            return True
+        return self.rt == other.rt and self.msLevel == other.msLevel \
+            and self.precursors == other.precursors and self.polarity == other.polarity \
+            and self.peaks.shape == other.peaks.shape and np.all(self.peaks == other.peaks)
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
 
     @classmethod
     def fromMSSpectrum(clz, mspec):
@@ -280,6 +292,28 @@ class PeakMap(object):
         return [spec for spec in self.spectra if rtmin - 1e-2 <= spec.rt
                 <= rtmax + 1e-2
                 and spec.msLevel == n]
+
+    def remove(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
+
+        if not self.spectra:
+            return
+        if rtmin is None:
+            rtmin = self.spectra[0].rt
+        if rtmax is None:
+            rtmax = self.spectra[-1].rt
+        if msLevel is None:
+            msLevel = min(self.getMsLevels())
+
+        for s in self.spectra:
+            if s.msLevel != msLevel:
+                continue
+            if rtmin <= s.rt <= rtmax:
+                peaks = s.peaks
+                cut_out = (s.peaks[:, 0] >= mzmin) & (s.peaks[:, 0] <= mzmax)
+                s.peaks = peaks[~cut_out]
+
+        self.spectra = [s for s in self.spectra if len(s.peaks)]
+
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """

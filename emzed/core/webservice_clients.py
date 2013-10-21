@@ -43,7 +43,6 @@ class MetlinMatcher(object):
         params["tolerance"] = ppm
 
         r = requests.get(MetlinMatcher.url, params=params)
-        print >> open("url.txt", "w"), urllib2.unquote(r.url)
         if r.status_code != 200:
             raise Exception("matlin query %s failed: %s" %
                                               (urllib2.unquote(r.url), r.text))
