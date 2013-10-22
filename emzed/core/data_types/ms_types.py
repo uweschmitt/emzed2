@@ -229,6 +229,8 @@ class PeakMap(object):
             for s in spectra:
                 s.peaks = s.peaksInRange(mzmin, mzmax)
 
+        spectra = [s for s in spectra if len(s.peaks)]
+
         return PeakMap(spectra, self.meta.copy())
 
     def representingMzPeak(self, mzmin, mzmax, rtmin, rtmax):
