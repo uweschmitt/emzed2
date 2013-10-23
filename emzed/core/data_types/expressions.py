@@ -305,7 +305,7 @@ class BaseExpression(object):
         Example: ``tab.id.isIn([1,2,3])``
 
         """
-        return FunctionExpression(lambda a, b=li: a in b, "%%s.isIn(%s)"%li,
+        return FunctionExpression(lambda a, b=li: a in b, "%%s.isIn(%s)"% list(li),
                                   self, bool)
 
     def inRange(self, minv, maxv):
