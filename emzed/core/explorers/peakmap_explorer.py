@@ -73,7 +73,11 @@ class PeakMapImageBase(object):
         self.bounds = QRectF(QPointF(self.rtmin, self.mzmin), QPointF(self.rtmax, self.mzmax))
 
         self.total_imin = 0.0
-        self.total_imax = max(np.max(s.peaks[:, 1]) for s in pm.spectra for pm in peakmaps)
+        maxi = [np.max(s.peaks[:, 1]) for pm in peakmaps for s in pm.spectra if len(s.peaks)]
+        if maxi:
+            self.total_imax = max(maxi)
+        else:
+            self.total_imax = 1.0
 
         self.imin = self.total_imin
         self.imax = self.total_imax
