@@ -12,7 +12,7 @@ from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
                          QMessageBox, QTableWidget, QTableWidgetItem, QSplitter, QHeaderView)
 
-from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF, QEvent)
+from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
 from PyQt4.QtWebKit import (QWebView, QWebSettings)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
@@ -783,14 +783,14 @@ class ModifiedImagePlot(ImagePlot):
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
 
-def create_table_widget(table):
+def create_table_widget(table, parent):
     formats = table.getColFormats()
     names = table.getColNames()
     indices_of_visible_columns = [j for (j, f) in enumerate(formats) if f is not None]
     headers = ["ok"] + [names[j] for j in indices_of_visible_columns]
     n_rows = len(table)
 
-    widget = QTableWidget(n_rows, 1 + len(indices_of_visible_columns))
+    widget = QTableWidget(n_rows, 1 + len(indices_of_visible_columns), parent=parent)
     widget.setHorizontalHeaderLabels(headers)
 
     widget.horizontalHeader().setResizeMode(QHeaderView.Interactive)
@@ -1059,10 +1059,10 @@ class PeakMapExplorer(QDialog):
 
     def setup_table_widgets(self):
         if self.table is not None:
-            self.table_widget = create_table_widget(self.table)
-            self.select_all_peaks = QPushButton("Select all peaks")
-            self.unselect_all_peaks = QPushButton("Unselect all peaks")
-            self.done_button = QPushButton("Done")
+            self.table_widget = create_table_widget(self.table, self)
+            self.select_all_peaks = QPushButton("Select all peaks", self)
+            self.unselect_all_peaks = QPushButton("Unselect all peaks", self)
+            self.done_button = QPushButton("Done", self)
 
     def setup_menu_bar(self):
         self.menu_bar = QMenuBar(self)
@@ -1116,69 +1116,69 @@ class PeakMapExplorer(QDialog):
         self.mzmax_input.setText("%.5f" % mzmax)
 
     def setup_input_widgets(self):
-        self.log_label = QLabel("Logarithmic Scale:")
-        self.log_check_box = QCheckBox()
+        self.log_label = QLabel("Logarithmic Scale:", self)
+        self.log_check_box = QCheckBox(self)
         self.log_check_box.setCheckState(1)
         self.log_check_box.setTristate(0)
 
-        self.gamma_label = QLabel("Contrast:")
-        self.gamma_slider = QSlider(Qt.Horizontal)
+        self.gamma_label = QLabel("Contrast:", self)
+        self.gamma_slider = QSlider(Qt.Horizontal, self)
         self.gamma_slider.setMinimum(0)
         self.gamma_slider.setMaximum(50)
 
         rel_pos = (self.gamma_start - self.gamma_min) / (self.gamma_max - self.gamma_min)
         self.gamma_slider.setSliderPosition(50 * rel_pos)
 
-        self.i_range_label = QLabel("Intensity:")
+        self.i_range_label = QLabel("Intensity:", self)
 
-        self.imin_input = QLineEdit()
-        self.imin_slider = QSlider(Qt.Horizontal)
+        self.imin_input = QLineEdit(self)
+        self.imin_slider = QSlider(Qt.Horizontal, self)
         self.imin_slider.setMinimum(0)
         self.imin_slider.setMaximum(100)
         self.imin_slider.setSliderPosition(0)
 
-        self.imax_slider = QSlider(Qt.Horizontal)
+        self.imax_slider = QSlider(Qt.Horizontal, self)
         self.imax_slider.setMinimum(0)
         self.imax_slider.setMaximum(100)
         self.imax_slider.setSliderPosition(1000)
-        self.imax_input = QLineEdit()
+        self.imax_input = QLineEdit(self)
 
-        self.rt_range_label = QLabel("Retention Time [minutes]:")
-        self.rtmin_input = QLineEdit()
+        self.rt_range_label = QLabel("Retention Time [minutes]:", self)
+        self.rtmin_input = QLineEdit(self)
         self.rtmin_input.setValidator(QDoubleValidator())
-        self.rtmin_slider = QSlider(Qt.Horizontal)
+        self.rtmin_slider = QSlider(Qt.Horizontal, self)
         self.rtmin_slider.setMinimum(0)
         self.rtmin_slider.setMaximum(100)
         self.rtmin_slider.setSliderPosition(0)
 
-        self.rtmax_slider = QSlider(Qt.Horizontal)
+        self.rtmax_slider = QSlider(Qt.Horizontal, self)
         self.rtmax_slider.setMinimum(0)
         self.rtmax_slider.setMaximum(100)
         self.rtmax_slider.setSliderPosition(100)
-        self.rtmax_input = QLineEdit()
+        self.rtmax_input = QLineEdit(self)
         self.rtmax_input.setValidator(QDoubleValidator())
 
-        self.mz_range_label = QLabel("Mass to Charge [Da]:")
-        self.mzmin_input = QLineEdit()
+        self.mz_range_label = QLabel("Mass to Charge [Da]:", self)
+        self.mzmin_input = QLineEdit(self)
         self.mzmin_input.setValidator(QDoubleValidator())
-        self.mzmin_slider = QSlider(Qt.Horizontal)
+        self.mzmin_slider = QSlider(Qt.Horizontal, self)
         self.mzmin_slider.setMinimum(0)
         self.mzmin_slider.setMaximum(100)
         self.mzmin_slider.setSliderPosition(0)
 
-        self.mzmax_slider = QSlider(Qt.Horizontal)
+        self.mzmax_slider = QSlider(Qt.Horizontal, self)
         self.mzmax_slider.setMinimum(0)
         self.mzmax_slider.setMaximum(100)
         self.mzmax_slider.setSliderPosition(100)
-        self.mzmax_input = QLineEdit()
+        self.mzmax_input = QLineEdit(self)
         self.mzmax_input.setValidator(QDoubleValidator())
 
-        self.history_back_button = QPushButton("Hist Back")
-        self.history_forward_button = QPushButton("Hist Fwd")
-        self.set_img_range_button = QPushButton("Set Bounds")
+        self.history_back_button = QPushButton("Hist Back", self)
+        self.history_forward_button = QPushButton("Hist Fwd", self)
+        self.set_img_range_button = QPushButton("Set Bounds", self)
 
-        self.history_list_label = QLabel("History:")
-        self.history_list = QComboBox()
+        self.history_list_label = QLabel("History:", self)
+        self.history_list = QComboBox(self)
 
     def setup_plot_widgets(self):
         self.peakmap_plotter = PeakMapPlotter()
@@ -1196,12 +1196,12 @@ class PeakMapExplorer(QDialog):
         outer_layout.addWidget(self.menu_bar)
         outer_layout.setStretch(0, 1)
 
-        h_splitter = QSplitter()
+        h_splitter = QSplitter(self)
         h_splitter.setOrientation(Qt.Horizontal)
 
         # FIRST COLUMN of h_splitter is chromatogram + peakmap:  ############################
 
-        v_splitter1 = QSplitter()
+        v_splitter1 = QSplitter(self)
         v_splitter1.setOrientation(Qt.Vertical)
         v_splitter1.addWidget(self.chromatogram_plotter.widget)
         v_splitter1.addWidget(self.peakmap_plotter.widget)
@@ -1216,7 +1216,7 @@ class PeakMapExplorer(QDialog):
 
         frame1, frame2 = self.layout_control_boxes()
 
-        v_splitter2 = QSplitter()
+        v_splitter2 = QSplitter(self)
         v_splitter2.setOrientation(Qt.Vertical)
 
         v_splitter2.addWidget(frame1)
@@ -1232,12 +1232,12 @@ class PeakMapExplorer(QDialog):
 
         # THIRD COLUMN of h_splittier holds control table + buttons ##########################
         if self.table:
-            frame = QFrame()
-            layout = QVBoxLayout()
+            frame = QFrame(self)
+            layout = QVBoxLayout(frame)
             frame.setLayout(layout)
             layout.addWidget(self.table_widget)
 
-            button_row_layout = QHBoxLayout()
+            button_row_layout = QHBoxLayout(frame)
             button_row_layout.addWidget(self.select_all_peaks)
             button_row_layout.addWidget(self.unselect_all_peaks)
             button_row_layout.addWidget(self.done_button)
@@ -1271,7 +1271,7 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.imax_slider, row, 2)
         controls_layout.addWidget(self.imax_input, row, 3)
 
-        frame = QFrame()
+        frame = QFrame(self)
         frame.setLineWidth(1)
         frame.setFrameStyle(QFrame.Box | QFrame.Plain)
         frame.setLayout(controls_layout)
@@ -1314,7 +1314,7 @@ class PeakMapExplorer(QDialog):
         controls_layout.addWidget(self.history_list_label, row, 0)
         controls_layout.addWidget(self.history_list, row, 1, 1, 3)
 
-        frame2 = QFrame()
+        frame2 = QFrame(self)
         frame2.setLineWidth(1)
         frame2.setFrameStyle(QFrame.Box | QFrame.Plain)
         frame2.setLayout(controls_layout)
@@ -1391,7 +1391,7 @@ class PeakMapExplorer(QDialog):
             self.table_widget.keyPressEvent = handler
 
     def _ask_for_file(self, last_dir, flag, caption, filter_):
-        dlg = QFileDialog(directory=last_dir or "", caption=caption)
+        dlg = QFileDialog(self, directory=last_dir or "", caption=caption)
         dlg.setNameFilter(filter_)
         dlg.setFileMode(flag)
         dlg.setWindowFlags(Qt.Window)
@@ -1414,7 +1414,7 @@ class PeakMapExplorer(QDialog):
                 break
             __, ext = os.path.splitext(path)
             if not ext in (".png", ".PNG"):
-                QMessageBox.warning(None, "Warning", "wrong/missing extension '.png'")
+                QMessageBox.warning(self, "Warning", "wrong/missing extension '.png'")
             else:
                 self.last_used_directory_for_save = os.path.dirname(path)
                 pix.save(path)
@@ -1488,11 +1488,11 @@ class PeakMapExplorer(QDialog):
         html = resource_string("emzed.core.explorers", "help_peakmapexplorer.html")
         QWebSettings.globalSettings().setFontFamily(QWebSettings.StandardFont, 'Courier')
         QWebSettings.globalSettings().setFontSize(QWebSettings.DefaultFontSize, 12)
-        v = QWebView()
+        v = QWebView(self)
         v.setHtml(html)
         dlg = QDialog(self, Qt.Window)
         dlg.setMinimumSize(300, 300)
-        l = QVBoxLayout()
+        l = QVBoxLayout(dlg)
         l.addWidget(v)
         dlg.setLayout(l)
         dlg.show()
@@ -1716,6 +1716,7 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None):
     win.setup(peakmap, peakmap2, table)
     win.raise_()
     win.exec_()
+    #app.deleteLater()
     return ok_rows
 
 if __name__ == "__main__":
