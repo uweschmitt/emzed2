@@ -28,6 +28,16 @@ def load_pubchem(folder=None):
     return _load_pubchem(folder).table
 
 
+def load_kegg(folder=None):
+    table = _load_pubchem(folder).table
+    return table.filter(table.is_in_kegg==True)
+
+
+def load_hmdb(folder=None):
+    table = _load_pubchem(folder).table
+    return table.filter(table.is_in_hmdb==True)
+
+
 from ..core import update_handling as _update_handling
 
 

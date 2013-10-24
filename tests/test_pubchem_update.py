@@ -69,19 +69,27 @@ def test_pubchem_updaters_without_exchange_folder(tmpdir):
     assert updater.offer_update_lookup() is True
 
     # ask pubchem for info about eventual update:
-    id_, ts, info, offer_update = updater.query_update_info(limit=10)
+    id_, ts, info, offer_update = updater.query_update_info(limit=100)
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
     assert offer_update
 
     # download 10 items
-    updater.do_update(limit=10)
-    assert len(emzed.db.load_pubchem(updater.data_home)) == 10
+    updater.do_update(limit=100)
+    assert len(emzed.db.load_pubchem(updater.data_home)) == 100
 
     # exchange folder is not configuredd, so we get None results:
     assert updater.check_for_newer_version_on_exchange_folder() == (None, None)
     assert updater.fetch_update_from_exchange_folder() == (None, None)
+
+    pc = emzed.db.load_pubchem(updater.data_home)
+
+    kegg = emzed.db.load_kegg(updater.data_home)
+    assert len(kegg) == len(pc.filter(pc.is_in_kegg))
+
+    hmdb = emzed.db.load_hmdb(updater.data_home)
+    assert len(hmdb) == len(pc.filter(pc.is_in_hmdb))
 
 
 def test_pubchem_updaters_with_exchange_folder(tmpdir):
