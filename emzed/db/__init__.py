@@ -21,7 +21,12 @@ def _load_pubchem(folder=None):
     if folder is None:
         folder = _default_pubchem_folder()
     path = _db_path(folder)
-    return PubChemDB.cached_load_from(path)
+    pubchem = PubChemDB.cached_load_from(path)
+
+    # reset formats from older verions:
+    pubchem.table._colFormats = PubChemDB.colFormats
+    pubchem.table.resetInternals()
+    return pubchem
 
 
 def load_pubchem(folder=None):
