@@ -162,14 +162,11 @@ class PubChemDB(object):
 
     def getDiff(self, maxIds=None):
         try:
-            print "_get_count()"
             counts = PubChemDB._get_count()
             unknown = []
             missing = []
             if counts != len(self.table):
-                print "get uis"
                 uis = set(PubChemDB._get_uilist(maxIds))
-                print "got uis"
                 if uis is not None:
                     known_uis = set(self.table.cid.values)
                     unknown = list(uis - known_uis)
