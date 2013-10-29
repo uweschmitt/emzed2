@@ -1668,7 +1668,7 @@ class Table(object):
                 for name in missing_names:
                     type_ = start_with.getType(name)
                     format_ = start_with.getFormat(name)
-                    table.addColumn(name, None, type_, format_)
+                    table._addColumnWithoutNameCheck(name, None, type_, format_)
             table = table.extractColumns(*final_colnames)
             extended_tables.append(table)
 
