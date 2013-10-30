@@ -1371,24 +1371,18 @@ class PeakMapExplorer(QDialog):
             self.connect(self.done_button, SIGNAL("pressed()"),
                          self.done_button_pressed)
 
-            def handler(evt):
+            def key_release_handler(evt):
                 tw = self.table_widget
                 active_rows = set(ix.row() for ix in tw.selectionModel().selection().indexes())
                 if active_rows:
-                    active_row = active_rows.pop()
-                    if evt.key() == Qt.Key_Up:
-                        row = active_row - 1
-                        if row >= 0:
-                            tw.selectRow(row)
-                            tw.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
-                    if evt.key() == Qt.Key_Down:
-                        row = active_row + 1
-                        if row < len(self.table):
-                            tw.selectRow(row)
-                            tw.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
+                    row = active_rows.pop()
+                    if evt.key() in (Qt.Key_Up, Qt.Key_Down):
+                        tw.selectRow(row)
+                        tw.verticalHeader().emit(SIGNAL("sectionClicked(int)"), row)
+                        return
                 return QTableWidget.keyPressEvent(tw, evt)
 
-            self.table_widget.keyPressEvent = handler
+            self.table_widget.keyReleaseEvent = key_release_handler
 
     def _ask_for_file(self, last_dir, flag, caption, filter_):
         dlg = QFileDialog(self, directory=last_dir or "", caption=caption)
