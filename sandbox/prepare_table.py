@@ -3,6 +3,12 @@ import emzed
 
 t = emzed.io.loadTable("shoulders_table_with_feature_ids.table")
 
+pm = t.peakmap.uniqueValue()
+
+emzed.gui.inspectPeakMap(pm)
+
+exit()
+
 subtables = t.splitBy("group_id_0")
 tables = [s for s in subtables if s.group_id_0.uniqueValue() is None]
 sub_tables = [s for s in subtables if s.group_id_0.uniqueValue() is not None]
