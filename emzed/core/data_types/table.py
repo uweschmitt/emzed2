@@ -504,7 +504,7 @@ class Table(object):
             r.insert(0, i)
         self.resetInternals()
 
-    def sortBy(self, colName, ascending=True):
+    def sortBy(self, colNames, ascending=True):
         """
         sorts table in respect of column named *colName* **in place**.
         *ascending* is boolean and tells if the values are sorted
@@ -516,16 +516,19 @@ class Table(object):
         For building an internal index, ascending must be *True*, you
         can have only one index per table.
         """
-        idx = self.colIndizes[colName]
+        if isinstance(colNames, basestring):
+            colNames = [colNames]
 
-        decorated = [(row[idx], i) for (i, row) in enumerate(self.rows)]
+        idxs = [self.colIndizes[name] for name in colNames]
+
+        decorated = [([row[idx] for idx in idxs], i) for (i, row) in enumerate(self.rows)]
         decorated.sort(reverse=not ascending)
         permutation = [i for (_, i) in decorated]
 
         self._applyRowPermutation(permutation)
 
         if ascending:
-            self.primaryIndex = {colName: True}
+            self.primaryIndex = {colNames[0]: True}
         else:
             self.primaryIndex = {}
         return permutation
