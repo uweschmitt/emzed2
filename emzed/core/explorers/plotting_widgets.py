@@ -212,7 +212,6 @@ class RtPlotter(PlotterBase):
         self.minRTRangeSelected = min_
         self.maxRTRangeSelected = max_
         if self.rangeSelectionCallback is not None:
-            print "call", self.rangeSelectionCallback
             self.rangeSelectionCallback()
 
 
