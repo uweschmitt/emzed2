@@ -56,7 +56,7 @@ class TableExplorer(QDialog):
         self.model = None
         self.tableView = None
 
-        self.currentRowIdx = -1
+        self.currentRowIndices = []
         self.hadFeatures = None
         self.wasIntegrated = None
 
@@ -348,7 +348,7 @@ class TableExplorer(QDialog):
 
         if self.hasFeatures:
             minr, maxr = sorted((ix1.row(), ix2.row()))
-            if minr <= self.currentRowIdx <= maxr:
+            if any(minr <= index <= maxr for index in self.currentRowIndices):
                 if isinstance(src, IntegrateAction):
                     self.updatePlots(reset=False)
                 else:
@@ -390,9 +390,6 @@ class TableExplorer(QDialog):
 
     @protect_signal_handler
     def doIntegrate(self):
-        if self.currentRowIdx < 0:
-            return  # no row selected
-
         # QString -> Python str:
         method = str(self.chooseIntMethod.currentText())
         # Again QString -> Python str.
@@ -400,13 +397,18 @@ class TableExplorer(QDialog):
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
         rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-        self.model.integrate(postfix, self.currentRowIdx, method, rtmin, rtmax)
+        for idx in self.currentRowIndices:
+            self.model.integrate(postfix, idx, method, rtmin, rtmax)
+
 
     @protect_signal_handler
     def rowClicked(self, rowIdx):
         if not self.hasFeatures:
             return
-        self.currentRowIdx = rowIdx
+        selected_rows = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+        #print selected_rows
+        #rowIdx = selected_rows[0]
+        self.currentRowIndices = selected_rows
         self.rt_plotter.setEnabled(True)
         self.updatePlots(reset=True)
         if self.hasFeatures:
@@ -417,9 +419,16 @@ class TableExplorer(QDialog):
         while self.chooseSpectrum.count():
             self.chooseSpectrum.removeItem(0)
 
+        postfixes, spectra = [], []
+        for idx in self.currentRowIndices:
+            pf, s = self.model.getLevelNSpectra(idx, minLevel=2)
+            postfixes.extend(pf)
+            spectra.extend(s)
+
+
         # get current spectra
-        rowidx = self.currentRowIdx
-        postfixes, spectra = self.model.getLevelNSpectra(rowidx, minLevel=2)
+        #jjrowidx = self.currentRowIdx
+        #postfixes, spectra = self.model.getLevelNSpectra(rowidx, minLevel=2)
         self.currentLevelNSpecs = []
 
         if not len(spectra):
@@ -442,6 +451,55 @@ class TableExplorer(QDialog):
             self.currentLevelNSpecs.append(s)
 
     def updatePlots(self, reset=False):
+
+        curves = []
+        smoothed_curves = []
+        mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
+        for idx in self.currentRowIndices:
+            eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.getEics(idx)
+            mzmins.append(mzmin)
+            rtmins.append(rtmin)
+            mzmaxs.append(mzmax)
+            rtmaxs.append(rtmax)
+            curves.extend(eics)
+            if self.isIntegrated:
+                smootheds = self.model.getSmoothedEics(idx, allrts)
+                if smootheds is not None:
+                    smoothed_curves.extend(smootheds)
+
+        rtmin = min(rtmins)
+        rtmax = max(rtmaxs)
+        mzmin = min(mzmins)
+        mzmax = max(mzmaxs)
+
+        if not reset:
+            rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
+            xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
+
+        configs = configsForEics(curves)
+        curves += smoothed_curves
+        configs += configsForSmootheds(smoothed_curves)
+
+        self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
+
+        # allrts are sorted !
+        w = rtmax - rtmin
+        if w == 0:
+            w = 30.0  # seconds
+        self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
+        self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
+        self.rt_plotter.replot()
+        if not reset:
+            self.rt_plotter.setXAxisLimits(xmin, xmax)
+            self.rt_plotter.setYAxisLimits(ymin, ymax)
+            self.rt_plotter.updateAxes()
+
+        reset = reset and mzmin is not None and mzmax is not None
+        limits = (mzmin, mzmax) if reset else None
+        self.plotMz(resetLimits=limits)
+
+        return   # ------------------------------------------------------------------------
+
         rowIdx = self.currentRowIdx
         eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.getEics(rowIdx)
 
@@ -495,7 +553,7 @@ class TableExplorer(QDialog):
             callback """
         rtmin = self.rt_plotter.minRTRangeSelected
         rtmax = self.rt_plotter.maxRTRangeSelected
-        peakmaps = self.model.getPeakmaps(self.currentRowIdx)
+        peakmaps = [pm for idx in self.currentRowIndices for pm in self.model.getPeakmaps(idx)]
         if resetLimits:
             mzmin, mzmax = resetLimits
             data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]

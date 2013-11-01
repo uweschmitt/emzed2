@@ -1,3 +1,4 @@
+import os
 
 class TestAllWithoutDisplay(object):
 
@@ -9,13 +10,9 @@ class TestAllWithoutDisplay(object):
 
     def __del__(self):
         print "RESET DISPLAY"
-        import os
         if self.old_display is not None:
             os.environ["DISPLAY"] = self.old_display
 
 # will be constructed before runnint tests
 # and desctructed when tests are finished !
 _test_all_without_display = TestAllWithoutDisplay()
-
-
-
