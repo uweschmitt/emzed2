@@ -185,6 +185,7 @@ class IsotopeMerger(object):
         self._add_cluster_id_column(table, features, new_column_name, fid_column)
         table = self._add_isotope_ranks_column(table, rank_column_name, new_column_name,
                 fid_column)
+        table.sortBy([new_column_name, rank_column_name])
         return table
 
     def _add_cluster_id_column(self, table, features, new_column_name, fid_column):
@@ -229,19 +230,5 @@ class IsotopeMerger(object):
 
 
 table = IsotopeMerger().process(table[:])
-emzed.gui.inspect(table)
-
-
-exit()
-
-
-# fzs = list(enumerate(features))
-# fzs.sort(key=lambda f: -len(f[1]))
-# for i, f in fzs[:5]:
-    # print "id=%5d" % i, "len=%2d" % len(f)
-
-
 emzed.io.storeTable(table, "isotope_clustered.table", True)
 emzed.gui.inspect(table)
-
-exit()
