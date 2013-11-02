@@ -113,6 +113,9 @@ class IsotopeMerger(object):
 
     def process(self, table, fid_column="feature_id"):
 
+        nfeat = len(set(table.getColumn(fid_column).values))
+        print "process table of length", len(table), "with", nfeat, "features"
+
         col_names = table.getColNames()
         assert fid_column in col_names, (fid_column, col_names)
         assert "id" in col_names, col_names
@@ -180,6 +183,7 @@ class IsotopeMerger(object):
         print len(features), "isotope clusters"
         return features
 
+    @profile
     def _add_new_columns(self, table, features, new_column_name, rank_column_name, fid_column):
 
         self._add_cluster_id_column(table, features, new_column_name, fid_column)
@@ -188,6 +192,7 @@ class IsotopeMerger(object):
         table.sortBy([new_column_name, rank_column_name])
         return table
 
+    @profile
     def _add_cluster_id_column(self, table, features, new_column_name, fid_column):
         feature_id_map = dict()
         for fid, feature in enumerate(features):
@@ -204,6 +209,7 @@ class IsotopeMerger(object):
         table.addColumn(new_column_name, table.id.apply(lambda i: feature_id_map.get(i)),
                         insertBefore=fid_column)
 
+    @profile
     def _add_isotope_ranks_column(self, table, rank_column_name, iso_cluster_column, fid_column):
         print "calculate isotope ranks"
         collected = []
@@ -230,5 +236,5 @@ class IsotopeMerger(object):
 
 
 table = IsotopeMerger().process(table[:])
-emzed.io.storeTable(table, "isotope_clustered.table", True)
-emzed.gui.inspect(table)
+#emzed.io.storeTable(table, "isotope_clustered.table", True)
+#emzed.gui.inspect(table)
