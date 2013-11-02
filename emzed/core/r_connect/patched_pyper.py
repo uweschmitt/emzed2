@@ -165,8 +165,9 @@ if sys.platform == 'cli':  # for IronPython
     def readLine(p, dump_stdout=False, **b):
         rv = (_mystr(p.StandardOutput.ReadLine()) + '\n')  # add newline since ReadLine removed it.
         if dump_stdout:
-            sys.stdout.write(rv)
-            sys.stdout.flush()
+            if rv[0] not in ">[":
+               sys.stdout.write(rv)
+               sys.stdout.flush()
         return rv
 
 else:
@@ -192,8 +193,9 @@ else:
     def readLine(p, dump_stdout=False, **b):
         rv = _mystr(p.stdout.readline())
         if dump_stdout:
-            sys.stdout.write(rv)
-            sys.stdout.flush()
+            if rv[0] not in ">[":
+               sys.stdout.write(rv)
+               sys.stdout.flush()
         return rv
 
 
