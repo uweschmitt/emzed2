@@ -36,13 +36,15 @@ class Feature(object):
         self.z = z
         self.min_rt = min(rts)
         self.max_rt = max(rts)
+        self.min_mz = min(mzs)
+        self.max_mz = max(mzs)
         self.len_ = len(self.rts)
 
     def __len__(self):
         return self.len_
 
     @profile
-    def match_for_same_adduct(self, other, mz_accuracy, rt_accuracy):
+    def match_for_same_adduct(self, other, mz_accuracy, rt_accuracy, max_mz_range):
         if self.z < 0 or other.z < 0 or self.z > 0 and other.z > 0 and self.z != other.z:
             return None
         if self.z == 0:
@@ -58,7 +60,7 @@ class Feature(object):
             mz_self = self.mzs[:, None]
             mz_other = other.mzs[None, :]
             n_approx = (mz_self - mz_other) * z
-            if np.any(n_approx > 13.0):
+            if np.any(np.abs(n_approx) > max_mz_range):
                 continue
             # determine n
             n = np.round(n_approx / delta_C)
@@ -78,6 +80,8 @@ class Feature(object):
         self.z = z
         self.min_rt = np.min(self.rts)
         self.max_rt = np.max(self.rts)
+        self.min_mz = np.min(self.mzs)
+        self.max_mz = np.max(self.mzs)
         self.len_ = len(self.rts)
         other.ids = other.rts = other.mzs = []
         other.z = -1
@@ -107,9 +111,10 @@ class ProgressCounter(object):
 
 class IsotopeMerger(object):
 
-    def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0):
+    def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0, max_mz_range=20):
         self.mz_accuracy = mz_accuracy
         self.rt_accuracy = rt_accuracy
+        self.max_mz_range = max_mz_range
 
     def process(self, table, fid_column="feature_id"):
 
@@ -172,11 +177,14 @@ class IsotopeMerger(object):
                         j = start_idx.get(next_len)
                     if j == n:
                         break
-                if f0.max_rt - f1.min_rt < self.rt_accuracy:
-                    if f1.max_rt - f0.min_rt <  self.rt_accuracy:
-                        z = f0.match_for_same_adduct(f1, self.mz_accuracy, self.rt_accuracy)
-                        if z is not None:
-                            f0.merge_feature(f1, z)
+                if f0.max_mz - f1.min_mz <= self.max_mz_range + 1:
+                    if f1.max_mz - f0.min_mz <= self.max_mz_range + 1:
+                        if f0.max_rt - f1.min_rt < self.rt_accuracy:
+                            if f1.max_rt - f0.min_rt < self.rt_accuracy:
+                                z = f0.match_for_same_adduct(f1, self.mz_accuracy,
+                                        self.rt_accuracy, self.max_mz_range)
+                                if z is not None:
+                                    f0.merge_feature(f1, z)
                 j += 1
         counter.done()
         features = [f for f in features if len(f)]
@@ -188,7 +196,7 @@ class IsotopeMerger(object):
 
         self._add_cluster_id_column(table, features, new_column_name, fid_column)
         table = self._add_isotope_ranks_column(table, rank_column_name, new_column_name,
-                fid_column)
+                                               fid_column)
         table.sortBy([new_column_name, rank_column_name])
         return table
 
@@ -198,6 +206,9 @@ class IsotopeMerger(object):
         for fid, feature in enumerate(features):
             for id_ in feature.ids:
                 feature_id_map[id_] = fid
+
+        import cPickle
+        cPickle.dump(feature_id_map, open("withoutfilter.bin", "wb"))
 
         c = Counter(feature_id_map.values())
         print
@@ -228,6 +239,7 @@ class IsotopeMerger(object):
                 z = zs.pop()
             t.replaceColumn("z", z)
             mz_main_peak = t.filter(t.area == t.area.max()).mz.uniqueValue()
+
             def rank_peak(mz):
                 return int(round((mz - mz_main_peak) / delta_C * z))
             t.addColumn(rank_column_name, t.mz.apply(rank_peak), insertBefore=fid_column)
@@ -236,5 +248,5 @@ class IsotopeMerger(object):
 
 
 table = IsotopeMerger().process(table[:])
-#emzed.io.storeTable(table, "isotope_clustered.table", True)
+# emzed.io.storeTable(table, "isotope_clustered.table", True)
 #emzed.gui.inspect(table)
