@@ -59,7 +59,7 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
         table.requireColumn("rt"), "need rt column for alignment"
 
     if destination is None:
-        import gui
+        from .. import gui
         destination = gui.askForDirectory()
         if destination is None:
             print "aborted"
