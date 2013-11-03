@@ -296,6 +296,21 @@ class BaseExpression(object):
         return BinaryExpression(self, element,\
                lambda a,b: b in re.findall("([A-Z][a-z]?)\d*", a),\
                "%s.containsElement(%s)", bool)
+               
+    def containsOnlyElements(self, elements):
+    	"""
+	``elements`` is either a list of strings where each item 
+	is a chemical symbol, or a string composed of such symbols.
+	"""
+        
+        def match(mf, elements):
+            if isinstance(elements, basestring):
+                elements = re.findall("([A-Z][a-z]?)", elements)
+            elements = set(elements)
+            elements_in_mf = set(re.findall("([A-Z][a-z]?)\d*", mf))
+            return elements_in_mf <= elements
+        return BinaryExpression(self, elements, match, "%s.containsOnlyElements(%s)", bool)
+        
 
     def isIn(self, li):
         """

@@ -748,6 +748,14 @@ class TestTable(unittest.TestCase):
         assert len(tn) == 3
         tn = t.filter(t.mf.containsElement("Pb"))
         assert len(tn) == 3
+        tn = t.filter(t.mf.containsOnlyElements("Pb"))
+        assert len(tn) == 1
+        tn = t.filter(t.mf.containsOnlyElements("PPb"))
+        assert len(tn) == 4
+        tn = t.filter(t.mf.containsOnlyElements(["Pb"]))
+        assert len(tn) == 1
+        tn = t.filter(t.mf.containsOnlyElements(["P", "Pb"]))
+        assert len(tn) == 4
 
 
     def testIfThenElse(self):
