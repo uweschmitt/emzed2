@@ -80,6 +80,7 @@ class TableExplorer(QDialog):
         self.setupPlottingWidgets()
         self.chooseSpectrum = QComboBox()
         self.setupIntegrationWidgets()
+        self.setupToolWidgets()
         if self.offerAbortOption:
             self.setupAcceptButtons()
 
@@ -161,6 +162,11 @@ class TableExplorer(QDialog):
         self.reintegrateButton = QPushButton()
         self.reintegrateButton.setText("Integrate")
 
+    def setupToolWidgets(self):
+        self.chooseGroubLabel = QLabel("Expand selection by:")
+        self.chooseGroupColumn = QComboBox()
+        self.chooseGroupColumn.setMinimumWidth(300)
+
     def setupAcceptButtons(self):
         self.okButton = QPushButton("Ok")
         self.abortButton = QPushButton("Abort")
@@ -176,6 +182,7 @@ class TableExplorer(QDialog):
 
         vsplitter.addWidget(self.menubar)
         vsplitter.addWidget(self.layoutWidgetsAboveTable())
+        vsplitter.addWidget(self.layoutToolWidgets())
         vsplitter.addWidget(self.chooseSpectrum)
 
         for view in self.tableViews:
@@ -216,6 +223,17 @@ class TableExplorer(QDialog):
         hsplitter.addWidget(self.integrationFrame)
         hsplitter.addWidget(self.mz_plotter.widget)
         return hsplitter
+
+    def layoutToolWidgets(self):
+        frame = QFrame()
+        layout = QHBoxLayout()
+        # layout.setSpacing(10)
+        # layout.setMargin(5)
+        layout.addWidget(self.chooseGroubLabel, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.chooseGroupColumn, stretch=1, alignment=Qt.AlignLeft)
+        layout.addStretch(10)
+        frame.setLayout(layout)
+        return frame
 
     def setupModelDependendLook(self):
         hasFeatures = self.model.hasFeatures()
@@ -297,6 +315,15 @@ class TableExplorer(QDialog):
         self.menubar.connect(self.redoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.redoLastAction))
 
+        self.connect(self.chooseGroupColumn, SIGNAL("activated(int)"), self.group_column_selected)
+
+    def group_column_selected(self, idx):
+        multi_select_available = (idx == 0)  # entry labeled "- manual multi select -"
+        if multi_select_available:
+            self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        else:
+            self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
     def updateMenubar(self):
         undoInfo = self.model.infoLastAction()
         redoInfo = self.model.infoRedoAction()
@@ -333,6 +360,9 @@ class TableExplorer(QDialog):
 
         if len(self.choosePostfix) == 1:
             self.choosePostfix.setVisible(False)
+
+        self.chooseGroupColumn.clear()
+        self.chooseGroupColumn.addItems(["- manual multi select -"] + mod.table.getColNames())
 
         self.connectModelSignals()
         self.updateMenubar()
@@ -400,14 +430,32 @@ class TableExplorer(QDialog):
         for idx in self.currentRowIndices:
             self.model.integrate(postfix, idx, method, rtmin, rtmax)
 
-
     @protect_signal_handler
     def rowClicked(self, rowIdx):
+
+        group_by_idx = self.chooseGroupColumn.currentIndex()
+        if group_by_idx == 0:
+            selected_rows = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+        else:
+            table = self.model.table
+            col_name = table.getColNames()[group_by_idx - 1]
+            selected_value = table.getValue(table.rows[rowIdx], col_name)
+            selected_rows = [i for i in range(len(table))
+                             if table.getValue(table.rows[i], col_name) == selected_value]
+            selected_rows = selected_rows[:40]  # avoid to many rows
+
+            mode_before = self.tableView.selectionMode()
+            scrollbar_before = self.tableView.verticalScrollBar().value()
+
+            self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
+            for i in selected_rows:
+                if i != rowIdx:      # avoid "double click !" wich de-selects current row
+                    self.tableView.selectRow(i)
+            self.tableView.setSelectionMode(mode_before)
+            self.tableView.verticalScrollBar().setValue(scrollbar_before)
         if not self.hasFeatures:
             return
-        selected_rows = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
-        #print selected_rows
-        #rowIdx = selected_rows[0]
+
         self.currentRowIndices = selected_rows
         self.rt_plotter.setEnabled(True)
         self.updatePlots(reset=True)
@@ -425,10 +473,9 @@ class TableExplorer(QDialog):
             postfixes.extend(pf)
             spectra.extend(s)
 
-
         # get current spectra
-        #jjrowidx = self.currentRowIdx
-        #postfixes, spectra = self.model.getLevelNSpectra(rowidx, minLevel=2)
+        # jjrowidx = self.currentRowIdx
+        # postfixes, spectra = self.model.getLevelNSpectra(rowidx, minLevel=2)
         self.currentLevelNSpecs = []
 
         if not len(spectra):
