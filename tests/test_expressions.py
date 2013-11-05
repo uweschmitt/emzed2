@@ -57,3 +57,17 @@ def test_efficient_comparators():
     assert gt(a,3.5)  == 4
     assert gt(a,4.0)  == 5
     assert gt(a,5.0)  == 5
+
+
+def test_load_binary():
+    import os
+    import emzed
+    from emzed.core.data_types import col_types
+    here = os.path.dirname(os.path.abspath(__file__))
+    png_path = os.path.join(here, "data", "test.png")
+    t = emzed.utils.toTable("path", [png_path])
+    value, = t.path.loadFileFromPath().values
+    assert isinstance(value, col_types.Blob)
+    assert value.type_ == "PNG"
+    assert len(value.data) > 0
+

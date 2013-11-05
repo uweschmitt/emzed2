@@ -31,6 +31,7 @@ formatSeconds = fms
 formatHexId = "'%x' % id(o)"
 
 
+
 def guessFormatFor(name, type_):
     if type_ in (float, int):
         if name.startswith("m"):
