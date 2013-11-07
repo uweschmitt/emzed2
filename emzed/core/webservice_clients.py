@@ -1,5 +1,4 @@
-import pdb
-#encoding:latin-1
+# encoding:latin-1
 import requests
 import urllib2
 
@@ -12,14 +11,14 @@ import config
 
 class MetlinMatcher(object):
 
-    ws_col_names = [ "formula", "mass", "name", "molid"]
-    ws_col_types = [ str, float, str, int]
-    ws_col_formats = [ "%s", "%.5f", "%s", "%d" ]
+    ws_col_names = ["formula", "mass", "name", "molid"]
+    ws_col_types = [str, float, str, int]
+    ws_col_formats = ["%s", "%.5f", "%s", "%d"]
 
     url = "http://metlin.scripps.edu/REST/search/index.php"
     info_url = "http://metlin.scripps.edu/metabo_info.php?molid=%d"
 
-    batch_size = 97 # should be 500 as metlin promises, but this is false
+    batch_size = 97  # should be 500 as metlin promises, but this is false
 
     # the REST webserive of METLIN returns a result set which does not explain
     # which combination of theoretical mass and adduct results in a match,
@@ -33,19 +32,18 @@ class MetlinMatcher(object):
 
         token = config.global_config.get("metlin_token")
         if not token:
-            raise Exception("metlin token not configured. call emzed.core.config.global_config.edit()")
+            raise Exception("metlin token not configured. call emzed.config.edit()")
 
         params = OrderedDict()
-        params["token"] = token # "DqeN7qBNEAzVNm9n"
+        params["token"] = token
         params["mass[]"] = masses
         params["adduct[]"] = [adduct]
         params["tolunits"] = "ppm"
         params["tolerance"] = ppm
 
-        r = requests.get(MetlinMatcher.url, params=params)
+        r = requests.get(MetlinMatcher.url, params=params, timeout=5.0)
         if r.status_code != 200:
-            raise Exception("matlin query %s failed: %s" %
-                                              (urllib2.unquote(r.url), r.text))
+            raise Exception("matlin query %s failed: %s" % (urllib2.unquote(r.url), r.text))
 
         try:
             j = r.json()
@@ -64,8 +62,8 @@ class MetlinMatcher(object):
                 ji = ji.values()
             for jii in ji:
                 if jii:
-                    rows.append([t(jii[n])\
-                                  for t, n in zip(ws_col_types, ws_col_names)])
+                    rows.append([t(jii[n])
+                                 for t, n in zip(ws_col_types, ws_col_names)])
             if rows:
                 ti = Table(ws_col_names, ws_col_types, ws_col_formats, rows[:])
                 ti.addColumn("m_z", m_z, insertBefore=0)
@@ -86,7 +84,6 @@ class MetlinMatcher(object):
         result_table.append(all_tables[1:])
 
         return result_table
-
 
 
 if 0:

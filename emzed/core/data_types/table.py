@@ -31,14 +31,13 @@ formatSeconds = fms
 formatHexId = "'%x' % id(o)"
 
 
-
 def guessFormatFor(name, type_):
     if type_ in (float, int):
         if name.startswith("m"):
             return "%.5f"
         if name.startswith("rt"):
             return fms
-    return standardFormats.get(type_)
+    return standardFormats.get(type_, "%s")
 
 
 def computekey(o):
@@ -66,7 +65,7 @@ def getPostfix(colName):
 
 def convert_list_to_overall_type(li):
     ct = common_type_for(li)
-    if ct is not object:
+    if ct in (int, float, long, bool, str):
         return [None if x is None else ct(x) for x in li]
     return li
 
@@ -190,7 +189,7 @@ class Table(object):
 
         is_numpy_type = lambda t: np.number in t.__mro__
 
-        if any(is_numpy_type(t) for t in colTypes):
+        if any(is_numpy_type(t) for t in colTypes if t is not None):
             raise Exception("using numpy floats instead of python floats is not a good idea. "
                             "Table operations may crash")
 
@@ -218,6 +217,10 @@ class Table(object):
                 raise Exception("colName '%s' not allowed" % name)
 
         self.resetInternals()
+
+    def __str__(self):
+        n = len(self)
+        return "<Table %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
 
     def getColNames(self):
         """ returns a copied list of column names, one can operator on this
@@ -271,13 +274,19 @@ class Table(object):
         pprint.pprint(self.meta)
         print "   rows=", len(self)
         print
-        for i, p in enumerate(zip(self._colNames, self._colTypes,
-                              self._colFormats)):
-            vals = getattr(self, p[0]).values
+        for i, (name, type_, format_) in enumerate(zip(self._colNames,
+                                                       self._colTypes,
+                                                       self._colFormats)):
+            vals = getattr(self, name).values
             nones = sum(1 for v in vals if v is None)
             numvals = len(set(id(v) for v in vals))
-            txt = "[%d diff vals, %d Nones]" % (numvals, nones)
-            print "   #%-2d %-25s name=%-8r %-15r fmt=%r" % ((i, txt) + p)
+            txt = "%3d diff vals, %3d Nones" % (numvals, nones)
+            match = re.match("<(type|class) '(.+)'>", str(type_))
+            if match is not None:
+                type_str = match.group(2).split(".")[-1]
+            else:
+                type_str = str(type_)
+            print "   column %2d:  %-25s in column %-15s of type %-10s with format %r" % (i, txt, name, type_str, format_)
         print
 
     def addRow(self, row, doResetInternals=True):
@@ -1793,10 +1802,10 @@ class Table(object):
         if formats is not None:
             _formats.update(formats)
 
-        # first resolfe types by name
+        # first resolve types by name
         col_formats = [_formats.get(n) for n in col_names]
         # then by type
-        col_formats = [_formats.get(t) if f is None else f
+        col_formats = [_formats.get(t, "%s") if f is None else f
                        for (f, t) in zip(col_formats, col_types)]
 
         table = Table(col_names, col_types, col_formats, rows, title, meta)

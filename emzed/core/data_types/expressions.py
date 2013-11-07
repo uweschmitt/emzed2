@@ -1,3 +1,4 @@
+import pdb
 import numpy as np
 import re
 import col_types
@@ -84,18 +85,36 @@ def is_numpy_number(v):
 def common_type_for(li):
 
     types = set(type(x) for x in li if x is not None)
-    if any(is_numpy_int_type(t) for t in types):
-        return int
-    if any(is_numpy_float_type(t) for t in types):
-        return float
-    if any(is_numpy_bool_type(t) for t in types):
-        return bool
 
-    ordered_types = [str, float, long, int, bool]
-    for type_ in ordered_types:
-        if any(t == type_ for t in types):
-            return type_
-    return object
+    reduced = set()
+
+    for t in types:
+        if t is None:
+            reduced.add(None)
+        elif is_numpy_int_type(t) or t in (int, long):
+            reduced.add(int)
+        elif is_numpy_float_type(t) or t is float:
+            reduced.add(float)
+        elif is_numpy_bool_type(t) or t is bool:
+            reduced.add(bool)
+        elif t is str:
+            reduced.add(str)
+        else:
+            reduced.add(t)
+
+    if None in reduced:
+        if len(reduced) == 1:
+            return None
+        reduced.remove(None)
+
+    non_std = [t for t in reduced if t not in (bool, int, float, str, long)]
+    if len(non_std) > 1:
+        return object
+    elif len(non_std) == 1:
+        return non_std[0]
+    for t in (str, float, long, int, bool):
+        if t in reduced:
+            return t
 
 
 def saveeval(expr, ctx):
@@ -127,7 +146,7 @@ def cleanup(type_):
                 return int
             if np.floating in mro:
                 return float
-    return object
+    return type_
 
 
 def common_type(t1, t2):
@@ -1000,7 +1019,7 @@ class FunctionExpression(BaseExpression):
         # the second expressions is true if values contains no Nones,
         # so we can apply ufucns/vecorized funs
         if len(values) == 0:
-            return [], None, self.restype or object
+            return [], None, self.restype or None
         if type(values) == np.ndarray and not none_in_array(values):
             if type(self.efun) == np.ufunc:
                 values = self.efun(values)

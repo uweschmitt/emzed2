@@ -13,6 +13,8 @@ from table_explorer_model import *
 
 from helpers import protect_signal_handler
 
+from inspectors import has_inspector, inspector
+
 
 def getColors(i, light=False):
     colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
@@ -291,6 +293,7 @@ class TableExplorer(QDialog):
             handler = lambda idx, model=model: self.handleClick(idx, model)
             handler = protect_signal_handler(handler)
             self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
+            self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
 
         self.connect(self.reintegrateButton, SIGNAL("clicked()"), self.doIntegrate)
         self.connect(self.chooseSpectrum, SIGNAL("activated(int)"), self.spectrumChosen)
@@ -298,6 +301,13 @@ class TableExplorer(QDialog):
         if self.offerAbortOption:
             self.connect(self.okButton, SIGNAL("clicked()"), self.ok)
             self.connect(self.abortButton, SIGNAL("clicked()"), self.abort)
+
+    @protect_signal_handler
+    def handle_double_click(self, idx):
+        value = self.model.cell_value(idx)
+        insp = inspector(value)
+        if insp is not None:
+            insp()
 
     def disconnectModelSignals(self):
         self.disconnect(self.model, SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
@@ -353,6 +363,12 @@ class TableExplorer(QDialog):
         self.setupModelDependendLook()
         if self.isIntegrated:
             self.model.setNonEditable("method", ["area", "rmse", "method", "params"])
+
+        for col_name in self.model.table.getColNames():
+            t = self.model.table.getColType(col_name)
+            if t is object or t is None or has_inspector(t):
+                self.model.addNonEditable(col_name)
+
         self.choosePostfix.clear()
         mod = self.model
         for p in mod.table.supportedPostfixes(mod.integrationColNames()):
@@ -526,41 +542,6 @@ class TableExplorer(QDialog):
         configs = configsForEics(curves)
         curves += smoothed_curves
         configs += configsForSmootheds(smoothed_curves)
-
-        self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
-
-        # allrts are sorted !
-        w = rtmax - rtmin
-        if w == 0:
-            w = 30.0  # seconds
-        self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-        self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
-        self.rt_plotter.replot()
-        if not reset:
-            self.rt_plotter.setXAxisLimits(xmin, xmax)
-            self.rt_plotter.setYAxisLimits(ymin, ymax)
-            self.rt_plotter.updateAxes()
-
-        reset = reset and mzmin is not None and mzmax is not None
-        limits = (mzmin, mzmax) if reset else None
-        self.plotMz(resetLimits=limits)
-
-        return   # ------------------------------------------------------------------------
-
-        rowIdx = self.currentRowIdx
-        eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.getEics(rowIdx)
-
-        curves = eics
-        configs = configsForEics(eics)
-        if self.isIntegrated:
-            smootheds = self.model.getSmoothedEics(rowIdx, allrts)
-            if smootheds is not None:
-                curves += smootheds
-                configs += configsForSmootheds(smootheds)
-
-        if not reset:
-            rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-            xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
 
         self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
 

@@ -29,7 +29,7 @@ def testEmptyApply():
     t = emzed.utils.toTable("a", [])
     t.addColumn("b", t.a.apply(len))
     assert len(t) == 0
-    assert t.getColTypes() == [object, object], t.getColTypes()
+    assert t.getColTypes() == [None, None], t.getColTypes()
 
 
 def testRound():

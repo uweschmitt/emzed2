@@ -1,6 +1,7 @@
-#encoding: utf-8
+# encoding: utf-8
 
-def integrate(ftable, integratorid="std", msLevel=None, showProgress = True):
+
+def integrate(ftable, integratorid="std", msLevel=None, showProgress=True):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -31,53 +32,54 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress = True):
     for postfix in supportedPostfixes:
         areas = []
         rmses = []
-        paramss =[]
+        paramss = []
         for i, row in enumerate(ftable.rows):
             if showProgress:
                 # integer div here !
-                cent = ((i+1)*20)/len(ftable)/len(supportedPostfixes)
+                cent = ((i + 1) * 20) / len(ftable) / len(supportedPostfixes)
                 if cent != lastcent:
-                    print cent*5,
+                    print cent * 5,
                     sys.stdout.flush()
                     lastcent = cent
-            rtmin = ftable.getValue(row, "rtmin"+postfix)
-            rtmax = ftable.getValue(row, "rtmax"+postfix)
-            mzmin = ftable.getValue(row, "mzmin"+postfix)
-            mzmax = ftable.getValue(row, "mzmax"+postfix)
-            peakmap = ftable.getValue(row, "peakmap"+postfix)
+            rtmin = ftable.getValue(row, "rtmin" + postfix)
+            rtmax = ftable.getValue(row, "rtmax" + postfix)
+            mzmin = ftable.getValue(row, "mzmin" + postfix)
+            mzmax = ftable.getValue(row, "mzmax" + postfix)
+            peakmap = ftable.getValue(row, "peakmap" + postfix)
             if rtmin is None or rtmax is None or mzmin is None or mzmax is None\
-                     or peakmap is None:
-                area, rmse, params = (None, )* 3
+                    or peakmap is None:
+                area, rmse, params = (None, ) * 3
             else:
                 # this is a hack ! ms level n handling should first be
                 # improved and gerenalized in MSTypes.py
                 integrator.setPeakMap(peakmap)
                 result = integrator.integrate(mzmin, mzmax, rtmin, rtmax,
-                                             msLevel)
+                                              msLevel)
                 # take existing values which are not integration realated:
                 area, rmse, params = result["area"], result["rmse"],\
-                                     result["params"]
+                    result["params"]
 
             areas.append(area)
             rmses.append(rmse)
             paramss.append(params)
 
-        resultTable._updateColumnWithoutNameCheck("method"+postfix,
-                integratorid, str, "%s", insertBefore="peakmap"+postfix)
+        resultTable._updateColumnWithoutNameCheck("method" + postfix,
+                                                  integratorid, str, "%s",
+                                                  insertBefore="peakmap" + postfix)
 
-        resultTable._updateColumnWithoutNameCheck("area"+postfix, areas, float,
-                "%.2e", insertBefore="peakmap"+postfix)
+        resultTable._updateColumnWithoutNameCheck("area" + postfix, areas, float,
+                                                  "%.2e", insertBefore="peakmap" + postfix)
 
-        resultTable._updateColumnWithoutNameCheck("rmse"+postfix, rmses, float,
-                "%.2e", insertBefore="peakmap"+postfix)
+        resultTable._updateColumnWithoutNameCheck("rmse" + postfix, rmses, float,
+                                                  "%.2e", insertBefore="peakmap" + postfix)
 
-        resultTable._updateColumnWithoutNameCheck("params"+postfix, paramss,
-                object, None, insertBefore="peakmap"+postfix)
+        resultTable._updateColumnWithoutNameCheck("params" + postfix, paramss,
+                                                  object, None, insertBefore="peakmap" + postfix)
 
-    resultTable.meta["integrated"]=True
-    resultTable.title = "integrated: "+ (resultTable.title or "")
+    resultTable.meta["integrated"] = True
+    resultTable.title = "integrated: " + (resultTable.title or "")
     needed = time.time() - started
-    minutes = int(needed)/60
+    minutes = int(needed) / 60
     seconds = needed - minutes * 60
     print
     if minutes:

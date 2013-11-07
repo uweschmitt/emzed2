@@ -5,7 +5,13 @@ from file_dialogs import (askForDirectory, askForSave, askForSingleFile, askForM
 from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobButton,
                             WorkflowFrontend)
 
-from ..core.explorers import inspect, inspectPeakMap, inspectChromatograms
+from ..core.explorers.inspectors import inspect #, inspectPeakMap, inspectChromatograms
+from ..core.explorers import inspectChromatograms
+
+
+def inspectPeakMap(obj):
+    print "DEPRECIATED ! PLEASE USE inspect INSTEAD !"
+    inspect(obj)
 
 try:
     del inspectors

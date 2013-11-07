@@ -91,6 +91,10 @@ class Spectrum(object):
                   mspec.getMSLevel(), pol, pcs)
         return res
 
+    def __str__(self):
+        n = len(self)
+        return "<Spectrum %#x with %d %s>" % (id(self), n, "peak" if n == 1 else "peaks")
+
     def __len__(self):
         """number of peaks in spectrum"""
         return self.peaks.shape[0]
@@ -408,6 +412,10 @@ class PeakMap(object):
     def __len__(self):
         """returns number of all spectra (all ms levels) in peakmap"""
         return len(self.spectra)
+
+    def __str__(self):
+        n = len(self)
+        return "<PeakMap %#x with %d %s>" % (id(self), n, "spectrum" if n == 1 else "spectra")
 
     def toMSExperiment(self):
         """converts peakmap to pyopenms.MSExperiment"""
