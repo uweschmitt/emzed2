@@ -157,8 +157,7 @@ class Table(object):
                                       rows, title, meta)
 
     @classmethod
-    def _create(clz, colNames, colTypes, colFormats,
-                rows=None, title=None, meta=None):
+    def _create(clz, colNames, colTypes, colFormats, rows=None, title=None, meta=None):
         inst = clz.__new__(Table)
         inst._setup_without_namecheck(colNames, colTypes, colFormats,
                                       rows, title, meta)
@@ -1689,6 +1688,21 @@ class Table(object):
         result = extended_tables[0]
         result.append(extended_tables[1:])
         return result
+
+    def collapse(self, *col_names):
+        assert all(col_name in self._colNames for col_name in col_names)
+
+        master_names = list(col_names) + ["collapsed"]
+        master_types = [self.getColType(n) for n in col_names] + [Table]
+        master_formats = [self.getColFormat(n) for n in col_names] + ["%s"]
+
+        rows = []
+        for subt in self.splitBy(*col_names):
+            row = [subt.getValue(subt.rows[0], n) for n in col_names] + [subt]
+            rows.append(row)
+
+        return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
+
 
     def compressPeakMaps(self):
         """

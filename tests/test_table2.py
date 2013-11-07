@@ -525,3 +525,30 @@ def test_multi_sort():
     assert t.z.values == [3, 2, 1]
 
 
+def test_collapse():
+    t = emzed.utils.toTable("id", [1, 1, 2])
+    t.addColumn("a", [1, 2, 3])
+    t.addColumn("b", [3, 4, 5])
+    t2 = t.collapse("id")
+    assert len(t2) == 2
+    assert t2.getColNames() == ["id", "collapsed"]
+    assert t2.getColTypes() == [int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 2
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+
+    t2 = t.collapse("id", "a")
+    assert len(t2) == 3
+    assert t2.getColNames() == ["id", "a", "collapsed"]
+    assert t2.getColTypes() == [int, int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 1
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+    assert subs[2].getColNames() == ["id", "a", "b"]
+    assert len(subs[2]) == 1
