@@ -1283,7 +1283,7 @@ class Table(object):
 
         return sorted(set(supported))
 
-    def join(self, t, expr=True, debug=False):
+    def join(self, t, expr=True, debug=False, title=None):
         """joins two tables.
 
            So if you have two table ``t1`` and ``t2`` as
@@ -1330,7 +1330,7 @@ class Table(object):
         if not isinstance(expr, BaseExpression):
             expr = Value(expr)
 
-        table = self._buildJoinTable(t)
+        table = self._buildJoinTable(t, title)
 
         if debug:
             print "# %s.join(%s, %s)" % (self._name, t._name, expr)
@@ -1353,7 +1353,7 @@ class Table(object):
         table.rows = rows
         return table
 
-    def leftJoin(self, t, expr=True, debug=False):
+    def leftJoin(self, t, expr=True, debug=False, title=None):
         """performs an *left join* also known as *outer join* of two tables.
 
            It works similar to :py:meth:`~.join`
@@ -1385,7 +1385,7 @@ class Table(object):
         if not isinstance(expr, BaseExpression):
             expr = Value(expr)
 
-        table = self._buildJoinTable(t)
+        table = self._buildJoinTable(t, title)
 
         if debug:
             print "# %s.leftJoin(%s, %s)" % (self._name, t._name, expr)
@@ -1448,7 +1448,7 @@ class Table(object):
             newColNames.append(newName)
         return newColNames
 
-    def _buildJoinTable(self, t):
+    def _buildJoinTable(self, t, title):
 
         incrementBy = self.maxPostfix() - t.minPostfix() + 1
 
@@ -1456,7 +1456,8 @@ class Table(object):
 
         colFormats = self._colFormats + t._colFormats
         colTypes = self._colTypes + t._colTypes
-        title = "%s vs %s" % (self.title, t.title)
+        if title is None:
+            title = "%s vs %s" % (self.title, t.title)
         meta = {self: self.meta.copy(), t: t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
