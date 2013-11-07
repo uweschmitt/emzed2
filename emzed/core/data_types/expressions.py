@@ -414,10 +414,13 @@ class BaseExpression(object):
         return FunctionExpression(fun, str(fun), self, None)
 
     def loadFileFromPath(self, type_=None):
+        cache = dict()
         def read_from(p):
-            with open(p, "rb") as fp:
-                data = fp.read()
-            return col_types.Blob(data, type_)
+            if p not in cache:
+                with open(p, "rb") as fp:
+                    data = fp.read()
+                cache[p] = col_types.Blob(data, type_)
+            return cache[p]
 
         return FunctionExpression(read_from, "loadFileFromPath", self, col_types.Blob)
 
