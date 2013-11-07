@@ -1698,7 +1698,9 @@ class Table(object):
 
         rows = []
         for subt in self.splitBy(*col_names):
-            row = [subt.getValue(subt.rows[0], n) for n in col_names] + [subt]
+            key_values = [subt.getValue(subt.rows[0], n) for n in col_names]
+            subt.title = ", ".join(["%s=%s" % (cn, kv) for (cn, kv) in zip(col_names, key_values)])
+            row = key_values + [subt]
             rows.append(row)
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
