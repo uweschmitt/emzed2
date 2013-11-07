@@ -1,4 +1,16 @@
-#encoding: utf-8
+# encoding: utf-8
+
+from utils import _prepare_path
+
+
+def storeBlob(data, path=None):
+    assert isinstance(data, basestring)
+    path = _prepare_path(path, extensions=None)
+    if path is None:
+        return None
+    with open(path, "wb") as fp:
+        fp.write(data)
+
 
 def storePeakMap(pm, path=None):
     """ Stores peakmap *pm* in mzXML, mzML or mzData format.
@@ -11,16 +23,12 @@ def storePeakMap(pm, path=None):
     import sys
     from pyopenms import FileHandler
 
-    if isinstance(path, unicode):
-        path = path.encode(sys.getfilesystemencoding())
-    elif path is None:
-        from .. import gui
-        path = gui.askForSave(extensions="mzML mzXML mzData".split())
-        if path is None:
-            return None
+    path = _prepare_path(path, extensions=["mzML", "mzXML", "mzData"])
+    if path is None:
+        return None
 
     if sys.platform == "win32":
-        path = path.replace("/","\\") # needed for network shares
+        path = path.replace("/", "\\")  # needed for network shares
 
     experiment = pm.toMSExperiment()
     fh = FileHandler()
@@ -36,18 +44,12 @@ def storeTable(tab, path=None, forceOverwrite=False):
     """
 
     # local import in order to keep namespaces clean
-    import sys
+
+    path = _prepare_path(path, extensions=["table"])
+    if path is None:
+        return None
 
     tab.compressPeakMaps()
-
-    if isinstance(path, unicode):
-        path = path.encode(sys.getfilesystemencoding())
-    elif path is None:
-        startAt = tab.meta.get("loaded_from", "")
-        from .. import gui
-        path = gui.askForSave(extensions=["table"], startAt=startAt)
-        if path is None:
-            return None
     tab.store(path, forceOverwrite)
 
 
@@ -58,13 +60,7 @@ def storeCSV(tab, path=None):
     """
 
     # local import in order to keep namespaces clean
-    import sys
-
-    if isinstance(path, unicode):
-        path = path.encode(sys.getfilesystemencoding())
-    elif path is None:
-        from .. import gui
-        path = gui.askForSave(extensions=["csv"])
-        if path is None:
-            return None
+    path = _prepare_path(path, extensions=["table"])
+    if path is None:
+        return None
     tab.storeCSV(path)
