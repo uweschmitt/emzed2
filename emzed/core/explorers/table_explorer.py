@@ -42,8 +42,8 @@ def configsForSpectra(n):
 
 class TableExplorer(QDialog):
 
-    def __init__(self, tables, offerAbortOption):
-        QDialog.__init__(self)
+    def __init__(self, tables, offerAbortOption, parent=None):
+        QDialog.__init__(self, parent)
 
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -305,7 +305,7 @@ class TableExplorer(QDialog):
     @protect_signal_handler
     def handle_double_click(self, idx):
         value = self.model.cell_value(idx)
-        insp = inspector(value)
+        insp = inspector(value, modal=False, parent=self)
         if insp is not None:
             insp()
 
@@ -600,7 +600,7 @@ class TableExplorer(QDialog):
         self.mz_plotter.replot()
 
 
-def inspect(what, offerAbortOption=False):
+def inspect(what, offerAbortOption=False, modal=True, parent=None):
     """
     allows the inspection and editing of simple or multiple
     tables.
@@ -609,9 +609,12 @@ def inspect(what, offerAbortOption=False):
     if isinstance(what, Table):
         what = [what]
     app = guidata.qapplication()  # singleton !
-    explorer = TableExplorer(what, offerAbortOption)
-    explorer.raise_()
-    explorer.exec_()
+    explorer = TableExplorer(what, offerAbortOption, parent=parent)
+    if modal:
+        explorer.raise_()
+        explorer.exec_()
+    else:
+        explorer.show()
     # partial cleanup
     del explorer.models
     if offerAbortOption:

@@ -4,8 +4,8 @@ from PyQt4.QtGui import *
 
 class ImageDialog(QDialog):
 
-    def __init__(self, binary_data):
-        super(ImageDialog, self).__init__()
+    def __init__(self, binary_data, parent=None):
+        super(ImageDialog, self).__init__(parent)
 
         self.setWindowFlags(Qt.Window)
 

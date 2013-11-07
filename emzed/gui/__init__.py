@@ -9,9 +9,9 @@ from ..core.explorers.inspectors import inspect #, inspectPeakMap, inspectChroma
 from ..core.explorers import inspectChromatograms
 
 
-def inspectPeakMap(obj):
+def inspectPeakMap(*a, **kw):
     print "DEPRECIATED ! PLEASE USE inspect INSTEAD !"
-    inspect(obj)
+    inspect(*a, **kw)
 
 try:
     del inspectors

@@ -1012,8 +1012,8 @@ class ChromatogramPlotter(object):
 
 class PeakMapExplorer(QDialog):
 
-    def __init__(self, ok_rows_container=[]):
-        QDialog.__init__(self)
+    def __init__(self, ok_rows_container=[], parent=None):
+        QDialog.__init__(self, parent)
         self.setWindowFlags(Qt.Window)
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -1696,7 +1696,7 @@ class PeakMapExplorer(QDialog):
             self.rtmin, self.rtmax, self.mzmin, self.mzmax, add_to_history=True)
 
 
-def inspectPeakMap(peakmap, peakmap2=None, table=None):
+def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None):
     """
     allows the visual inspection of a peakmap
     """
@@ -1706,11 +1706,15 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None):
 
     app = guidata.qapplication()  # singleton !
     ok_rows = []
-    win = PeakMapExplorer(ok_rows)
+    win = PeakMapExplorer(ok_rows, parent=parent)
     win.setup(peakmap, peakmap2, table)
-    win.raise_()
-    win.exec_()
-    #app.deleteLater()
+    if modal:
+        win.raise_()
+        win.exec_()
+        return ok_rows
+    else:
+        win.show()
+
     return ok_rows
 
 if __name__ == "__main__":
