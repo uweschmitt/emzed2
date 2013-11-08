@@ -2,6 +2,7 @@
 from emzed.core.data_types import Table
 import emzed.utils
 import emzed.mass
+import numpy as np
 
 
 def testBinary():
@@ -92,7 +93,6 @@ def testApply():
 
 
 def testNumpyTypeCoercion():
-    import numpy as np
     t = emzed.utils.toTable("a", [np.int32(1)])
     t.info()
     assert t.getColTypes() == [int], t.getColTypes()
@@ -122,11 +122,10 @@ def testNumpyTypeCoercion():
 
 
 def testApplyUfun():
-    import numpy
     t = emzed.utils.toTable("a", [None, 2.0, 3])
 
-    print numpy.log
-    t.addColumn("log", t.a.apply(numpy.log))
+    print np.log
+    t.addColumn("log", t.a.apply(np.log))
     assert t.getColTypes() == [float, float], t.getColTypes()
 
 
@@ -595,3 +594,18 @@ def test_grouped_aggregate_expressions():
     assert t.grouped_min.values == []
     t.print_()
 
+
+def test_own_aggregate_functions():
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.aggregate(lambda v: min(v)).group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.aggregate(np.min).group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()

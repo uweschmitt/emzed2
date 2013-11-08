@@ -416,7 +416,11 @@ class BaseExpression(object):
         return FunctionExpression(fun, str(fun), self, None)
 
     def loadFileFromPath(self, type_=None):
+        """
+        inserts Blob column by reading files from paths listed in given column.
+        """
         cache = dict()
+
         def read_from(p):
             if p not in cache:
                 with open(p, "rb") as fp:
@@ -425,6 +429,12 @@ class BaseExpression(object):
             return cache[p]
 
         return FunctionExpression(read_from, "loadFileFromPath", self, col_types.Blob)
+
+    def aggregate(self, efun, res_type=None, ignore_none=True, default_empty=None):
+        """
+        creates aggregate expression for aggregation function *efun*
+        """
+        return AggregateExpression(self, efun, "aggregate", res_type, ignore_none, default_empty)
 
     @property
     def min(self):
@@ -788,11 +798,11 @@ class EqExpression(CompExpression):
 
 class BinaryExpression(BaseExpression):
 
-    def __init__(self, left, right, efun, symbol, restype):
+    def __init__(self, left, right, efun, symbol, res_type):
         super(BinaryExpression, self).__init__(left, right)
         self.efun = efun
         self.symbol = symbol
-        self.restype = restype
+        self.res_type = res_type
 
     def _eval(self, ctx=None):
         lvals, idxl, tl = saveeval(self.left, ctx)
@@ -801,7 +811,7 @@ class BinaryExpression(BaseExpression):
         ll = len(lvals)
         lr = len(rvals)
 
-        ct = self.restype or common_type(tl, tr)
+        ct = self.res_type or common_type(tl, tr)
 
         if ll == 0 and lr == 0:
             return container(ct)([]), None, ct
@@ -890,13 +900,13 @@ class GroupedAggregateExpression(BaseExpression):
 
 class AggregateExpression(BaseExpression):
 
-    def __init__(self, left, efun, funname, restype, ignore_none=True, default_empty=None):
+    def __init__(self, left, efun, funname, res_type=None, ignore_none=True, default_empty=None):
         if not isinstance(left, BaseExpression):
             left = Value(left)
         self.left = left
         self.efun = efun
         self.funname = funname
-        self.restype = restype
+        self.res_type = res_type
         self.ignore_none = ignore_none
         self.default_empty = default_empty
 
@@ -923,9 +933,10 @@ class AggregateExpression(BaseExpression):
         if len(vals):
             agg_value = self.efun(vals)
             result = container(type(agg_value))([agg_value])
-            type_ = cleanup(type(result[0]))
+            type_ = self.res_type or cleanup(type(result[0]))
             return result,  None, type_
 
+        type_ = self.res_type or type_
         if type_ in _basic_num_types:
             return np.array((self.default_empty,),), None, type_
 
@@ -1066,20 +1077,20 @@ class IsNoneExpression(BaseExpression):
 
 class FunctionExpression(BaseExpression):
 
-    def __init__(self, efun, efunname, child, restype):
+    def __init__(self, efun, efunname, child, res_type):
         if not isinstance(child, BaseExpression):
             child = Value(child)
         self.child = child
         self.efun = efun
         self.efunname = efunname
-        self.restype = restype
+        self.res_type = res_type
 
     def _eval(self, ctx=None):
         values, index, type_ = saveeval(self.child, ctx)
         # the second expressions is true if values contains no Nones,
         # so we can apply ufucns/vecorized funs
         if len(values) == 0:
-            return [], None, self.restype or None
+            return [], None, self.res_type or None
         if type(values) == np.ndarray and not none_in_array(values):
             if type(self.efun) == np.ufunc:
                 values = self.efun(values)
@@ -1097,7 +1108,7 @@ class FunctionExpression(BaseExpression):
 
             return values, None, common_type_for(values)
         new_values = [self.efun(v) if v is not None else None for v in values]
-        type_ = self.restype or common_type_for(new_values)
+        type_ = self.res_type or common_type_for(new_values)
         if type_ in _basic_num_types:
             new_values = np.array(new_values)
 
