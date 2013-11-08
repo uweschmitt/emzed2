@@ -188,16 +188,6 @@ def testForDanglingReferences():
     tn.rows[-1][0] = 7
     assert t.a.values == [None, 2, 2]
 
-    tn = t.aggregate(t.a.max, "b")  # , groupBy = "a")
-    tn.rows[0][0] = 7
-    tn.rows[-1][0] = 7
-    assert t.a.values == [None, 2, 2]
-
-    tn = t.aggregate(t.a.max, "b", groupBy="a")
-    tn.rows[0][0] = 7
-    tn.rows[-1][0] = 7
-    assert t.a.values == [None, 2, 2]
-
 
 def testSupportedPostfixes():
 
@@ -270,34 +260,6 @@ def testColumnAggFunctions():
     assert t2.apc.values == [4]
 
 
-def testAggregateOperation():
-    t = emzed.utils.toTable("a", [], type_=int)
-
-    t2 = t.aggregate(t.a.mean, "an", groupBy="a")
-    assert len(t2) == 0
-    assert t2.getColTypes() == [int, object], t2.getColTypes()
-
-    t = emzed.utils.toTable("a", [1, 2, 2, 3, 3, 3, 3])
-    t.addColumn("b", [None, None, 2, 0, 3, 4, 9])
-    t._print()
-
-    t = t.aggregate(t.b.sum, "sum", groupBy="a")
-    t = t.aggregate(t.b.hasNone, "hasNone", groupBy="a")
-    t = t.aggregate(t.b.countNone, "countNone", groupBy="a")
-    t = t.aggregate(t.b.count, "count", groupBy="a")
-    t = t.aggregate(t.b.count - t.b.countNotNone, "countNone2", groupBy="a")
-    print t.b.std.values
-    t = t.aggregate(t.b.std * t.b.std, "var", groupBy="a")
-    t = t.aggregate(t.b.mean, "mean", groupBy="a")
-    t._print(w=8)
-    print t.sum.values
-    assert t.sum.values == [None, 2, 2, 16, 16, 16, 16], t.sum.values
-    assert t.var.values == [None, 0, 0, 10.5, 10.5, 10.5, 10.5]
-    assert t.mean.values == [None, 2, 2, 4, 4, 4, 4]
-    assert t.hasNone.values == [1, 1, 1, 0, 0, 0, 0]
-    assert t.countNone.values == [1, 1, 1, 0, 0, 0, 0]
-    assert t.countNone.values == t.countNone2.values
-    assert t.count.values == [1, 2, 2, 4, 4, 4, 4]
 
 
 def testUniqeRows():
@@ -378,13 +340,6 @@ def testBools():
 
     t.addColumn("bool_float", (t.bool).thenElse(t.bool, t.float))
     assert t.bool_float.values == [1.0, 2.0, 1.0, None]
-
-
-def testAggWithIterable():
-    t = emzed.utils.toTable("a", [(1, 2), None])
-    t = t.aggregate(t.a.uniqueNotNone, "an")
-    assert t.an.values == [(1, 2), (1, 2)]
-    assert t.a.values == [(1, 2), None]
 
 
 def testUniqueValue():
