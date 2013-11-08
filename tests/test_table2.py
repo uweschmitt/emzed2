@@ -133,7 +133,7 @@ def testApplyUfun():
 def testNonBoolean():
     t = emzed.utils.toTable("a", [])
     try:
-        not t.a
+        not t.a  # this was a common mistake: ~t.a is the correct way to express negation
     except:
         pass
     else:
@@ -286,6 +286,7 @@ def testAggregateOperation():
     t = t.aggregate(t.b.countNone, "countNone", groupBy="a")
     t = t.aggregate(t.b.count, "count", groupBy="a")
     t = t.aggregate(t.b.count - t.b.countNotNone, "countNone2", groupBy="a")
+    print t.b.std.values
     t = t.aggregate(t.b.std * t.b.std, "var", groupBy="a")
     t = t.aggregate(t.b.mean, "mean", groupBy="a")
     t._print(w=8)
@@ -552,3 +553,90 @@ def test_collapse():
     assert len(subs[1]) == 1
     assert subs[2].getColNames() == ["id", "a", "b"]
     assert len(subs[2]) == 1
+
+
+def test_missing_values_binary_expressions():
+
+    # column x has type None, this is a special case which failed before
+    t = emzed.utils.toTable("x", [None])
+    assert (t.x + t.x).values == [None]
+    assert (t.x * t.x).values == [None]
+    assert (t.x - t.x).values == [None]
+    assert (t.x / t.x).values == [None]
+
+    t.addColumn("y", [1])
+    assert (t.x + t.y).values == [None]
+    assert (t.x * t.y).values == [None]
+    assert (t.x - t.y).values == [None]
+    assert (t.x / t.y).values == [None]
+
+    assert (t.y + t.x).values == [None]
+    assert (t.y * t.x).values == [None]
+    assert (t.y - t.x).values == [None]
+    assert (t.y / t.x).values == [None]
+
+
+def test_grouped_aggregate_expressions():
+
+    # without missing values #########################################
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()
+
+    # float types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_mean", t.values.mean.group_by(t.group))
+    assert t.grouped_mean.values == [1.5, 1.5, 3]
+    t.print_()
+
+    # str types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", ["1", "2", "3"])
+    t.addColumn("grouped_max", t.values.max.group_by(t.group))
+    assert t.grouped_max.values == ["2", "2", "3"]
+    t.print_()
+
+    # with missing values ############################################
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, 2, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [2, 2, None]
+    t.print_()
+
+    # float types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, 2.0, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [2.0, 2.0, None]
+    t.print_()
+
+    # str types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, "2", None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == ["2", "2", None]
+    t.print_()
+
+    # empty columns ##################################################
+
+    # only None values
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, None, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [None, None, None]
+    t.print_()
+
+    # empty table
+    t = emzed.utils.toTable("group", [])
+    t.addColumn("values", [])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == []
+    t.print_()
+

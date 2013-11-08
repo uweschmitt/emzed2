@@ -1,7 +1,7 @@
-import pdb
 import numpy as np
 import re
 import col_types
+import collections
 
 
 __doc__ = """
@@ -146,6 +146,8 @@ def cleanup(type_):
                 return int
             if np.floating in mro:
                 return float
+        if basestring in mro:
+            return str
     return type_
 
 
@@ -465,6 +467,17 @@ class BaseExpression(object):
         """
         return AggregateExpression(self, lambda v: np.mean(v).tolist(), "mean(%s)", float)
 
+
+    @property
+    def median(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        expression to its mean.
+
+        Example: ``tab.area.mean``
+        """
+        return AggregateExpression(self, lambda v: np.median(v).tolist(), "mean(%s)", float)
+
     @property
     def std(self):
         """
@@ -483,7 +496,7 @@ class BaseExpression(object):
         instead.
         """
         return AggregateExpression(self, lambda v: len(v), "len(%s)",
-                                   int, ignoreNone=False, default_empty=0)
+                                   int, ignore_none=False, default_empty=0)
 
     @property
     def count(self):
@@ -494,7 +507,7 @@ class BaseExpression(object):
         Example:: ``tab.id.len``
         """
         return AggregateExpression(self, lambda v: len(v), "count(%s)",
-                                   int, ignoreNone=False, default_empty=0)
+                                   int, ignore_none=False, default_empty=0)
 
     @property
     def countNone(self):
@@ -504,7 +517,7 @@ class BaseExpression(object):
         """
         return AggregateExpression(self,
                                    lambda v: sum(1 for vi in v if vi is None),
-                                   "countNone(%s)", int, ignoreNone=False,
+                                   "countNone(%s)", int, ignore_none=False,
                                    default_empty=0)
 
     @property
@@ -515,7 +528,7 @@ class BaseExpression(object):
         """
         return AggregateExpression(self,
                                    lambda v: sum(1 for vi in v if vi is not None),
-                                   "countNotNone(%s)", int, ignoreNone=False,
+                                   "countNotNone(%s)", int, ignore_none=False,
                                    default_empty=0)
 
     @property
@@ -526,7 +539,7 @@ class BaseExpression(object):
         value.
         """
         return AggregateExpression(self, lambda v: int(None in v),
-                                   "hasNone(%s)", bool, ignoreNone=False,
+                                   "hasNone(%s)", bool, ignore_none=False,
                                    default_empty=0)
 
     @property
@@ -549,7 +562,7 @@ class BaseExpression(object):
                                 % (self, sorted(diff)))
             return diff.pop()
         return AggregateExpression(self, select, "uniqueNotNone(%s)",
-                                   None, ignoreNone=False)
+                                   None, ignore_none=False)
 
     @property
     def values(self):
@@ -824,28 +837,78 @@ class BinaryExpression(BaseExpression):
             return res, idx, ct
 
         if ll == 1:
-            values = [self.efun(lvals[0], r) for r in rvals]
+            if lvals[0] is None:
+                values = [None] * len(rvals)
+            else:
+                values = [self.efun(lvals[0], r) if r is not None else None for r in rvals]
         elif lr == 1:
-            values = [self.efun(l, rvals[0]) for l in lvals]
+            if rvals[0] is None:
+                values = [None] * len(lvals)
+            else:
+                values = [self.efun(l, rvals[0]) if l is not None else l for l in lvals]
         else:
-            values = [self.efun(l, r) for (l, r) in zip(lvals, rvals)]
+            values = [self.efun(l, r) if l is not None and r is not None else None
+                      for (l, r) in zip(lvals, rvals)]
 
         return container(ct)(values), None, ct
 
 
+class GroupedAggregateExpression(BaseExpression):
+
+    def __init__(self, left, efun, default_empty, ignore_none,  group_by_column):
+        self.left = left
+        self.efun = efun
+        self.default_empty = default_empty
+        self.ignore_none = ignore_none
+        self.group_by_column = group_by_column
+
+    def _eval(self, ctx=None):
+        child_values, __, child_type = saveeval(self.left, ctx)
+        group_values, __, group_type = saveeval(self.group_by_column, ctx)
+
+        grouped_values = collections.defaultdict(list)
+        for (g, v) in zip(group_values, child_values):
+            grouped_values[g].append(v)
+
+        aggregated_values = dict()
+        for g, values in grouped_values.items():
+            if self.ignore_none:
+                values = [v for v in values if v is not None]
+            if not len(values):
+                aggregated_values[g] = self.default_empty
+            else:
+                type_ = common_type_for(values)
+                values = np.array(values)
+                aggregated_values[g] = self.efun(values)
+
+        result = [aggregated_values[g] for g in group_values]
+        type_ = common_type_for(result)
+        result = container(type_)(result)
+        type_ = cleanup(type_)
+        return np.array(result), None, type_
+
+
 class AggregateExpression(BaseExpression):
 
-    def __init__(self,
-                 left, efun, funname, restype,
-                 ignoreNone=True, default_empty=None):
+    def __init__(self, left, efun, funname, restype, ignore_none=True, default_empty=None):
         if not isinstance(left, BaseExpression):
             left = Value(left)
         self.left = left
         self.efun = efun
         self.funname = funname
         self.restype = restype
-        self.ignoreNone = ignoreNone
+        self.ignore_none = ignore_none
         self.default_empty = default_empty
+
+    def group_by(self, group_by_column):
+        return GroupedAggregateExpression(self.left, self.efun, self.default_empty,
+                self.ignore_none, group_by_column)
+
+    def __call__(self):
+        values, _, type_ = self._eval()
+        if len(values):
+            return values[0]
+        return self.default_empty
 
     def _eval(self, ctx=None):
         vals, _, type_ = saveeval(self.left, ctx)
@@ -854,29 +917,23 @@ class AggregateExpression(BaseExpression):
 
         if type_ in _basic_num_types:
             vals = vals.tolist()
-        if self.ignoreNone:
+        if self.ignore_none:
             vals = [v for v in vals if v is not None]
+
         if len(vals):
-            result = [self.efun(vals)]
-            result = container(type(result[0]))(result)
+            agg_value = self.efun(vals)
+            result = container(type(agg_value))([agg_value])
             type_ = cleanup(type(result[0]))
-            return result, self.default_empty, type_
-        # only nones !
+            return result,  None, type_
+
         if type_ in _basic_num_types:
             return np.array((self.default_empty,),), None, type_
+
         return [self.default_empty], None, type_
 
     def __str__(self):
         return self.funname % self.left
 
-    def __call__(self):
-        values = self.values
-        if len(values):
-            v = values[0]
-            if v is not None and self.restype is not None:
-                return self.restype(v)
-            return v
-        return self.default_empty
 
     def _evalsize(self):
         return 1

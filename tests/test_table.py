@@ -348,7 +348,7 @@ class TestTable(unittest.TestCase):
             assert a[0] in self.expected
             return True # suppress exceptoin
 
-    def testUniqeNotNone(self):
+    def testUniqueNotNone(self):
 
         t = toTable("a", [1,1,None])
         assert t.a.uniqueNotNone() == 1
