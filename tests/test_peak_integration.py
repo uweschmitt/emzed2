@@ -10,13 +10,19 @@ from   emzed.core.peak_integration import *
 import os.path
 
 
-def testIntegration(path):
+def testInteegration(path):
+    _testIntegration(path, 1)
+    _testIntegration(path, 2)
+    _testIntegration(path, 4)
+
+
+def _testIntegration(path, n_cpus):
 
     # test with and without unicode:
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
-    ftr = utils.integrate(ft, "trapez")
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -39,7 +45,7 @@ def testIntegration(path):
     ft.addColumn("rtmaxX", ft.rtmax)
     ft.addColumn("peakmapX", ft.peakmap)
 
-    ftr = utils.integrate(ft, "trapez")
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
     ftr.info()
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()

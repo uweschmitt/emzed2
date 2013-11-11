@@ -1,7 +1,49 @@
 # encoding: utf-8
 
+import multiprocessing
 
-def integrate(ftable, integratorid="std", msLevel=None, showProgress=True):
+
+def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1):
+    import time
+    from ..core.data_types.table import Table
+
+    started = time.time()
+
+    if n_cpus == -1:
+        n_cpus = multiprocessing.cpu_count()
+
+    if n_cpus > multiprocessing.cpu_count():
+        print
+        print "WARNING: more processes demanded than available cpu cores, this might be",
+        print "inefficient"
+        print
+
+    print
+    print "integrate table using", n_cpus, "processes"
+    print
+
+    p = multiprocessing.Pool(n_cpus)
+    args = []
+    for i in range(n_cpus):
+        subt = ftable[i::n_cpus]
+        show_progress = (i == 0)  # only first process does output
+        args.append((subt, integratorid, msLevel, show_progress))
+
+    # map_async() avoids bug of map() when trying to stop jobs using ^C
+    tables = p.map_async(_integrate, args).get()
+    result = Table.mergeTables(tables)
+    needed = time.time() - started
+    minutes = int(needed) / 60
+    seconds = needed - minutes * 60
+    print
+    if minutes:
+        print "needed %d minutes and %.1f seconds" % (minutes, seconds)
+    else:
+        print "needed %.1f seconds" % seconds
+    return result
+
+
+def _integrate((ftable, integratorid, msLevel, showProgress,)):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -12,7 +54,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True):
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
-    import time
 
     assert isinstance(ftable, Table)
 
@@ -21,7 +62,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True):
     if not supportedPostfixes:
         raise Exception("is no feature table")
 
-    started = time.time()
     integrator = dict(peakIntegrators).get(integratorid)
     if integrator is None:
         raise Exception("unknown integrator '%s'" % integratorid)
@@ -76,15 +116,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True):
         resultTable._updateColumnWithoutNameCheck("params" + postfix, paramss,
                                                   object, None, insertBefore="peakmap" + postfix)
 
-    resultTable.meta["integrated"] = True
+    resultTable.meta["integrated"] = True, "\n"
     resultTable.title = "integrated: " + (resultTable.title or "")
-    needed = time.time() - started
-    minutes = int(needed) / 60
-    seconds = needed - minutes * 60
-    print
-    if minutes:
-        print "needed %d minutes and %.1f seconds" % (minutes, seconds)
-    else:
-        print "needed %.1f seconds" % seconds
     resultTable.resetInternals()
     return resultTable
