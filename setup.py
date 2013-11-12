@@ -11,17 +11,17 @@ def patched(self):
 # distutils.config.PyPIRCCommand._read_pypirc = patched
 
 
-import os
-p = os.getcwd()
-os.chdir("emzed/core/explorers")
-os.system("rst2html help_peakmapexplorer.rst > help_peakmapexplorer.html")
-os.chdir(p)
+#import os
+#p = os.getcwd()
+#os.chdir("emzed/core/explorers")
+#os.system("rst2html help_peakmapexplorer.rst > help_peakmapexplorer.html")
+#os.chdir(p)
 
 version_str = "2.0.3"
 
-version_tuple = tuple(map(int, version_str.split(".")))
-with open("emzed/version.py", "w") as fp:
-    fp.write("version = %r\n" % (version_tuple,))
+#version_tuple = tuple(map(int, version_str.split(".")))
+#with open("emzed/version.py", "w") as fp:
+    #fp.write("version = %r\n" % (version_tuple,))
 
 
 from setuptools import setup, find_packages
