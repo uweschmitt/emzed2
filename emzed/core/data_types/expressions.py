@@ -932,15 +932,15 @@ class AggregateExpression(BaseExpression):
 
         if len(vals):
             agg_value = self.efun(vals)
-            result = container(type(agg_value))([agg_value])
+            result = container(type(agg_value))([agg_value] * len(vals))
             type_ = self.res_type or cleanup(type(result[0]))
             return result,  None, type_
 
         type_ = self.res_type or type_
         if type_ in _basic_num_types:
-            return np.array((self.default_empty,),), None, type_
+            return np.array((self.default_empty,),).repeat(len(vals)), None, type_
 
-        return [self.default_empty], None, type_
+        return [self.default_empty] * len(vals), None, type_
 
     def __str__(self):
         return self.funname % self.left

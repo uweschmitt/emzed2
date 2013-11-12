@@ -609,3 +609,18 @@ def test_own_aggregate_functions():
     t.addColumn("grouped_min", t.values.aggregate(np.min).group_by(t.group))
     assert t.grouped_min.values == [1, 1, 3]
     t.print_()
+
+    def my_min(li):
+        return min(li) + 42
+
+    t.addColumn("strange", t.values.aggregate(my_min))
+    assert t.strange.values == [43, 43, 43], t.strange.values
+    t.addColumn("strange2", t.values.aggregate(my_min).group_by(t.group))
+    assert t.strange2.values == [43, 43, 45], t.strange2.values
+
+    t.print_()
+
+
+
+
+
