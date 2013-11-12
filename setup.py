@@ -6,9 +6,10 @@ def patched(self):
                 password="pillepalle",
                 repository="http://127.0.0.1:3142/root/dev/",
                 server="local",
-                )
+               )
 # import distutils.config
 # distutils.config.PyPIRCCommand._read_pypirc = patched
+
 
 import os
 p = os.getcwd()
@@ -24,9 +25,9 @@ with open("emzed/version.py", "w") as fp:
     fp.write("version = %r\n" % (version_tuple,))
 
 
-from setuptools import setup
+from setuptools import setup, find_packages
 setup(name="emzed",
-      packages=["emzed"],
+      packages=find_packages(),
       version=version_str,
       entry_points={
           "console_scripts": ["emzed.workbench = emzed.workbench.main:main", ]
