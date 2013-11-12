@@ -1,9 +1,19 @@
 # encoding: utf-8
 
-import multiprocessing
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1):
+    import sys
+    if sys.platform == "win32":
+        # if subprocesses use python.exe a console window pops up for each
+        # subprocess. this is not only quite ugly, the console windows are
+        # zombies, the pop up again after closing.
+        import multiprocessing
+        import os.path
+        multiprocessing.set_executable(os.path.join(
+                                       os.path.dirname(sys.executable),
+                                       "pythonw.exe")
+                                       )
     import time
     from ..core.data_types.table import Table
 
