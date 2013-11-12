@@ -32,7 +32,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     print "integrate table using", n_cpus, "processes"
     print
 
-    p = multiprocessing.Pool(n_cpus)
+    pool = multiprocessing.Pool(n_cpus)
     args = []
     for i in range(n_cpus):
         subt = ftable[i::n_cpus]
@@ -40,7 +40,8 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         args.append((subt, integratorid, msLevel, show_progress))
 
     # map_async() avoids bug of map() when trying to stop jobs using ^C
-    tables = p.map_async(_integrate, args).get()
+    tables = pool.map_async(_integrate, args).get()
+    pool.close()
     result = Table.mergeTables(tables)
     needed = time.time() - started
     minutes = int(needed) / 60
