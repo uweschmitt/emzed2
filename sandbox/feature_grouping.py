@@ -4,6 +4,8 @@ import numpy as np
 
 from collections import Counter
 
+from util import ProgressCounter
+
 try:
     table = emzed.io.loadTable("shoulders_table_integrated.table")
 except:
@@ -56,6 +58,9 @@ class Feature(object):
         else:
             z_to_try = [z]
 
+        #if 1114 in self.ids and 6706 in other.ids:
+            #import pdb; pdb.set_trace()
+
         for z in z_to_try:
             mz_self = self.mzs[:, None]
             mz_other = other.mzs[None, :]
@@ -89,26 +94,6 @@ class Feature(object):
         other.len_ = 0
 
 
-class ProgressCounter(object):
-
-    def __init__(self, nmax):
-        self.nmax = nmax
-        self.last_percent = -1
-        self.n = 0
-
-    @profile
-    def count_up(self, step_size=1):
-        self.n += step_size
-        percent = round(100.0 * self.n / self.nmax, -1)  # round to tens
-        if percent != self.last_percent:
-            print "%.f%%" % percent,
-            sys.stdout.flush()
-            self.last_percent = percent
-
-    def done(self):
-        print
-
-
 class IsotopeMerger(object):
 
     def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0, max_mz_range=20):
@@ -132,7 +117,7 @@ class IsotopeMerger(object):
         features = self._extract_features(table, fid_column)
         features = self._merge(features)
         table = self._add_new_columns(table, features, "isotope_cluster_id", "isotope_rank",
-                                      fid_column)
+                                      "isotope_cluster_size", "max_isotope_gap", fid_column)
         return table
 
     def _extract_features(self, table, fid_column):
@@ -192,11 +177,12 @@ class IsotopeMerger(object):
         return features
 
     @profile
-    def _add_new_columns(self, table, features, new_column_name, rank_column_name, fid_column):
+    def _add_new_columns(self, table, features, new_column_name, rank_column_name,
+                         iso_cluster_size_column, iso_gap_column, fid_column):
 
         self._add_cluster_id_column(table, features, new_column_name, fid_column)
         table = self._add_isotope_ranks_column(table, rank_column_name, new_column_name,
-                                               fid_column)
+                                               iso_cluster_size_column, iso_gap_column, fid_column)
         table.sortBy([new_column_name, rank_column_name])
         return table
 
@@ -221,11 +207,13 @@ class IsotopeMerger(object):
                         insertBefore=fid_column)
 
     @profile
-    def _add_isotope_ranks_column(self, table, rank_column_name, iso_cluster_column, fid_column):
+    def _add_isotope_ranks_column(self, table, rank_column_name, iso_cluster_column,
+                                  iso_cluster_size_column, iso_gap_column, fid_column):
         print "calculate isotope ranks"
         collected = []
         for t in table.splitBy(iso_cluster_column):
             if len(t) == 1:
+                t.addColumn(iso_cluster_size_column, 1, insertBefore=fid_column)
                 collected.append(t)
                 continue
             t.sortBy("mz")
@@ -243,10 +231,19 @@ class IsotopeMerger(object):
             def rank_peak(mz):
                 return int(round((mz - mz_main_peak) / delta_C * z))
             t.addColumn(rank_column_name, t.mz.apply(rank_peak), insertBefore=fid_column)
+            ranks = sorted(t.getColumn(rank_column_name).values)
+            if len(ranks) > 1:
+                max_gap = int(max(r1 - r0 for (r0, r1) in zip(ranks, ranks[1:])))
+            else:
+                max_gap = 0
+            t.addColumn(iso_cluster_size_column, len(t), type_=int, format_="%d",
+                        insertBefore=fid_column)
+            t.addColumn(iso_gap_column, max_gap, type_=int, format_="%d",
+                        insertBefore=fid_column)
             collected.append(t)
         return emzed.utils.mergeTables(collected)
 
 
 table = IsotopeMerger().process(table[:])
-# emzed.io.storeTable(table, "isotope_clustered.table", True)
+emzed.io.storeTable(table, "isotope_clustered.table", True)
 #emzed.gui.inspect(table)
