@@ -18,11 +18,11 @@ def testAccessAndConsistency():
 
 
 def testAdducts():
-    assert len(adducts.all) == 30, len(adducts.all)
+    assert len(adducts.all) == 29, len(adducts.all)
     # test subgroups
     assert len(adducts.positive) == 17, len(adducts.positive)
     assert len(adducts.neutral) == 1, len(adducts.neutral)
-    assert len(adducts.negative) == 30 - 17 - 1, len(adducts.negative)
+    assert len(adducts.negative) == 29 - 17 - 1, len(adducts.negative)
     assert len(adducts.single_charged) > 0
     assert len(adducts.double_charged) > 0
     assert len(adducts.triple_charged) > 0
