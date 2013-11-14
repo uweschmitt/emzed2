@@ -91,7 +91,7 @@ def testSimpleTable():
     assert row.rtmax == 15.0
 
     assert model.rowCount() == 3
-    assert model.columnCount() == 6 # one invisibible column
+    assert model.columnCount() == 7
 
     for i in range(3):
         for j in range(6):

@@ -1,6 +1,5 @@
 # encoding: utf-8
-from ..data_types.table import fms as formatSeconds, Table
-from ..data_types.table_parser import TableParser
+from ..data_types.table import fms as formatSeconds
 from ..data_types import PeakMap
 
 from ..dialogs.r_output_dialog import ROutputDialog
@@ -286,7 +285,7 @@ class CentwaveFeatureDetector(object):
                                                rt=formatSeconds, rtmin=formatSeconds,
                                                rtmax=formatSeconds,
                                                into="%.2e", intb="%.2e", maxo="%.2e",
-                                               sn="%.2e")
+                                               sn="%.2e", peakmap="%s")
                                   )
 
         table.addConstantColumn("centwave_config", dd, dict, None)

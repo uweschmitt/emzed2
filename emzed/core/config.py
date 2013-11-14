@@ -270,8 +270,8 @@ class _UserConfig(object):
 
     def set_defaults(self):
         self.parameters.emzed_store_url = "http://uweschmitt.info:37614"
-        self.parameters.pypi_url = "http://testpypi.python.org/pypi"
-        self.parameters.pypi_index_url = "http://testpypi.python.org/simple"
+        self.parameters.pypi_url = "http://pypi.python.org/pypi"
+        self.parameters.pypi_index_url = "http://pypi.python.org/simple"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
         self.parameters.last_active_project = ""
         self.parameters.emzed_files_folder = os.path.join(_FolderLocations.getDocumentFolder(),

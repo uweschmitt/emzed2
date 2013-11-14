@@ -5,7 +5,7 @@ def test_pandas():
     data = dict(a=[1, 2, 3], b=[1.0, 2.0, None], c=["a", "b", "c"], d=[1.0, 2.0, 3.0],
                 e=[None, None, None])
     df = pandas.DataFrame(data, columns=sorted(data.keys()))
-    t = Table.from_pandas(df, formats={"b": "%.2f", float: "%.1f", object: "%s"})
+    t = Table.from_pandas(df, formats={"b": "%.2f", float: "%.1f", object: "%s", None: "%s"})
     out = cStringIO.StringIO()
 
     t.print_()
@@ -14,7 +14,7 @@ def test_pandas():
 
     assert len(lines) == 7
     assert lines[0].strip() == "a        b        c        d        e"
-    assert lines[1].strip() == "int      float    str      float    object"
+    assert lines[1].strip() == "int      float    str      float    None"
     assert lines[2].strip() == "------   ------   ------   ------   ------"
     assert lines[3].strip() == "1        1.00     a        1.0      -"
     assert lines[4].strip() == "2        2.00     b        2.0      -"

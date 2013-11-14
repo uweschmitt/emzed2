@@ -2,6 +2,7 @@
 from emzed.core.data_types import Table
 import emzed.utils
 import emzed.mass
+import numpy as np
 
 
 def testBinary():
@@ -29,7 +30,7 @@ def testEmptyApply():
     t = emzed.utils.toTable("a", [])
     t.addColumn("b", t.a.apply(len))
     assert len(t) == 0
-    assert t.getColTypes() == [object, object], t.getColTypes()
+    assert t.getColTypes() == [None, None], t.getColTypes()
 
 
 def testRound():
@@ -92,7 +93,6 @@ def testApply():
 
 
 def testNumpyTypeCoercion():
-    import numpy as np
     t = emzed.utils.toTable("a", [np.int32(1)])
     t.info()
     assert t.getColTypes() == [int], t.getColTypes()
@@ -122,18 +122,17 @@ def testNumpyTypeCoercion():
 
 
 def testApplyUfun():
-    import numpy
     t = emzed.utils.toTable("a", [None, 2.0, 3])
 
-    print numpy.log
-    t.addColumn("log", t.a.apply(numpy.log))
+    print np.log
+    t.addColumn("log", t.a.apply(np.log))
     assert t.getColTypes() == [float, float], t.getColTypes()
 
 
 def testNonBoolean():
     t = emzed.utils.toTable("a", [])
     try:
-        not t.a
+        not t.a  # this was a common mistake: ~t.a is the correct way to express negation
     except:
         pass
     else:
@@ -184,16 +183,6 @@ def testForDanglingReferences():
     assert t.a.values == [None, 2, 2]
 
     tn = t.uniqueRows()
-    tn.rows[0][0] = 7
-    tn.rows[-1][0] = 7
-    assert t.a.values == [None, 2, 2]
-
-    tn = t.aggregate(t.a.max, "b")  # , groupBy = "a")
-    tn.rows[0][0] = 7
-    tn.rows[-1][0] = 7
-    assert t.a.values == [None, 2, 2]
-
-    tn = t.aggregate(t.a.max, "b", groupBy="a")
     tn.rows[0][0] = 7
     tn.rows[-1][0] = 7
     assert t.a.values == [None, 2, 2]
@@ -270,33 +259,6 @@ def testColumnAggFunctions():
     assert t2.apc.values == [4]
 
 
-def testAggregateOperation():
-    t = emzed.utils.toTable("a", [], type_=int)
-
-    t2 = t.aggregate(t.a.mean, "an", groupBy="a")
-    assert len(t2) == 0
-    assert t2.getColTypes() == [int, object], t2.getColTypes()
-
-    t = emzed.utils.toTable("a", [1, 2, 2, 3, 3, 3, 3])
-    t.addColumn("b", [None, None, 2, 0, 3, 4, 9])
-    t._print()
-
-    t = t.aggregate(t.b.sum, "sum", groupBy="a")
-    t = t.aggregate(t.b.hasNone, "hasNone", groupBy="a")
-    t = t.aggregate(t.b.countNone, "countNone", groupBy="a")
-    t = t.aggregate(t.b.count, "count", groupBy="a")
-    t = t.aggregate(t.b.count - t.b.countNotNone, "countNone2", groupBy="a")
-    t = t.aggregate(t.b.std * t.b.std, "var", groupBy="a")
-    t = t.aggregate(t.b.mean, "mean", groupBy="a")
-    t._print(w=8)
-    print t.sum.values
-    assert t.sum.values == [None, 2, 2, 16, 16, 16, 16], t.sum.values
-    assert t.var.values == [None, 0, 0, 10.5, 10.5, 10.5, 10.5]
-    assert t.mean.values == [None, 2, 2, 4, 4, 4, 4]
-    assert t.hasNone.values == [1, 1, 1, 0, 0, 0, 0]
-    assert t.countNone.values == [1, 1, 1, 0, 0, 0, 0]
-    assert t.countNone.values == t.countNone2.values
-    assert t.count.values == [1, 2, 2, 4, 4, 4, 4]
 
 
 def testUniqeRows():
@@ -377,13 +339,6 @@ def testBools():
 
     t.addColumn("bool_float", (t.bool).thenElse(t.bool, t.float))
     assert t.bool_float.values == [1.0, 2.0, 1.0, None]
-
-
-def testAggWithIterable():
-    t = emzed.utils.toTable("a", [(1, 2), None])
-    t = t.aggregate(t.a.uniqueNotNone, "an")
-    assert t.an.values == [(1, 2), (1, 2)]
-    assert t.a.values == [(1, 2), None]
 
 
 def testUniqueValue():
@@ -523,5 +478,149 @@ def test_multi_sort():
     t.sortBy(["y", "z"], ascending=False)
     assert t.y.values == [2, 2, 1]
     assert t.z.values == [3, 2, 1]
+
+
+def test_collapse():
+    t = emzed.utils.toTable("id", [1, 1, 2])
+    t.addColumn("a", [1, 2, 3])
+    t.addColumn("b", [3, 4, 5])
+    t2 = t.collapse("id")
+    assert len(t2) == 2
+    assert t2.getColNames() == ["id", "collapsed"]
+    assert t2.getColTypes() == [int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 2
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+
+    t2 = t.collapse("id", "a")
+    assert len(t2) == 3
+    assert t2.getColNames() == ["id", "a", "collapsed"]
+    assert t2.getColTypes() == [int, int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 1
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+    assert subs[2].getColNames() == ["id", "a", "b"]
+    assert len(subs[2]) == 1
+
+
+def test_missing_values_binary_expressions():
+
+    # column x has type None, this is a special case which failed before
+    t = emzed.utils.toTable("x", [None])
+    assert (t.x + t.x).values == [None]
+    assert (t.x * t.x).values == [None]
+    assert (t.x - t.x).values == [None]
+    assert (t.x / t.x).values == [None]
+
+    t.addColumn("y", [1])
+    assert (t.x + t.y).values == [None]
+    assert (t.x * t.y).values == [None]
+    assert (t.x - t.y).values == [None]
+    assert (t.x / t.y).values == [None]
+
+    assert (t.y + t.x).values == [None]
+    assert (t.y * t.x).values == [None]
+    assert (t.y - t.x).values == [None]
+    assert (t.y / t.x).values == [None]
+
+
+def test_grouped_aggregate_expressions():
+
+    # without missing values #########################################
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()
+
+    # float types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_mean", t.values.mean.group_by(t.group))
+    assert t.grouped_mean.values == [1.5, 1.5, 3]
+    t.print_()
+
+    # str types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", ["1", "2", "3"])
+    t.addColumn("grouped_max", t.values.max.group_by(t.group))
+    assert t.grouped_max.values == ["2", "2", "3"]
+    t.print_()
+
+    # with missing values ############################################
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, 2, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [2, 2, None]
+    t.print_()
+
+    # float types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, 2.0, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [2.0, 2.0, None]
+    t.print_()
+
+    # str types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, "2", None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == ["2", "2", None]
+    t.print_()
+
+    # empty columns ##################################################
+
+    # only None values
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [None, None, None])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == [None, None, None]
+    t.print_()
+
+    # empty table
+    t = emzed.utils.toTable("group", [])
+    t.addColumn("values", [])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group))
+    assert t.grouped_min.values == []
+    t.print_()
+
+
+def test_own_aggregate_functions():
+
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.aggregate(lambda v: min(v)).group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()
+    # int types aggregated
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    t.addColumn("values", [1, 2, 3])
+    t.addColumn("grouped_min", t.values.aggregate(np.min).group_by(t.group))
+    assert t.grouped_min.values == [1, 1, 3]
+    t.print_()
+
+    def my_min(li):
+        return min(li) + 42
+
+    t.addColumn("strange", t.values.aggregate(my_min))
+    assert t.strange.values == [43, 43, 43], t.strange.values
+    t.addColumn("strange2", t.values.aggregate(my_min).group_by(t.group))
+    assert t.strange2.values == [43, 43, 45], t.strange2.values
+
+    t.print_()
+
+
+
 
 

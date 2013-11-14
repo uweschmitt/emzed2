@@ -37,7 +37,7 @@ def guessFormatFor(name, type_):
             return "%.5f"
         if name.startswith("rt"):
             return fms
-    return standardFormats.get(type_)
+    return standardFormats.get(type_, "%s")
 
 
 def computekey(o):
@@ -65,7 +65,7 @@ def getPostfix(colName):
 
 def convert_list_to_overall_type(li):
     ct = common_type_for(li)
-    if ct is not object:
+    if ct in (int, float, long, bool, str):
         return [None if x is None else ct(x) for x in li]
     return li
 
@@ -157,8 +157,7 @@ class Table(object):
                                       rows, title, meta)
 
     @classmethod
-    def _create(clz, colNames, colTypes, colFormats,
-                rows=None, title=None, meta=None):
+    def _create(clz, colNames, colTypes, colFormats, rows=None, title=None, meta=None):
         inst = clz.__new__(Table)
         inst._setup_without_namecheck(colNames, colTypes, colFormats,
                                       rows, title, meta)
@@ -189,7 +188,7 @@ class Table(object):
 
         is_numpy_type = lambda t: np.number in t.__mro__
 
-        if any(is_numpy_type(t) for t in colTypes):
+        if any(is_numpy_type(t) for t in colTypes if t is not None):
             raise Exception("using numpy floats instead of python floats is not a good idea. "
                             "Table operations may crash")
 
@@ -217,6 +216,10 @@ class Table(object):
                 raise Exception("colName '%s' not allowed" % name)
 
         self.resetInternals()
+
+    def __str__(self):
+        n = len(self)
+        return "<Table %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
 
     def getColNames(self):
         """ returns a copied list of column names, one can operator on this
@@ -270,13 +273,19 @@ class Table(object):
         pprint.pprint(self.meta)
         print "   rows=", len(self)
         print
-        for i, p in enumerate(zip(self._colNames, self._colTypes,
-                              self._colFormats)):
-            vals = getattr(self, p[0]).values
+        for i, (name, type_, format_) in enumerate(zip(self._colNames,
+                                                       self._colTypes,
+                                                       self._colFormats)):
+            vals = getattr(self, name).values
             nones = sum(1 for v in vals if v is None)
             numvals = len(set(id(v) for v in vals))
-            txt = "[%d diff vals, %d Nones]" % (numvals, nones)
-            print "   #%-2d %-25s name=%-8r %-15r fmt=%r" % ((i, txt) + p)
+            txt = "%3d diff vals, %3d Nones" % (numvals, nones)
+            match = re.match("<(type|class) '(.+)'>", str(type_))
+            if match is not None:
+                type_str = match.group(2).split(".")[-1]
+            else:
+                type_str = str(type_)
+            print "   column %2d:  %-25s in column %-15s of type %-10s with format %r" % (i, txt, name, type_str, format_)
         print
 
     def addRow(self, row, doResetInternals=True):
@@ -1050,144 +1059,6 @@ class Table(object):
                 keysSeen.add(key)
         return result
 
-    def aggregate(self, expr, newName, groupBy=None):
-
-        """
-        adds new aggregated column to table **in place**.
-
-        ``expr`` calculates the aggregation.
-
-        The table can be split into several subtables by
-        providing an extra ``groupBy`` parameter,
-        which can be a column name or a list of column names,
-        then the aggregation is only performed per group.
-
-        In each group the values corresponding to ``groupBy``
-        are constant.
-
-        ``newName`` is the column name for the aggregations.
-
-        If we have a table ``t1`` with
-
-           ===    ======    =====
-           id     source    value
-           ===    ======    =====
-           0      1         10.0
-           1      1         20.0
-           2      2         30.0
-           ===    ======    =====
-
-        Then the result of
-
-        ``t1.aggregate(t1.value.mean, "mean")``
-
-        is
-
-           ===    ======    =====  ====
-           id     source    value  mean
-           ===    ======    =====  ====
-           0      1         10.0   20.0
-           1      1         20.0   20.0
-           2      2         30.0   20.0
-           ===    ======    =====  ====
-
-        If you group by column ``source``, for example as
-
-        ``t1.aggregate(t1.value.mean, "mean_per_source", groupBy="source")``
-
-        the result is
-
-           ===    ======    =====  ===============
-           id     source    value  mean_per_source
-           ===    ======    =====  ===============
-           0      1         10.0   15.0
-           1      1         20.0   15.0
-           2      2         30.0   30.0
-           ===    ======    =====  ===============
-
-        Here we got two different row groups, in each group the value of *source*
-        is constant. So we have one group:
-
-           ===    ======    =====
-           id     source    value
-           ===    ======    =====
-           0      1         10.0
-           1      1         20.0
-           ===    ======    =====
-
-        and second one which is:
-
-           ===    ======    =====
-           id     source    value
-           ===    ======    =====
-           2      2         30.0
-           ===    ======    =====
-
-
-        And if we group by identical (id, source) pairs, each row is in separate
-        group and so
-
-        ``t1.aggregate(t1.value.mean, "mean_per_source", groupBy=["id", "source"])``
-
-        delivers:
-
-           ===    ======    =====  ===============
-           id     source    value  mean_per_source
-           ===    ======    =====  ===============
-           0      1         10.0   10.0
-           1      1         20.0   20.0
-           2      2         30.0   30.0
-           ===    ======    =====  ===============
-
-        """
-
-        if "__" in newName:
-            raise Exception("double underscore in %r not allowed" % newName)
-
-        if isinstance(groupBy, str):
-            groupBy = [groupBy]
-        elif groupBy is None:
-            groupBy = []
-
-        if len(self) == 0:
-            rv = self.buildEmptyClone()
-            rv._colNames.append(newName)
-            rv._colTypes.append(object)
-            rv._colFormats.append("%r")
-            rv.resetInternals()
-            return rv
-
-        subTables = self.splitBy(*groupBy)
-        nc = expr._neededColumns()
-        for t, _ in nc:
-            if t != self:
-                raise Exception("illegal expression")
-        names = [n for (t, n) in nc]
-        collectedValues = []
-        for t in subTables:
-            print
-            print "subt"
-            t._print()
-            ctx = dict((n, (t.getColumn(n).values,
-                            t.primaryIndex.get(n),
-                            t.getColumn(n).type_
-                            )) for n in names)
-            value, _, type_ = expr._eval({self: ctx})
-            # works for numbers and objects to, but not if values is
-            # iterable:
-            assert len(value) == 1, "you did not use an aggregating "\
-                "expression, or you aggregate over a column which has lists or numpy "\
-                "arrays as entries"
-
-            if type_ in _basic_num_types:
-                value = value.tolist()
-            collectedValues.extend(value * len(t))
-
-        result = self.copy()
-        result.addColumn(newName, collectedValues)
-        result.primaryIndex = self.primaryIndex.copy()
-        return result
-
     def filter(self, expr, debug=False):
         """builds a new table with columns selected according to ``expr``. E.g. ::
 
@@ -1273,7 +1144,7 @@ class Table(object):
 
         return sorted(set(supported))
 
-    def join(self, t, expr=True, debug=False):
+    def join(self, t, expr=True, debug=False, title=None):
         """joins two tables.
 
            So if you have two table ``t1`` and ``t2`` as
@@ -1320,7 +1191,7 @@ class Table(object):
         if not isinstance(expr, BaseExpression):
             expr = Value(expr)
 
-        table = self._buildJoinTable(t)
+        table = self._buildJoinTable(t, title)
 
         if debug:
             print "# %s.join(%s, %s)" % (self._name, t._name, expr)
@@ -1343,7 +1214,7 @@ class Table(object):
         table.rows = rows
         return table
 
-    def leftJoin(self, t, expr=True, debug=False):
+    def leftJoin(self, t, expr=True, debug=False, title=None):
         """performs an *left join* also known as *outer join* of two tables.
 
            It works similar to :py:meth:`~.join`
@@ -1375,7 +1246,7 @@ class Table(object):
         if not isinstance(expr, BaseExpression):
             expr = Value(expr)
 
-        table = self._buildJoinTable(t)
+        table = self._buildJoinTable(t, title)
 
         if debug:
             print "# %s.leftJoin(%s, %s)" % (self._name, t._name, expr)
@@ -1438,7 +1309,7 @@ class Table(object):
             newColNames.append(newName)
         return newColNames
 
-    def _buildJoinTable(self, t):
+    def _buildJoinTable(self, t, title):
 
         incrementBy = self.maxPostfix() - t.minPostfix() + 1
 
@@ -1446,7 +1317,8 @@ class Table(object):
 
         colFormats = self._colFormats + t._colFormats
         colTypes = self._colTypes + t._colTypes
-        title = "%s vs %s" % (self.title, t.title)
+        if title is None:
+            title = "%s vs %s" % (self.title, t.title)
         meta = {self: self.meta.copy(), t: t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
@@ -1679,6 +1551,23 @@ class Table(object):
         result.append(extended_tables[1:])
         return result
 
+    def collapse(self, *col_names):
+        assert all(col_name in self._colNames for col_name in col_names)
+
+        master_names = list(col_names) + ["collapsed"]
+        master_types = [self.getColType(n) for n in col_names] + [Table]
+        master_formats = [self.getColFormat(n) for n in col_names] + ["%s"]
+
+        rows = []
+        for subt in self.splitBy(*col_names):
+            key_values = [subt.getValue(subt.rows[0], n) for n in col_names]
+            subt.title = ", ".join(["%s=%s" % (cn, kv) for (cn, kv) in zip(col_names, key_values)])
+            row = key_values + [subt]
+            rows.append(row)
+
+        return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
+
+
     def compressPeakMaps(self):
         """
         sometimes duplicate peakmaps occur as different objects in a table,
@@ -1792,10 +1681,10 @@ class Table(object):
         if formats is not None:
             _formats.update(formats)
 
-        # first resolfe types by name
+        # first resolve types by name
         col_formats = [_formats.get(n) for n in col_names]
         # then by type
-        col_formats = [_formats.get(t) if f is None else f
+        col_formats = [_formats.get(t, "%s") if f is None else f
                        for (f, t) in zip(col_formats, col_types)]
 
         table = Table(col_names, col_types, col_formats, rows, title, meta)
