@@ -4,7 +4,10 @@ import numpy as np
 
 from collections import Counter
 
-from util import ProgressCounter
+#from util import ProgressCounter
+
+from collections import defaultdict
+import numpy as np
 
 try:
     table = emzed.io.loadTable("shoulders_table_integrated.table")
@@ -25,6 +28,14 @@ except:
 
 
 delta_C = emzed.mass.C13 - emzed.mass.C12
+
+negative_adducts = emzed.adducts.negative
+
+mz_accuracy = 1e-4
+rt_accuracy = 5
+
+feature_tables = table.splitBy("feature_id")
+feature_tables.sort(key=lambda t: (-len(t), max(t.rt.values), -len(t),))
 
 
 class Feature(object):
@@ -49,6 +60,15 @@ class Feature(object):
     def match_for_same_adduct(self, other, mz_accuracy, rt_accuracy, max_mz_range):
         if self.z < 0 or other.z < 0 or self.z > 0 and other.z > 0 and self.z != other.z:
             return None
+
+    def __len__(self):
+        return len(self.mzs)
+
+    def match_for_same_adduct(self, other):
+        if self.z < 0 or other.z < 0 or self.z > 0 and other.z > 0 and self.z != other.z:
+            return None
+        if max(self.max_rt - other.min_rt, other.max_rt - self.min_rt) >= rt_accuracy:
+            return None
         if self.z == 0:
             z = other.z
         else:
@@ -70,7 +90,7 @@ class Feature(object):
             # determine n
             n = np.round(n_approx / delta_C)
             diff = np.abs(n * delta_C / z + mz_other - mz_self)
-            if np.any(diff > mz_accuracy):
+            if np.any(np.abs(n) < 1e-10) or np.any(diff > mz_accuracy):
                 continue
             return z
         return None
@@ -96,32 +116,38 @@ class Feature(object):
 
 class IsotopeMerger(object):
 
-    def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0, max_mz_range=20):
+    isotope_cluster_id_column_name = "isotope_cluster_id"
+    isotope_rank_column_name = "isotope_rank"
+    isotope_cluster_size_column_name = "isotope_cluster_size"
+    isotope_gap_column_name = "isotope_gap"
+
+    def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0, max_mz_range=20, fid_column="feature_id"):
         self.mz_accuracy = mz_accuracy
         self.rt_accuracy = rt_accuracy
         self.max_mz_range = max_mz_range
+        self.fid_column = fid_column 
 
-    def process(self, table, fid_column="feature_id"):
-
-        nfeat = len(set(table.getColumn(fid_column).values))
-        print "process table of length", len(table), "with", nfeat, "features"
+    def process(self, table):
 
         col_names = table.getColNames()
-        assert fid_column in col_names, (fid_column, col_names)
+        assert self.fid_column in col_names, (self.fid_column, col_names)
         assert "id" in col_names, col_names
         assert "mz" in col_names, col_names
         assert "rt" in col_names, col_names
         assert "z" in col_names, col_names
         assert "area" in col_names, col_names
 
-        features = self._extract_features(table, fid_column)
+        nfeat = len(set(table.getColumn(self.fid_column).values))
+        print "process table of length", len(table), "with", nfeat, "features"
+
+        features = self._extract_features(table)
         features = self._merge(features)
-        table = self._add_new_columns(table, features, "isotope_cluster_id", "isotope_rank",
-                                      "isotope_cluster_size", "max_isotope_gap", fid_column)
+        table = self._add_new_columns(table, features)
+        self._add_missing_mass_traces(table)
         return table
 
-    def _extract_features(self, table, fid_column):
-        feature_tables = table.splitBy(fid_column)
+    def _extract_features(self, table):
+        feature_tables = table.splitBy(self.fid_column)
         features = list()
         for t in feature_tables:
             rts = t.rt.values
@@ -137,7 +163,7 @@ class IsotopeMerger(object):
         features.sort(key=lambda f: (-len(f), f.max_rt))
 
         n = len(features)
-        counter = ProgressCounter(n)
+        #counter = ProgressCounter(n)
         start_idx = dict()
         last_l = -1
         for i, f in enumerate(features):
@@ -148,7 +174,7 @@ class IsotopeMerger(object):
         start_idx[0] = n
 
         for i, f0 in enumerate(features):
-            counter.count_up(1)
+            #counter.count_up(1)
             j = i + 1
             while j < n:
                 f1 = features[j]
@@ -171,23 +197,21 @@ class IsotopeMerger(object):
                                 if z is not None:
                                     f0.merge_feature(f1, z)
                 j += 1
-        counter.done()
+        #counter.done()
         features = [f for f in features if len(f)]
         print len(features), "isotope clusters"
         return features
 
     @profile
-    def _add_new_columns(self, table, features, new_column_name, rank_column_name,
-                         iso_cluster_size_column, iso_gap_column, fid_column):
+    def _add_new_columns(self, table, features):
 
-        self._add_cluster_id_column(table, features, new_column_name, fid_column)
-        table = self._add_isotope_ranks_column(table, rank_column_name, new_column_name,
-                                               iso_cluster_size_column, iso_gap_column, fid_column)
-        table.sortBy([new_column_name, rank_column_name])
+        self._add_cluster_id_column(table, features)
+        table = self._add_isotope_ranks_column(table)
+        table.sortBy([self.isotope_cluster_id_column_name, self.isotope_rank_column_name])
         return table
 
     @profile
-    def _add_cluster_id_column(self, table, features, new_column_name, fid_column):
+    def _add_cluster_id_column(self, table, features):
         feature_id_map = dict()
         for fid, feature in enumerate(features):
             for id_ in feature.ids:
@@ -203,17 +227,54 @@ class IsotopeMerger(object):
             print "  cluster_id=%4d" % fid, "traces = %d " % count
         print
 
-        table.addColumn(new_column_name, table.id.apply(lambda i: feature_id_map.get(i)),
-                        insertBefore=fid_column)
+        table.addColumn(self.isotope_cluster_id_column_name,
+                        table.id.apply(lambda i: feature_id_map.get(i)),
+                        insertBefore=self.fid_column)
+
+    @staticmethod
+    def guess_z(mzs):
+        # we assume: max gap of two isotope peaks, z in range 1, 2, 3
+        if 0 <= len(mzs) <=1:
+            return 0   # can not say anything
+
+        mzs = np.array(sorted(mzs))
+
+        if len(mzs) >= 3:
+            # as n_by_z are "clear" fractions we get it like this:
+            # proof: use assumptions above and verify over all combinations :)
+            # one case is special: 3 peaks, shifts 1*delta_c, 2*delta_c
+            # could be explained by z=1 and z=2
+            # in the latter case we would have two gaps which is quite unprobable
+            # keep in mind that we reach this point only if we have weak mass tracec
+            # which got no z value assigned before
+            n_by_z = ((mzs[1:] - mzs[:-1]) / delta_C)
+            for z in (1, 2, 3):
+                ns = n_by_z * z
+                if np.all(np.abs(ns - np.round(ns)) <= 0.1):
+                    return z
+            return 0
+
+        # now len(mzs) is 2
+        n_by_z = (mzs[1] - mzs[0] / delta_C)
+        if abs(n_by_z - 3.0) < 0.1:
+            return 1
+        if abs(n_by_z - 2.0) < 0.1:
+            return 1
+        if abs(n_by_z - 1/3.0) < 0.1:
+            return 3
+        if abs(n_by_z - 1/2.0) < 0.1:
+            return 2
+        # now z could be 1 or 2 !
+        return 0
+
 
     @profile
-    def _add_isotope_ranks_column(self, table, rank_column_name, iso_cluster_column,
-                                  iso_cluster_size_column, iso_gap_column, fid_column):
+    def _add_isotope_ranks_column(self, table):
         print "calculate isotope ranks"
         collected = []
-        for t in table.splitBy(iso_cluster_column):
+        for t in table.splitBy(self.isotope_cluster_id_column_name):
             if len(t) == 1:
-                t.addColumn(iso_cluster_size_column, 1, insertBefore=fid_column)
+                t.addColumn(self.isotope_cluster_size_column_name, 1, insertBefore=self.fid_column)
                 collected.append(t)
                 continue
             t.sortBy("mz")
@@ -225,25 +286,107 @@ class IsotopeMerger(object):
                 assert 0 in zs
                 zs.remove(0)
                 z = zs.pop()
+            if z==0:
+                print t.isotope_cluster_id.uniqueValue(), t.mz.values,
+                z = self.guess_z(t.mz.values)
+                print z
             t.replaceColumn("z", z)
-            mz_main_peak = t.filter(t.area == t.area.max()).mz.uniqueValue()
 
-            def rank_peak(mz):
-                return int(round((mz - mz_main_peak) / delta_C * z))
-            t.addColumn(rank_column_name, t.mz.apply(rank_peak), insertBefore=fid_column)
-            ranks = sorted(t.getColumn(rank_column_name).values)
-            if len(ranks) > 1:
-                max_gap = int(max(r1 - r0 for (r0, r1) in zip(ranks, ranks[1:])))
-            else:
-                max_gap = 0
-            t.addColumn(iso_cluster_size_column, len(t), type_=int, format_="%d",
-                        insertBefore=fid_column)
-            t.addColumn(iso_gap_column, max_gap, type_=int, format_="%d",
-                        insertBefore=fid_column)
+            max_gap = None
+            if z is not None:
+
+                mz_main_peak = t.filter(t.area == t.area.max()).mz.uniqueValue()
+
+                def rank_peak(mz):
+                    return int(round((mz - mz_main_peak) / delta_C * z))
+
+                t.addColumn(self.isotope_rank_column_name,
+                            t.mz.apply(rank_peak),
+                            insertBefore=self.fid_column)
+
+                ranks = sorted(t.getColumn(self.isotope_rank_column_name).values)
+                if len(ranks) > 1:
+                    max_gap = int(max(r1 - r0 for (r0, r1) in zip(ranks, ranks[1:]))) - 1
+
+            t.addColumn(self.isotope_cluster_size_column_name, len(t), type_=int, format_="%d",
+                        insertBefore=self.fid_column)
+            t.addColumn(self.isotope_gap_column_name, max_gap, type_=int, format_="%d",
+                        insertBefore=self.fid_column)
             collected.append(t)
         return emzed.utils.mergeTables(collected)
 
+    @profile
+    def _add_missing_mass_traces(self, table):
+        return
+        iso_gap_column = table.getColumn(iso_gap_column_name)
+        do_not_handle = table.filter((iso_gap_column == 0) | (iso_gap_column >= 3))
+        do_handle = table.filter((iso_gap_column == 1) | (iso_gap_column == 2))
 
-table = IsotopeMerger().process(table[:])
+        for z in z_to_try:
+            all_match = True
+            pairs = [(mz_self, mz_other) for mz_self in self.mzs for mz_other in other.mzs]
+            for mz_self, mz_other in pairs:
+                n = round((mz_self - mz_other) * z / delta_C)
+                diff = abs(n * delta_C / z + mz_other - mz_self)
+                if diff > mz_accuracy:
+                    all_match = False
+                    break
+            if all_match:
+                return z
+        return None
+
+    def merge_isotopes(self, other, z):
+        self.rts.extend(other.rts)
+        self.mzs.extend(other.mzs)
+        self.ids.extend(other.ids)
+        self.z = z
+        self.min_rt = min(self.rts)
+        self.max_rt = max(self.rts)
+        other.ids = other.rts = other.mzs = []
+        other.z = -1
+        other.min_rt = other.max_rt = -1000.0
+
+
+print "start"
+
+features = []
+for t in feature_tables:
+    rts = t.rt.values
+    mzs = t.mz.values
+    ids = t.id.values
+    z = t.z.uniqueValue()
+    feat = Feature(rts, mzs, ids, z)
+    features.append(feat)
+
+for i, f0 in enumerate(features):
+    if (i % 100) == 0:
+        print i
+    for f1 in features[i + 1:]:
+        if f1.min_rt >= f0.max_rt + 3 * rt_accuracy:
+            break
+            pass
+        # if max(f0.max_rt - f1.min_rt, f1.max_rt - f0.min_rt) >= 3 * rt_accuracy:
+            # break
+        z = f0.match_for_same_adduct(f1)
+        if z is not None:
+            f0.merge_isotopes(f1, z)
+
+
+features = [f for f in features if len(f)]
+print len(features), "features"
+feature_id_map = dict()
+for fid, feature in enumerate(features):
+    for id_ in feature.ids:
+        feature_id_map[id_] = fid
+
+
+fzs = list(enumerate(features))
+fzs.sort(key=lambda f: -len(f[1]))
+for i, f in fzs[:5]:
+    print i, len(f)
+
+table.addColumn("isotop_cluster_id", table.id.apply(lambda i: feature_id_map.get(i)),
+                insertBefore="feature_id")
+
 emzed.io.storeTable(table, "isotope_clustered.table", True)
-#emzed.gui.inspect(table)
+emzed.gui.inspect(table)
