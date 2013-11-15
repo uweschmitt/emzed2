@@ -60,7 +60,7 @@ def storeCSV(tab, path=None):
     """
 
     # local import in order to keep namespaces clean
-    path = _prepare_path(path, extensions=["table"], store=False)
+    path = _prepare_path(path, extensions=["csv"], store=False)
     if path is None:
         return None
     tab.storeCSV(path)
