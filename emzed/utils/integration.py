@@ -1,14 +1,17 @@
 # encoding: utf-8
 
 
-
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1):
+    """
+    n_cpus <= 0 has special meaning:
+        n_cpus = 0 means "use all cpu cores"
+        n_cpus = -1 means "use all but one cpu cores", etc
+    """
     import sys
     import multiprocessing
     if sys.platform == "win32":
         # if subprocesses use python.exe a console window pops up for each
-        # subprocess. this is not only quite ugly, the console windows are
-        # zombies, the pop up again after closing.
+        # subprocess. this is quite ugly..
         import os.path
         multiprocessing.set_executable(os.path.join(
                                        os.path.dirname(sys.executable),
@@ -19,10 +22,16 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
     started = time.time()
 
-    if n_cpus == -1:
-        n_cpus = multiprocessing.cpu_count()
+    if n_cpus < 0:
+        n_cpus = multiprocessing.cpu_count() + n_cpus
 
-    if n_cpus > multiprocessing.cpu_count():
+    if n_cpus <= 0:
+        print
+        print "WARNING: you requested to use %d cores, we use single core instead !" % n_cpus
+        print
+        n_cpus = 1
+
+    elif n_cpus > multiprocessing.cpu_count():
         print
         print "WARNING: more processes demanded than available cpu cores, this might be",
         print "inefficient"
@@ -32,16 +41,20 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     print "integrate table using", n_cpus, "processes"
     print
 
-    p = multiprocessing.Pool(n_cpus)
-    args = []
-    for i in range(n_cpus):
-        subt = ftable[i::n_cpus]
-        show_progress = (i == 0)  # only first process does output
-        args.append((subt, integratorid, msLevel, show_progress))
+    if n_cpus == 1:
+        result = _integrate((ftable, integratorid, msLevel, showProgress))
+    else:
+        pool = multiprocessing.Pool(n_cpus)
+        args = []
+        for i in range(n_cpus):
+            subt = ftable[i::n_cpus]
+            show_progress = (i == 0)  # only first process does output
+            args.append((subt, integratorid, msLevel, show_progress))
 
-    # map_async() avoids bug of map() when trying to stop jobs using ^C
-    tables = p.map_async(_integrate, args).get()
-    result = Table.mergeTables(tables)
+        # map_async() avoids bug of map() when trying to stop jobs using ^C
+        tables = pool.map_async(_integrate, args).get()
+        pool.close()
+        result = Table.mergeTables(tables)
     needed = time.time() - started
     minutes = int(needed) / 60
     seconds = needed - minutes * 60
