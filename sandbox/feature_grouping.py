@@ -4,8 +4,6 @@ import numpy as np
 
 from collections import Counter
 
-#from util import ProgressCounter
-
 from collections import defaultdict
 import numpy as np
 
@@ -388,5 +386,6 @@ for i, f in fzs[:5]:
 table.addColumn("isotop_cluster_id", table.id.apply(lambda i: feature_id_map.get(i)),
                 insertBefore="feature_id")
 
+table = IsotopeMerger().process(table[:1000])
 emzed.io.storeTable(table, "isotope_clustered.table", True)
 emzed.gui.inspect(table)
