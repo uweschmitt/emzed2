@@ -377,10 +377,9 @@ class IsotopeMerger(object):
 
     @profile
     def _add_missing_mass_traces(self, table):
-        iso_gap_column = table.getColumn(self.isotope_gap_column_name)
-        pdb.set_trace() ############################## Breakpoint ##############################
-        do_not_handle = table.filter((iso_gap_column == 0) | (iso_gap_column > self.max_iso_gap))
-        do_handle = table.filter((iso_gap_column >0 ) & (iso_gap_column <= self.max_iso_gap))
+        igc = table.getColumn(self.isotope_gap_column_name)
+        do_not_handle = table.filter((igc.isNone() | (igc == 0) | (igc > self.max_iso_gap))
+        do_handle = table.filter(igc.isNotNone() & (igc >0 ) & (igc <= self.max_iso_gap))
         filled_up_subtables = []
         for group in do_handle.splitBy(self.isotope_cluster_id_column_name):
             iso_cluster_id = group.getColumn(self.isotope_cluster_id_column_name).uniqueValue()
