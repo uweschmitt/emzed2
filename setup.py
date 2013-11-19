@@ -7,22 +7,8 @@ def patched(self):
                 repository="http://127.0.0.1:3142/root/dev/",
                 server="local",
                )
-# import distutils.config
-# distutils.config.PyPIRCCommand._read_pypirc = patched
 
-
-#import os
-#p = os.getcwd()
-#os.chdir("emzed/core/explorers")
-#os.system("rst2html help_peakmapexplorer.rst > help_peakmapexplorer.html")
-#os.chdir(p)
-
-version_str = "2.0.4"
-
-#version_tuple = tuple(map(int, version_str.split(".")))
-#with open("emzed/version.py", "w") as fp:
-    #fp.write("version = %r\n" % (version_tuple,))
-
+version_str = "2.0.5"
 
 from setuptools import setup, find_packages
 setup(name="emzed",
