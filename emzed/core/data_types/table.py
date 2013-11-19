@@ -668,7 +668,7 @@ class Table(object):
         if not forceOverwrite and os.path.exists(path):
             raise Exception("%s exists. You may use forceOverwrite=True" % path)
         with open(path, "w+b") as fp:
-            fp.write("emzed_version=%s.%s.%s\n" % emzed.__version__)
+            fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             cPickle.dump(data, fp, protocol=2)
 
