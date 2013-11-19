@@ -141,6 +141,8 @@ class Table(object):
 
     """
 
+    _latest_internal_update_with_version = (2, 0, 2)
+
     _to_pickle = ("_colNames",
                   "_colTypes",
                   "_colFormats",
