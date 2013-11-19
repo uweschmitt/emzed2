@@ -29,6 +29,7 @@ def gt(a, x):
 
 
 def none_in_array(v):
+    return None in v.tolist()
     return v.dtype == object
 
 
@@ -282,8 +283,14 @@ class BaseExpression(object):
     def __and__(self, other):
         return AndExpression(self, other)
 
-    # no rand / ror / rxor: makes sometimes trouble with precedence of
-    # terms.....
+    def __rand__(self, other):
+        raise NotImplentedError("not implemented, causes non predictable evaluation order")
+
+    def __ror__(self, other):
+        raise NotImplentedError("not implemented, causes non predictable evaluation order")
+
+    def __rxor__(self, other):
+        raise NotImplentedError("not implemented, causes non predictable evaluation order")
 
     def __or__(self, other):
         return OrExpression(self, other)
@@ -834,9 +841,9 @@ class BinaryExpression(BaseExpression):
 
             if none_in_array(lvals) or none_in_array(rvals):
                 nones = find_nones(lvals) | find_nones(rvals)
-                lfilterd = np.where(nones, 1, lvals)
-                rfilterd = np.where(nones, 1, rvals)
-                res = self.efun(lfilterd, rfilterd)
+                lfiltered = np.where(nones, 1, lvals)
+                rfiltered = np.where(nones, 1, rvals)
+                res = self.efun(lfiltered, rfiltered)
             else:
                 nones = None
                 res = self.efun(lvals, rvals)
@@ -964,16 +971,29 @@ class AndExpression(LogicExpression):
 
     def _eval(self, ctx=None):
         lhs, _, tlhs = saveeval(self.left, ctx)
-        if len(lhs) == 1 and not lhs[0]:
-            return np.zeros((self.right._evalsize(ctx),), dtype=np.bool),\
-                None, bool
+        if len(lhs) == 1:
+            if lhs[0] is None:
+                return np.array([None] * self.right._evalsize(ctx)), None, bool
+            if not lhs[0]:
+                return np.zeros((self.right._evalsize(ctx),), dtype=np.bool),\
+                    None, bool
         rhs, _, trhs = saveeval(self.right, ctx)
-        if len(rhs) == 1 and not rhs[0]:
-            return np.zeros((len(lhs),), dtype=np.bool), None, bool
+        if len(rhs) == 1:
+            if rhs[0] is None:
+                return np.array([None] * len(lhs)), None, bool
+            if not rhs[0]:
+                return np.zeros((len(lhs),), dtype=np.bool), None, bool
         if len(lhs) == 1:  # lhs[0] is True
             return rhs, _, trhs
         if len(rhs) == 1:  # rhs[0] is True
             return lhs, _, tlhs
+        if none_in_array(lhs) or none_in_array(rhs):
+            nones = find_nones(lhs) | find_nones(rhs)
+            lfiltered = np.where(nones, 1, lhs)
+            rfiltered = np.where(nones, 1, lhs)
+            res = lfiltered & rfiltered
+            res[nones] = None
+            return res, None, bool
         return lhs & rhs, None, bool
 
 
@@ -983,16 +1003,29 @@ class OrExpression(LogicExpression):
 
     def _eval(self, ctx=None):
         lhs, _, tlhs = saveeval(self.left, ctx)
-        if len(lhs) == 1 and lhs[0]:
-            return np.ones((self.right._evalsize(ctx),), dtype=np.bool),\
-                None, bool
+        if len(lhs) == 1:
+            if lhs[0] is None:
+                return np.array([None] * self.right._evalsize(ctx)), None, bool
+            if lhs[0]:
+                return np.ones((self.right._evalsize(ctx),), dtype=np.bool),\
+                    None, bool
         rhs, _, trhs = saveeval(self.right, ctx)
-        if len(rhs) == 1 and rhs[0]:
-            return np.ones((len(lhs),), dtype=np.bool), None, bool
+        if len(rhs) == 1:
+            if rhs[0] is None:
+                return np.array([None] * len(lhs)), None, bool
+            if rhs[0]:
+                return np.ones((len(lhs),), dtype=np.bool), None, bool
         if len(lhs) == 1:  # lhs[0] is False
             return rhs, _, trhs
         if len(rhs) == 1:  # rhs[0] is False
             return lhs, _, tlhs
+        if none_in_array(lhs) or none_in_array(rhs):
+            nones = find_nones(lhs) | find_nones(rhs)
+            lfiltered = np.where(nones, 1, lhs)
+            rfiltered = np.where(nones, 1, lhs)
+            res = lfiltered | rfiltered
+            res[nones] = None
+            return res, None, bool
         return lhs | rhs, None, bool
 
 
@@ -1003,10 +1036,23 @@ class XorExpression(LogicExpression):
     def _eval(self, ctx=None):
         lhs, _, tlhs = saveeval(self.left, ctx)
         rhs, _, trhs = saveeval(self.right, ctx)
-        if len(lhs) == 1 and not lhs[0]:
-            return rhs, _, trhs
-        if len(rhs) == 1 and not rhs[0]:
-            return lhs, _, tlhs
+        if len(lhs) == 1:
+            if lhs[0] is None:
+                return np.array([None] * len(rhs)), None, bool
+            if not lhs[0]:
+                return rhs, _, trhs
+        if len(rhs) == 1:
+            if rhs[0] is None:
+                return np.array([None] * len(lhs)), None, bool
+            if not rhs[0]:
+                return lhs, _, tlhs
+        if none_in_array(lhs) or none_in_array(rhs):
+            nones = find_nones(lhs) | find_nones(rhs)
+            lfiltered = np.where(nones, 1, lhs)
+            rfiltered = np.where(nones, 1, lhs)
+            res = (lfiltered & ~rfiltered) | (~lfiltered & rfiltered)
+            res[nones] = None
+            return res, None, bool
         return (lhs & ~rhs) | (~lhs & rhs), None, bool
 
 

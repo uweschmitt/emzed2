@@ -1,6 +1,10 @@
 from emzed.core.data_types.expressions import Value, le, gt, lt, ge
 import numpy as np
 
+import emzed
+from emzed.core.data_types import col_types
+import os
+
 def test_if_all_operators_are_defined():
 
     v1 = Value(1)
@@ -60,9 +64,6 @@ def test_efficient_comparators():
 
 
 def test_load_binary():
-    import os
-    import emzed
-    from emzed.core.data_types import col_types
     here = os.path.dirname(os.path.abspath(__file__))
     png_path = os.path.join(here, "data", "test.png")
     t = emzed.utils.toTable("path", [png_path])
@@ -71,3 +72,33 @@ def test_load_binary():
     assert value.type_ == "PNG"
     assert len(value.data) > 0
 
+
+def test_logical_with_Nones_1():
+    t = emzed.utils.toTable("a", [None, True, False])
+    t.addColumn("b", [None, None, False])
+    t.addColumn("a_and_b", t.a & t.b)
+    t.addColumn("a_or_b", t.a | t.b)
+    t.addColumn("a_xor_b", t.a ^ t.b)
+    t.addColumn("not_a", ~t.a)
+
+    assert t.a_and_b.values == [None, None, False]
+    assert t.a_or_b.values == [None, None, False]
+    assert t.a_xor_b.values == [None, None, False]
+    assert t.not_a.values == [None, False, True]
+
+
+def test_logical_with_Nones_2():
+    t = emzed.utils.toTable("a", [None, True, False])
+    t.addColumn("a_and_none", t.a & None)
+    t.addColumn("a_or_none", t.a | None)
+    t.addColumn("a_xor_none", t.a ^  None)
+    t.addColumn("none_and_a", Value(None) & t.a)
+    t.addColumn("none_or_a", Value(None) | t.a)
+    t.addColumn("none_xor_a", Value(None) ^ t.a)
+
+    assert t.a_and_none.values == [None] * 3
+    assert t.a_or_none.values == [None] * 3
+    assert t.a_xor_none.values == [None] * 3
+    assert t.none_and_a.values == [None] * 3
+    assert t.none_or_a.values == [None] * 3
+    assert t.none_xor_a.values == [None] * 3

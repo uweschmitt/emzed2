@@ -253,7 +253,8 @@ class TestTable(unittest.TestCase):
         rows = [row1, row2, row3]
         t=Table(names, types, formats, rows, "testtabelle", meta=dict(why=42))
 
-        tn = t.filter((t.int+t.float).inRange(-1, 2))
+        expr = (t.int + t.float).inRange(-1, 2)
+        tn = t.filter(expr)
         assert len(tn) == 1
         assert tn.getValue(tn.rows[0], "int") == 1
         tn = t.filter((t.float+t.int).inRange(-1, 2))
