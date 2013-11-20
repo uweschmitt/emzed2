@@ -82,7 +82,7 @@ def test_logical_with_Nones_1():
     t.addColumn("not_a", ~t.a)
 
     assert t.a_and_b.values == [None, None, False]
-    assert t.a_or_b.values == [None, None, False]
+    assert t.a_or_b.values == [None, True, False]
     assert t.a_xor_b.values == [None, None, False]
     assert t.not_a.values == [None, False, True]
 
@@ -91,14 +91,14 @@ def test_logical_with_Nones_2():
     t = emzed.utils.toTable("a", [None, True, False])
     t.addColumn("a_and_none", t.a & None)
     t.addColumn("a_or_none", t.a | None)
-    t.addColumn("a_xor_none", t.a ^  None)
+    t.addColumn("a_xor_none", t.a ^ None)
     t.addColumn("none_and_a", Value(None) & t.a)
     t.addColumn("none_or_a", Value(None) | t.a)
     t.addColumn("none_xor_a", Value(None) ^ t.a)
 
-    assert t.a_and_none.values == [None] * 3
-    assert t.a_or_none.values == [None] * 3
-    assert t.a_xor_none.values == [None] * 3
-    assert t.none_and_a.values == [None] * 3
-    assert t.none_or_a.values == [None] * 3
-    assert t.none_xor_a.values == [None] * 3
+    assert t.a_and_none.values == [None, None, False]
+    assert t.a_or_none.values == [None, True, None]
+    assert t.a_xor_none.values == [None, None, None]
+    assert t.none_and_a.values == t.a_and_none.values
+    assert t.none_or_a.values == t.a_or_none.values
+    assert t.none_xor_a.values == t.a_xor_none.values
