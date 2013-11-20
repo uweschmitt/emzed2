@@ -37,9 +37,10 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print "inefficient"
         print
 
-    print
-    print "integrate table using", n_cpus, "processes"
-    print
+    if showProgress:
+        print
+        print "integrate table using", n_cpus, "processes"
+        print
 
     if n_cpus == 1:
         result = _integrate((ftable, integratorid, msLevel, showProgress))
@@ -55,14 +56,16 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         tables = pool.map_async(_integrate, args).get()
         pool.close()
         result = Table.mergeTables(tables)
-    needed = time.time() - started
-    minutes = int(needed) / 60
-    seconds = needed - minutes * 60
-    print
-    if minutes:
-        print "needed %d minutes and %.1f seconds" % (minutes, seconds)
-    else:
-        print "needed %.1f seconds" % seconds
+
+    if showProgress:
+        needed = time.time() - started
+        minutes = int(needed) / 60
+        seconds = needed - minutes * 60
+        print
+        if minutes:
+            print "needed %d minutes and %.1f seconds" % (minutes, seconds)
+        else:
+            print "needed %.1f seconds" % seconds
     return result
 
 
