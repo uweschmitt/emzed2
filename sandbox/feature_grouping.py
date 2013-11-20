@@ -1,28 +1,13 @@
-import pdb
 import emzed
 import numpy as np
 import sys
 
 from collections import Counter
 
-
-try:
-    table = emzed.io.loadTable("shoulders_table_integrated.table")
-except:
-    table = emzed.io.loadTable("shoulders_table_with_chromos.table")
-    table = emzed.utils.integrate(table, "trapez")
-    emzed.io.storeTable(table, "shoulders_table_integrated.table")
-
-if 1:
-    table = table.filter(table.area > 5e4)
-    table.dropColumns("id")
-    table.addEnumeration()
-
 try:
     profile
 except:
     profile = lambda x: x
-
 
 delta_C = emzed.mass.C13 - emzed.mass.C12
 
@@ -30,9 +15,6 @@ negative_adducts = emzed.adducts.negative
 
 mz_accuracy = 1e-4
 rt_accuracy = 5
-
-feature_tables = table.splitBy("feature_id")
-feature_tables.sort(key=lambda t: (-len(t), max(t.rt.values), -len(t),))
 
 
 class Feature(object):
@@ -163,7 +145,7 @@ class IsotopeMerger(object):
     isotope_gap_column_name = "isotope_gap"
 
     def __init__(self, mz_accuracy=1e-4, rt_accuracy=10.0, max_mz_range=20, max_iso_gap=1,
-                    mz_integration_window=1e-3, fid_column="feature_id"):
+                    mz_integration_window=4e-3, fid_column="feature_id"):
         self.mz_accuracy = mz_accuracy
         self.rt_accuracy = rt_accuracy
         self.max_mz_range = max_mz_range
@@ -173,27 +155,31 @@ class IsotopeMerger(object):
 
     def process(self, table):
 
-        col_names = table.getColNames()
-        assert self.fid_column in col_names, (self.fid_column, col_names)
-        assert "id" in col_names, col_names
-        assert "mz" in col_names, col_names
-        assert "rt" in col_names, col_names
-        assert "z" in col_names, col_names
-        assert "area" in col_names, col_names
+        required = set(("id", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "method", "z",
+                        self.fid_column))
+
+        col_names = set(table.getColNames())
+        missing = required - col_names
+        if missing:
+            raise Exception("columns named %r missing among names %r" %
+                            sorted(missing), sorted(col_names))
 
         n_features = len(set(table.getColumn(self.fid_column).values))
         n_z0_in = len(set(table.filter(table.z == 0).feature_id.values))
+
         print "process table of length", len(table), "with", n_features, "features"
 
         features = self._extract_features(table)
         candidates = self._detect_candidates(features)
-        n_candidates = len(candidates)
         clusters = self._merge_candidates(candidates)
-        n_clusters = len(clusters)
 
         table = self._add_new_columns(table, features)
         n_z0_out = len(set(table.filter(table.z == 0).feature_id.values))
         table = self._add_missing_mass_traces(table)
+        table.sortBy(self.isotope_cluster_id_column_name)
+
+        n_candidates = len(candidates)
+        n_clusters = len(clusters)
         print
         print "started with  %5d features which had %5d features with z=0" % (n_features, n_z0_in)
         print "detected      %5d candidates" % n_candidates
@@ -377,41 +363,68 @@ class IsotopeMerger(object):
 
     @profile
     def _add_missing_mass_traces(self, table):
+        #emzed.io.storeTable(table, "_cached.table", True)
+        new_id = table.id.max() + 1
         igc = table.getColumn(self.isotope_gap_column_name)
-        do_not_handle = table.filter((igc.isNone() | (igc == 0) | (igc > self.max_iso_gap))
-        do_handle = table.filter(igc.isNotNone() & (igc >0 ) & (igc <= self.max_iso_gap))
+        do_not_handle = table.filter(igc.isNone() | (igc == 0) | (igc > self.max_iso_gap))
+        do_handle = table.filter(igc.isNotNone() & (igc > 0) & (igc <= self.max_iso_gap))
         filled_up_subtables = []
         for group in do_handle.splitBy(self.isotope_cluster_id_column_name):
             iso_cluster_id = group.getColumn(self.isotope_cluster_id_column_name).uniqueValue()
-            rtmin = group.rt.min()
-            rtmax = group.rt.max()
+            rt_min = group.rtmin.min()
+            rt_max = group.rtmax.max()
+            rt_mean = group.rt.mean()
             mzs = sorted(group.mz.values)
-            z = group.z.uniqeValue()
-            mz0 = min(mzs)
-            proto = group.rows[0]
-            while mz0 < max(mzs):
-                mz0 += delta_C / z
-                if any(abs(mz0-mz) < 1e-2 for mz in mzs):
+            mz_min = min(mzs)
+            mz_max = max(mzs)
+            z = group.z.uniqueValue()
+            n = int(np.round((mz_max - mz_min) * z / delta_C))
+            proto = group.rows[0][:]
+            for i in range(1, n):
+                mz0 = mz_min + i * delta_C / z
+                if any(abs(mz0 - mz) < 1e-2 for mz in mzs):
                     continue
                 print "add integration window for iso cluster %d and mz= %.5f" % (iso_cluster_id,
                         mz0)
                 proto[group.getIndex("mz")] = mz0
                 proto[group.getIndex("mzmin")] = mz0 - self.mz_integration_window / 2.0
                 proto[group.getIndex("mzmax")] = mz0 + self.mz_integration_window / 2.0
-                proto[group.getIndex("rtmin")] = rtmin
-                proto[group.getIndex("rtmax")] = rtmax
-            integrated = emzed.utils.integrate(group)
+                proto[group.getIndex("rt")] = rt_mean
+                proto[group.getIndex("rtmin")] = rt_min
+                proto[group.getIndex("rtmax")] = rt_max
+                proto[group.getIndex(self.fid_column)] = None
+                proto[group.getIndex("id")] = new_id
+                new_id += 1
+                group.rows.append(proto)
+                group.replaceColumn(self.isotope_gap_column_name, 0)
+            group.resetInternals()
+            integrator_id = group.method.values[0]
+            integrated = emzed.utils.integrate(group, integrator_id, showProgress=False)
+            integrated.print_()
             filled_up_subtables.append(integrated)
-        return emzed.utils.mereTables([do_not_handle] + filled_up_subtables)
+        return emzed.utils.mergeTables([do_not_handle] + filled_up_subtables)
 
 
+def process(table):
+    import time
+    start = time.time()
+    table = IsotopeMerger().process(table)
+    needed = time.time() - start
+    print
+    print "needed overall %.0f seconds" % needed
+    print
 
 
+if __name__ == "__main__":
+    try:
+        table = emzed.io.loadTable("shoulders_table_integrated.table")
+    except:
+        table = emzed.io.loadTable("shoulders_table_with_chromos.table")
+        table = emzed.utils.integrate(table, "trapez")
+        emzed.io.storeTable(table, "shoulders_table_integrated.table")
 
-# mzs = [0.0, delta_C,  delta_C * 3.0]
-# print IsotopeMerger.guess_z(mzs, 1e-3)
-# exit()
+    table.setColFormat("peakmap", "%s")
 
-table = IsotopeMerger().process(table[:100000])
-emzed.io.storeTable(table, "isotope_clustered.table", True)
-emzed.gui.inspect(table)
+    table = process(table)
+    emzed.io.storeTable(table, "isotope_clustered.table", True)
+    emzed.gui.inspect(table)
