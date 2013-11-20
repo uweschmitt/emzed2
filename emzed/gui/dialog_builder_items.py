@@ -6,5 +6,4 @@ import inspect as _inspect
 for _name, _item in _di.__dict__.items():
     if _inspect.isclass(_item):
         if issubclass(_item, _dt.DataItem):
-            print("%s=_item" % _name)
             exec("%s=_item" % _name)
