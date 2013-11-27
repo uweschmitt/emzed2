@@ -110,17 +110,20 @@ class PeakMapImageBase(object):
 
         x1, y1 = canvasRect.left(), canvasRect.top()
         x2, y2 = canvasRect.right(), canvasRect.bottom()
-        rtmin, mzmax, rtmax, mzmin = srcRect
-
         NX = x2 - x1
         NY = y2 - y1
 
-        # optimized:
-        # one additional row / col as we loose one row and col during smoothing:
-        data = sample_image(self.peakmaps[idx], rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
+        rtmin, mzmax, rtmax, mzmin = srcRect
 
-        # enlarge single pixels to 2 x 2 pixels:
-        smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
+        if rtmin >= rtmax or mzmin >= mzmax:
+            smoothed = np.zeros((1, 1))
+        else:
+            # optimized:
+            # one additional row / col as we loose one row and col during smoothing:
+            data = sample_image(self.peakmaps[idx], rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
+
+            # enlarge single pixels to 2 x 2 pixels:
+            smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
 
         # turn up/down
         smoothed = smoothed[::-1, :]
@@ -792,6 +795,7 @@ def create_table_widget(table, parent):
 
     widget = QTableWidget(n_rows, 1 + len(indices_of_visible_columns), parent=parent)
     widget.setHorizontalHeaderLabels(headers)
+    widget.setMinimumSize(200, 200)
 
     widget.horizontalHeader().setResizeMode(QHeaderView.Interactive)
 
@@ -1205,7 +1209,7 @@ class PeakMapExplorer(QDialog):
         v_splitter1.setOrientation(Qt.Vertical)
         v_splitter1.addWidget(self.chromatogram_plotter.widget)
         v_splitter1.addWidget(self.peakmap_plotter.widget)
-        self.peakmap_plotter.widget.setMinimumSize(550, 450)
+        self.peakmap_plotter.widget.setMinimumSize(250, 200)
         v_splitter1.setStretchFactor(0, 1)
         v_splitter1.setStretchFactor(1, 3)
 
