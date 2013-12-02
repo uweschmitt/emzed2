@@ -10,15 +10,16 @@ except:
     profile = lambda x: x
 
 
+delta_C = emzed.mass.C13 - emzed.mass.C12
+delta_N = emzed.mass.N15 - emzed.mass.N14
+delta_O = emzed.mass.O18 - emzed.mass.O16
+delta_S = emzed.mass.S34 - emzed.mass.S32
+
+delta_Cl = emzed.mass.Cl37 - emzed.mass.Cl35
+delta_Br = emzed.mass.Br81 - emzed.mass.Br79
+
+
 class Feature(object):
-
-    delta_C = emzed.mass.C13 - emzed.mass.C12
-    delta_N = emzed.mass.N15 - emzed.mass.N14
-    delta_O = emzed.mass.O18 - emzed.mass.O16
-    delta_S = emzed.mass.S34 - emzed.mass.S32
-
-    delta_Cl = emzed.mass.Cl37 - emzed.mass.Cl35
-    delta_Br = emzed.mass.Br81 - emzed.mass.Br79
 
     def __init__(self, rts, mzs, ids, z, areas, element_names=None, adducts=None):
         assert len(rts) == len(mzs) == len(ids)
@@ -50,11 +51,11 @@ class Feature(object):
             return
 
         z = self.z
-        mass_shifts = [(self.delta_C / z, "C"),
-                       (self.delta_N / z, "N"),
-                       (self.delta_O / z, "O"),
-                       (self.delta_S / z, "S"),
-                       (self.delta_Cl / z, "Cl"),
+        mass_shifts = [(delta_C / z, "C"),
+                       (delta_N / z, "N"),
+                       (delta_O / z, "O"),
+                       (delta_S / z, "S"),
+                       (delta_Cl / z, "Cl"),
                        # (delta_Br / z, "Br"),
                        ]
 
@@ -216,7 +217,7 @@ class FeatureCluster(object):
                 cluster = FeatureCluster(f1)
             else:
                 cluster.merge_feature(f1, self.merged_z)
-                print "merge", 
+                print "merge",
             print f0.ids, f1.ids, "mzs=", f0.mzs, f1.mzs, "gap=", n_gap, "z=", self.merged_z
         clusters.append(cluster)
         return clusters
