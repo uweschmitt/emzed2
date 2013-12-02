@@ -163,7 +163,6 @@ on Windows platforms (only IPython v0.10 is fully supported).
 
 
         # emzed 2 ###########################################################
-        #from ip_prompt_hook import hook
 
         def cwd_filt2(depth):
             """Return the last depth elements of the current working directory.
@@ -172,9 +171,13 @@ on Windows platforms (only IPython v0.10 is fully supported).
             If depth==0, the full path is returned."""
 
             HOME = os.environ.get("HOME", "")
+            if not HOME:
+                HOME = os.environ.get("USERPROFILE", "")  # for win32
 
             full_cwd = os.getcwd()
-            cwd = full_cwd.replace(HOME,"~").split(os.sep)
+            if HOME:
+                full_cwd = full_cwd.replace(HOME, "~")
+            cwd = full_cwd.split(os.sep)
             if '~' in cwd and len(cwd) == depth+1:
                 depth += 1
             drivepart = ''
