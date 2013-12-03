@@ -22,7 +22,7 @@ def _testIntegration(path, n_cpus):
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus, min_size_for_parallel_execution=1)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -45,7 +45,7 @@ def _testIntegration(path, n_cpus):
     ft.addColumn("rtmaxX", ft.rtmax)
     ft.addColumn("peakmapX", ft.peakmap)
 
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus,min_size_for_parallel_execution=1)
     ftr.info()
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()

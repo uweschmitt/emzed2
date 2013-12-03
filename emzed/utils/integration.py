@@ -1,7 +1,8 @@
 # encoding: utf-8
 
 
-def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1):
+def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
+        min_size_for_parallel_execution=500):
     """
     n_cpus <= 0 has special meaning:
         n_cpus = 0 means "use all cpu cores"
@@ -25,20 +26,24 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     if n_cpus < 0:
         n_cpus = multiprocessing.cpu_count() + n_cpus
 
+    messages = []
     if n_cpus <= 0:
-        print
-        print "WARNING: you requested to use %d cores, we use single core instead !" % n_cpus
-        print
+        messages.append("WARNING: you requested to use %d cores, "
+                        "we use single core instead !" % n_cpus)
         n_cpus = 1
 
+    if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
+        messages.append("WARNING: as the table has les thann %d rows, we switch to one cpu mode"
+                        % min_size_for_parallel_execution)
+
     elif n_cpus > multiprocessing.cpu_count():
-        print
-        print "WARNING: more processes demanded than available cpu cores, this might be",
-        print "inefficient"
-        print
+        messages.append("WARNING: more processes demanded than available cpu cores, this might be "
+                        "inefficient")
 
     if showProgress:
         print
+        if messages:
+            print "\n".join(messages)
         print "integrate table using", n_cpus, "processes"
         print
 
@@ -47,13 +52,22 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
+        all_pms = []
         for i in range(n_cpus):
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process does output
             args.append((subt, integratorid, msLevel, show_progress))
+            all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
         tables = pool.map_async(_integrate, args).get()
+
+        # as peakmaps are serialized/unserialized for paralell execution, lots of duplicate
+        # peakmaps come back after. we reset those columns to their state before spreading
+        # them:
+        for t, pms in zip(tables, all_pms):
+            t.replaceColumn("peakmap", pms)
+
         pool.close()
         result = Table.mergeTables(tables)
 
