@@ -36,7 +36,7 @@ def loadPeakMap(path=None):
     return PeakMap.fromMSExperiment(experiment)
 
 
-def loadTable(path=None):
+def loadTable(path=None, compress_after_load=True):
     """ load pickled table
 
         If *path* is missing, a dialog for file selection is opened
@@ -51,7 +51,8 @@ def loadTable(path=None):
         return None
 
     result = Table.load(path)
-    result.compressPeakMaps()
+    if compress_after_load:
+        result.compressPeakMaps()
     return result
 
 

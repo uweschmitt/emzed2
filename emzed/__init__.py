@@ -10,14 +10,6 @@ except:
     pass
 
 
-#import _updaters as updaters
-#import emzed.core.update_handling
-#emzed.core.update_handling.registry.install(updaters)
-
-#del _updaters
-#del emzed.core
-
-
 import align
 import batches
 import config

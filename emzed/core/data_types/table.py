@@ -657,16 +657,18 @@ class Table(object):
                         print >> fp, "; ".join(map(str, data))
                 break
 
-    def store(self, path, forceOverwrite=False):
+    def store(self, path, forceOverwrite=False, compressed=True):
         """
         writes the table in binary format. All information, as
-        corresponding peak maps are written too.
+        corresponding peak maps ar too.
         The file name extension must be ".table".
 
         Latter the file can be loaded with :py:meth:`~.load`
         """
         if not forceOverwrite and os.path.exists(path):
             raise Exception("%s exists. You may use forceOverwrite=True" % path)
+        if compressed:
+            self.compressPeakMaps()
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)

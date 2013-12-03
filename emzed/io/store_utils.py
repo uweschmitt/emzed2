@@ -35,7 +35,7 @@ def storePeakMap(pm, path=None):
     fh.storeExperiment(path, experiment)
 
 
-def storeTable(tab, path=None, forceOverwrite=False):
+def storeTable(tab, path=None, forceOverwrite=False, compressed=True):
     """ Saves *tab* in a binary ``.table`` file.
         If *path* is not provided, a file dialog opens
         for choosing the files name and location.
@@ -49,8 +49,7 @@ def storeTable(tab, path=None, forceOverwrite=False):
     if path is None:
         return None
 
-    tab.compressPeakMaps()
-    tab.store(path, forceOverwrite)
+    tab.store(path, forceOverwrite, compressed)
 
 
 def storeCSV(tab, path=None):
