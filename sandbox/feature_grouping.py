@@ -255,10 +255,19 @@ class IsotopeMerger(object):
 
         print "process table of length", len(table), "with", n_features, "features"
 
+        table.info()
+
+
+        print 1, len(set(table.peakmap.values))
+
         features = self._extract_features(table)
+        print 2, len(set(table.peakmap.values))
         features = self._breakup_features(features)
+        print 3, len(set(table.peakmap.values))
         candidates = self._detect_candidates(features)
+        print 4, len(set(table.peakmap.values))
         clusters = self._merge_candidates(candidates)
+        print 5, len(set(table.peakmap.values))
 
         if 0:
             rows = []
@@ -290,6 +299,7 @@ class IsotopeMerger(object):
         print "detected      %5d candidates" % n_candidates
         print "finally found %5d clusters which had %5d features with z=0" % (n_clusters, n_z0_out)
         print
+        print 6, len(set(table.peakmap.values))
         return table
 
     def _extract_features(self, table):
@@ -486,13 +496,21 @@ class IsotopeMerger(object):
 
     @profile
     def _add_missing_mass_traces(self, table):
+        def x(t):
+            ids = set(id(p) for p in table.peakmap.values)
+            print len(ids), sorted(ids)
         # emzed.io.storeTable(table, "_cached.table", True)
+        x(table)
         new_id = table.id.max() + 1
         igc = table.getColumn(self.isotope_gap_column_name)
         do_not_handle = table.filter(igc.isNone() | (igc == 0) | (igc > self.max_iso_gap))
+        x(do_not_handle)
         do_handle = table.filter(igc.isNotNone() & (igc > 0) & (igc <= self.max_iso_gap))
+        x(do_handle)
         filled_up_subtables = []
         for group in do_handle.splitBy(self.isotope_cluster_id_column_name):
+            print group, 
+            x(group)
             iso_cluster_id = group.getColumn(self.isotope_cluster_id_column_name).uniqueValue()
             rt_min = group.rtmin.min()
             rt_max = group.rtmax.max()
@@ -520,10 +538,16 @@ class IsotopeMerger(object):
                 new_id += 1
                 group.rows.append(proto)
                 group.replaceColumn(self.isotope_gap_column_name, 0)
+                print i,
+                x(group)
 
             group.resetInternals()
+            print "after reset",
+            x(group)
             integrator_id = group.method.values[0]
             integrated = emzed.utils.integrate(group, integrator_id, showProgress=False)
+            print "after int",
+            x(integrated)
 
             imax = np.argsort(integrated.area.values)[-1]
             mz_main_peak = integrated.mz.values[imax]
@@ -534,17 +558,24 @@ class IsotopeMerger(object):
             integrated.replaceColumn(self.isotope_rank_column_name, integrated.mz.apply(rank_peak))
 
             filled_up_subtables.append(integrated)
-        return emzed.utils.mergeTables([do_not_handle] + filled_up_subtables)
+        result = emzed.utils.mergeTables([do_not_handle] + filled_up_subtables)
+        print "FINAL",
+        x(result)
+        return result
 
 
 if __name__ == "__main__":
-    table = emzed.io.loadTable("s9_mtr_5ppm_integrated.table")
+    #table = emzed.io.loadTable("s9_mtr_5ppm_integrated.table")
+    table = emzed.io.loadTable("../../../shared/t1.table")
+    table.info()
     table.setColFormat("peakmap", "%s")
 
     import time
     start = time.time()
 
+    print "before", len(set(table.peakmap.values))
     table = IsotopeMerger().process(table)
+    print "after", len(set(table.peakmap.values))
 
     needed = time.time() - start
     print
