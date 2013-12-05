@@ -596,7 +596,7 @@ class TableExplorer(QDialog):
         titles = map(repr, postfixes)
         self.mz_plotter.plot(data, configs, titles if len(titles) > 1 else None)
 
-        self.mz_plotter.reset_x_limits()
+        self.mz_plotter.reset_x_limits(mzmin, mzmax)
         self.mz_plotter.replot()
 
 
