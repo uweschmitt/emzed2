@@ -3,10 +3,15 @@
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
         min_size_for_parallel_execution=500):
-    """
-    n_cpus <= 0 has special meaning:
-        n_cpus = 0 means "use all cpu cores"
-        n_cpus = -1 means "use all but one cpu cores", etc
+    """ integrates features  in ftable.
+        returns processed table. ``ftable`` is not changed inplace.
+
+        The peak integrator corresponding to the integratorId is
+        defined in ``algorithm_configs.py`` or ``local_configs.py``
+
+        n_cpus <= 0 has special meaning:
+            n_cpus = 0 means "use all cpu cores"
+            n_cpus = -1 means "use all but one cpu cores", etc
     """
     import sys
     import multiprocessing
@@ -84,13 +89,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
 
 def _integrate((ftable, integratorid, msLevel, showProgress,)):
-    """ integrates features  in ftable.
-        returns processed table. ``ftable`` is not changed inplace.
-
-        The peak integrator corresponding to the integratorId is
-        defined in ``algorithm_configs.py`` or ``local_configs.py``
-
-    """
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
