@@ -140,7 +140,7 @@ for name, masscorr, mode in _all_adducts:
 def get(*names):
     found = [ item for item in _all_adducts if item[0] in names ]
     if not found:
-        raise KeyError("adduct %name unknown")
+        raise KeyError("one of adducts %r unknown" % (tuple(names),))
     return _Adducts(found)
 
 
