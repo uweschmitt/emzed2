@@ -150,11 +150,12 @@ class AdductAssigner(object):
             partial_solutions.append((len(partial_solution), max_comp_size, partial_solution))
 
 
-        __, __ , max_solution = max(partial_solutions)
-        if TO_OBSERVE in nodes:
-            print max_solution
-        for assignment in max_solution:
-            yield assignment
+        if partial_solutions:
+            __, __ , max_solution = max(partial_solutions)
+            if TO_OBSERVE in nodes:
+                print max_solution
+            for assignment in max_solution:
+                yield assignment
 
 
     @staticmethod
@@ -285,11 +286,11 @@ class AdductAssigner(object):
             # we only consider assignments which annotate the full group:
             full_assignments = []
             for assignment in self.find_consistent_assignments(sub_graph):
-                if len(assignment) == len(group):
+                if len(assignment) <= len(group):
                     full_assignments.append(assignment)
 
             # if the assignemnt is unique we add this information
-            if len(full_assignments) == 1:
+            if len(full_assignments):
                 for k, v in full_assignments[0].items():
                     assigned_adducts[k].append(v)
 
@@ -324,13 +325,10 @@ if __name__ == "__main__":
 
     #table = emzed.io.loadTable("S9_isotope_clustered.table")
     #cnames1 = table.getColNames()
-    table = emzed.io.loadTable("20131126_024_JM_BM_exp12-10-18_mz1+mz2_B1.table")
-    table = emzed.io.loadTable("20131126_028_JM_BM_exp12-10-18_mz1+mz2_B3.table")
-    table.dropColumns("adduct_group", "possible_adducts")
-    #cnames2 = table.getColNames()
-    #to_remove = set(cnames2) - set(cnames1)
-    #print to_remove
-    #exit()
-    AdductAssigner("negative_mode").process(table)
-    #emzed.io.storeTable(table, "S9_fully_annotated.table", True)
-    emzed.gui.inspect(table)
+    import glob
+    for p in glob.glob("201311*.table"):
+        print p
+        table = emzed.io.loadTable(p)
+        table.dropColumns("adduct_group", "possible_adducts")
+        AdductAssigner("negative_mode").process(table)
+        emzed.io.storeTable(table, p, True)
