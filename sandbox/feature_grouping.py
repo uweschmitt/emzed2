@@ -40,7 +40,7 @@ class Feature(object):
     def __len__(self):
         return len(self.mzs)
 
-    def breakup(self):
+    def breakup(self, mz_tolerance):
         """ feature ff metabo is very tolerant for isotope shifts.
             here we regroup the traces of the current feature with high
             precision corresponding to given mass_shifts, eg delta_C or delta_Cl.
@@ -68,7 +68,7 @@ class Feature(object):
         connections = []
         for mass_shift, element_name in mass_shifts:
             quotients = distances / mass_shift
-            connection = abs(np.round(quotients) - quotients) < z * 5e-4
+            connection = abs(np.round(quotients) - quotients) < z * mz_tolerance
             connections.append((connection, element_name))
 
         components = []
@@ -269,24 +269,6 @@ class IsotopeMerger(object):
         clusters = self._merge_candidates(candidates)
         print 5, len(set(table.peakmap.values))
 
-        if 0:
-            rows = []
-            for c in clusters:
-                mzs = sorted(c.mzs)
-                for (i, mz0) in enumerate(mzs):
-                    for mz1 in mzs[i + 1:]:
-                        if abs(mz1 - mz0 - delta_Cl) < 5e-4:
-                            rows.append((c.min_rt, c.max_rt, c.min_mz - 0.005, c.max_mz + 0.005))
-                            print c.ids, c.mzs, mz1, mz0, mz1 - mz0
-            tt = emzed.utils.toTable("rtmin", [r[0] for r in rows])
-            tt.addColumn("rtmax", [r[1] for r in rows])
-            tt.addColumn("mzmin", [r[2] for r in rows])
-            tt.addColumn("mzmax", [r[3] for r in rows])
-
-            pm = table.peakmap.uniqueValue()
-
-            emzed.gui.inspect(pm, table=tt)
-
         table = self._add_new_columns(table, features)
         n_z0_out = len(set(table.filter(table.z == 0).feature_id.values))
         table = self._add_missing_mass_traces(table)
@@ -327,7 +309,7 @@ class IsotopeMerger(object):
             if i % 100 == 0:
                 print i / 100,
                 sys.stdout.flush()
-            result.extend(feature.breakup())
+            result.extend(feature.breakup(self.mz_accuracy))
         return result
 
     @profile
@@ -569,6 +551,9 @@ if __name__ == "__main__":
     table = emzed.io.loadTable("../../../shared/t1.table")
     table.info()
     table.setColFormat("peakmap", "%s")
+    #table = table.filter(table.rt.inRange(13.20*60, 13.22*60))
+    table = table.filter(table.feature_id == 260)
+    print len(table), "rows after filtering"
 
     import time
     start = time.time()

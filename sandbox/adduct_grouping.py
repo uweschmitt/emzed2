@@ -1,3 +1,4 @@
+import pdb
 import emzed
 from collections import defaultdict
 from itertools import product
@@ -20,7 +21,7 @@ class MainPeak(object):
 
 class AdductAssigner(object):
 
-    def __init__(self, mode, mz_tolerance=5e-4, rt_tolerance=5, cl_only_as_adduct=True,
+    def __init__(self, mode, mz_tolerance=8e-4, rt_tolerance=5, cl_only_as_adduct=True,
                  allow_acetate=False):
 
         assert mode == "negative_mode", "other modes not implemented yet"
@@ -52,37 +53,109 @@ class AdductAssigner(object):
                 print "isotope_cluster=", j, "alternatives=", adducts
 
     @staticmethod
-    def resolve_graph(graph):
+    def find_consistent_assignments(graph):
 
         """
         we consider the nodes of the graph as variables and each connection
         represents an constraint.
         so we iterate over all possible variable assignments and check
         the constraints.
+
+        we assume a symmetric graph, that is each starting node occurs in another
+        nodes target nodes and vice versa.
         """
 
+        def find_closed_components(graph):
+            nodes = set(graph.keys())
+            seen = set()
+            n = len(nodes)
+            while len(seen) < n and nodes:
+                start_with = nodes.pop()
+                if start_with not in seen:
+                    # dfs search starting with 'start_with' node
+                    stack = [start_with]
+                    component = set()
+                    while stack:
+                        active_node = stack.pop()
+                        seen.add(active_node)
+                        component.add(active_node)
+                        for follower in graph[active_node]:
+                            if follower not in seen and follower not in stack:
+                                stack.append(follower)
+                    yield component
+
+
+        consistent_assignments = []
+
+        nodes = set(graph.keys())
+
+        # we iterativliy look for components which have max size and are consistent
+        # with the adduct asignment hypthesises
+
+        TO_OBSERVE = None
+
+        if TO_OBSERVE in nodes:
+            import pprint
+            pprint.pprint(graph)
+
+
+        # create map  node -> list of poosible assignments
         assignments = defaultdict(set)
         for in_, v in graph.items():
-            for out, a0, a1 in v:
-                assignments[out].add(a1)
-                assignments[in_].add(a0)
+            if in_ in nodes:
+                for out, a0, a1 in v:
+                    if out in nodes:
+                        assignments[out].add(a1)
+                        assignments[in_].add(a0)
 
-        keys = sorted(assignments.keys())
+        if not(assignments):
+            # might happen if nodes are not connected
+            return
 
-        found = []
-        for assignment in product(*[assignments[k] for k in keys]):
-            tmp_assignment = dict(zip(keys, assignment))
-            matched = []
+        # now we iterate over each possible node assignment setting
+        # and try to find the best one, aka the one which creates the largest sub graph
+        partial_solutions = []
+        for assignment in product(*[assignments[k] for k in nodes]):
+            if len(set(assignment)) < len(assignment):
+                # assignment if same adduct to two isotope clustes
+                continue
+            if TO_OBSERVE in nodes:
+                print assignment
+            assignment = dict(zip(nodes, assignment))
+            # create sub graph which is consistent with the current assignemtn
+            # that is: only one edge per pair of nodes, not multipls
+            single_linked_graph = defaultdict(set)
             for in_node, possibilities in graph.items():
                 for (out_node, a0, a1) in possibilities:
-                    if tmp_assignment[in_node] == a0 and tmp_assignment[out_node] == a1:
-                        matched.append(True)
-                        break
-                else:
-                    matched.append(False)
-            if all(matched):
-                found.append(tmp_assignment)
-        return found
+                    if assignment[in_node] == a0 and assignment[out_node] == a1:
+                        single_linked_graph[in_node].add(out_node)
+
+
+            if TO_OBSERVE in nodes:
+
+                print
+                print single_linked_graph
+
+
+            partial_solution = []
+            max_comp_size = -1
+            for component in find_closed_components(single_linked_graph):
+                if TO_OBSERVE in nodes: print "  ", component
+
+                reduced_assignment = dict((k, v) for (k, v) in assignment.items() if k in
+                        component)
+                partial_solution.append(reduced_assignment)
+                max_comp_size = max(max_comp_size, len(component))
+            if TO_OBSERVE in nodes: print max_comp_size, partial_solution
+            partial_solutions.append((len(partial_solution), max_comp_size, partial_solution))
+
+
+        __, __ , max_solution = max(partial_solutions)
+        if TO_OBSERVE in nodes:
+            print max_solution
+        for assignment in max_solution:
+            yield assignment
+
 
     @staticmethod
     def test_resolve_graph():
@@ -92,7 +165,7 @@ class AdductAssigner(object):
                      c=[("b", "l4", "l1"), ("b", "l3", "l2"), ("a", "l4", "l0"),
                         ("a", "l5", "l6")])
 
-        found, = AdductAssigner.resolve_graph(graph)
+        found, = AdductAssigner.find_consistent_assignments(graph)
         assert found == dict(a="l0", b="l1", c="l4")
 
     def _extract_main_peaks(self, table):
@@ -119,7 +192,7 @@ class AdductAssigner(object):
 
         return peaks, peak_from_id
 
-    def _build_graph(self, peaks, rt_tolerance=5, mz_tolerance=5e-4):
+    def _build_graph(self, peaks):
         """
         vertices in this graph connect isotope clusters which could represent the
         same adduct
@@ -135,7 +208,11 @@ class AdductAssigner(object):
                                          in adducts
                                          if self.allow_acetate or name != "M+CH3COO"]
 
+        rt_tolerance = self.rt_tolerance
+        mz_tolerance = self.mz_tolerance
+
         for i, peak_i in enumerate(peaks):
+
             mz_i = peak_i.mz_main
             id_i = peak_i.id_
             for (name_i, delta_m_i, z_i) in adducts:
@@ -166,7 +243,8 @@ class AdductAssigner(object):
                                 graph[id_j].append((id_i, name_j, name_i)) # make graph symmetric
         return graph
 
-    def _decompose(self, graph):
+    @staticmethod
+    def _decompose(graph):
         """
         decomposes graph in connected components, asserts a symmetric graph
         as built above.
@@ -203,9 +281,16 @@ class AdductAssigner(object):
             sub_graph = dict((k, values)
                              for (k, values) in graph.items()
                              if k in group and any(v in group for v, __, __ in values))
-            resolved = self.resolve_graph(sub_graph)
-            for assignment in resolved:
-                for k, v in assignment.items():
+
+            # we only consider assignments which annotate the full group:
+            full_assignments = []
+            for assignment in self.find_consistent_assignments(sub_graph):
+                if len(assignment) == len(group):
+                    full_assignments.append(assignment)
+
+            # if the assignemnt is unique we add this information
+            if len(full_assignments) == 1:
+                for k, v in full_assignments[0].items():
                     assigned_adducts[k].append(v)
 
         return assigned_adducts
@@ -237,7 +322,15 @@ class AdductAssigner(object):
 
 if __name__ == "__main__":
 
-    table = emzed.io.loadTable("S9_isotope_clustered.table")
+    #table = emzed.io.loadTable("S9_isotope_clustered.table")
+    #cnames1 = table.getColNames()
+    table = emzed.io.loadTable("20131126_024_JM_BM_exp12-10-18_mz1+mz2_B1.table")
+    table = emzed.io.loadTable("20131126_028_JM_BM_exp12-10-18_mz1+mz2_B3.table")
+    table.dropColumns("adduct_group", "possible_adducts")
+    #cnames2 = table.getColNames()
+    #to_remove = set(cnames2) - set(cnames1)
+    #print to_remove
+    #exit()
     AdductAssigner("negative_mode").process(table)
-    emzed.io.storeTable(table, "S9_fully_annotated.table", True)
+    #emzed.io.storeTable(table, "S9_fully_annotated.table", True)
     emzed.gui.inspect(table)
