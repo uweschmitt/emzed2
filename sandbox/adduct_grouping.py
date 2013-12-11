@@ -306,14 +306,27 @@ class AdductAssigner(object):
             for i in group:
                 id_to_group_map[i] = gid
 
-        def assign_adduct_group(id_):
-            return id_to_group_map.get(id_)
+        print len(groups)
+
+        class AdductGroupAssigner(object):
+
+            """mimmics stateful function"""
+
+            def __init__(self, next_id=len(groups)):
+                self.next_id = next_id
+
+            def __call__(self, id_):
+                group_id = id_to_group_map.get(id_)
+                if group_id is None:
+                    group_id = self.next_id
+                    self.next_id += 1
+                return group_id
 
         def assign_adducts(id_):
             return ", ".join(assigned_adducts.get(id_, ""))
 
         table.addColumn("adduct_group",
-                        table.isotope_cluster_id.apply(assign_adduct_group),
+                        table.isotope_cluster_id.apply(AdductGroupAssigner()),
                         insertBefore="element_names")
 
         table.addColumn("possible_adducts",
