@@ -31,6 +31,7 @@ from core.peak_integration import *
 peakIntegrators = [ ( "std",  SGIntegrator(window_size=11, order=2) ) ,
                     ( "asym_gauss", AsymmetricGaussIntegrator() ) ,
                     ( "trapez", TrapezIntegrator() ) ,
+                    ( "max", MaxIntegrator() ) ,
                     ( "emg_exact", SimplifiedEMGIntegrator() ) ,
                     ( "no_integration", NoIntegration() ) ,
                    ]
