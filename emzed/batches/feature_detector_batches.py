@@ -215,7 +215,7 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
             batch_runner.BatchRunner.__init__(self, *a, **kw)
 
         def process(self, path):
-            from ..ff.metaboff import metaboFeatureFinder
+            from ..ff._metaboff import metaboFeatureFinder
             from .. import io
 
             try:
