@@ -1,6 +1,8 @@
+import pdb
 import emzed
 import numpy as np
 import sys
+import textwrap
 
 from collections import Counter
 
@@ -60,12 +62,16 @@ class Feature(object):
                        # (delta_Br / z, "Br"),
                        ]
 
+        debug = True
         debug = False
         #if any(i in self.ids for i in (1813, 1843)):
             #debug = True
 
         # build adjancy matrices for each isotope-shift which could explain a
         # pair of peaks
+        if debug:
+            print self.mzs
+            print
         distances = (self.mzs[:, None] - self.mzs[None, :])
         connections = []
         for mass_shift, element_name in mass_shifts:
@@ -157,15 +163,17 @@ class FeatureCluster(object):
     def match_for_same_adduct(self, other, max_mz_range, mz_accuracy, rt_accuracy):
         assert isinstance(self, FeatureCluster)
         assert isinstance(other, Feature)
-        if self.z < 0 or other.z < 0 or self.z > 0 and other.z > 0 and self.z != other.z:
+        if self.z is not None and other.z is not None and self.z != other.z:
+            return None
+        if self.z is not None and self.z < 0 or other.z is not None and other.z < 0:
             return None
         if max(self.max_rt - other.min_rt, other.max_rt - self.min_rt) >= rt_accuracy:
             return None
-        if self.z == 0:
+        if self.z is None:
             z = other.z
         else:
             z = self.z
-        if z == 0:
+        if z is None:
             z_to_try = [1, 2, 3]
         else:
             z_to_try = [z]
@@ -243,6 +251,7 @@ class IsotopeMerger(object):
     isotope_rank_column_name = "isotope_rank"
     isotope_cluster_size_column_name = "isotope_cluster_size"
     isotope_gap_column_name = "isotope_gap"
+    element_names_column_name = "element_names"
 
     def __init__(self, mz_accuracy=7e-4, rt_accuracy=10.0, max_mz_range=20, max_iso_gap=1,
                  mz_integration_window=4e-3, fid_column="feature_id"):
@@ -297,7 +306,11 @@ class IsotopeMerger(object):
             rts = t.rt.values
             mzs = t.mz.values
             ids = t.id.values
-            z = t.z.uniqueValue() or None  # z=0 -> z=None
+            try:
+                z = t.z.uniqueValue() or None  # z=0 -> z=None
+            except:
+                print ids, t.z.values
+                z = t.z.max() or None
             areas = t.area.values
             feat = Feature(rts, mzs, ids, z, areas)
             features.append(feat)
@@ -376,7 +389,7 @@ class IsotopeMerger(object):
 
         print
         print "top 10 largest merge candidates:"
-        candidates.sort(key = lambda c: -len(c))
+        candidates.sort(key=lambda c: -len(c))
         for ci in candidates[:10]:
             print "  %2d" % len(ci), ci.ids
         print
@@ -402,16 +415,22 @@ class IsotopeMerger(object):
         cluster_id = dict()
         cluster_z = dict(zip(table.id.values, table.z.values))
         cluster_element_names = dict()
+        merged = []
         for fid, cluster in enumerate(clusters):
             if len(cluster.features)> 1:
-                print "cluster with id", fid, "is merged"
+                merged.append(fid)
             for id_ in cluster.ids:
                 cluster_id[id_] = fid
                 cluster_element_names[id_] = ", ".join(cluster.element_names)
                 cluster_z[id_] = cluster.merged_z
 
-        c = Counter(cluster_id.values())
         print
+        print "merged clusters:"
+        full_txt = ", ".join(map(str, sorted(merged)))
+        print "\n".join(textwrap.wrap(full_txt, width=100))
+        print
+
+        c = Counter(cluster_id.values())
         print "top 10 of large clusters:"
         for fid, count in c.most_common(10):
             print "  cluster_id=%4d" % fid, "traces = %d " % count
@@ -420,7 +439,7 @@ class IsotopeMerger(object):
         table.updateColumn(self.isotope_cluster_id_column_name,
                            table.id.apply(lambda i: cluster_id.get(i)),
                            insertBefore=self.fid_column)
-        table.updateColumn("element_names",
+        table.updateColumn(self.element_names_column_name,
                            table.id.apply(lambda i: cluster_element_names.get(i)),
                            insertBefore=self.fid_column)
         table.replaceColumn("z", table.id.apply(lambda i: cluster_z.get(i) or 0))
@@ -510,23 +529,61 @@ class IsotopeMerger(object):
             z = group.z.uniqueValue()
             n = int(np.round((mz_max - mz_min) * z / delta_C))
             proto = group.rows[0][:]
-            for i in range(1, n):
-                mz0 = mz_min + i * delta_C / z
-                if any(abs(mz0 - mz) < 1e-2 for mz in mzs):
-                    continue
-                print "add integration window for iso cluster %d and mz= %.5f" % (iso_cluster_id,
-                                                                                  mz0)
-                proto[group.getIndex("mz")] = mz0
-                proto[group.getIndex("mzmin")] = mz0 - self.mz_integration_window / 2.0
-                proto[group.getIndex("mzmax")] = mz0 + self.mz_integration_window / 2.0
-                proto[group.getIndex("rt")] = rt_mean
-                proto[group.getIndex("rtmin")] = rt_min
-                proto[group.getIndex("rtmax")] = rt_max
-                proto[group.getIndex(self.fid_column)] = None
-                proto[group.getIndex("id")] = new_id
-                new_id += 1
-                group.rows.append(proto)
-                group.replaceColumn(self.isotope_gap_column_name, 0)
+            pm = group.peakmap.uniqueValue()
+            elements = group.getColumn(self.element_names_column_name).uniqueValue()
+            elements = [e.strip() for e in elements.split(",")]
+
+            def try_matches(mzs, mz_approx_gap, delta_m, z, rt_min, rt_max):
+                """
+                looks for best matching mzs for filling a given gap at mz_approx_gap.
+                iterates over all possibilities and computes summed chromatogram for
+                each trial.
+                in the end those trials are recorded by the calle who decides which
+                mz_i0 to choose.
+                """
+                matches = []
+                for mz_i in mzs:
+                    i0 = round((mz_approx_gap - mz_i) * z / delta_m)
+                    mz_i0 = mz_i + i0 / z * delta_m
+                    if abs(mz_i0 - mz_approx_gap) < 1e-1:
+                        __, chromo = pm.chromatogram(mz_i0 - 1e-3, mz_i + 1e-3, rt_min, rt_max, 1)
+                        area = sum(chromo)   # simple way of integration
+                        matches.append((area, mz_i0))
+                return matches
+
+            for mz0, mz1 in zip(mzs[:-1], mzs[1:]):
+                n = int(round((mz1 - mz0) * z / delta_C))
+                # n is number of missing peaks between mz0 and mz1 plus one:
+                # n == 1 means "no peak missing", aka the next loop is empty
+                for i in range(1, n):
+                    mz_approx_gap = (mz1 - mz0) * i / n + mz0
+                    matches = []
+                    if "Cl" in elements:
+                        matches = try_matches(mzs, mz_approx_gap, delta_Cl, z, rt_min, rt_max)
+                        matches += try_matches(mzs, mz_approx_gap, delta_C, z, rt_min, rt_max)
+                    else:
+                        matches = try_matches(mzs, mz_approx_gap, delta_C, z, rt_min, rt_max)
+
+                    if not matches:
+                        continue
+
+                    # look for match with max area
+                    matches.sort()
+                    __, mzi = matches[-1]
+
+                    print "add integration window for cluster %d and mz= %.5f" % (iso_cluster_id,
+                                                                                  mzi)
+                    proto[group.getIndex("mz")] = mzi
+                    proto[group.getIndex("mzmin")] = mzi - self.mz_integration_window / 2.0
+                    proto[group.getIndex("mzmax")] = mzi + self.mz_integration_window / 2.0
+                    proto[group.getIndex("rt")] = rt_mean
+                    proto[group.getIndex("rtmin")] = rt_min
+                    proto[group.getIndex("rtmax")] = rt_max
+                    proto[group.getIndex(self.fid_column)] = None
+                    proto[group.getIndex("id")] = new_id
+                    new_id += 1
+                    group.rows.append(proto[:])
+                    group.replaceColumn(self.isotope_gap_column_name, 0)
 
             group.resetInternals()
             integrator_id = group.method.values[0]
@@ -548,10 +605,13 @@ class IsotopeMerger(object):
 if __name__ == "__main__":
     import time, glob
     start = time.time()
-    for p in glob.glob("t_b1_for_feature_grouper.table"): # "b2_neu.table"):
+    #for p in glob.glob("t_b1_for_feature_grouper.table"): # "b2_neu.table"):
     #for p in glob.glob("S9_shoulder_removed_and_integrated.table"):
+    if 1:
+        p = "sample_b3_integrated.table"
         print p
         table = emzed.io.loadTable(p)
+        #table = table.filter(table.feature_id == 2734)
         #emzed.gui.inspect(table)
         #table.dropColumns("adduct_group", "possible_adducts")
         #AdductAssigner("negative_mode").process(table)
