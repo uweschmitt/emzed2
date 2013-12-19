@@ -60,7 +60,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         all_pms = []
         for i in range(n_cpus):
             subt = ftable[i::n_cpus]
-            show_progress = (i == 0)  # only first process does output
+            show_progress = (i == 0)  # only first process prints progress status
             args.append((subt, integratorid, msLevel, show_progress))
             all_pms.append(subt.peakmap.values)
 
