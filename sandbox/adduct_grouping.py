@@ -84,9 +84,6 @@ class AdductAssigner(object):
                                 stack.append(follower)
                     yield component
 
-
-        consistent_assignments = []
-
         nodes = set(graph.keys())
 
         # we iterativliy look for components which have max size and are consistent
@@ -97,7 +94,6 @@ class AdductAssigner(object):
         if TO_OBSERVE in nodes:
             import pprint
             pprint.pprint(graph)
-
 
         # create map  node -> list of poosible assignments
         assignments = defaultdict(set)
@@ -130,33 +126,30 @@ class AdductAssigner(object):
                     if assignment[in_node] == a0 and assignment[out_node] == a1:
                         single_linked_graph[in_node].add(out_node)
 
-
             if TO_OBSERVE in nodes:
-
                 print
                 print single_linked_graph
-
 
             partial_solution = []
             max_comp_size = -1
             for component in find_closed_components(single_linked_graph):
-                if TO_OBSERVE in nodes: print "  ", component
+                if TO_OBSERVE in nodes:
+                    print "  ", component
 
                 reduced_assignment = dict((k, v) for (k, v) in assignment.items() if k in
-                        component)
+                                          component)
                 partial_solution.append(reduced_assignment)
                 max_comp_size = max(max_comp_size, len(component))
-            if TO_OBSERVE in nodes: print max_comp_size, partial_solution
+            if TO_OBSERVE in nodes:
+                print max_comp_size, partial_solution
             partial_solutions.append((len(partial_solution), max_comp_size, partial_solution))
 
-
         if partial_solutions:
-            __, __ , max_solution = max(partial_solutions)
+            __, __, max_solution = max(partial_solutions)
             if TO_OBSERVE in nodes:
                 print max_solution
             for assignment in max_solution:
                 yield assignment
-
 
     @staticmethod
     def test_resolve_graph():
@@ -205,8 +198,7 @@ class AdductAssigner(object):
         else:
             adducts = emzed.adducts.positive.adducts
 
-        adducts = [(name, delta, abs(z)) for (name, delta, z)
-                                         in adducts
+        adducts = [(name, delta, abs(z)) for (name, delta, z) in adducts
                                          if self.allow_acetate or name != "M+CH3COO"]
 
         rt_tolerance = self.rt_tolerance
@@ -241,7 +233,7 @@ class AdductAssigner(object):
                                 continue
                             if abs(m0_i - m0_j) <= mz_tolerance:
                                 graph[id_i].append((id_j, name_i, name_j))
-                                graph[id_j].append((id_i, name_j, name_i)) # make graph symmetric
+                                graph[id_j].append((id_i, name_j, name_i))  # make graph symmetric
         return graph
 
     @staticmethod
@@ -306,7 +298,6 @@ class AdductAssigner(object):
             for i in group:
                 id_to_group_map[i] = gid
 
-        print len(groups)
 
         class AdductGroupAssigner(object):
 
@@ -319,6 +310,7 @@ class AdductAssigner(object):
                 group_id = id_to_group_map.get(id_)
                 if group_id is None:
                     group_id = self.next_id
+                    id_to_group_map[id_] = group_id
                     self.next_id += 1
                 return group_id
 
@@ -339,9 +331,13 @@ if __name__ == "__main__":
     #table = emzed.io.loadTable("S9_isotope_clustered.table")
     #cnames1 = table.getColNames()
     import glob
-    for p in glob.glob("201311*.table"):
+    #for p in glob.glob("201311*.table"):
+    p = "b5_isotope_grouped.table"
+    if p:
         print p
         table = emzed.io.loadTable(p)
-        table.dropColumns("adduct_group", "possible_adducts")
+        #emzed.gui.inspect(table)
+        #table.dropColumns("adduct_group", "possible_adducts")
         AdductAssigner("negative_mode").process(table)
-        emzed.io.storeTable(table, p, True)
+        emzed.gui.inspect(table)
+        #emzed.io.storeTable(table, p, True)
