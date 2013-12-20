@@ -295,6 +295,8 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         qapp = QApplication.instance()
+
+
         self.default_style = str(qapp.style().objectName())
 
         self.dialog_manager = DialogManager()
@@ -417,10 +419,17 @@ class MainWindow(QMainWindow):
         icon_name = "emzed.ico"
 
         from spyderlib.qt.QtGui import QIcon
-        self.setWindowIcon(QIcon(icon_name))
+        data = pkg_resources.resource_string("emzed.workbench", "icon256.xpm")
+        #data = pkg_resources.resource_string("emzed.workbench", "splash2.png")
+        print len(data), "data"
+        img = QImage()
+        img.loadFromData(data)
+        pixmap = QPixmap.fromImage(img)
+        self.setWindowIcon(QIcon(pixmap))
+        #self.setWindowIcon(QIcon(icon_name))
 
         # EMZD MODIFIED: Showing splash screen
-        data = pkg_resources.resource_string("emzed.workbench", "splash.png")
+        data = pkg_resources.resource_string("emzed.workbench", "splash2.png")
         img = QImage()
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
