@@ -1,21 +1,18 @@
 
-
-def patched(self):
-    return dict(realm="pypi",
-                username="uschmitt",
-                password="pillepalle",
-                repository="http://127.0.0.1:3142/root/dev/",
-                server="local",
-               )
-
-version_str = "2.0.5"
-
 from setuptools import setup, find_packages
+
+import emzed
+version_str = "%d.%d.%d" % emzed.__version__
+
+
 setup(name="emzed",
       packages=find_packages(),
       version=version_str,
       entry_points={
-          "console_scripts": ["emzed.workbench = emzed.workbench.main:main", ]
+          "console_scripts": ["emzed.workbench = emzed.workbench.main:main",
+                              "emzed.inspect = emzed.workbench.inspect:main",
+                              ]
+
       },
       package_data={
           "emzed.core.r_connect": ["*.txt"],
