@@ -3,14 +3,14 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version_str = "2.1.4"
+version_str = "2.1.5"
 
 
 setup(name="emzed",
       packages=find_packages(),
       version=version_str,
       entry_points={
-          "console_scripts": ["emzed.workbench = emzed.workbench.main:main",
+          "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
                               "emzed.inspect = emzed.workbench.inspect:main",
                               ]
 
