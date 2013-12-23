@@ -10,6 +10,8 @@ set INSTALLTARGET=%APPDATA%\emzed2
 @echo.
 call %INSTALLTARGET%\Scripts\activate
 @echo.
+easy_install -U setuptools
+@echo.
 easy_install -U "guiqwt>=2.3.1"
 @echo.
 easy_install -U "guidata>=1.6.0"
@@ -24,5 +26,5 @@ easy_install -U ipython==0.10
 @echo.
 easy_install -U spyder==2.1.13
 @echo.
+set MPLCONFIGDIR=.
 easy_install emzed
-

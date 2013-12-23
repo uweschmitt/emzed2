@@ -8,15 +8,30 @@ AppVerName=emezd 2
 
 DefaultGroupName=emzed
 DefaultDirName={pf}\emzed2
+Uninstallable=Yes
+ChangesAssociations=Yes
 
 [Files]
 Source: "emzed2.bat"; DestDir: "{app}"
+Source: "emzed_inspect.bat"; DestDir: "{app}"
 Source: "install.bat"; DestDir: "{app}"
 Source: "emzed_icon.ico"; DestDir: "{app}"
 Source: "ez_setup.py"; DestDir: "{app}"
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{%APPDATA}\emzed2"
+
 [Icons]
 Name: {group}\emzed2; Filename: {app}\emzed2.bat; WorkingDir: {app}; IconFilename: {app}\emzed_icon.ico
+Name: "{group}\uninstall emzed2"; Filename: "{uninstallexe}"
+
+[Registry]
+Root: HKCR; Subkey: ".table"; ValueType: string; ValueName: ""; ValueData: "emzed2"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: ".mzData"; ValueType: string; ValueName: ""; ValueData: "emzed2"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: ".mzML"; ValueType: string; ValueName: ""; ValueData: "emzed2"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: ".mzXML"; ValueType: string; ValueName: ""; ValueData: "emzed2"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "emzed2\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """start.exe {app}\emzed_inspect.bat"" ""%1"""
+                                       
 
 [Run]
 Filename: "{app}\install.bat"; Parameters: {code:GetPythonRootFolder|}; Description: "bootstrap emzed modules"; WorkingDir: {app}; 
