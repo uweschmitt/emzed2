@@ -9,7 +9,10 @@ setup(name="emzed",
       packages=find_packages(),
       version=version_str,
       entry_points={
-          "console_scripts": ["emzed.workbench = emzed.workbench.main:main", ]
+          "console_scripts": ["emzed.workbench = emzed.workbench.main:main",
+                              "emzed.inspect = emzed.workbench.inspect:main",
+                              ]
+
       },
       package_data={
           "emzed.core.r_connect": ["*.txt"],
