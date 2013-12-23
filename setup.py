@@ -1,8 +1,9 @@
 
 from setuptools import setup, find_packages
 
-from emzed.version import version
-version_str = "%d.%d.%d" % version
+# no import emzed here, causes trouble when installing on win, as missing packages
+# are needed when importing emzed
+version_str = "2.1.4"
 
 
 setup(name="emzed",
