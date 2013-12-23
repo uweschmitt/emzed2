@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
         icon_name = "emzed.ico"
 
         from spyderlib.qt.QtGui import QIcon
-        data = pkg_resources.resource_string("emzed.workbench", "icon128.xpm")
+        data = pkg_resources.resource_string("emzed.workbench", "icon64.png")
         img = QImage()
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
