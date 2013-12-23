@@ -11,8 +11,8 @@ setup(name="emzed",
       version=version_str,
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
-                              "emzed.inspect = emzed.workbench.inspect:main",
-                              ]
+                          "emzed.inspect = emzed.cmdline:inspect",
+                          ]
 
       },
       package_data={
