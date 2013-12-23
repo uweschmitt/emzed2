@@ -415,13 +415,10 @@ class MainWindow(QMainWindow):
         if self.debug:
             title += " (DEBUG MODE)"
         self.setWindowTitle(title)
-        #icon_name = 'spyder_light.svg' if self.light else 'spyder.svg'
         icon_name = "emzed.ico"
 
         from spyderlib.qt.QtGui import QIcon
-        data = pkg_resources.resource_string("emzed.workbench", "icon256.xpm")
-        #data = pkg_resources.resource_string("emzed.workbench", "splash2.png")
-        print len(data), "data"
+        data = pkg_resources.resource_string("emzed.workbench", "icon128.xpm")
         img = QImage()
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
@@ -434,6 +431,7 @@ class MainWindow(QMainWindow):
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
         self.splash = QSplashScreen(pixmap)
+
         import time
         self.splash_started = time.time()
         font = self.splash.font()
@@ -1013,7 +1011,7 @@ class MainWindow(QMainWindow):
 
         # EMZED ADD ON : splash screen occurs at leas for 2 seconds:
         import time
-        while (time.time()-self.splash_started) < 2.0:
+        while (time.time()-self.splash_started) < 3.0:
             time.sleep(0.1)
         self.splash.hide()
 

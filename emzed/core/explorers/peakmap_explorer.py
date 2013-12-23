@@ -40,6 +40,9 @@ from helpers import protect_signal_handler
 from ...io.load_utils import loadPeakMap
 
 
+from emzed_dialog import EmzedDialog
+
+
 SIG_HISTORY_CHANGED = SIGNAL('plot_history_changed(PyQt_PyObject)')
 
 
@@ -1014,10 +1017,11 @@ class ChromatogramPlotter(object):
         self.widget.plot.updateAxes()
 
 
-class PeakMapExplorer(QDialog):
+class PeakMapExplorer(EmzedDialog):
 
     def __init__(self, ok_rows_container=[], parent=None):
-        QDialog.__init__(self, parent)
+        super(PeakMapExplorer, self).__init__(parent)
+        #QDialog.__init__(self, parent)
         self.setWindowFlags(Qt.Window)
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
