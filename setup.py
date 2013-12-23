@@ -1,8 +1,8 @@
 
 from setuptools import setup, find_packages
 
-import emzed
-version_str = "%d.%d.%d" % emzed.__version__
+from emzed.version import version
+version_str = "%d.%d.%d" % version
 
 
 setup(name="emzed",
