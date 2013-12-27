@@ -98,6 +98,7 @@ class Updater(object):
 
     def get_latest_update_ts(self):
         path = self._get_ts_file_path()
+        print "read ts from", path
         if not os.path.exists(path):
             return -1.0
         with open(path, "rt") as fp:
