@@ -7,7 +7,7 @@ version_str = "2.1.6"
 
 
 setup(name="emzed",
-      packages=find_packages(),
+      packages=find_packages(exclude=["tests", "sandbox"]),
       version=version_str,
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
@@ -15,11 +15,7 @@ setup(name="emzed",
                           ]
 
       },
-      package_data={
-          "emzed.core.r_connect": ["*.txt"],
-          "emzed.core.explorers": ["*.html"],
-          "emzed.workbench": ["*.png"],
-      },
+      include_package_data=True,
       zip_safe=False,
       install_requires=["emzed_optimizations",
                         "guidata>=1.6.0",
