@@ -76,7 +76,7 @@ class Bunch(dict):
 
 class _CmdLineProgress(object):
 
-    def __init__(self, imax, step=5):
+    def __init__(self, imax, step=10):
         self.imax = imax
         self.step = step
         self.last = 0
@@ -87,6 +87,10 @@ class _CmdLineProgress(object):
             print percent,
             sys.stdout.flush()
             self.last = percent
+
+    def finish(self):
+        print
+        sys.stdout.flush()
 
 
 def bestConvert(val):
@@ -1214,7 +1218,7 @@ class Table(object):
             else:
                 rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
             cmdlineProgress.progress(ii)
-        print
+        cmdlineProgress.finish()
         table.rows = rows
         return table
 
@@ -1275,6 +1279,8 @@ class Table(object):
             else:
                 rows.extend([r1[:] + filler[:]])
             cmdlineProgress.progress(ii)
+
+        cmdlineProgress.finish()
 
         table.rows = rows
         return table
