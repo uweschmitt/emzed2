@@ -33,26 +33,31 @@ instructions. **version numbers and file names matter**.
 an existing Python installation without causing conflicts, unless you register WinPython from its
 control panel.**
 
-1. Download and install *Microsoft Visual C++ 2008 SP1 Redistributable Package (x64)* from http://www.microsoft.com/en-us/download/details.aspx?id=2092
+1. Download and install *Microsoft Visual C++ 2008 SP1 Redistributable Package
+   (x64)* from http://www.microsoft.com/en-us/download/details.aspx?id=2092
 
-2. For installing *Python 2.7* first download *WinPython* with version 2.7.6.X
+2. For installing *Python 2.7* first download *WinPython* version 2.7.6.X
    64 bit or higher from https://code.google.com/p/winpython/. The current
    version of *emzed* is not Python 3 ready.
 
 3. Run the *WinPython* installer. This step only unpacks *WinPython* to a target directory
-   you can choose. If you are unsure choose a directory like **C:\WinPython-X.Y.Z**.
+   you can choose. If you are unsure choose a directory like **C:\\WinPython-x.y.z**.
+
    **Keep the install target in mind, you will need this path for the next step.**
 
 4. Download the installer http://emzed.ethz.ch/downloads/emzed2_setup.exe.
    Run the installer with administator rights.
    The installer asks for the path to the Python interpreter to use.
-   This should be a path similar to **C:\WinPython-X.Y.Z\python-x.y.z\python.exe**.
+   You will find it inside the **python-x.y.z** subfolder of the installation
+   from the previous step.
+   If you folllowed the recommandation from step 3, the path to the Python interpreter
+   should be similar to **C:\\WinPython-x.y.z\\python-x.y.z\\python.exe**.
 
    The installation process needs a few minutes, so stay patient.
 
-4. Now you should find emzed in windows start menu.
+4. Now you should find *emzed* in Windows start menu.
 
-5. optional: install **R** if you want to use centwave or any other R library.
+5. optional: install **R** if you want to use XCMS or any other R library.
 
 
 
@@ -66,12 +71,11 @@ those globally.  *PyQt4* should be installed globally too::
     $ sudo apt-get install python2.7-numpy python2.7-scipy python2.7-matplotlib python2.7-qt4
     $ sudo apt-get install python2.7-virtualenv
 
-For the following steps we provide an installation script at
-http://emzed.ethz.ch/downloads/install_linux.sh which should work on current
-Ubuntu and Debian Linux installations. The script asks for an installation directory,
-which can be inside your personal users home folder, which is suggested::
+For the final installation download the installation script from
+http://emzed.ethz.ch/downloads/install_linux.sh. The script should work on current
+Ubuntu and Debian Linux installations. Running the script you are asked for the 
+target folder, we recommend to use *emzed2* inside your home folder::
 
-    $ wget http://emzed.ethz.ch/downloads/install_linux.sh
     $ bash install_linux.sh
 
 The script should create a short cut on your desktop and print the direct path
@@ -84,28 +88,28 @@ Manual installation on Linux
 If you have a Linux distribution for which the previous instructions failed, you have
 to proceed manually as described now:
 
-  1. Install Python 2.7
-  2. Install numpy, at least versoin 1.7.0
-  3. Install Pyhton packages scipy, matplotlib, PyQt4 and virtualenv
+  1. Install Python 2.7.
+  2. Install numpy, at least versoin 1.7.0.
+  3. Install Python packages scipy, matplotlib, PyQt4 and virtualenv.
 
 In order to keep your Python installation in a clean and consistent state, we recommend
 to install *emzed* using *virtualenv*. This gives you an isolated environment without
 version conflicts and avoids cluttering your system.
-Now create a virtual environment, we recommend to start in your home directory::
 
-    $ pwd
-    /home/uschmitt
+To create such a virtual environment, we recommend to start in your home directory::
+
+    $ cd
     $ virtualenv-2.7 --system-site-packages emzed2
     ....
     $ cd emzed2
     $ source emzed2/bin/activate
-    (emzed2) $ easy_install pyopenms
-    (emzed2) $ pip install cython
-    (emzed2) $ pip install guidata
-    (emzed2) $ pip install guiqwt
-    (emzed2) $ pip install sphinx
-    (emzed2) $ pip install -r http://emzed.ethz.ch/downloads/requirements.txt
-    (emzed2) $ deactivate
+    (emzed2)$ easy_install pyopenms
+    (emzed2)$ pip install cython
+    (emzed2)$ pip install guidata
+    (emzed2)$ pip install guiqwt
+    (emzed2)$ pip install sphinx
+    (emzed2)$ pip install -r http://emzed.ethz.ch/downloads/requirements.txt
+    (emzed2)$ deactivate
 
 Now you should be able to start emzed workbench::
 

@@ -321,29 +321,33 @@ contains integers.
 To combine both tables we use an SQL-like ``LEFT JOIN`` to match rows with the
 same molecular formula:
 
+.. pycon::
+   :invisible:
+
+   joined = substances.leftJoin(info, substances.mf == info.mf)
 
 .. pycon::
 
-    joined = substances.leftJoin(info, substances.mf==info.mf)
+    joined = substances.leftJoin(info, substances.mf== info.mf) !noexec
     joined.print_()
 
 To restrict to substances which are known to exist on earth we can do:
 
 .. pycon::
 
-    common = joined.filter(joined.onEarth__0==1)
+    common = joined.filter(joined.onEarth__0 == 1)
     common.print_()
 
 
-The ``tab`` module contains some databases, e.g. the substances from PubChem
+The ``emzed.db`` module contains some databases, e.g. the substances from PubChem
 [pubchem]_ categorized as *metabolomic compounds*. These databases are hold in
 tables:
 
 .. pycon::
 
-    pc = tab.pc_full
+    pc = emzed.db.load_pubchem()
     pc.filter(pc.cid <= 3).print_()
-    ms.inspect(pc)  !noexec
+    emzed.gui.inspect(pc)  !noexec
 
 
 
@@ -355,7 +359,7 @@ an index is done by sorting the corresponding column:
 .. pycon::
 
     pc.sortBy("m0")
-    matched = joined.leftJoin(pc, (joined.onEarth__0==1) & joined.m0.approxEqual(pc.m0, 15*emzed.MMU))
+    matched = joined.leftJoin(pc, (joined.onEarth__0 == 1) & joined.m0.approxEqual(pc.m0, 15 * emzed.MMU))
     print matched.numRows()
     matched.print_()
     emzed.gui.inspect(matched)  !noexec
@@ -499,14 +503,17 @@ analysis.  These methods work on tables like this
 Quering METLIN web service
 --------------------------
 
-.. pycon::
+As the METLIN Rest interface is out ouf order at this juncture we removed the
+former examples and leave this paragraph empty.
+
+.. comment pycon::
 
     t = emzed.utils.toTable("m0",[195.0877, 194.07904])
     t.print_()
     matched = emzed.utils.matchMetlin(t, "m0", ["M"], ppm=30)
     matched.print_()
 
-.. pycon::
+.. comment pycon::
 
     t = emzed.utils.toTable("m0",[194.07904])
     t.print_()
@@ -516,8 +523,8 @@ Quering METLIN web service
 Building graphical interfaces
 -----------------------------
 
-Beyond the ``Table``-Explorer ``ms.inspect`` and the ``PeakMap``-Explorer
-``ms.inspectPeakMap`` assisted work-flows request certain parameters and
+Beyond the ``Table``-Explorer ``emzed.gui.inspect`` and the ``PeakMap``-Explorer
+``emzed.gui.inspectPeakMap`` assisted work-flows request certain parameters and
 decisions at certain processing steps. To support this *emzed* has an builder
 for input forms.
 
@@ -537,11 +544,15 @@ The following dialog is created by the simple commands below:
     (10, 1.02, 'C:/Dokumente und Einstellungen/e001.mzML') !asoutput
 
 
-What's next ?
--------------
+.. comment 
 
-*emzed* installs example scripts in the ``emzed_files/example_scripts``
-folder in your home directory. We recommend to study these scripts to
-get an understanding how the inididual *emzed* modules play together.
+    this is not up to date
+
+    What's next ?
+    -------------
+
+    *emzed* installs example scripts in the ``emzed_files/example_scripts``
+    folder in your home directory. We recommend to study these scripts to
+    get an understanding how the inididual *emzed* modules play together.
 
 

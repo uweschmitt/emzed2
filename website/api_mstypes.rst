@@ -1,9 +1,9 @@
 API MS Data Containers
 ======================
 
-.. autoclass:: libms.DataStructures.MSTypes.Spectrum
+.. autoclass:: emzed.core.data_types.ms_types.Spectrum
    :members:
 
 
-.. autoclass:: libms.DataStructures.MSTypes.PeakMap
+.. autoclass:: emzed.core.data_types.ms_types.PeakMap
    :members:
