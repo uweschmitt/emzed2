@@ -1,6 +1,6 @@
-#! /bin/bash
+#!/bin/bash
 
-function _test_python_package {
+function test_python_package {
 
 	python2.7 -c "import $1" 2>/dev/null
 
@@ -23,11 +23,11 @@ function test_python_install {
 		exit $?
 	fi
 	echo "python2.7 found"
-	_test_python_package numpy
-	_test_python_package scipy
-	_test_python_package PyQt4
-	_test_python_package matplotlib
-	_test_python_package virtualenv
+	test_python_package numpy
+	test_python_package scipy
+	test_python_package PyQt4
+	test_python_package matplotlib
+	test_python_package virtualenv
 }
 
 function install_emzed_and_related_packages {
