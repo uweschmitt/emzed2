@@ -33,15 +33,17 @@ instructions. **version numbers and file names matter**.
 an existing Python installation without causing conflicts, unless you register WinPython from its
 control panel.**
 
-1. For installing *Python 2.7* first download *WinPython* with version 2.7.5.X
+1. Download and install *Microsoft Visual C++ 2008 SP1 Redistributable Package (x64)* from http://www.microsoft.com/en-us/download/details.aspx?id=2092
+
+2. For installing *Python 2.7* first download *WinPython* with version 2.7.6.X
    64 bit or higher from https://code.google.com/p/winpython/. The current
    version of *emzed* is not Python 3 ready.
 
-2. Run the *WinPython* installer. This step only unpacks *WinPython* to a target directory
+3. Run the *WinPython* installer. This step only unpacks *WinPython* to a target directory
    you can choose. If you are unsure choose a directory like **C:\WinPython-X.Y.Z**.
-   Keep the install target in mind, you will need this path for the next step.
+   **Keep the install target in mind, you will need this path for the next step.**
 
-3. Download the installer http://emzed.ethz.ch/downloads/emzed2_setup.exe.
+4. Download the installer http://emzed.ethz.ch/downloads/emzed2_setup.exe.
    Run the installer with administator rights.
    The installer asks for the path to the Python interpreter to use.
    This should be a path similar to **C:\WinPython-X.Y.Z\python-x.y.z\python.exe**.
