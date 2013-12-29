@@ -129,7 +129,11 @@ class Updater(object):
 
     def query_update_info(self, limit=None):
         """ queries if update is available and delivers info about that"""
-        info, offer_update = self.impl.query_update_info(limit)
+        try:
+            info, offer_update = self.impl.query_update_info(limit)
+        except Exception, e:
+            info = e.message
+            offer_update = False
         return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
 
@@ -176,7 +180,10 @@ class Updater(object):
             os.listdir(exchange_folder)
         except BaseException, e:
             return None, str(e)
-        is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
+        try:
+            is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
+        except:
+            return False, None
         return is_newer, None
 
     def fetch_update_from_exchange_folder(self):
@@ -191,9 +198,12 @@ class Updater(object):
             os.listdir(exchange_folder)
         except BaseException, e:
             return False, str(e)
-        message = self.impl.update_from_exchange_folder(exchange_folder)
-        self._update_latest_update_ts(time.time())
-        self.impl.touch_data_home_files()
+        try:
+            message = self.impl.update_from_exchange_folder(exchange_folder)
+            self._update_latest_update_ts(time.time())
+            self.impl.touch_data_home_files()
+        except Exception, e:
+            return False, e.message()
         return True, message
 
 
