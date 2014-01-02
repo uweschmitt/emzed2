@@ -53,16 +53,16 @@ def isotopeDistributionTable(formula, R=None, fullC13=False, minp=0.01, **kw):
 
     .. pycon::
 
-       import emzed.utils !onlyoutput
+       import emzed
        # natural abundances:
        tab = emzed.utils.isotopeDistributionTable("C3H7NO2")
        tab.abundance /= tab.abundance.sum()
-       tab.print_()
+       print tab
 
        # artifical abundances:
        tab = emzed.utils.isotopeDistributionTable("C3H7NO2", C=dict(C13=0.5, C12=0.5))
        tab.abundance /= tab.abundance.sum()
-       tab.print_()
+       print tab
 
     \
     """

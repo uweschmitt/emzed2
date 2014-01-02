@@ -1,4 +1,5 @@
 import requests
+
 def get_json(url):
     from config import global_config
     user = global_config.get("emzed_store_user")

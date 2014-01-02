@@ -615,7 +615,7 @@ class BaseExpression(object):
 
     def toTable(self, colName, fmt=None, type_=None, title="", meta=None):
         """
-        Generates a one column :py:class:`~emzed.core.data_types.Table`
+        Generates a one column :py:class:`~emzed.core.data_types.table.Table`
         from an expression.
 
         Example: ``tab = substances.name.toTable()``

@@ -75,7 +75,7 @@ class RInterpreter(object):
         >>> print ip.tab
         <emzed.core.data_types.table.Table object at 0x.......>
 
-        >>> ip.tab.print_()
+        >>> print ip.tab
         a        b
         int      float
         ------   ------

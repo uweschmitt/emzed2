@@ -387,7 +387,6 @@ class MatchedFilterFeatureDetector(object):
                                                into="%.2e", intf="%.2e", maxo="%.2e",
                                                maxf="%.2e", sn="%.2e")
                                   )
-        table.print_()
 
         # parse csv and
         table.addConstantColumn("matchedfilter_config", dd, dict, None)
@@ -397,7 +396,6 @@ class MatchedFilterFeatureDetector(object):
         table.rtmin += shift
         table.rtmax += shift
         table.rt += shift
-        table[:2].print_()
         return table
 
 

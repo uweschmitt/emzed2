@@ -4,6 +4,7 @@ import itertools
 import re
 import numpy
 import cPickle
+import cStringIO
 import sys
 import inspect
 import numpy as np
@@ -205,7 +206,7 @@ class Table(object):
         self.meta = copy.copy(meta) if meta is not None else dict()
 
         self.primaryIndex = {}
-        self._name = str(self)
+        self._name = repr(self)
 
         self.editableColumns = set()
 
@@ -223,9 +224,14 @@ class Table(object):
 
         self.resetInternals()
 
-    def __str__(self):
+    def __repr__(self):
         n = len(self)
         return "<Table %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
+
+    def __str__(self):
+        fp = cStringIO.StringIO()
+        self.print_(out=fp, max_lines=25)
+        return fp.getvalue()
 
     def getColNames(self):
         """ returns a copied list of column names, one can operator on this
@@ -873,7 +879,7 @@ class Table(object):
 
         For the values ``what`` you can use
 
-           - an expression (see :py:class:`~emzed.core.data_types.Expressions`)
+           - an expression (see :py:class:`~emzed.core.data_types.expressions.Expression`)
              as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
            - a callback with signature ``callback(table, row, name)``
            - a constant value
@@ -1332,7 +1338,7 @@ class Table(object):
         meta = {self: self.meta.copy(), t: t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
-    def print_(self, w=8, out=None, title=None):
+    def print_(self, w=8, out=None, title=None, max_lines=None):
         """
         Prints the table to the console. ``w`` is the width of the columns,
         If you want to print to a file or stream instead, you can use the ``out``
@@ -1382,10 +1388,23 @@ class Table(object):
         _p(["------"] * len(ix))
         print >> out
         fms = [self.colFormatters[i] for i in ix]
-        for row in self.rows:
-            ri = [row[i] for i in ix]
-            _p(fmt(value) for (fmt, value) in zip(fms, ri))
-            print >> out
+        if max_lines is not None and len(self) > max_lines:
+            to_print = max_lines // 2
+
+            for row in self.rows[:to_print]:
+                ri = [row[i] for i in ix]
+                _p(fmt(value) for (fmt, value) in zip(fms, ri))
+                print >> out
+            print >> out,  "..."
+            for row in self.rows[-to_print-1:]:
+                ri = [row[i] for i in ix]
+                _p(fmt(value) for (fmt, value) in zip(fms, ri))
+                print >> out
+        else:
+            for row in self.rows:
+                ri = [row[i] for i in ix]
+                _p(fmt(value) for (fmt, value) in zip(fms, ri))
+                print >> out
 
     _print = print_   # backwards compatibility
 
@@ -1524,10 +1543,10 @@ class Table(object):
             t1.addColumn("b", 3)
             t2.addColumn("c", 5)
 
-            t1.print_()
-            t2.print_()
+            print t1.print
+            print t2.print
             t3 = emzed.utils.mergeTables([t1, t2])
-            t3.print_()
+            print t3.print
 
             in case of conflicting names, name orders, types or formats
             you can try ``force_merge=True`` or provide a reference
