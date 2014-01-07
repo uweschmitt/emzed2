@@ -12,4 +12,3 @@ def test_emzed_updater():
     assert id_ == "emzed_updater"
     assert ts <= 0
     assert isinstance(info, basestring)
-    assert not offer_update
