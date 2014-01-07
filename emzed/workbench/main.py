@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pdb
 #
 # Copyright © 2009-2011 Pierre Raybaut
 # Licensed under the terms of the MIT License
@@ -21,12 +20,6 @@ original copyright:
     Licensed under the terms of the MIT License
     (see spyderlib/__init__.py for details)
 """
-
-#import spyderlib.baseconfig
-#spyderlib.baseconfig.SUBFOLDER = ".emzed2_workbench"
-
-#import spyderlib.config
-#spyderlib.config.CONF.name = "emzed2"
 
 
 import pkg_resources
@@ -295,6 +288,8 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         qapp = QApplication.instance()
+
+
         self.default_style = str(qapp.style().objectName())
 
         self.dialog_manager = DialogManager()
@@ -413,18 +408,23 @@ class MainWindow(QMainWindow):
         if self.debug:
             title += " (DEBUG MODE)"
         self.setWindowTitle(title)
-        #icon_name = 'spyder_light.svg' if self.light else 'spyder.svg'
         icon_name = "emzed.ico"
 
         from spyderlib.qt.QtGui import QIcon
-        self.setWindowIcon(QIcon(icon_name))
+        data = pkg_resources.resource_string("emzed.workbench", "icon64.png")
+        img = QImage()
+        img.loadFromData(data)
+        pixmap = QPixmap.fromImage(img)
+        self.setWindowIcon(QIcon(pixmap))
+        #self.setWindowIcon(QIcon(icon_name))
 
         # EMZD MODIFIED: Showing splash screen
-        data = pkg_resources.resource_string("emzed.workbench", "splash.png")
+        data = pkg_resources.resource_string("emzed.workbench", "splash2.png")
         img = QImage()
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
         self.splash = QSplashScreen(pixmap)
+
         import time
         self.splash_started = time.time()
         font = self.splash.font()
@@ -1004,7 +1004,7 @@ class MainWindow(QMainWindow):
 
         # EMZED ADD ON : splash screen occurs at leas for 2 seconds:
         import time
-        while (time.time()-self.splash_started) < 2.0:
+        while (time.time()-self.splash_started) < 3.0:
             time.sleep(0.1)
         self.splash.hide()
 
@@ -1921,7 +1921,7 @@ def get_options():
     parser.add_option('-w', '--workdir', dest="working_directory", default=None,
                       help="Default working directory")
     parser.add_option('-d', '--debug', dest="debug", action='store_true',
-                      default=True,  # emzed modification
+                      default=False,
                       help="Debug mode (stds are not redirected)")
     parser.add_option('--showconsole', dest="show_console",
                       action='store_true', default=False,

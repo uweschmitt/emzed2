@@ -10,6 +10,11 @@ except:
     pass
 
 
+MMU = 0.001
+SECONDS = 1
+MINUTES = 60 * SECONDS
+HOURS = 60 * MINUTES
+
 import align
 import batches
 import config

@@ -1,37 +1,27 @@
 
-
-def patched(self):
-    return dict(realm="pypi",
-                username="uschmitt",
-                password="pillepalle",
-                repository="http://127.0.0.1:3142/root/dev/",
-                server="local",
-               )
-
-version_str = "2.0.5"
-
 from setuptools import setup, find_packages
+
+# no import emzed here, causes trouble when installing on win, as missing packages
+# are needed when importing emzed
+version_str = "2.1.8"
+
+
 setup(name="emzed",
-      packages=find_packages(),
+      packages=find_packages(exclude=["tests", "sandbox"]),
       version=version_str,
       entry_points={
-          "console_scripts": ["emzed.workbench = emzed.workbench.main:main", ]
+          "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
+                          "emzed.inspect = emzed.cmdline:inspect",
+                          ]
+
       },
-      package_data={
-          "emzed.core.r_connect": ["*.txt"],
-          "emzed.core.explorers": ["*.html"],
-          "emzed.workbench": ["*.png"],
-      },
+      include_package_data=True,
       zip_safe=False,
       install_requires=["emzed_optimizations",
                         "guidata>=1.6.0",
                         "guiqwt>=2.3.1",
                         "requests",
-                        "numpy",
-                        "scipy",
-                        "matplotlib",
                         "sphinx",
-                        "pyopenms",
                         "spyder==2.1.13",
                         "html2text",
                         "pandas",
