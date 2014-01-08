@@ -25,9 +25,6 @@ negative_adducts = emzed.adducts.negative
 mz_accuracy = 1e-4
 rt_accuracy = 5
 
-feature_tables = table.splitBy("feature_id")
-feature_tables.sort(key=lambda t: (-len(t), max(t.rt.values), -len(t),))
-
 
 class Feature(object):
 
@@ -50,12 +47,11 @@ class Feature(object):
     def __len__(self):
         return len(self.mzs)
 
-    def breakup(self, mz_tolerance):
+    def breakup(self, mz_accuracy):
         """ feature ff metabo is very tolerant for isotope shifts.
             here we regroup the traces of the current feature with high
             precision corresponding to given mass_shifts, eg delta_C or delta_Cl.
         """
-
 
         if len(self) <= 1:
             yield self
@@ -70,7 +66,7 @@ class Feature(object):
                        # (delta_Br / z, "Br"),
                        ]
 
-        debug = True
+        debug = 24 in self.ids
         debug = False
         #if any(i in self.ids for i in (1813, 1843)):
             #debug = True
@@ -84,7 +80,7 @@ class Feature(object):
         connections = []
         for mass_shift, element_name in mass_shifts:
             ni = np.round(z * distances / mass_shift)
-            connection = np.abs(ni * mass_shift - z * distances) <  mz_tolerance
+            connection = np.abs(ni * mass_shift - z * distances) <  mz_accuracy
             connections.append((connection, element_name))
             if debug:
                 print element_name
@@ -92,6 +88,9 @@ class Feature(object):
                 print connection
                 print
 
+        if debug:
+            pdb.set_trace() ############################## Breakpoint ##############################
+            pass
         components = []
         component_elements = []
         to_start = set(range(len(self)))
@@ -133,7 +132,7 @@ class Feature(object):
                          [self.areas[i] for i in component],
                          element_names
                          )
-            print  "   ", f0.ids,
+            print "   ", f0.ids,
             if len(f0) == 1:
                 f0.z = None
             yield f0
@@ -577,13 +576,35 @@ class IsotopeMerger(object):
 
                     # look for match with max area
                     matches.sort()
-                    __, mzi = matches[-1]
+                    __, mz_new = matches[-1]
 
                     print "add integration window for cluster %d and mz= %.5f" % (iso_cluster_id,
-                                                                                  mzi)
-                    proto[group.getIndex("mz")] = mzi
-                    proto[group.getIndex("mzmin")] = mzi - self.mz_integration_window / 2.0
-                    proto[group.getIndex("mzmax")] = mzi + self.mz_integration_window / 2.0
+                                                                                  mz_new)
+                    # sometimes we get a gap by throwing a peak away(see 'breakup')
+                    # as the mz_integration_window value is higher than mz_accuracy,
+                    # we might reintroduce this abandoned peak again.
+                    #
+                    # so we check if the representing peak matches tolerance:
+
+                    # find representing peak
+                    pm = group.peakmap.uniqueValue()
+                    mz_re = pm.representingMzPeak(mz_new - self.mz_integration_window / 2.0,
+                                                  mz_new + self.mz_integration_window / 2.0,
+                                                  rt_min, rt_max)
+
+                    # mz_re is None if there are no peaks in given window
+                    if mz_re is not None:
+                        diff = abs(mz_re - mz_new)
+                        if diff > self.mz_accuracy:
+                            print ("    ... abandoned as representing peak ist at %.5f which "
+                                   "differs by %e" % (mz_re, diff))
+                            continue
+                        else:
+                            mz_new = mz_re
+
+                    proto[group.getIndex("mz")] = mz_new
+                    proto[group.getIndex("mzmin")] = mz_new - self.mz_integration_window / 2.0
+                    proto[group.getIndex("mzmax")] = mz_new + self.mz_integration_window / 2.0
                     proto[group.getIndex("rt")] = rt_mean
                     proto[group.getIndex("rtmin")] = rt_min
                     proto[group.getIndex("rtmax")] = rt_max
@@ -616,7 +637,7 @@ if __name__ == "__main__":
     #for p in glob.glob("t_b1_for_feature_grouper.table"): # "b2_neu.table"):
     #for p in glob.glob("S9_shoulder_removed_and_integrated.table"):
     if 1:
-        p = "sample_b3_integrated.table"
+        p = "/home/uschmitt/shared/b1_ambiguous.table"
         print p
         table = emzed.io.loadTable(p)
         #table = table.filter(table.feature_id == 2734)
@@ -625,6 +646,7 @@ if __name__ == "__main__":
         #AdductAssigner("negative_mode").process(table)
         table = IsotopeMerger().process(table)
         #emzed.io.storeTable(table, "b2_neu_fclustered.table", True)
+        table = table.filter(table.isotope_cluster_id.isIn((44, 66, 357, 419, 433, 438, 440)))
         emzed.gui.inspect(table)
     # table = emzed.io.loadTable("s9_mtr_5ppm_integrated.table")
 
