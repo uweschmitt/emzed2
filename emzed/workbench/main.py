@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
         self.run_toolbar_actions = []
 
         # Set Window title and icon
-        title = "eMZed"
+        title = "emzed"
         if self.debug:
             title += " (DEBUG MODE)"
         self.setWindowTitle(title)
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
 
             # ? menu
             about_action = create_action(self,
-                                    _("About %s...") % "eMZed",
+                                    _("About %s...") % "emzed",
                                     icon=get_std_icon('MessageBoxInformation'),
                                     triggered=self.about)
             #report_action = create_action(self,
@@ -915,7 +915,7 @@ class MainWindow(QMainWindow):
                 self.interact_menu_actions += [None, ipf_action]
 
             # Third-party plugins
-            # eMZed: disabled due to version conflicts with winpython
+            # emzed: disabled due to version conflicts with winpython
             # distribution !
             #for mod in get_spyderplugins_mods(prefix='p_', extension='.py'):
                 #try:
@@ -1472,7 +1472,7 @@ class MainWindow(QMainWindow):
             except AttributeError:
                 pass
         QMessageBox.about(self,
-            _("About %s") % "eMZed",
+            _("About %s") % "emzed",
             """<b>%s %s</b>
             <br>Scientific PYthon Development EnviRonment
             <p>Copyright &copy; 2009-2012 Pierre Raybaut
@@ -1512,10 +1512,10 @@ class MainWindow(QMainWindow):
                spyderlib.qt.__version__, platform.system()))
 
     def about(self):
-        """About eMZed / Spyder"""
+        """About emzed / Spyder"""
         QMessageBox.about(self,
-            _("About %s") % "eMZed",
-            """<b>eMZed %s</b>
+            _("About %s") % "emzed",
+            """<b>emzed %d.%d.%d</b>
             <br>Workspace for Analysing LCMS Data
             <p>Copyright &copy; 2012-2013
      <br>- Institute of Microbiology, Department of Biology, ETH Zurich
@@ -1523,14 +1523,12 @@ class MainWindow(QMainWindow):
      <br>- Uwe Schmitt, <a href="http://www.mineway.de">mineway GmbH</a>
      <p>Lincensed under the terms of the GPL 3 License
      <br>
-     More info about eMZed at <a href="http://emzed.ethz.ch">the eMZed website</a>
+     More info about emzed at <a href="http://emzed.ethz.ch">the emzed website</a>
      <br>
-     eMZed is heavilly based on :
+     emzed is heavilly based on :
      <br> - open-ms <a href="http://www.open-ms.de">http://www.open-ms.de</a>
      <br> - xcms <a href="http://metlin.scripps.edu/xcms">http://metlin.scripps.edu/xcms</a>
      <br> - Spyder 2.1.7 <a href="http://code.google.com/p/spyderlib/">http://code.google.com/p/spyderlib</a>
-
-
         """ % emzed_version)
 
 
