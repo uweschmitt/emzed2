@@ -215,7 +215,10 @@ class _UserConfig(object):
         global_config = self
 
     def get_url(self, key):
-        return self.get(key).rstrip("/")
+        val = self.get(key)
+        if val is not None:
+            val = val.rstrip("/")
+        return val
 
     def store(self, path=None):
 

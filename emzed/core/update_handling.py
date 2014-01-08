@@ -5,6 +5,7 @@ import time
 import random
 import glob
 import subprocess
+import tempfile
 
 import requests
 
@@ -247,8 +248,23 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         # install / locally
         user_flag = "" if is_venv else "--user"
         url = config.global_config.get_url("pypi_index_url")
-        exit_code = subprocess.call("pip install %s -vvvU -i %s emzed" % (user_flag, url), shell=True)
-        assert exit_code == 0, "exit code rom pip is %d" % exit_code
+        if url is not None:
+            extra_args = "-i %s" % url
+        else:
+            extra_args = ""
+
+        # starting easy_install from temp dir is needed as it fails if easy_install
+        # is started from a dir which has emzed as sub dir:
+        temp_dir = tempfile.mkdtemp()
+        exit_code = subprocess.call("easy_install -vUN %s %s emzed" % (user_flag, extra_args),
+                                    shell=True, cwd=temp_dir)
+        # try to cleanup, failure does not matter
+        try:
+            os.rmdir(temp_dir)
+        except:
+            pass
+
+        assert exit_code == 0, "exit code from easy_install is %d" % exit_code
 
     def upload_to_exchange_folder(self, exchange_folder):
         pass
