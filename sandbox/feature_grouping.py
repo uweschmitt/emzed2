@@ -20,6 +20,14 @@ delta_S = emzed.mass.S34 - emzed.mass.S32
 delta_Cl = emzed.mass.Cl37 - emzed.mass.Cl35
 delta_Br = emzed.mass.Br81 - emzed.mass.Br79
 
+negative_adducts = emzed.adducts.negative
+
+mz_accuracy = 1e-4
+rt_accuracy = 5
+
+feature_tables = table.splitBy("feature_id")
+feature_tables.sort(key=lambda t: (-len(t), max(t.rt.values), -len(t),))
+
 
 class Feature(object):
 

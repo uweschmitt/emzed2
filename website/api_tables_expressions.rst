@@ -5,18 +5,18 @@ Tables
 ------
 
 
-.. autoclass:: libms.DataStructures.Table.Table
+.. autoclass:: emzed.core.data_types.table.Table
    :members:
    :special-members:
 
 Expressions
 -----------
 
-.. automodule:: libms.DataStructures.Expressions
+.. automodule:: emzed.core.data_types.expressions.Expressions
 
-.. autoclass:: libms.DataStructures.Expressions.BaseExpression
+.. autoclass:: emzed.core.data_types.expressions.BaseExpression
    :members: 
 
-.. autoclass:: libms.DataStructures.Expressions.ColumnExpression
+.. autoclass:: emzed.core.data_types.expressions.ColumnExpression
    :members: __iadd__, __isub__, __imul__, __idiv__, modify
 

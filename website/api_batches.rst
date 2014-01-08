@@ -4,14 +4,14 @@ API batches module
 Centwave Feature Detector
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: batches.runCentwave
+.. autofunction:: emzed.batches.runCentwave
 
 Matched Filter Feature Detector
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: batches.runMatchedFilter
+.. autofunction:: emzed.batches.runMatchedFilter
 
 Centroiding Data
 ~~~~~~~~~~~~~~~~
 
-.. autofunction:: batches.runPeakPickerHiRes
+.. autofunction:: emzed.batches.runPeakPickerHiRes

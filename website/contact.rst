@@ -33,7 +33,7 @@ Contact
        | Department of Biology
        | ETH Zurich
        | CH-8093 Zurich
-       | Swisse
+       | Switzerland
 
    * - Software Design & Implementation
      - Uwe Schmitt

@@ -1,0 +1,4 @@
+include emzed/workbench/*.png
+include emzed/workbench/*.xpm
+include emzed/core/r_connect/*.txt
+include emzed/core/explorers/*.html

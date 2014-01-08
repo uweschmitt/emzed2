@@ -1,4 +1,4 @@
-def main():
+def inspect():
     import sys
     to_show = sys.argv[1]
     import emzed

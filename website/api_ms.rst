@@ -1,12 +1,35 @@
-API ms Module
-=============
+API utils Module
+================
 
-.. automodule:: ms
+.. automodule:: emzed.utils
+
+
+I/O
+~~~
+
+.. autofunction:: emzed.io.loadPeakMap
+.. autofunction:: emzed.io.storePeakMap
+
+.. autofunction:: emzed.io.loadCSV
+.. autofunction:: emzed.io.storeCSV
+
+.. autofunction:: emzed.io.loadTable
+.. autofunction:: emzed.io.storeTable
+
+
+Inspecting Tables and Peak maps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: emzed.gui.inspectPeakMap
+.. autofunction:: emzed.gui.inspect
+
+For more information about using these Explorers see :ref:`explorers`. 
+
 
 MZ Alignment
 ~~~~~~~~~~~~
 
-.. autofunction:: ms.mzAlign
+.. autofunction:: emzed.align.mzAlign
 
 
 RT Alignment
@@ -14,77 +37,65 @@ RT Alignment
 
 For an example see :ref:`rtalign_example`
 
-.. autofunction:: ms.rtAlign
-   
-
-
-Inspecting Tables and Peak maps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-.. autofunction:: ms.inspectPeakMap
-.. autofunction:: ms.inspect
-
-For more information about using these Explorers see :ref:`explorers`. 
+.. autofunction:: emzed.align.rtAlign
 
 
 Integrating Peaks
 ~~~~~~~~~~~~~~~~~
 
-.. autofunction:: ms.integrate
+.. autofunction:: emzed.utils.integrate
 
 Generating Formulas for given mass range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: ms.formulaTable
+.. autofunction:: emzed.utils.formulaTable
 
 
 Working with molecular formulas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: ms.formula
+.. autofunction:: emzed.utils.formula
 
-.. autofunction:: ms.addmf
+.. autofunction:: emzed.utils.addmf
 
 
 Simulating Isotope Distributions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: ms.isotopeDistributionTable
+.. autofunction:: emzed.utils.isotopeDistributionTable
 
 
 
-.. autofunction:: ms.plotIsotopeDistribution
+.. autofunction:: emzed.utils.plotIsotopeDistribution
 
 
 Statistics
 ~~~~~~~~~~
 
-.. autofunction:: ms.oneWayAnova
-.. autofunction:: ms.kruskalWallis
+.. autofunction:: emzed.stats.oneWayAnova
+.. autofunction:: emzed.stats.kruskalWallis
 
 see :ref:`statistics_example` for example usage
 
-.. autofunction:: ms.oneWayAnovaOnTables
-.. autofunction:: ms.kruskalWallisOnTables
+.. autofunction:: emzed.stats.oneWayAnovaOnTables
+.. autofunction:: emzed.stats.kruskalWallisOnTables
 
 
 Helpers
 ~~~~~~~
 
-.. autofunction:: ms.mergeTables
-.. autofunction:: ms.toTable
-.. autofunction:: ms.openInBrowser
+.. autofunction:: emzed.utils.mergeTables
+.. autofunction:: emzed.utils.toTable
 
 Simple Dialogs
 ~~~~~~~~~~~~~~
 
-.. autofunction:: ms.askForDirectory
-.. autofunction:: ms.askForSave
-.. autofunction:: ms.askForSingleFile
-.. autofunction:: ms.askForMultipleFiles
-.. autofunction:: ms.showWarning
-.. autofunction:: ms.showInformation
+.. autofunction:: emzed.gui.askForDirectory
+.. autofunction:: emzed.gui.askForSave
+.. autofunction:: emzed.gui.askForSingleFile
+.. autofunction:: emzed.gui.askForMultipleFiles
+.. autofunction:: emzed.gui.showWarning
+.. autofunction:: emzed.gui.showInformation
 
 
 DialogBuilder
@@ -92,18 +103,7 @@ DialogBuilder
 
 For an example see  :ref:`dialogbuilder_example`
 
-.. autoclass:: ms.DialogBuilder
+.. autoclass:: emzed.gui.DialogBuilder
 
-I/O
-~~~
-
-.. autofunction:: ms.loadPeakMap
-.. autofunction:: ms.storePeakMap
-
-.. autofunction:: ms.loadCSV
-.. autofunction:: ms.storeCSV
-
-.. autofunction:: ms.loadTable
-.. autofunction:: ms.storeTable
 
 

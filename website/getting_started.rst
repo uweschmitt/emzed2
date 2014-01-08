@@ -1,35 +1,35 @@
 .. _getting_started:
 
 ====================================
-Getting started with eMZed workbench
+Getting started with emzed workbench
 ====================================
 
 Before you start
 ----------------
 
-*eMZed* helps you to develop work flows by two means:
+*emzed* helps you to develop work flows by two means:
 
   * a supportive development environment which we name *workbench* and
 
-  * a collection of *eMZed modules* for typical
+  * a collection of *emzed modules* for typical
     tasks which provide building blocks for an LCMS analysis work flows.
 
 The following instructions help you to get started with the *workbench*,
 :ref:`getting_started_with_emzed_modules` gives a first impression of
-the functionalities provided by *eMZed modules*.
+the functionalities provided by *emzed modules*.
 
 We recommend to exercise the tutorial below before following
 :ref:`getting_started_with_emzed_modules`.
 
-The eMZed workbench
+The emzed workbench
 -------------------
 
-If you start *eMZed* workbench the first time the user interface should look
+If you start *emzed* workbench the first time the user interface should look
 like the following screen shot.  The window is divided into an editor for
 *Python* code at the left, and a *variable explorer* above a *IPython console*
 with an input prompt at the right.  You can resize and reorder them using your
-mouse. This configuration is stored if you close *eMZed* and if you start
-*eMZed* again, it will be restored.
+mouse. This configuration is stored if you close *emzed* and if you start
+*emzed* again, it will be restored.
 
 .. figure:: emzed_workbench_overview.png
    :scale: 50 %
@@ -39,7 +39,7 @@ mouse. This configuration is stored if you close *eMZed* and if you start
 How to change the working directory?
 ------------------------------------
 
-Like a Linux command line *eMZed* has the concept of a *working directory*,
+Like a Linux command line *emzed* has the concept of a *working directory*,
 this is the location where the editor opens new files, and where scripts are
 started when using the *IPython* shell.
 
@@ -50,7 +50,7 @@ started when using the *IPython* shell.
 To change the working directory look at the labeled buttons in the screen
 shot and follow theses instructions:
 
-  1. Press the "choose folder" button of *eMZed* task bar (1.) and choose directory.
+  1. Press the "choose folder" button of *emzed* task bar (1.) and choose directory.
 
   2. Press "set" button (2.) to set the current working directory to the chosen one.
 
@@ -64,7 +64,7 @@ a statement similar to the following one is executed in your *IPython* shell:
 .. figure:: emzed_working_dir_cwd.png
    :scale: 75%
 
-This folder was created during the first startup of eMZed.
+This folder was created during the first startup of emzed.
 
 You can verify the current working directory by typing ``pwd`` in the IPython
 console. Press ``Enter``, type ``pwd`` and press ``Enter`` again.
@@ -144,13 +144,13 @@ You can find a more detailed IPython tutorial here_.
 
 
 
-How to use eMZed modules?
+How to use emzed modules?
 -------------------------
 
 
 As an *example* we determine the isotope distribution of molecular formula
 *C6H13O9P*. It can be calculated using the method *isotopeDistributionTable* of
-the main *eMZed* module *ms*. After typing ``ms.`` the auto completion shows
+the main *emzed* module *ms*. After typing ``ms.`` the auto completion shows
 all methods of the module *ms*.
 
 .. figure:: ipython_autocompletion.png
@@ -203,8 +203,8 @@ a table object and you can directly print the result in the console.
 How to run scripts ?
 --------------------
 
-*eMZed* work flows are Python scripts generally using functionalities provided
-by *eMZed* modules but also individual functions created by the user.
+*emzed* work flows are Python scripts generally using functionalities provided
+by *emzed* modules but also individual functions created by the user.
 
 
 To build your own work flows you can use the *Editor* to write scripts and
@@ -220,7 +220,7 @@ Type the code into the editor and save it as ``using_editor.py``
 into the working directory ``.../emzed_files/first_steps`` which we
 set above.
 
-There are two possibilities to run scripts in *eMZed*.
+There are two possibilities to run scripts in *emzed*.
 
  1. You can execute the script currently displayed in the Editor  by simply
     pressing the ``F5`` key. When the ``F5`` key is used the first

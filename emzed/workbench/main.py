@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pdb
 #
 # Copyright © 2009-2011 Pierre Raybaut
 # Licensed under the terms of the MIT License
@@ -21,12 +20,6 @@ original copyright:
     Licensed under the terms of the MIT License
     (see spyderlib/__init__.py for details)
 """
-
-#import spyderlib.baseconfig
-#spyderlib.baseconfig.SUBFOLDER = ".emzed2_workbench"
-
-#import spyderlib.config
-#spyderlib.config.CONF.name = "emzed2"
 
 
 import pkg_resources

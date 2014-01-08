@@ -40,6 +40,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
         messages.append("WARNING: as the table has les thann %d rows, we switch to one cpu mode"
                         % min_size_for_parallel_execution)
+        n_cpus = 1     
 
     elif n_cpus > multiprocessing.cpu_count():
         messages.append("WARNING: more processes demanded than available cpu cores, this might be "
@@ -74,6 +75,8 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             t.replaceColumn("peakmap", pms)
 
         pool.close()
+
+        tables = [t for t in tables if len(t) > 0]
         result = Table.mergeTables(tables)
 
     if showProgress:
