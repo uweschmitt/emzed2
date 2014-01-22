@@ -142,14 +142,16 @@ class AdductAssigner(object):
                 max_comp_size = max(max_comp_size, len(component))
             if TO_OBSERVE in nodes:
                 print max_comp_size, partial_solution
-            partial_solutions.append((len(partial_solution), max_comp_size, partial_solution))
+            partial_solutions.append((len(partial_solution), partial_solution))
 
         if partial_solutions:
-            __, __, max_solution = max(partial_solutions)
-            if TO_OBSERVE in nodes:
-                print max_solution
-            for assignment in max_solution:
-                yield assignment
+            lmax, __ = max(partial_solutions)
+            for l, solution in partial_solutions:
+                if l == lmax:
+                    if TO_OBSERVE in nodes:
+                        print solution
+                    for assignment in solution:
+                        yield assignment
 
     @staticmethod
     def test_resolve_graph():
@@ -283,8 +285,9 @@ class AdductAssigner(object):
 
             # if the assignemnt is unique we add this information
             if len(full_assignments):
-                for k, v in full_assignments[0].items():
-                    assigned_adducts[k].append(v)
+                for full_assignment in full_assignments:
+                    for k, v in full_assignment.items():
+                        assigned_adducts[k].append(v)
 
         return assigned_adducts
 
@@ -332,7 +335,8 @@ if __name__ == "__main__":
     #cnames1 = table.getColNames()
     import glob
     #for p in glob.glob("201311*.table"):
-    p = "b5_isotope_grouped.table"
+    p = "20140122_adduct_grouping.table"
+    p = "isotope_clustered.table"
     if p:
         print p
         table = emzed.io.loadTable(p)
