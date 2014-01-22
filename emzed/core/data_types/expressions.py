@@ -1,4 +1,3 @@
-import pdb
 import numpy as np
 import re
 import col_types
@@ -922,7 +921,8 @@ class AggregateExpression(BaseExpression):
     def __call__(self):
         values, _, type_ = self._eval()
         if len(values):
-            return values[0]
+            rv = values[0]
+            return type_(rv)
         return self.default_empty
 
     def _eval(self, ctx=None):

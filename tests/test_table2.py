@@ -621,6 +621,11 @@ def test_own_aggregate_functions():
     t.print_()
 
 
+def test_aggregate_types():
+    t = emzed.utils.toTable("group", [1, 1, 2])
+    assert type(t.group.max()) in (int, long)
+
+
 
 
 
