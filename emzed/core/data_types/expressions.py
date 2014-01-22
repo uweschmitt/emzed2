@@ -1,3 +1,4 @@
+import pdb
 import numpy as np
 import re
 import col_types
@@ -574,8 +575,7 @@ class BaseExpression(object):
             if len(diff) == 0:
                 raise Exception("only None values in %s" % self)
             if len(diff) > 1:
-                raise Exception("more than one not-None value in %s: %s"
-                                % (self, sorted(diff)))
+                raise Exception("more than one not-None value in %s: %s" % (self, sorted(diff)))
             return diff.pop()
         return AggregateExpression(self, select, "uniqueNotNone(%s)",
                                    None, ignore_none=False)
@@ -595,8 +595,7 @@ class BaseExpression(object):
                 values = [round(v, up_to_digits) if v is not None else v
                           for v in values]
             except:
-                raise Exception("round to %d digits not possible"
-                                % up_to_digits)
+                raise Exception("round to %d digits not possible" % up_to_digits)
 
         # working with a set would be easier, but we get problems if
         # there are unhashable objects in 'values', eg a dict...
@@ -604,7 +603,7 @@ class BaseExpression(object):
         import itertools
         values = [k for k, v in itertools.groupby(sorted(values))]
         if len(values) != 1:
-            raise Exception("not one unique value in %s" % self)
+            raise Exception("not one unique value in %s, got %d values" % (self, len(values)))
         return values.pop()
 
     def value(self):
@@ -1124,7 +1123,7 @@ class FunctionExpression(BaseExpression):
                 if None in types:
                     types.remove(None)
                 if len(types) > 1:
-                    raise Exception("no unique return type in function result")
+                    raise Exception("no unique return type in function result: %r" % types)
                 type_ = types.pop()
                 if cleanup(type_) in _basic_num_types:
                     values = np.array(values)
@@ -1213,16 +1212,14 @@ class IfThenElse(BaseExpression):
         s3 = self.e3._evalsize(ctx)
         if s1 == 1:
             if (s2 == 1 and s3 > 1) or (s2 > 1 and s3 == 1):
-                raise Exception("column lengths %d, %d and %d do not fit!"
-                                % (s1, s2, s3))
+                raise Exception("column lengths %d, %d and %d do not fit!" % (s1, s2, s3))
             return max(s2, s3)
 
         if s2 == s3 == 1:
             return s1
 
         if (s3 == 1 and s2 != s1) or (s2 == 1 and s3 != s1):
-            raise Exception("column lengths %d, %d and %d do not fit!"
-                            % (s1, s2, s3))
+            raise Exception("column lengths %d, %d and %d do not fit!" % (s1, s2, s3))
 
         return s1
 
