@@ -3,6 +3,7 @@ import emzed.io as io
 import pytest
 import emzed.core.config
 
+@pytest.skip
 def test_small():
 
     if not emzed.core.config.global_config.get("metlin_token"):
@@ -30,6 +31,8 @@ def test_large():
     tn = utils.matchMetlin(t, "m0", ["M", "M+H", "M+2H", "M+3H"], 3)
     assert len(tn) >= 2709, len(tn)
 
+
+@pytest.skip
 def test_handling_of_wrong_answer_from_metlin(path):
     if not emzed.core.config.global_config.get("metlin_token"):
         raise Exception("please provide EMZED_METLIN_TOKEN variable "\
