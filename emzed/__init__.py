@@ -36,6 +36,21 @@ import ext
 import mass
 import updaters
 
+def _run_init_and_keep_ns_clean():
+    if config._is_first_start():
+        config.global_config.set_defaults()
+        print
+        print "This is the first time you use emzed. Configuration values are set to their"
+        print "default values. You can use emzed.config.edit() to inspect and modify these"
+        print
+        config.store()
+    else:
+        config.load()
+ 
+_run_init_and_keep_ns_clean()
+del _run_init_and_keep_ns_clean
+
+
 #
 from version import version as __version__
 
