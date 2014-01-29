@@ -3,7 +3,7 @@
 
 def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
             numBreakpoints=5, maxRtDifference=100, maxMzDifference=0.3,
-            maxMzDifferencePairfinder=0.5, forceAlign=False):
+            maxMzDifferencePairfinder=0.5, forceAlign=False, resetIntegration=False):
 
     """ aligns feature tables in respect to retention times.
         the algorithm produces new tables with aligned data.
@@ -40,6 +40,22 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
     assert refTable is None or isinstance(refTable, Table)
     assert destination is None or isinstance(destination, basestring)
 
+    if any(t.hasColumn("method") and t.hasColumn("area") and t.hasColumn("params") for t in tables):
+        has_values_not_none = lambda col: set(col.values) != set([None])
+        integrated = lambda t: (has_values_not_none(t.method) or has_values_not_none(t.area) or
+                                has_values_not_none(t.params))
+        if any(integrated(t) for t in tables):
+            if resetIntegration:
+                for t in tables:
+                    if t.hasColumn("method") and t.hasColumn("area") and t.hasColumn("params"):
+                        t.replaceColumn("method", None)
+                        t.replaceColumn("area", None)
+                        t.replaceColumn("params", None)
+            else:
+                raise Exception("one ot the tables to align is integrated which will turn invalid "
+                                "after alignment. Either remove the integration columns, or set\n"
+                                "parameter resetIntegration to True")
+
     for table in tables:
         # collect all maps
         maps = set(table.peakmap.values)
@@ -50,10 +66,9 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
             map.meta["rt_aligned"] = False
         else:
             if map.meta.get("rt_aligned"):
-                message = "there are already rt_aligned peakmaps in the "\
-                          "tables.\nyou have to provide the forceAlign "\
-                          "parameter of this function\nto align all tables"
-                raise Exception(message)
+                raise Exception("there are already rt_aligned peakmaps in the tables. you have to "
+                                "to provide the forceAlign parameter of this function to align "
+                                "all tables.")
         assert isinstance(table, Table), "non table object in tables"
         table.requireColumn("mz"), "need mz column for alignment"
         table.requireColumn("rt"), "need rt column for alignment"
