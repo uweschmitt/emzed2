@@ -38,7 +38,7 @@ def testRound():
     t = emzed.utils.toTable("a", [1.23, 0.5])
     t.addColumn("b", t.a.apply(round))
     assert len(t) == 2
-    assert t.b.values == [1.0, 1.0]
+    assert t.b.values == (1.0, 1.0,)
 
 
 def testFullJoin():
@@ -46,7 +46,7 @@ def testFullJoin():
     t2 = t.join(t)
     t2.print_()
     assert len(t2) == 9
-    assert t2.a.values == [None, None, None, 2, 2, 2, 3, 3, 3]
+    assert t2.a.values == (None, None, None, 2, 2, 2, 3, 3, 3,)
     assert t2.a__0.values == t.a.values * 3
 
 
@@ -59,20 +59,20 @@ def testIfNotNoneElse():
 
     t.print_()
 
-    assert t.b.values == [3, 2, 3]
-    assert t.c.values == [4, 2, 3]
+    assert t.b.values == (3, 2, 3,)
+    assert t.c.values == (4, 2, 3,)
 
 
 def testPow():
     t = emzed.utils.toTable("a", [None, 2, 3])
     t.addColumn("square", t.a.pow(2))
-    assert t.square.values == [None, 4, 9], t.square.values
+    assert t.square.values == (None, 4, 9,), t.square.values
 
 
 def testApply():
     t = emzed.utils.toTable("a", [None, 2, 3])
     t.addColumn("id", (t.a * t.a).apply(lambda v: int(v ** 0.5)))
-    assert t.id.values == [None, 2, 3]
+    assert t.id.values == (None, 2, 3,)
 
     sub = emzed.utils.toTable("mf", ["Na", "H2O", None])
 
@@ -177,15 +177,15 @@ def testForDanglingReferences():
 
     tis = t.splitBy("a")
     tis[0].rows[0][0] = 7
-    assert t.a.values == [None, 2, 2]
+    assert t.a.values == (None, 2, 2,)
 
     tis[1].rows[0][0] = 7
-    assert t.a.values == [None, 2, 2]
+    assert t.a.values == (None, 2, 2,)
 
     tn = t.uniqueRows()
     tn.rows[0][0] = 7
     tn.rows[-1][0] = 7
-    assert t.a.values == [None, 2, 2]
+    assert t.a.values == (None, 2, 2,)
 
 
 def testSupportedPostfixes():
@@ -240,23 +240,23 @@ def testColumnAggFunctions():
 
     assert t.c.uniqueNotNone() == 1
 
-    assert (t.a + t.c).values == [None, None, 4]
+    assert (t.a + t.c).values == (None, None, 4,)
     assert (t.a + t.c).sum() == 4
     apc = (t.a + t.c).toTable("a_plus_c")
     assert apc.getColNames() == ["a_plus_c"]
     assert apc.getColTypes() == [int]
-    assert apc.a_plus_c.values == [None, None, 4]
+    assert apc.a_plus_c.values == (None, None, 4,)
 
-    assert (apc.a_plus_c - t.a).values == [None, None, 1]
+    assert (apc.a_plus_c - t.a).values == (None, None, 1,)
 
     # column from other table !
     t.addColumn("apc", apc.a_plus_c)
-    assert t.apc.values == [None, None, 4], t.apc.values
+    assert t.apc.values == (None, None, 4,), t.apc.values
 
     # column from other table !
     t2 = t.filter(apc.a_plus_c)
     assert len(t2) == 1
-    assert t2.apc.values == [4]
+    assert t2.apc.values == (4,)
 
 
 
@@ -265,8 +265,8 @@ def testUniqeRows():
     t = emzed.utils.toTable("a", [1, 1, 2, 2, 3, 3])
     t.addColumn("b", [1, 1, 1, 2, 3, 3])
     u = t.uniqueRows()
-    assert u.a.values == [1, 2, 2, 3]
-    assert u.b.values == [1, 1, 2, 3]
+    assert u.a.values == (1, 2, 2, 3,)
+    assert u.b.values == (1, 1, 2, 3,)
     assert len(u.getColNames()) == 2
     u.info()
 
@@ -274,16 +274,16 @@ def testUniqeRows():
 def testInplaceColumnmodification():
     t = emzed.utils.toTable("a", [1, 2, 3, 4])
     t.a += 1
-    assert t.a.values == [2, 3, 4, 5]
+    assert t.a.values == (2, 3, 4, 5,)
     t.a *= 2
-    assert t.a.values == [4, 6, 8, 10]
+    assert t.a.values == (4, 6, 8, 10,)
     t.a /= 2
-    assert t.a.values == [2, 3, 4, 5]
+    assert t.a.values == (2, 3, 4, 5,)
     t.a -= 1
-    assert t.a.values == [1, 2, 3, 4]
+    assert t.a.values == (1, 2, 3, 4,)
 
     t.a.modify(lambda v: 0)
-    assert t.a.values == [0, 0, 0, 0]
+    assert t.a.values == (0, 0, 0, 0,)
 
 
 def testIndex():
@@ -309,14 +309,14 @@ def testIndex():
         assert len(t.filter(e)) == v, len(t.filter(e))
 
     t2 = t.copy()
-    assert t.join(t2, t.b < t2.a).a__0.values == [3, 4, 5, 1, 2, 3, 4, 5, 2, 3, 4, 5]
-    assert t.join(t2, t.b > t2.a).a__0.values == [1, 1, 2, 3, 4, 1, 2, 3, 4, 5]
-    assert t.join(t2, t.b <= t2.a).a__0.values == [2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 5]
-    assert t.join(t2, t.b >= t2.a).a__0.values == [1, 2, 1, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+    assert t.join(t2, t.b < t2.a).a__0.values == (3, 4, 5, 1, 2, 3, 4, 5, 2, 3, 4, 5,)
+    assert t.join(t2, t.b > t2.a).a__0.values == (1, 1, 2, 3, 4, 1, 2, 3, 4, 5,)
+    assert t.join(t2, t.b <= t2.a).a__0.values == (2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 5,)
+    assert t.join(t2, t.b >= t2.a).a__0.values == (1, 2, 1, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5,)
 
-    assert t.join(t2, t.b == t2.a).a__0.values == [2, 1, 5]
-    assert t.join(t2, t.b != t2.a).a__0.values == [1, 3, 4, 5, 1, 2, 3, 4, 5, 2, 3, 4, 5, 1,
-                                                   2, 3, 4, 1, 2, 3, 4, 5]
+    assert t.join(t2, t.b == t2.a).a__0.values == (2, 1, 5,)
+    assert t.join(t2, t.b != t2.a).a__0.values == (1, 3, 4, 5, 1, 2, 3, 4, 5, 2, 3, 4, 5, 1,
+                                                   2, 3, 4, 1, 2, 3, 4, 5,)
 
 
 def testBools():
@@ -333,12 +333,12 @@ def testBools():
     t.addColumn("int_bool", (t.bool).thenElse(t.bool, t.int))
 
     # test coercion (bool, int) to int:
-    assert t.int_bool.values == [1, 2, 1, None]
+    assert t.int_bool.values == (1, 2, 1, None,)
     t.addColumn("int_float", (t.bool).thenElse(t.int, t.float))
-    assert t.int_float.values == [1.0, 2.0, 3.0, None], t.int_float.values
+    assert t.int_float.values == (1.0, 2.0, 3.0, None,), t.int_float.values
 
     t.addColumn("bool_float", (t.bool).thenElse(t.bool, t.float))
-    assert t.bool_float.values == [1.0, 2.0, 1.0, None]
+    assert t.bool_float.values == (1.0, 2.0, 1.0, None,)
 
 
 def testUniqueValue():
@@ -390,7 +390,7 @@ def testAppend():
     t2 = t.copy()
     t.append(t2, [t2, t2], (t2,))
     assert len(t) == 10
-    assert t.a.values == [1, 2] * 5
+    assert t.a.values == (1, 2,) * 5
 
 
 def testRenamePostfixes():
@@ -472,12 +472,12 @@ def test_multi_sort():
     t.addColumn("y", [1, 2, 2])
 
     t.sortBy(["y", "z"])
-    assert t.y.values == [1, 2, 2]
-    assert t.z.values == [1, 2, 3]
+    assert t.y.values == (1, 2, 2,)
+    assert t.z.values == (1, 2, 3,)
 
     t.sortBy(["y", "z"], ascending=False)
-    assert t.y.values == [2, 2, 1]
-    assert t.z.values == [3, 2, 1]
+    assert t.y.values == (2, 2, 1,)
+    assert t.z.values == (3, 2, 1,)
 
 
 def test_collapse():
@@ -513,21 +513,21 @@ def test_missing_values_binary_expressions():
 
     # column x has type None, this is a special case which failed before
     t = emzed.utils.toTable("x", [None])
-    assert (t.x + t.x).values == [None]
-    assert (t.x * t.x).values == [None]
-    assert (t.x - t.x).values == [None]
-    assert (t.x / t.x).values == [None]
+    assert (t.x + t.x).values == (None,)
+    assert (t.x * t.x).values == (None,)
+    assert (t.x - t.x).values == (None,)
+    assert (t.x / t.x).values == (None,)
 
     t.addColumn("y", [1])
-    assert (t.x + t.y).values == [None]
-    assert (t.x * t.y).values == [None]
-    assert (t.x - t.y).values == [None]
-    assert (t.x / t.y).values == [None]
+    assert (t.x + t.y).values == (None,)
+    assert (t.x * t.y).values == (None,)
+    assert (t.x - t.y).values == (None,)
+    assert (t.x / t.y).values == (None,)
 
-    assert (t.y + t.x).values == [None]
-    assert (t.y * t.x).values == [None]
-    assert (t.y - t.x).values == [None]
-    assert (t.y / t.x).values == [None]
+    assert (t.y + t.x).values == (None,)
+    assert (t.y * t.x).values == (None,)
+    assert (t.y - t.x).values == (None,)
+    assert (t.y / t.x).values == (None,)
 
 
 def test_grouped_aggregate_expressions():
@@ -538,21 +538,21 @@ def test_grouped_aggregate_expressions():
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == [1, 1, 3]
+    assert t.grouped_min.values == (1, 1, 3,)
     t.print_()
 
     # float types aggregated
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_mean", t.values.mean.group_by(t.group))
-    assert t.grouped_mean.values == [1.5, 1.5, 3]
+    assert t.grouped_mean.values == (1.5, 1.5, 3,)
     t.print_()
 
     # str types aggregated
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", ["1", "2", "3"])
     t.addColumn("grouped_max", t.values.max.group_by(t.group))
-    assert t.grouped_max.values == ["2", "2", "3"]
+    assert t.grouped_max.values == ("2", "2", "3",)
     t.print_()
 
     # with missing values ############################################
@@ -561,21 +561,21 @@ def test_grouped_aggregate_expressions():
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [None, 2, None])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == [2, 2, None]
+    assert t.grouped_min.values == (2, 2, None,)
     t.print_()
 
     # float types aggregated
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [None, 2.0, None])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == [2.0, 2.0, None]
+    assert t.grouped_min.values == (2.0, 2.0, None,)
     t.print_()
 
     # str types aggregated
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [None, "2", None])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == ["2", "2", None]
+    assert t.grouped_min.values == ("2", "2", None,)
     t.print_()
 
     # empty columns ##################################################
@@ -584,14 +584,14 @@ def test_grouped_aggregate_expressions():
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [None, None, None])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == [None, None, None]
+    assert t.grouped_min.values == (None, None, None,)
     t.print_()
 
     # empty table
     t = emzed.utils.toTable("group", [])
     t.addColumn("values", [])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
-    assert t.grouped_min.values == []
+    assert t.grouped_min.values == ()
     t.print_()
 
 
@@ -601,22 +601,22 @@ def test_own_aggregate_functions():
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_min", t.values.aggregate(lambda v: min(v)).group_by(t.group))
-    assert t.grouped_min.values == [1, 1, 3]
+    assert t.grouped_min.values == (1, 1, 3,)
     t.print_()
     # int types aggregated
     t = emzed.utils.toTable("group", [1, 1, 2])
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_min", t.values.aggregate(np.min).group_by(t.group))
-    assert t.grouped_min.values == [1, 1, 3]
+    assert t.grouped_min.values == (1, 1, 3,)
     t.print_()
 
     def my_min(li):
         return min(li) + 42
 
     t.addColumn("strange", t.values.aggregate(my_min))
-    assert t.strange.values == [43, 43, 43], t.strange.values
+    assert t.strange.values == (43, 43, 43,), t.strange.values
     t.addColumn("strange2", t.values.aggregate(my_min).group_by(t.group))
-    assert t.strange2.values == [43, 43, 45], t.strange2.values
+    assert t.strange2.values == (43, 43, 45,), t.strange2.values
 
     t.print_()
 

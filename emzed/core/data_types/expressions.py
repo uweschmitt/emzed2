@@ -583,8 +583,8 @@ class BaseExpression(object):
     def values(self):
         values, _, t = self._eval(None)
         if len(values) and t in _basic_num_types:
-            return values.tolist()
-        return values
+            return tuple(values.tolist())
+        return tuple(values)
 
     def uniqueValue(self, up_to_digits=None):
 
@@ -1247,7 +1247,7 @@ class ColumnExpression(BaseExpression):
     def _setupValues(self):
         # delayed lazy evaluation
         if not hasattr(self, "_values"):
-            self._values = [row[self.idx] for row in self.table.rows]
+            self._values = tuple(row[self.idx] for row in self.table.rows)
 
     @property
     def values(self):

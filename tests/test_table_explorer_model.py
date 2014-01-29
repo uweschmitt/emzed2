@@ -176,9 +176,9 @@ def testSimpleTable():
 
     model.sort(0, Qt.DescendingOrder)
 
-    assert model.table.mz.values == [ 3.5, 2.5, None]
+    assert model.table.mz.values == ( 3.5, 2.5, None)
     model.undoLastAction()
-    assert model.table.mz.values == [ None, 2.5, 3.5]
+    assert model.table.mz.values == ( None, 2.5, 3.5)
 
     #assert model.postfixes == [""]
 
@@ -240,14 +240,14 @@ def testActions():
 
     action = SortTableAction(model, 0, 0, Qt.AscendingOrder)
     action.do()
-    assert model.table.mz.values == [ None, 1.0, 2.0]
+    assert model.table.mz.values == ( None, 1.0, 2.0)
     action.undo()
     assert model.table.mz.values == t_orig.mz.values
 
 
     action = SortTableAction(model, 0, 0, Qt.DescendingOrder)
     action.do()
-    assert model.table.mz.values == [ 2.0, 1.0, None]
+    assert model.table.mz.values == ( 2.0, 1.0, None)
     action.undo()
     assert model.table.mz.values == t_orig.mz.values
 

@@ -70,9 +70,9 @@ def testOnTables():
     tresult = emzed.stats.oneWayAnovaOnTables(setOne, setTwo, idColumn="compound",
                                               valueColumn="area")
 
-    assert tresult.id.values == ["A", "B"]
-    assert tresult.n1.values == [4, 5]
-    assert tresult.n2.values == [6, 6]
+    assert tresult.id.values == ("A", "B")
+    assert tresult.n1.values == (4, 5)
+    assert tresult.n2.values == (6, 6)
 
     assert abs(tresult.p_value.values[0]-9.11e-3)/9.11e-3 < 1e-2
     assert abs(tresult.p_value.values[1]-1.44e-2)/1.44e-2 < 1e-2
@@ -84,9 +84,9 @@ def testOnTables():
 
     tresult.print_()
 
-    assert tresult.id.values == ["A", "B"]
-    assert tresult.n1.values == [4, 5]
-    assert tresult.n2.values == [6, 6]
+    assert tresult.id.values == ("A", "B")
+    assert tresult.n1.values == (4, 5)
+    assert tresult.n2.values == (6, 6)
 
 
     assert abs(tresult.p_value.values[0]-7.84e-2)/7.84e-2 < 1e-2
