@@ -413,14 +413,18 @@ class BaseExpression(object):
         """
         return self.apply(lambda v, exp=exp: v ** exp)
 
-    def apply(self, fun):
+    def apply(self, fun, filter_nones=True):
         """
         t.apply(*fun*) results in an expression which applies *fun* to the
         values in t if evaluated.
 
         Example::  ``tab.addColumn("amplitude", tab.time.apply(sin))``
+
+        As None values indicate "unknown" value, the function is applied only to not None
+        values in the columns, unless you specify *filter_nones=False*.
+
         """
-        return FunctionExpression(fun, str(fun), self, None)
+        return FunctionExpression(fun, str(fun), self, None, filter_nones)
 
     def loadFileFromPath(self, type_=None):
         """
@@ -1100,13 +1104,14 @@ class IsNoneExpression(BaseExpression):
 
 class FunctionExpression(BaseExpression):
 
-    def __init__(self, efun, efunname, child, res_type):
+    def __init__(self, efun, efunname, child, res_type, filter_nones=True):
         if not isinstance(child, BaseExpression):
             child = Value(child)
         self.child = child
         self.efun = efun
         self.efunname = efunname
         self.res_type = res_type
+        self.filter_nones = filter_nones
 
     def _eval(self, ctx=None):
         values, index, type_ = saveeval(self.child, ctx)
@@ -1130,7 +1135,11 @@ class FunctionExpression(BaseExpression):
                     return values, None, cleanup(type_)
 
             return values, None, common_type_for(values)
-        new_values = [self.efun(v) if v is not None else None for v in values]
+
+        if self.filter_nones:
+            new_values = [self.efun(v) if v is not None else None for v in values]
+        else:
+            new_values = [self.efun(v) for v in values]
         type_ = self.res_type or common_type_for(new_values)
         if type_ in _basic_num_types:
             new_values = np.array(new_values)
