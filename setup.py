@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version_str = "2.1.8"
+version_str = "2.2.0"
 
 
 setup(name="emzed",
