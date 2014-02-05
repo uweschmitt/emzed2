@@ -69,7 +69,7 @@ echo
 echo INSTALLATIONS OK
 echo
 
-DEFAULT_INSTALL_FOLDER=$HOME/emzed2_x
+DEFAULT_INSTALL_FOLDER=$HOME/emzed2_installation
 
 echo
 echo -n "please choose installation folder for emzed. "
@@ -97,7 +97,7 @@ echo
 
 virtualenv-2.7 --system-site-packages $INSTALL_FOLDER
 
-#install_emzed_and_related_packages $INSTALL_FOLDER
+install_emzed_and_related_packages $INSTALL_FOLDER
 
 echo
 echo "ALL PYTHON PACKAGES INSTALLED"
