@@ -70,7 +70,7 @@ def isotopeDistributionTable(formula, R=None, fullC13=False, minp=0.01, **kw):
     gen = _setupIsotopeDistributionGenerator(formula, R, fullC13, minp, **kw)
     t = Table(["mf", "mass", "abundance"], [str, float, float],
                                            ["%s", "%.6f", "%.3f"], [])
-    for mass, abundance in gen.getCentroids():
+    for mass, formula, abundance in gen.getCentroids():
         t.addRow([formula, mass, abundance], False)
     t.resetInternals()
     return t
