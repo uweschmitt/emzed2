@@ -4,6 +4,8 @@ from string import (ascii_uppercase as _CAPITALS,
                    ascii_lowercase  as _LOWERS,
                    digits           as _DIGITS)
 
+import re
+
 _LEFT_PARENTHESIS ="("
 _RIGHT_PARENTHESIS = ")"
 _LEFT_BRACKET ="["
@@ -75,10 +77,9 @@ def _parse(reminder, indent=""):
         if action is None:
             raise Exception("parser stops at %r" % reminder)
         reminder, formula = action(reminder, formula, indent)
-        continue
 
 
-def parseFormula(mf):
+def parseFormula(mf, re = re.compile("\s")):
     """
     Returns Counter mapping (symbol, sassnumber) -> sount
     corresponding to mf.
@@ -92,8 +93,10 @@ def parseFormula(mf):
 
     """
     from collections import Counter
+    mf = re.sub("", mf)  # remove whitespaces
     symbols, _ =  _parse(mf+chr(0))
     return Counter(symbols)
+
 
 def joinFormula(cc):
     symbols = []
