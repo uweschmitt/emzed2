@@ -1,16 +1,29 @@
 #!/bin/bash
 
+function test_if_programm_can_be_called {
+    # this is trick from http://stackoverflow.com/questions/592620/
+    hash $1 2>/dev/null 1>&2
+	if [ $? -ne 0 ]; then
+		echo
+		echo "command $1 not found"
+		echo
+		exit $?
+	fi
+	echo "command $1 found"
+}
+
+
 function test_python_package {
 
 	python2.7 -c "import $1" 2>/dev/null
 
 	if [ $? -ne 0 ]; then
 		echo
-		echo "$1 not found"
+		echo "python package $1 not found"
 		echo
 		exit $?
 	fi
-	echo "$1 found"
+	echo "python package $1 found"
 }
 
 function test_python_install {
@@ -30,14 +43,24 @@ function test_python_install {
 	test_python_package virtualenv
 }
 
+function try_and_halt_if_error {
+    "$@"
+    local status=$?
+    if [ $status -ne 0 ]; then
+        echo "error with $1"
+    fi
+    return $status
+}
+
+
 function install_emzed_and_related_packages {
-    source $1/bin/activate
-    easy_install pyopenms
-    pip install cython
-    pip install guidata
-    pip install guiqwt
-    pip install sphinx
-    pip install -r http://emzed.ethz.ch/downloads/requirements.txt
+    try_and_halt_if_error source $1/bin/activate
+    try_and_halt_if_error easy_install pyopenms
+    try_and_halt_if_error pip install cython
+    try_and_halt_if_error pip install guidata
+    try_and_halt_if_error pip install guiqwt
+    try_and_halt_if_error pip install sphinx
+    try_and_halt_if_error pip install -r http://emzed.ethz.ch/downloads/requirements.txt
 }
 
 function create_shortcut {
@@ -64,6 +87,8 @@ echo TEST FOR NEEDED INSTALLS
 echo
 
 test_python_install
+
+test_if_programm_can_be_called virtualenv
 
 echo
 echo INSTALLATIONS OK
@@ -95,7 +120,15 @@ done
 
 echo
 
-virtualenv-2.7 --system-site-packages $INSTALL_FOLDER
+
+virtualenv --python=python2.7 --system-site-packages $INSTALL_FOLDER
+
+if [ $? -ne 0 ]; then
+    echo
+    echo "ERROR: running virtualenv-2.7 failed"
+    echo
+    exit $?;
+fi;
 
 install_emzed_and_related_packages $INSTALL_FOLDER
 
