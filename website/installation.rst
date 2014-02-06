@@ -69,6 +69,7 @@ those globally.  *PyQt4* should be installed globally too::
 
     $ sudo apt-get install python2.7
     $ sudo apt-get install python2.7-numpy python2.7-scipy python2.7-matplotlib python2.7-qt4
+    $ sudo apt-get install python-qwt5-qt4
     $ sudo apt-get install python2.7-virtualenv
 
 For the final installation download the installation script from
