@@ -293,6 +293,9 @@ class UpdaterRegistry(object):
     def get(self, id_):
         return self.updaters.get(id_)
 
+    def updater_ids(self):
+        return self.updaters.keys()
+
     def install(self, module):
         for name, updater in self.updaters.items():
             setattr(module, name, updater.do_update)
