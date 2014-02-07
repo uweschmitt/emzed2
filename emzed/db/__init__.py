@@ -5,7 +5,7 @@ def _db_path(master_folder):
     from ..core.data_types.table import Table
     import os.path
     FILE_NAME = "pubchem.table"
-    version_str = "%d.%d.%d" % Table._latest_internal_update_with_version
+    version_str = "tables_of_version_%d.%d.%d" % Table._latest_internal_update_with_version
     path = os.path.join(master_folder, version_str, FILE_NAME)
     return path
 
