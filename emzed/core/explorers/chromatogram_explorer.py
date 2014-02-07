@@ -14,11 +14,13 @@ import numpy as np
 
 from helpers import protect_signal_handler
 
+from emzed_dialog import EmzedDialog
 
-class ChromatogramExplorer(QDialog):
+
+class ChromatogramExplorer(EmzedDialog):
 
     def __init__(self):
-        QDialog.__init__(self)
+        super(ChromatogramExplorer, self).__init__()
         self.setWindowFlags(Qt.Window)
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread

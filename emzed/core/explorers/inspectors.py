@@ -13,6 +13,9 @@ def inspector(obj, *a, **kw):
     elif isinstance(obj, Table):
         from table_explorer import inspect
         return lambda: inspect(obj, *a, **kw)
+    elif isinstance(obj, (list, tuple)) and all(isinstance(t, Table) for t in obj):
+        from table_explorer import inspect
+        return lambda: inspect(obj, *a, **kw)
     elif isinstance(obj, Blob):
         from image_dialog import ImageDialog
 

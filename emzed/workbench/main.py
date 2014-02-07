@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pdb
 #
 # Copyright © 2009-2011 Pierre Raybaut
 # Licensed under the terms of the MIT License
@@ -21,12 +20,6 @@ original copyright:
     Licensed under the terms of the MIT License
     (see spyderlib/__init__.py for details)
 """
-
-#import spyderlib.baseconfig
-#spyderlib.baseconfig.SUBFOLDER = ".emzed2_workbench"
-
-#import spyderlib.config
-#spyderlib.config.CONF.name = "emzed2"
 
 
 import pkg_resources
@@ -295,6 +288,8 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         qapp = QApplication.instance()
+
+
         self.default_style = str(qapp.style().objectName())
 
         self.dialog_manager = DialogManager()
@@ -409,22 +404,27 @@ class MainWindow(QMainWindow):
         self.run_toolbar_actions = []
 
         # Set Window title and icon
-        title = "eMZed"
+        title = "emzed"
         if self.debug:
             title += " (DEBUG MODE)"
         self.setWindowTitle(title)
-        #icon_name = 'spyder_light.svg' if self.light else 'spyder.svg'
         icon_name = "emzed.ico"
 
         from spyderlib.qt.QtGui import QIcon
-        self.setWindowIcon(QIcon(icon_name))
+        data = pkg_resources.resource_string("emzed.workbench", "icon64.png")
+        img = QImage()
+        img.loadFromData(data)
+        pixmap = QPixmap.fromImage(img)
+        self.setWindowIcon(QIcon(pixmap))
+        #self.setWindowIcon(QIcon(icon_name))
 
         # EMZD MODIFIED: Showing splash screen
-        data = pkg_resources.resource_string("emzed.workbench", "splash.png")
+        data = pkg_resources.resource_string("emzed.workbench", "splash2.png")
         img = QImage()
         img.loadFromData(data)
         pixmap = QPixmap.fromImage(img)
         self.splash = QSplashScreen(pixmap)
+
         import time
         self.splash_started = time.time()
         font = self.splash.font()
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow):
 
             # ? menu
             about_action = create_action(self,
-                                    _("About %s...") % "eMZed",
+                                    _("About %s...") % "emzed",
                                     icon=get_std_icon('MessageBoxInformation'),
                                     triggered=self.about)
             #report_action = create_action(self,
@@ -915,7 +915,7 @@ class MainWindow(QMainWindow):
                 self.interact_menu_actions += [None, ipf_action]
 
             # Third-party plugins
-            # eMZed: disabled due to version conflicts with winpython
+            # emzed: disabled due to version conflicts with winpython
             # distribution !
             #for mod in get_spyderplugins_mods(prefix='p_', extension='.py'):
                 #try:
@@ -1004,7 +1004,7 @@ class MainWindow(QMainWindow):
 
         # EMZED ADD ON : splash screen occurs at leas for 2 seconds:
         import time
-        while (time.time()-self.splash_started) < 2.0:
+        while (time.time()-self.splash_started) < 3.0:
             time.sleep(0.1)
         self.splash.hide()
 
@@ -1472,7 +1472,7 @@ class MainWindow(QMainWindow):
             except AttributeError:
                 pass
         QMessageBox.about(self,
-            _("About %s") % "eMZed",
+            _("About %s") % "emzed",
             """<b>%s %s</b>
             <br>Scientific PYthon Development EnviRonment
             <p>Copyright &copy; 2009-2012 Pierre Raybaut
@@ -1512,10 +1512,10 @@ class MainWindow(QMainWindow):
                spyderlib.qt.__version__, platform.system()))
 
     def about(self):
-        """About eMZed / Spyder"""
+        """About emzed / Spyder"""
         QMessageBox.about(self,
-            _("About %s") % "eMZed",
-            """<b>eMZed %s</b>
+            _("About %s") % "emzed",
+            """<b>emzed %d.%d.%d</b>
             <br>Workspace for Analysing LCMS Data
             <p>Copyright &copy; 2012-2013
      <br>- Institute of Microbiology, Department of Biology, ETH Zurich
@@ -1523,14 +1523,12 @@ class MainWindow(QMainWindow):
      <br>- Uwe Schmitt, <a href="http://www.mineway.de">mineway GmbH</a>
      <p>Lincensed under the terms of the GPL 3 License
      <br>
-     More info about eMZed at <a href="http://emzed.ethz.ch">the eMZed website</a>
+     More info about emzed at <a href="http://emzed.ethz.ch">the emzed website</a>
      <br>
-     eMZed is heavilly based on :
+     emzed is heavilly based on :
      <br> - open-ms <a href="http://www.open-ms.de">http://www.open-ms.de</a>
      <br> - xcms <a href="http://metlin.scripps.edu/xcms">http://metlin.scripps.edu/xcms</a>
      <br> - Spyder 2.1.7 <a href="http://code.google.com/p/spyderlib/">http://code.google.com/p/spyderlib</a>
-
-
         """ % emzed_version)
 
 
@@ -1921,7 +1919,7 @@ def get_options():
     parser.add_option('-w', '--workdir', dest="working_directory", default=None,
                       help="Default working directory")
     parser.add_option('-d', '--debug', dest="debug", action='store_true',
-                      default=True,  # emzed modification
+                      default=False,
                       help="Debug mode (stds are not redirected)")
     parser.add_option('--showconsole', dest="show_console",
                       action='store_true', default=False,

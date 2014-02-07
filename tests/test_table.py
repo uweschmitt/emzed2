@@ -141,12 +141,12 @@ class TestTable(unittest.TestCase):
             tn.addColumn("squared", lambda t,r,n: t.getValue(r, "iii")**2)
 
 
-            assert list(tn.getColumn("computed").values ) == [8080, 7441, 6161], tn.computed.values
-            assert list(tn.getColumn("squared").values ) == [9, 4, 1]
+            assert tn.getColumn("computed").values == (8080, 7441, 6161), tn.computed.values
+            assert tn.getColumn("squared").values == (9, 4, 1)
 
 
             tn.replaceColumn("squared", tn.squared+1)
-            assert list(tn.getColumn("squared").values ) == [10, 5, 2]
+            assert tn.getColumn("squared").values == (10, 5, 2)
             assert len(tn.getColNames())  == 6
 
             tx  = tn.copy()
@@ -179,7 +179,7 @@ class TestTable(unittest.TestCase):
             tx = tn.filter(tn.iii.isIn([1,4]))
             tx._print()
             assert len(tx) == 1
-            assert tx.iii.values == [1]
+            assert tx.iii.values == (1,)
 
             tn.addColumn("li", [1,2,3])
             assert len(tn) == 3
@@ -253,7 +253,8 @@ class TestTable(unittest.TestCase):
         rows = [row1, row2, row3]
         t=Table(names, types, formats, rows, "testtabelle", meta=dict(why=42))
 
-        tn = t.filter((t.int+t.float).inRange(-1, 2))
+        expr = (t.int + t.float).inRange(-1, 2)
+        tn = t.filter(expr)
         assert len(tn) == 1
         assert tn.getValue(tn.rows[0], "int") == 1
         tn = t.filter((t.float+t.int).inRange(-1, 2))
@@ -730,7 +731,7 @@ class TestTable(unittest.TestCase):
         t.addRow([None, None])
         t.addRow([3, None])
         t.addRow([3, 3.0])
-        assert t.b.values == [ 3, 4, None, None, None, 3]
+        assert t.b.values == ( 3, 4, None, None, None, 3)
 
         # check order
         t.replaceColumn("i", t.i)
@@ -769,7 +770,7 @@ class TestTable(unittest.TestCase):
         t._print()
         t.addColumn("y", (t.a.isNotNone()).thenElse("ok", "not ok"))
         t._print()
-        assert t.y.values == ["ok", "not ok"]
+        assert t.y.values == ("ok", "not ok")
 
 
     def testDynamicColumnAttributes(self):
@@ -857,10 +858,10 @@ class TestTable(unittest.TestCase):
 
     def testSlicing(self):
         t = toTable("a", [1, 2, 3])
-        assert t[0].a.values == [1]
-        assert t[:1].a.values == [1]
-        assert t[1:].a.values == [2, 3]
-        assert t[:].a.values == [1, 2, 3]
+        assert t[0].a.values == (1,)
+        assert t[:1].a.values == (1,)
+        assert t[1:].a.values == (2, 3,)
+        assert t[:].a.values == (1, 2, 3,)
 
 
     def testMerge(self):
@@ -874,10 +875,10 @@ class TestTable(unittest.TestCase):
 
         tn = Table.mergeTables([t1, t2])
 
-        assert tn.a.values == [1, 1, 2]
-        assert tn.b.values == [2, None, None]
-        assert tn.c.values == [3, 1, 3]
-        assert tn.d.values == [None, 1, 4]
+        assert tn.a.values == (1, 1, 2,)
+        assert tn.b.values == (2, None, None,)
+        assert tn.c.values == (3, 1, 3,)
+        assert tn.d.values == (None, 1, 4,)
 
         # check if input tables are not altered
         assert t1.getColNames() == [ "a", "b", "c"]
@@ -914,9 +915,9 @@ class TestTable(unittest.TestCase):
     def testUpdateColumn(self):
         t = toTable("a", [1, 2])
         t.updateColumn("a", t.a + 1)
-        assert t.a.values == [2, 3]
+        assert t.a.values == (2, 3,)
         t.updateColumn("b", t.a + 1)
-        assert t.b.values == [3, 4]
+        assert t.b.values == (3, 4,)
 
 
     def test_all_comps(self):
@@ -1012,27 +1013,27 @@ class TestTable(unittest.TestCase):
 
         dd = {1:1, 2: 4, 3:5}
         t.addColumn("b", t.a.apply(dd.get))
-        assert t.b.values == [1, 4, 5]
+        assert t.b.values == (1, 4, 5,)
         t.dropColumns("b")
 
         dd = {1: 4}
         t.addColumn("b", t.a.apply(dd.get))
-        assert t.b.values == [4, None, None]
+        assert t.b.values == (4, None, None,)
         t.dropColumns("b")
 
         dd = {2: 4}
         t.addColumn("b", t.a.apply(dd.get))
-        assert t.b.values == [None, 4, None]
+        assert t.b.values == (None, 4, None,)
         t.dropColumns("b")
 
         dd = {3: 4}
         t.addColumn("b", t.a.apply(dd.get))
-        assert t.b.values == [None, None, 4]
+        assert t.b.values == (None, None, 4,)
         t.dropColumns("b")
 
         dd = {2: 4, 3:5}
         t.addColumn("b", t.a.apply(dd.get))
-        assert t.b.values == [None, 4, 5]
+        assert t.b.values == (None, 4, 5,)
         t.dropColumns("b")
 
 

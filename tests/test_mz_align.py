@@ -3,6 +3,8 @@ import emzed.io
 import glob
 import sys
 
+MMU = 0.001
+
 def testMzAlign(path, tmpdir, monkeypatch):
 
 

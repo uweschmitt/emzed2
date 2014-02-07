@@ -44,8 +44,8 @@ def split_atoms(mf):
 def normalized(centroids):
     # scale amplitudes: m0 has 1.0
     if len(centroids):
-        _, a0 = centroids[0]
-        return [ (m, a/a0) for m,a in centroids ]
+        m, mf, a0 = centroids[0]
+        return [ (m, mf, a/a0) for m, mf, a in centroids ]
     return []
 
 class IsotopeDistributionGenerator(object):
@@ -75,11 +75,13 @@ class IsotopeDistributionGenerator(object):
         for item in itertools.product(*allIterators):
             totalmass = 0.0
             totalprob = 1.0
-            for m, p in item:
+            mfs = []
+            for iso_mf, m, p in item:
                 totalmass += m
                 totalprob *= p
+                mfs.append(iso_mf)
             if totalprob >= self.minp:
-                centroids.append((totalmass, totalprob))
+                centroids.append((totalmass, " ".join(mfs), totalprob))
         return normalized(sorted(centroids))
 
     def _isotopeDecompositions(self, symbol, count):
@@ -100,19 +102,21 @@ class IsotopeDistributionGenerator(object):
             prob = multinomial(abundances, partition)
             # reduce computation cost by ignoring to low probabilites:
             if prob >= self.minp:
-                yield sum(n*masses[i] for i,n in enumerate(partition)), prob
+                decomp = ["[%d]%s%d" % (m, symbol, p) for (m, p) in zip(massnums, partition) if p]
+                iso_mf = " ".join(decomp)
+                yield iso_mf, sum(n*masses[i] for i,n in enumerate(partition)), prob
 
     def measuredIntensity(self, m0):
         """ measured intensity at mass *m0* for given resolution """
         sum_ = 0.0
-        for mass, abundance in self.centroids:
+        for mass, mf, abundance in self.centroids:
             deltam =  mass/self.R
             two_sigma_square = deltam*deltam/math.log(16.0)
             sum_ += abundance*np.exp(-(m0-mass)**2/two_sigma_square)
         return sum_
 
     def _detectMaxima(self, peaks):
-        masses, abundandes = zip(*peaks)
+        masses, formulas, abundandes = zip(*peaks)
         minMass = masses[0]
         maxMass = masses[-1]
         w2 = minMass*minMass/self.R/self.R*math.log(100)/math.log(16)
@@ -122,19 +126,19 @@ class IsotopeDistributionGenerator(object):
         w = np.where((dd[:-1]>0)*(dd[1:] <0))[0]+1
         mzs = massrange[w]
         abundances = measured[w]
-        return zip(mzs, abundances)
+        return zip(mzs, [self.formula] * len(mzs), abundances)
 
     def _measuredCentroids(self):
         allGroupedPeaks = []
         window = []
         self.centroids.sort()
         lastm = self.centroids[0][0]
-        for m, a in self.centroids:
+        for m, iso_mf, a in self.centroids:
             if m > lastm + 0.10:
                 allGroupedPeaks.append(window)
                 window = []
                 lastm = m
-            window.append((m, a))
+            window.append((m, iso_mf, a))
         if window:
             allGroupedPeaks.append(window)
 

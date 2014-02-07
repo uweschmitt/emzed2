@@ -87,6 +87,7 @@ def oneWayAnovaOnTables(tableSet1, tableSet2, idColumn, valueColumn):
     .. pycon::
        :invisible:
 
+       import emzed
        t = emzed.utils.toTable("id", ["ATP", "ADP"])
        t.addColumn("n1", [4,5])
        t.addColumn("n2", [6,6])
@@ -100,7 +101,7 @@ def oneWayAnovaOnTables(tableSet1, tableSet2, idColumn, valueColumn):
 
     .. pycon::
        tresult = emzed.stats.oneWayAnovaOnTables(tables1, tables2, idColumn="compound", valueColumn="foldChange") !noexec
-       tresult.print_()
+       print tresult
 
     """
     result = _runStatistcsOnTables(tableSet1, tableSet2, idColumn, valueColumn,

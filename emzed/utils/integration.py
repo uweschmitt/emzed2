@@ -1,14 +1,23 @@
 # encoding: utf-8
 
 
+def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
+        min_size_for_parallel_execution=500):
+    """ integrates features  in ftable.
+        returns processed table. ``ftable`` is not changed inplace.
 
-def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1):
+        The peak integrator corresponding to the integratorId is
+        defined in ``algorithm_configs.py`` or ``local_configs.py``
+
+        n_cpus <= 0 has special meaning:
+            n_cpus = 0 means "use all cpu cores"
+            n_cpus = -1 means "use all but one cpu cores", etc
+    """
     import sys
     import multiprocessing
     if sys.platform == "win32":
         # if subprocesses use python.exe a console window pops up for each
-        # subprocess. this is not only quite ugly, the console windows are
-        # zombies, the pop up again after closing.
+        # subprocess. this is quite ugly..
         import os.path
         multiprocessing.set_executable(os.path.join(
                                        os.path.dirname(sys.executable),
@@ -19,49 +28,70 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
     started = time.time()
 
-    if n_cpus == -1:
-        n_cpus = multiprocessing.cpu_count()
+    if n_cpus < 0:
+        n_cpus = multiprocessing.cpu_count() + n_cpus
 
-    if n_cpus > multiprocessing.cpu_count():
+    messages = []
+    if n_cpus <= 0:
+        messages.append("WARNING: you requested to use %d cores, "
+                        "we use single core instead !" % n_cpus)
+        n_cpus = 1
+
+    if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
+        messages.append("WARNING: as the table has les thann %d rows, we switch to one cpu mode"
+                        % min_size_for_parallel_execution)
+        n_cpus = 1     
+
+    elif n_cpus > multiprocessing.cpu_count():
+        messages.append("WARNING: more processes demanded than available cpu cores, this might be "
+                        "inefficient")
+
+    if showProgress:
         print
-        print "WARNING: more processes demanded than available cpu cores, this might be",
-        print "inefficient"
+        if messages:
+            print "\n".join(messages)
+        print "integrate table using", n_cpus, "processes"
         print
 
-    print
-    print "integrate table using", n_cpus, "processes"
-    print
-
-    pool = multiprocessing.Pool(n_cpus)
-    args = []
-    for i in range(n_cpus):
-        subt = ftable[i::n_cpus]
-        show_progress = (i == 0)  # only first process does output
-        args.append((subt, integratorid, msLevel, show_progress))
-
-    # map_async() avoids bug of map() when trying to stop jobs using ^C
-    tables = pool.map_async(_integrate, args).get()
-    pool.close()
-    result = Table.mergeTables(tables)
-    needed = time.time() - started
-    minutes = int(needed) / 60
-    seconds = needed - minutes * 60
-    print
-    if minutes:
-        print "needed %d minutes and %.1f seconds" % (minutes, seconds)
+    if n_cpus == 1:
+        result = _integrate((ftable, integratorid, msLevel, showProgress))
     else:
-        print "needed %.1f seconds" % seconds
+        pool = multiprocessing.Pool(n_cpus)
+        args = []
+        all_pms = []
+        for i in range(n_cpus):
+            subt = ftable[i::n_cpus]
+            show_progress = (i == 0)  # only first process prints progress status
+            args.append((subt, integratorid, msLevel, show_progress))
+            all_pms.append(subt.peakmap.values)
+
+        # map_async() avoids bug of map() when trying to stop jobs using ^C
+        tables = pool.map_async(_integrate, args).get()
+
+        # as peakmaps are serialized/unserialized for paralell execution, lots of duplicate
+        # peakmaps come back after. we reset those columns to their state before spreading
+        # them:
+        for t, pms in zip(tables, all_pms):
+            t.replaceColumn("peakmap", pms)
+
+        pool.close()
+
+        tables = [t for t in tables if len(t) > 0]
+        result = Table.mergeTables(tables)
+
+    if showProgress:
+        needed = time.time() - started
+        minutes = int(needed) / 60
+        seconds = needed - minutes * 60
+        print
+        if minutes:
+            print "needed %d minutes and %.1f seconds" % (minutes, seconds)
+        else:
+            print "needed %.1f seconds" % seconds
     return result
 
 
 def _integrate((ftable, integratorid, msLevel, showProgress,)):
-    """ integrates features  in ftable.
-        returns processed table. ``ftable`` is not changed inplace.
-
-        The peak integrator corresponding to the integratorId is
-        defined in ``algorithm_configs.py`` or ``local_configs.py``
-
-    """
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys

@@ -4,7 +4,7 @@ import emzed
 
 def cleanup(pm, rtmin, rtmax, mzmin, mzmax):
 
-    t_thresh = 1.1    # cutting line starts 10 % above max shoulder peak
+    t_thresh = 1.1   # cutting line starts 10 % above max shoulder peak
     win_size = 0.18  # m/z width of shoulder peak range
 
     #pmsub = pm.extract(rtmin, rtmax, mzmin, mzmax)
@@ -18,13 +18,13 @@ def cleanup(pm, rtmin, rtmax, mzmin, mzmax):
     upper_limit_shoulder_intensity = 0.03 * max_intensity
 
     # find mz0 value where max peak appears
-    spec_at_max_intensity = [s for s in pm.spectra if s.rt == rt_with_max_intensity]
+    spec_at_max_intensity = [s for s in pm.spectra if s.rt == rt_with_max_intensity][0]
     i1 = np.argmax(spec_at_max_intensity.peaks[:, 1])
     mz0 = spec_at_max_intensity.peaks[i1, 0]
 
     for spec in pm.spectra:
         if rtmin <= spec.rt <= rtmax:
-            peaks = s.peaks
+            peaks = spec.peaks
             # find indices of peaks below upper_limit_shoulder_intensity
             mask = (peaks[:, 1] <= upper_limit_shoulder_intensity)
 
@@ -42,7 +42,7 @@ def cleanup(pm, rtmin, rtmax, mzmin, mzmax):
             limit = t_thresh - mz_diff / win_size
 
             idx = ii < limit
-            s.peaks[idx, 1] = 0.0
+            spec.peaks[idx, 1] = 0.0
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import pdb
 import emzed.utils as utils
 import emzed.io as io
 
@@ -22,7 +23,7 @@ def _testIntegration(path, n_cpus):
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus, min_size_for_parallel_execution=1)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -45,7 +46,7 @@ def _testIntegration(path, n_cpus):
     ft.addColumn("rtmaxX", ft.rtmax)
     ft.addColumn("peakmapX", ft.peakmap)
 
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus)
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus,min_size_for_parallel_execution=1)
     ftr.info()
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
@@ -116,7 +117,7 @@ def run(integrator, areatobe, rmsetobe):
         assert abs(area-areatobe)/areatobe < .01,  area
     else:
         assert area == 0.0, area
-    if rmse > 0:
+    if rmsetobe > 0:
         assert abs(rmse-rmsetobe)/rmsetobe < .01,  rmse
     else:
         assert rmse == 0.0, rmse
@@ -159,6 +160,9 @@ def testPeakIntegration():
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["std"]
     run(integrator,  119149.7, 6854.8)
+
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["max"]
+    run(integrator,  37620.81, 0.0)
 
 
 def testTrapezIntegrationSimple():

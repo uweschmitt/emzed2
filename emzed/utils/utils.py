@@ -11,7 +11,7 @@ def formula(mf):
 
     .. pycon::
 
-       import emzed.utils   !onlyoutput
+       import emzed
        mf1 = emzed.utils.formula("H2O")
        mf2 = emzed.utils.formula("NaOH")
        mf3 = mf1 + mf2
@@ -45,7 +45,7 @@ def addmf(formula0, *formulas):
 
     .. pycon::
 
-       import emzed.utils !onlyoutput
+       import emzed
        print emzed.utils.addmf("H2O", "COOH")
        print emzed.utils.addmf("H2O", "COOH", "NaCl")
 

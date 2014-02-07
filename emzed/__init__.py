@@ -1,10 +1,5 @@
 # encoding:latin-1
 
-__builtins__["MMU"] = 0.001
-__builtins__["SECONDS"] = 1.0
-__builtins__["MINUTES"] = 60.0
-__builtins__["HOURS"] = 60.0 * MINUTES
-
 import patches as _patches
 _patches.apply_()
 
@@ -15,13 +10,10 @@ except:
     pass
 
 
-#import _updaters as updaters
-#import emzed.core.update_handling
-#emzed.core.update_handling.registry.install(updaters)
-
-#del _updaters
-#del emzed.core
-
+MMU = 0.001
+SECONDS = 1
+MINUTES = 60 * SECONDS
+HOURS = 60 * MINUTES
 
 import align
 import batches
@@ -43,6 +35,21 @@ import elements
 import ext
 import mass
 import updaters
+
+def _run_init_and_keep_ns_clean():
+    if config._is_first_start():
+        config.global_config.set_defaults()
+        print
+        print "This is the first time you use emzed. Configuration values are set to their"
+        print "default values. You can use emzed.config.edit() to inspect and modify these"
+        print
+        config.store()
+    else:
+        config.load()
+ 
+_run_init_and_keep_ns_clean()
+del _run_init_and_keep_ns_clean
+
 
 #
 from version import version as __version__

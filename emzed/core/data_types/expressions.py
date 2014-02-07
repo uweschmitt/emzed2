@@ -29,6 +29,7 @@ def gt(a, x):
 
 
 def none_in_array(v):
+    return None in v.tolist()
     return v.dtype == object
 
 
@@ -282,8 +283,14 @@ class BaseExpression(object):
     def __and__(self, other):
         return AndExpression(self, other)
 
-    # no rand / ror / rxor: makes sometimes trouble with precedence of
-    # terms.....
+    def __rand__(self, other):
+        raise NotImplementedError("not implemented, causes non predictable evaluation order")
+
+    def __ror__(self, other):
+        raise NotImplementedError("not implemented, causes non predictable evaluation order")
+
+    def __rxor__(self, other):
+        raise NotImplementedError("not implemented, causes non predictable evaluation order")
 
     def __or__(self, other):
         return OrExpression(self, other)
@@ -406,14 +413,18 @@ class BaseExpression(object):
         """
         return self.apply(lambda v, exp=exp: v ** exp)
 
-    def apply(self, fun):
+    def apply(self, fun, filter_nones=True):
         """
         t.apply(*fun*) results in an expression which applies *fun* to the
         values in t if evaluated.
 
         Example::  ``tab.addColumn("amplitude", tab.time.apply(sin))``
+
+        As None values indicate "unknown" value, the function is applied only to not None
+        values in the columns, unless you specify *filter_nones=False*.
+
         """
-        return FunctionExpression(fun, str(fun), self, None)
+        return FunctionExpression(fun, str(fun), self, None, filter_nones)
 
     def loadFileFromPath(self, type_=None):
         """
@@ -476,7 +487,6 @@ class BaseExpression(object):
         Example: ``tab.area.mean``
         """
         return AggregateExpression(self, lambda v: np.mean(v).tolist(), "mean(%s)", float)
-
 
     @property
     def median(self):
@@ -568,8 +578,7 @@ class BaseExpression(object):
             if len(diff) == 0:
                 raise Exception("only None values in %s" % self)
             if len(diff) > 1:
-                raise Exception("more than one not-None value in %s: %s"
-                                % (self, sorted(diff)))
+                raise Exception("more than one not-None value in %s: %s" % (self, sorted(diff)))
             return diff.pop()
         return AggregateExpression(self, select, "uniqueNotNone(%s)",
                                    None, ignore_none=False)
@@ -578,8 +587,8 @@ class BaseExpression(object):
     def values(self):
         values, _, t = self._eval(None)
         if len(values) and t in _basic_num_types:
-            return values.tolist()
-        return values
+            return tuple(values.tolist())
+        return tuple(values)
 
     def uniqueValue(self, up_to_digits=None):
 
@@ -589,8 +598,7 @@ class BaseExpression(object):
                 values = [round(v, up_to_digits) if v is not None else v
                           for v in values]
             except:
-                raise Exception("round to %d digits not possible"
-                                % up_to_digits)
+                raise Exception("round to %d digits not possible" % up_to_digits)
 
         # working with a set would be easier, but we get problems if
         # there are unhashable objects in 'values', eg a dict...
@@ -598,7 +606,7 @@ class BaseExpression(object):
         import itertools
         values = [k for k, v in itertools.groupby(sorted(values))]
         if len(values) != 1:
-            raise Exception("not one unique value in %s" % self)
+            raise Exception("not one unique value in %s, got %d values" % (self, len(values)))
         return values.pop()
 
     def value(self):
@@ -609,7 +617,7 @@ class BaseExpression(object):
 
     def toTable(self, colName, fmt=None, type_=None, title="", meta=None):
         """
-        Generates a one column :py:class:`~emzed.core.data_types.Table`
+        Generates a one column :py:class:`~emzed.core.data_types.table.Table`
         from an expression.
 
         Example: ``tab = substances.name.toTable()``
@@ -834,9 +842,9 @@ class BinaryExpression(BaseExpression):
 
             if none_in_array(lvals) or none_in_array(rvals):
                 nones = find_nones(lvals) | find_nones(rvals)
-                lfilterd = np.where(nones, 1, lvals)
-                rfilterd = np.where(nones, 1, rvals)
-                res = self.efun(lfilterd, rfilterd)
+                lfiltered = np.where(nones, 1, lvals)
+                rfiltered = np.where(nones, 1, rvals)
+                res = self.efun(lfiltered, rfiltered)
             else:
                 nones = None
                 res = self.efun(lvals, rvals)
@@ -865,7 +873,7 @@ class BinaryExpression(BaseExpression):
 
 class GroupedAggregateExpression(BaseExpression):
 
-    def __init__(self, left, efun, default_empty, ignore_none,  group_by_column):
+    def __init__(self, left, efun, default_empty, ignore_none, group_by_column):
         self.left = left
         self.efun = efun
         self.default_empty = default_empty
@@ -912,12 +920,13 @@ class AggregateExpression(BaseExpression):
 
     def group_by(self, group_by_column):
         return GroupedAggregateExpression(self.left, self.efun, self.default_empty,
-                self.ignore_none, group_by_column)
+                                          self.ignore_none, group_by_column)
 
     def __call__(self):
         values, _, type_ = self._eval()
         if len(values):
-            return values[0]
+            rv = values[0]
+            return type_(rv)
         return self.default_empty
 
     def _eval(self, ctx=None):
@@ -934,7 +943,7 @@ class AggregateExpression(BaseExpression):
             agg_value = self.efun(vals)
             result = container(type(agg_value))([agg_value] * len(vals))
             type_ = self.res_type or cleanup(type(result[0]))
-            return result,  None, type_
+            return result, None, type_
 
         type_ = self.res_type or type_
         if type_ in _basic_num_types:
@@ -944,7 +953,6 @@ class AggregateExpression(BaseExpression):
 
     def __str__(self):
         return self.funname % self.left
-
 
     def _evalsize(self):
         return 1
@@ -957,57 +965,76 @@ class LogicExpression(BaseExpression):
         if right.__class__ == Value and type(right.value) != bool:
             print "warning: parenthesis for logic op set ?"
 
+    def _eval(self, ctx=None):
+        op = lambda a, b: self.operation_table[a, b]
+        lhs, _, tlhs = saveeval(self.left, ctx)
+        rhs, _, trhs = saveeval(self.right, ctx)
+        if len(lhs) == 1:
+            return np.array([op(lhs[0], r) for r in rhs], dtype=object), None, bool
+        elif len(rhs) == 1:
+            return np.array([op(l, rhs[0]) for l in lhs], dtype=object), None, bool
+
+        if len(lhs) != len(rhs):
+            raise Exception("operands for or-operation have different length %s and %s"
+                            % (len(lhs), len(rhs)))
+        return np.array([op(l, r) for (l, r) in zip(lhs, rhs)], dtype=object), None, bool
+
 
 class AndExpression(LogicExpression):
 
     symbol = "&"
 
-    def _eval(self, ctx=None):
-        lhs, _, tlhs = saveeval(self.left, ctx)
-        if len(lhs) == 1 and not lhs[0]:
-            return np.zeros((self.right._evalsize(ctx),), dtype=np.bool),\
-                None, bool
-        rhs, _, trhs = saveeval(self.right, ctx)
-        if len(rhs) == 1 and not rhs[0]:
-            return np.zeros((len(lhs),), dtype=np.bool), None, bool
-        if len(lhs) == 1:  # lhs[0] is True
-            return rhs, _, trhs
-        if len(rhs) == 1:  # rhs[0] is True
-            return lhs, _, tlhs
-        return lhs & rhs, None, bool
+    operation_table = {
+        (True, True): True,
+        (True, False): False,
+        (True, None): None,
+
+        (False, True): False,
+        (False, False): False,
+        (False, None): False,
+
+        (None, True): None,
+        (None, False): False,
+        (None, None): None,
+    }
 
 
 class OrExpression(LogicExpression):
 
     symbol = "|"
 
-    def _eval(self, ctx=None):
-        lhs, _, tlhs = saveeval(self.left, ctx)
-        if len(lhs) == 1 and lhs[0]:
-            return np.ones((self.right._evalsize(ctx),), dtype=np.bool),\
-                None, bool
-        rhs, _, trhs = saveeval(self.right, ctx)
-        if len(rhs) == 1 and rhs[0]:
-            return np.ones((len(lhs),), dtype=np.bool), None, bool
-        if len(lhs) == 1:  # lhs[0] is False
-            return rhs, _, trhs
-        if len(rhs) == 1:  # rhs[0] is False
-            return lhs, _, tlhs
-        return lhs | rhs, None, bool
+    operation_table = {
+        (True, True): True,
+        (True, False): True,
+        (True, None): True,
+
+        (False, True): True,
+        (False, False): False,
+        (False, None): None,
+
+        (None, True): True,
+        (None, False): None,
+        (None, None): None,
+    }
 
 
 class XorExpression(LogicExpression):
 
     symbol = "^"
 
-    def _eval(self, ctx=None):
-        lhs, _, tlhs = saveeval(self.left, ctx)
-        rhs, _, trhs = saveeval(self.right, ctx)
-        if len(lhs) == 1 and not lhs[0]:
-            return rhs, _, trhs
-        if len(rhs) == 1 and not rhs[0]:
-            return lhs, _, tlhs
-        return (lhs & ~rhs) | (~lhs & rhs), None, bool
+    operation_table = {
+        (True, True): False,
+        (True, False): True,
+        (True, None): None,
+
+        (False, True): True,
+        (False, False): False,
+        (False, None): None,
+
+        (None, True): None,
+        (None, False): None,
+        (None, None): None,
+    }
 
 
 class Value(BaseExpression):
@@ -1077,13 +1104,14 @@ class IsNoneExpression(BaseExpression):
 
 class FunctionExpression(BaseExpression):
 
-    def __init__(self, efun, efunname, child, res_type):
+    def __init__(self, efun, efunname, child, res_type, filter_nones=True):
         if not isinstance(child, BaseExpression):
             child = Value(child)
         self.child = child
         self.efun = efun
         self.efunname = efunname
         self.res_type = res_type
+        self.filter_nones = filter_nones
 
     def _eval(self, ctx=None):
         values, index, type_ = saveeval(self.child, ctx)
@@ -1100,14 +1128,18 @@ class FunctionExpression(BaseExpression):
                 if None in types:
                     types.remove(None)
                 if len(types) > 1:
-                    raise Exception("no unique return type in function result")
+                    raise Exception("no unique return type in function result: %r" % types)
                 type_ = types.pop()
                 if cleanup(type_) in _basic_num_types:
                     values = np.array(values)
                     return values, None, cleanup(type_)
 
             return values, None, common_type_for(values)
-        new_values = [self.efun(v) if v is not None else None for v in values]
+
+        if self.filter_nones:
+            new_values = [self.efun(v) if v is not None else None for v in values]
+        else:
+            new_values = [self.efun(v) for v in values]
         type_ = self.res_type or common_type_for(new_values)
         if type_ in _basic_num_types:
             new_values = np.array(new_values)
@@ -1189,16 +1221,14 @@ class IfThenElse(BaseExpression):
         s3 = self.e3._evalsize(ctx)
         if s1 == 1:
             if (s2 == 1 and s3 > 1) or (s2 > 1 and s3 == 1):
-                raise Exception("column lengths %d, %d and %d do not fit!"
-                                % (s1, s2, s3))
+                raise Exception("column lengths %d, %d and %d do not fit!" % (s1, s2, s3))
             return max(s2, s3)
 
         if s2 == s3 == 1:
             return s1
 
         if (s3 == 1 and s2 != s1) or (s2 == 1 and s3 != s1):
-            raise Exception("column lengths %d, %d and %d do not fit!"
-                            % (s1, s2, s3))
+            raise Exception("column lengths %d, %d and %d do not fit!" % (s1, s2, s3))
 
         return s1
 
@@ -1226,7 +1256,7 @@ class ColumnExpression(BaseExpression):
     def _setupValues(self):
         # delayed lazy evaluation
         if not hasattr(self, "_values"):
-            self._values = [row[self.idx] for row in self.table.rows]
+            self._values = tuple(row[self.idx] for row in self.table.rows)
 
     @property
     def values(self):

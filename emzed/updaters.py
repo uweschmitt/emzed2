@@ -15,7 +15,7 @@ def setup_updaters(data_home=None):
 
 
 def run(id_):
-    from core.update_handling import registry
+    registry = setup_updaters()
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
@@ -27,7 +27,7 @@ def run(id_):
 
 
 def reset(id_):
-    from core.update_handling import registry
+    registry = setup_updaters()
     updater = registry.get(id_)
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
@@ -38,9 +38,18 @@ def reset(id_):
 
 
 def get(id_):
-    from core.update_handling import registry
+    registry = setup_updaters()
     updater = registry.get(id_)
     return updater
+
+
+def _install_commands(globals_=globals()):
+    registry = setup_updaters()
+    for id_ in registry.updater_ids():
+        exec "run_%s=lambda: run('%s')" % (id_, id_) in globals_
+
+_install_commands()
+
 
 
 def print_update_status():

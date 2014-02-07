@@ -236,6 +236,18 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
                 rows)
 
     tab.addConstantColumn("peakmap", peak_map, PeakMap, None)
+
+    def recalc(table, row, name):
+        mzmin = table.getValue(row, "mzmin")
+        mzmax = table.getValue(row, "mzmax")
+        rtmin = table.getValue(row, "rtmin")
+        rtmax = table.getValue(row, "rtmax")
+        pm = table.getValue(row, "peakmap")
+        mz = pm.representingMzPeak(mzmin, mzmax, rtmin, rtmax)
+        return mz if mz is not None else (mzmin + mzmax) / 2.0
+
+    tab.replaceColumn("mz", recalc)
+
     src = peak_map.meta.get("source", "")
     tab.addConstantColumn("source", src)
     tab.addEnumeration()

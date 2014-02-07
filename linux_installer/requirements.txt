@@ -1,0 +1,3 @@
+ipython==0.10
+spyder==2.1.13
+emzed

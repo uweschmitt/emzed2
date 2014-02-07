@@ -344,6 +344,9 @@ def upload_to_emzed_store(pkg_folder, secret=""):
                         print e.message
                         print
                         print "MAYBE USER %s IS UNKNOWN OR PASSWORD DOES NOT MATCH" % user
+                        print
+                        print "USE emzed.config.edit() TO CHANGE THEM."
+                        print
                         break
 
 

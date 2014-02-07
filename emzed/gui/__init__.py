@@ -2,8 +2,12 @@ from file_dialogs import (askForDirectory, askForSave, askForSingleFile, askForM
                           chooseConfig)
 
 
+# order of next two imports is important, as the first patches some items: ###################
 from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobButton,
-                            WorkflowFrontend)
+                            WorkflowFrontend,
+                            )
+from dialog_builder_items import *
+# order of the previous two imports is importang, see remark above  ##########################
 
 from ..core.explorers.inspectors import inspect #, inspectPeakMap, inspectChromatograms
 from ..core.explorers import inspectChromatograms

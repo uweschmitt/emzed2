@@ -215,7 +215,10 @@ class _UserConfig(object):
         global_config = self
 
     def get_url(self, key):
-        return self.get(key).rstrip("/")
+        val = self.get(key)
+        if val is not None:
+            val = val.rstrip("/")
+        return val
 
     def store(self, path=None):
 
@@ -255,13 +258,27 @@ class _UserConfig(object):
                     pass
         return False
 
+    def check_fields(self):
+        if sys.platform == "win32":
+            if self.parameters.project_home.startswith("\\\\"):
+                return (False, "UNC network pathes are not allowed for project home\n"
+                               "Mount this UNC path as a drive and use this instead.")
+        return True, ""
+
     def edit(self):
         import guidata
+        from guidata.qt.QtGui import QMessageBox
         app = guidata.qapplication()
-        aborted = self.parameters.edit(size=(600, 800)) == 0
-        if not aborted:
-            global global_config
-            global_config = self
+        while True:
+            aborted = self.parameters.edit(size=(600, 800)) == 0
+            if not aborted:
+                ok, msg = self.check_fields()
+                if not ok:
+                    QMessageBox.warning(None, "Error", msg)
+                    continue
+                global global_config
+                global_config = self
+            break
         return aborted
 
     @staticmethod

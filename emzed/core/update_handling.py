@@ -5,6 +5,7 @@ import time
 import random
 import glob
 import subprocess
+import tempfile
 
 import requests
 
@@ -98,6 +99,7 @@ class Updater(object):
 
     def get_latest_update_ts(self):
         path = self._get_ts_file_path()
+        print "read ts from", path
         if not os.path.exists(path):
             return -1.0
         with open(path, "rt") as fp:
@@ -128,7 +130,11 @@ class Updater(object):
 
     def query_update_info(self, limit=None):
         """ queries if update is available and delivers info about that"""
-        info, offer_update = self.impl.query_update_info(limit)
+        try:
+            info, offer_update = self.impl.query_update_info(limit)
+        except Exception, e:
+            info = e.message
+            offer_update = False
         return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
 
@@ -175,7 +181,10 @@ class Updater(object):
             os.listdir(exchange_folder)
         except BaseException, e:
             return None, str(e)
-        is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
+        try:
+            is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
+        except:
+            return False, None
         return is_newer, None
 
     def fetch_update_from_exchange_folder(self):
@@ -190,9 +199,12 @@ class Updater(object):
             os.listdir(exchange_folder)
         except BaseException, e:
             return False, str(e)
-        message = self.impl.update_from_exchange_folder(exchange_folder)
-        self._update_latest_update_ts(time.time())
-        self.impl.touch_data_home_files()
+        try:
+            message = self.impl.update_from_exchange_folder(exchange_folder)
+            self._update_latest_update_ts(time.time())
+            self.impl.touch_data_home_files()
+        except Exception, e:
+            return False, e.message()
         return True, message
 
 
@@ -236,8 +248,23 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         # install / locally
         user_flag = "" if is_venv else "--user"
         url = config.global_config.get_url("pypi_index_url")
-        exit_code = subprocess.call("pip install %s -vvvU -i %s emzed" % (user_flag, url), shell=True)
-        assert exit_code == 0, "exit code rom pip is %d" % exit_code
+        if url is not None:
+            extra_args = "-i %s" % url
+        else:
+            extra_args = ""
+
+        # starting easy_install from temp dir is needed as it fails if easy_install
+        # is started from a dir which has emzed as sub dir:
+        temp_dir = tempfile.mkdtemp()
+        exit_code = subprocess.call("easy_install -vUN %s %s emzed" % (user_flag, extra_args),
+                                    shell=True, cwd=temp_dir)
+        # try to cleanup, failure does not matter
+        try:
+            os.rmdir(temp_dir)
+        except:
+            pass
+
+        assert exit_code == 0, "exit code from easy_install is %d" % exit_code
 
     def upload_to_exchange_folder(self, exchange_folder):
         pass
@@ -265,6 +292,9 @@ class UpdaterRegistry(object):
 
     def get(self, id_):
         return self.updaters.get(id_)
+
+    def updater_ids(self):
+        return self.updaters.keys()
 
     def install(self, module):
         for name, updater in self.updaters.items():

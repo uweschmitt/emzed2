@@ -15,6 +15,8 @@ from helpers import protect_signal_handler
 
 from inspectors import has_inspector, inspector
 
+from emzed_dialog import EmzedDialog
+
 
 def getColors(i, light=False):
     colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
@@ -40,10 +42,10 @@ def configsForSpectra(n):
     return [dict(color=getColors(i), linewidth=1) for i in range(n)]
 
 
-class TableExplorer(QDialog):
+class TableExplorer(EmzedDialog):
 
     def __init__(self, tables, offerAbortOption, parent=None):
-        QDialog.__init__(self, parent)
+        super(TableExplorer, self).__init__(parent)
 
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -596,7 +598,7 @@ class TableExplorer(QDialog):
         titles = map(repr, postfixes)
         self.mz_plotter.plot(data, configs, titles if len(titles) > 1 else None)
 
-        self.mz_plotter.reset_x_limits()
+        self.mz_plotter.reset_x_limits(mzmin, mzmax)
         self.mz_plotter.replot()
 
 

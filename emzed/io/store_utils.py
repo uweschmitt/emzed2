@@ -5,7 +5,7 @@ from utils import _prepare_path
 
 def storeBlob(data, path=None):
     assert isinstance(data, basestring)
-    path = _prepare_path(path, extensions=None)
+    path = _prepare_path(path, extensions=None, store=False)
     if path is None:
         return None
     with open(path, "wb") as fp:
@@ -23,7 +23,7 @@ def storePeakMap(pm, path=None):
     import sys
     from pyopenms import FileHandler
 
-    path = _prepare_path(path, extensions=["mzML", "mzXML", "mzData"])
+    path = _prepare_path(path, extensions=["mzML", "mzXML", "mzData"], store=False)
     if path is None:
         return None
 
@@ -35,7 +35,7 @@ def storePeakMap(pm, path=None):
     fh.storeExperiment(path, experiment)
 
 
-def storeTable(tab, path=None, forceOverwrite=False):
+def storeTable(tab, path=None, forceOverwrite=False, compressed=True):
     """ Saves *tab* in a binary ``.table`` file.
         If *path* is not provided, a file dialog opens
         for choosing the files name and location.
@@ -45,12 +45,11 @@ def storeTable(tab, path=None, forceOverwrite=False):
 
     # local import in order to keep namespaces clean
 
-    path = _prepare_path(path, extensions=["table"])
+    path = _prepare_path(path, extensions=["table"], store=False)
     if path is None:
         return None
 
-    tab.compressPeakMaps()
-    tab.store(path, forceOverwrite)
+    tab.store(path, forceOverwrite, compressed)
 
 
 def storeCSV(tab, path=None):
@@ -60,7 +59,7 @@ def storeCSV(tab, path=None):
     """
 
     # local import in order to keep namespaces clean
-    path = _prepare_path(path, extensions=["table"])
+    path = _prepare_path(path, extensions=["csv"], store=False)
     if path is None:
         return None
     tab.storeCSV(path)

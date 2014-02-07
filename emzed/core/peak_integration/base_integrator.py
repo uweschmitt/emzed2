@@ -23,19 +23,11 @@ class BaseIntegrator(object):
         spectra = [s for s in self.peakMap.spectra if s.msLevel == msLevel]
         self.allrts  = sorted([ spec.rt for spec in spectra])
 
-        rts, chromatogram = self.peakMap.chromatogram(mzmin,
-                                                      mzmax,
-                                                      rtmin,
-                                                      rtmax,
-                                                      msLevel)
+        rts, chromatogram = self.peakMap.chromatogram(mzmin, mzmax, rtmin, rtmax, msLevel)
         if len(rts)==0:
             return dict(area=0.0, rmse=0.0, params=None)
 
-        allrts, fullchrom = self.peakMap.chromatogram(mzmin,
-                                                      mzmax,
-                                                      None,
-                                                      None,
-                                                      msLevel)
+        allrts, fullchrom = self.peakMap.chromatogram(mzmin, mzmax, None, None, msLevel)
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts,
                                              chromatogram)

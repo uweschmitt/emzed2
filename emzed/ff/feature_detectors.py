@@ -1,18 +1,18 @@
 #encoding:utf-8
 
-from emzed.core.r_connect import CentwaveFeatureDetector as _Centwave
-from emzed.core.r_connect import MatchedFilterFeatureDetector as _MatchedFilters
 
-from metaboff import metaboFeatureFinder
 
 
 def runCentwave(pm, **kws):
-    det = _Centwave(**kws)
+    from emzed.core.r_connect import CentwaveFeatureDetector
+    det = CentwaveFeatureDetector(**kws)
     return det.process(pm)
 
 def runMatchedFilters(pm, **kws):
-    det = _MatchedFilters(**kws)
+    from emzed.core.r_connect import MatchedFilterFeatureDetector
+    det = MatchedFilterFeatureDetector(**kws)
     return det.process(pm)
 
 def runMetaboFeatureFinder(pm,**kws):
+    from _metaboff import metaboFeatureFinder
     return metaboFeatureFinder(pm, **kws)

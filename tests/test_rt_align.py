@@ -78,6 +78,17 @@ class TestAlignment(unittest.TestCase):
 
         check(ft, ft2, ftneu, ft2neu, tmpdir)
 
+    def test_four(self):
+        import emzed.utils
+        import tempfile, pytest
+        ft = emzed.utils.integrate(self.ft, "max")
+        tmpdir = tempfile.mkdtemp()
+        with pytest.raises(Exception):
+            ftneu, ft2neu = rtAlign([ft,self.ft2], destination=tmpdir, nPeaks=9999,
+                                                numBreakpoints=5)
+        ftneu, ft2neu = rtAlign([ft,self.ft2], destination=tmpdir, nPeaks=9999,
+                                            numBreakpoints=5, resetIntegration=True)
+
 
 def check(ft, ft2, ftneu, ft2neu, path):
     def getrt(t, what):

@@ -8,6 +8,9 @@ def testParser():
     assert joinFormula(parseFormula("H2O"))=="H2O"
     assert joinFormula(parseFormula("[13]CC"))=="C[13]C"
     assert joinFormula(parseFormula("C(CH2)7"))=="C8H14"
+    # skip white spaces
+    assert joinFormula(parseFormula("H2 O"))=="H2O"
+    assert joinFormula(parseFormula("H2 O N "))=="H2NO"
 
 def testFormulaOperations():
     from emzed.core.chemistry import MolecularFormula as MF

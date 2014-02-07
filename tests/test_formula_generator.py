@@ -8,7 +8,7 @@ def testFormGen():
 
     t = emzed.utils.formulaTable(m0-0.001, m0+0.001, C=(0,100), H=(0, 100), O=(0, 110), N=0, P=0, S=0)
     assert len(t) == 1, len(t)
-    assert t.mf.values == [mf]
+    assert t.mf.values == (mf,)
     t = emzed.utils.formulaTable(m0-0.005, m0+0.005, C=(0,100), H=(0, 100), O=(0, 110))
     t.print_()
     assert len(t) == 3, len(t)
