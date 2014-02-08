@@ -53,21 +53,32 @@ def list_projects():
     print "LOCAL EMZED PROJECTS: ".ljust(80, "-")
     print
     result = []
-    for p in os.listdir(project_home):
-        folder = os.path.join(project_home, p)
-        if is_project_folder(folder):
-            print (p + " ").ljust(19, " "),
-            result.append(p)
-            try:
-                pp = __import__(p)
-                folder = os.path.dirname(pp.__file__)
-                folder = folder.rjust(60, " ")
-                if len(folder) > 60:
-                    print "/...", folder[-55:]
-                else:
-                    print folder
-            except:
-                print "INACTIVE".rjust(60, " ")
+
+    if not project_home:
+        print
+        print "project_home not set.please use emzed.config.edit() to fix this."
+        print
+    elif not os.path.exists(project_home):
+        print
+        print "... invalid settings", project_home, "does not exist please use emzed.config.edit()"
+        print "to fix this."
+        print
+    else:
+        for p in os.listdir(project_home):
+            folder = os.path.join(project_home, p)
+            if is_project_folder(folder):
+                print (p + " ").ljust(19, " "),
+                result.append(p)
+                try:
+                    pp = __import__(p)
+                    folder = os.path.dirname(pp.__file__)
+                    folder = folder.rjust(60, " ")
+                    if len(folder) > 60:
+                        print "/...", folder[-55:]
+                    else:
+                        print folder
+                except:
+                    print "INACTIVE".rjust(60, " ")
     if not result:
         print "NO PROJECTS FOUND"
     print
