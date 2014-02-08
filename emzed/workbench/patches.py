@@ -9,6 +9,8 @@ _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
 def patch_spyderlib():
 
+    path_qt_version_check()
+
     patch_baseconfig()
     # patches default config values for first startup
     # including path to startup.py for "normal" python console:
@@ -213,6 +215,33 @@ def patch_userconfig():
 
     import spyderlib.userconfig
     spyderlib.userconfig.UserConfig = MyConfig
+
+
+def path_qt_version_check():
+    # spyderlib.requirements.check_qt in  2.1.X is broken for Qt4 verion 4.4.10 and above
+    # this is fixed in the latest spyderlib versions, but we have to fix this because
+    # we stick to spyderlib 2.1.3 with its integration of IPython 0.10.
+    def check_qt():
+        """Check Qt binding requirements"""
+        print "this is the patched spyderlib.requirements.check_qt function"
+        from distutils.version import LooseVersion
+        qt_infos = dict(pyqt=("PyQt4", "4.4"), pyside=("PySide", "1.1.1"))
+        try:
+            from spyderlib import qt
+            package_name, required_ver = qt_infos[qt.API]
+            actual_ver = qt.__version__
+            if LooseVersion(actual_ver) < LooseVersion(required_ver):
+                show_warning("Please check Spyder installation requirements:\n"
+                            "%s %s+ is required (found v%s)."
+                            % (package_name, required_ver, actual_ver))
+            print "Qt version", actual_ver, "passed version test"
+        except ImportError:
+            show_warning("Please check Spyder installation requirements:\n"
+                        "%s %s+ (or %s %s+) is required."
+                        % (qt_infos['pyqt']+qt_infos['pyside']))
+
+    import spyderlib.requirements
+    spyderlib.requirements.check_qt = check_qt
 
 def patch_baseconfig():
     from spyderlib import baseconfig
