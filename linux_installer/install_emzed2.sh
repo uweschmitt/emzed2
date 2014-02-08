@@ -12,31 +12,47 @@ function test_if_programm_can_be_called {
 	echo "command $1 found"
 }
 
-
 function test_python_package {
 
 	python2.7 -c "import $1" 2>/dev/null
 
 	if [ $? -ne 0 ]; then
-		echo
 		echo "python package $1 not found"
-		echo
 		exit $?
 	fi
 	echo "python package $1 found"
+}
+
+function test_python_package_for_version {
+
+    python << LAST_LINE
+import $1
+is_ = $1.__version__
+tobe = "$2"
+if map(int, is_.split(".")) < map(int, tobe.split(".")):
+   print "need at least version", tobe, "of $1 got", is_
+   exit(1)
+print "python package $1 found, version check passed"
+exit(0)
+LAST_LINE
+
+    if [ $? -ne 0 ]; then
+        exit $?
+    fi
 }
 
 function test_python_install {
 	python2.7 -V 2>/dev/null
 
 	if [ $? -ne 0 ]; then
-		echo
 		echo "python2.7 not found"
-		echo
 		exit $?
 	fi
 	echo "python2.7 found"
-	test_python_package numpy
+
+    # we need python 1.7.0 for installing pyopenms !
+	test_python_package_for_version numpy 1.7.0
+
 	test_python_package scipy
 	test_python_package PyQt4
 	test_python_package matplotlib

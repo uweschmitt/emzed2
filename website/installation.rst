@@ -73,7 +73,7 @@ those globally.  *PyQt4* should be installed globally too::
     $ sudo apt-get install python2.7-virtualenv
 
 For the final installation download the installation script from
-http://emzed.ethz.ch/downloads/install_linux.sh. The script should work on current
+http://emzed.ethz.ch/downloads/install_emzed2.sh. The script should work on current
 Ubuntu and Debian Linux installations. Running the script you are asked for the 
 target folder, we recommend to use *emzed2* inside your home folder::
 
