@@ -235,6 +235,8 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
 
     def query_update_info(self, limit):
         url = config.global_config.get_url("pypi_url")
+        if url is None:
+            return "pypi_url not set. use emzed.config.edit()", False
         response = requests.get(url + "/emzed/json")
         response.raise_for_status()
         version_str = response.json()["info"]["version"]
