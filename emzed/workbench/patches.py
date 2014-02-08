@@ -9,7 +9,7 @@ _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
 def patch_spyderlib():
 
-    path_qt_version_check()
+    patch_qt_version_check()
 
     patch_baseconfig()
     # patches default config values for first startup
@@ -217,7 +217,7 @@ def patch_userconfig():
     spyderlib.userconfig.UserConfig = MyConfig
 
 
-def path_qt_version_check():
+def patch_qt_version_check():
     # spyderlib.requirements.check_qt in  2.1.X is broken for Qt4 verion 4.4.10 and above
     # this is fixed in the latest spyderlib versions, but we have to fix this because
     # we stick to spyderlib 2.1.3 with its integration of IPython 0.10.
