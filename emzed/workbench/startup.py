@@ -33,12 +33,6 @@ if sys.platform == "win32":
 def install_emzed(user_ns=None):
 
     import emzed
-    if emzed.config._is_first_start():
-        aborted = emzed.config.edit(reset_to_defaults=True)
-        if not aborted:
-            emzed.config.store()
-    else:
-        emzed.config.load()
 
     emzed.project.install_builtins()
     emzed.project.activate_last_project()

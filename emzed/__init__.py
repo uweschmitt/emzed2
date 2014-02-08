@@ -3,6 +3,7 @@
 import patches as _patches
 _patches.apply_()
 
+
 del _patches
 try:
     del patches
@@ -17,7 +18,6 @@ HOURS = 60 * MINUTES
 
 import align
 import batches
-import config
 import core
 import db
 import ff
@@ -36,19 +36,12 @@ import ext
 import mass
 import updaters
 
-def _run_init_and_keep_ns_clean():
-    if config._is_first_start():
-        config.global_config.set_defaults()
-        print
-        print "This is the first time you use emzed. Configuration values are set to their"
-        print "default values. You can use emzed.config.edit() to inspect and modify these"
-        print
-        config.store()
-    else:
-        config.load()
- 
-_run_init_and_keep_ns_clean()
-del _run_init_and_keep_ns_clean
+# it is important to import config at last, because a missing config file indicates
+# the first start of emzed. other imported modules might need this information.
+# import config creates this config file during first start.
+
+import config
+
 
 
 #

@@ -32,10 +32,10 @@ def reset(id_):
     if updater is None:
         raise Exception("no updater with id %r registered" % id_)
     updater.remove_ts_file()
+
 #
 # zum testen: ts_file vorher löschen, oder update_intervall auf 0 setzen
 #
-
 
 def get(id_):
     registry = setup_updaters()
@@ -48,8 +48,28 @@ def _install_commands(globals_=globals()):
     for id_ in registry.updater_ids():
         exec "run_%s=lambda: run('%s')" % (id_, id_) in globals_
 
+
 _install_commands()
 
+
+def _print_first_start_info():
+    print
+    print "loading emzed.updaters ".ljust(80, ".")
+    print
+    print "as this is the first time you start emzed, we recommend to run:"
+    print
+    registry = setup_updaters()
+    for id_ in registry.updater_ids():
+        print "   %s.run_%s()" % (__name__, id_)
+    print
+    print "".ljust(80, ".")
+
+import _tools
+# is_started_from_cmdline() == True iff invoked via emzed.workbench command line command
+# in this case nothing should happen, because we want this actions
+# later in spyders ipython console where is_started_from_cmdline() is False.
+if not _tools.gui_running() and not _tools.is_started_from_cmdline() and _tools.is_first_start():
+    _print_first_start_info()
 
 
 def print_update_status():

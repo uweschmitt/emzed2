@@ -67,7 +67,7 @@ class _PubChemUpdateImpl(_update_handling.AbstractUpdaterImpl):
         if unknown or missing:
             return ("%d unknown and %d deleted entries on website" % (len(unknown), len(missing)),
                     True)
-        return "data on website unchanged", False
+        return "no change to pubchem detected.", False
 
     def do_update_with_gui(self, limit):
         from PyQt4.QtGui import QProgressDialog, QApplication

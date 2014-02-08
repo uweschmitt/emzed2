@@ -22,9 +22,6 @@ original copyright:
 """
 
 
-import pkg_resources
-pkg_resources.require("spyder==2.1.13")
-
 import os
 import sys
 import os.path as osp
@@ -1002,9 +999,9 @@ class MainWindow(QMainWindow):
         self.debug_print("Setting up window...")
         self.setup_layout(default=False)
 
-        # EMZED ADD ON : splash screen occurs at leas for 2 seconds:
+        # EMZED ADD ON : splash screen occurs at least for 1 seconds:
         import time
-        while (time.time()-self.splash_started) < 3.0:
+        while (time.time()-self.splash_started) < 1.0:
             time.sleep(0.1)
         self.splash.hide()
 
