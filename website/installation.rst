@@ -77,7 +77,7 @@ http://emzed.ethz.ch/downloads/install_emzed2.sh. The script should work on curr
 Ubuntu and Debian Linux installations. Running the script you are asked for the 
 target folder, we recommend to use *emzed2* inside your home folder::
 
-    $ bash install_linux.sh
+    $ bash install_emzed2.sh
 
 The script should create a short cut on your desktop and print the direct path
 for starting emzed from the command line.
