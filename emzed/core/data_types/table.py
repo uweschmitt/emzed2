@@ -1,3 +1,4 @@
+import pdb
 import copy
 import os
 import itertools
@@ -451,7 +452,7 @@ class Table(object):
 
     def __iter__(self):
         for row in self.rows:
-            yield self.getValues(row)
+            yield row
 
     def getValues(self, row):
         """
@@ -899,7 +900,7 @@ class Table(object):
         return rv
 
     def _updateColumnWithoutNameCheck(self, name, what, type_=None, format_="",
-                                      insertBefore=None):
+                                      insertBefore=None, insertAfter=None):
         """
         Replaces the column ``name`` if it exists. Else the column is added.
 
@@ -909,16 +910,16 @@ class Table(object):
             self.replaceColumn(name, what, type_, format_)
         else:
             self._addColumnWithoutNameCheck(name, what, type_, format_,
-                                            insertBefore)
+                                            insertBefore, insertAfter)
 
     def updateColumn(self, name, what, type_=None, format_="",
-                     insertBefore=None):
+                     insertBefore=None, insertAfter=None):
         if self.hasColumn(name):
             self.replaceColumn(name, what, type_, format_)
         else:
-            self.addColumn(name, what, type_, format_, insertBefore)
+            self.addColumn(name, what, type_, format_, insertBefore, insertAfter)
 
-    def addColumn(self, name, what, type_=None, format_="", insertBefore=None):
+    def addColumn(self, name, what, type_=None, format_="", insertBefore=None, insertAfter=None):
         """
         adds a column **in place**.
 
@@ -933,10 +934,10 @@ class Table(object):
         if "__" in name:
             raise Exception("double underscore in %r not allowed" % name)
 
-        self._addColumnWithoutNameCheck(name, what, type_, format_, insertBefore)
+        self._addColumnWithoutNameCheck(name, what, type_, format_, insertBefore, insertAfter)
 
     def _addColumnWithoutNameCheck(self, name, what, type_=None, format_="",
-                                   insertBefore=None):
+                                   insertBefore=None, insertAfter=None):
         import types
 
         assert isinstance(name, (str, unicode)), "colum name is not a  string"
@@ -949,35 +950,35 @@ class Table(object):
 
         if isinstance(what, BaseExpression):
             return self._addColumnByExpression(name, what, type_, format_,
-                                               insertBefore)
+                                               insertBefore, insertAfter)
         if callable(what):
             return self._addColumnByCallback(name, what, type_, format_,
-                                             insertBefore)
+                                             insertBefore, insertAfter)
 
         if type(what) in [list, tuple, types.GeneratorType, np.array]:
             return self._addColumFromIterable(name, what, type_, format_,
-                                              insertBefore)
+                                              insertBefore, insertAfter)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
-                                                       format_, insertBefore)
+                                                       format_, insertBefore, insertAfter)
 
-    def _addColumnByExpression(self, name, expr, type_, format_, insertBefore):
+    def _addColumnByExpression(self, name, expr, type_, format_, insertBefore, insertAfter):
         values, _, type2_ = expr._eval(None)
         # TODO: automatic table check for numpy values via decorator ?
         # switchable !?
         if type2_ in _basic_num_types:
             values = values.tolist()
-        return self._addColumn(name, values, type_ or type2_, format_, insertBefore)
+        return self._addColumn(name, values, type_ or type2_, format_, insertBefore, insertAfter)
 
-    def _addColumnByCallback(self, name, callback, type_, format_, insertBefore):
+    def _addColumnByCallback(self, name, callback, type_, format_, insertBefore, insertAfter):
         values = [callback(self, r, name) for r in self.rows]
-        return self._addColumn(name, values, type_, format_, insertBefore)
+        return self._addColumn(name, values, type_, format_, insertBefore, insertAfter)
 
-    def _addColumFromIterable(self, name, iterable, type_, format_, insertBefore):
+    def _addColumFromIterable(self, name, iterable, type_, format_, insertBefore, insertAfter):
         values = list(iterable)
-        return self._addColumn(name, values, type_, format_, insertBefore)
+        return self._addColumn(name, values, type_, format_, insertBefore, insertAfter)
 
-    def _addColumn(self, name, values, type_, format_, insertBefore):
+    def _addColumn(self, name, values, type_, format_, insertBefore, insertAfter):
         # works for lists, numbers, objects: converts inner numpy dtypes
         # to python types if present, else does nothing !!!!
 
@@ -993,33 +994,61 @@ class Table(object):
         if format_ == "":
             format_ = guessFormatFor(name, type_)
 
-        if insertBefore is None:
+        if insertBefore is None and insertAfter is None:
             # list.insert(len(list), ..) is the same as append(..) !
             insertBefore = len(self._colNames)
 
-        # colname -> index
-        if isinstance(insertBefore, str):
-            if insertBefore not in self._colNames:
-                raise Exception("column %r does not exist", insertBefore)
-            insertBefore = self.getIndex(insertBefore)
+        if insertBefore is not None and insertAfter is not None:
+            raise Exception("can not handle insertBefore and insertAfter at the same time")
 
-        # now insertBefore is an int, or something we can not handle
-        if isinstance(insertBefore, int):
-            if insertBefore < 0:  # indexing from back
-                insertBefore += len(self._colNames)
-            self._colNames.insert(insertBefore, name)
-            self._colTypes.insert(insertBefore, type_)
-            self._colFormats.insert(insertBefore, format_)
-            for row, v in zip(self.rows, values):
-                row.insert(insertBefore, v)
+        if insertBefore is not None:
+            # colname -> index
+            if isinstance(insertBefore, str):
+                if insertBefore not in self._colNames:
+                    raise Exception("column %r does not exist", insertBefore)
+                insertBefore = self.getIndex(insertBefore)
 
-        else:
-            raise Exception("can not handle insertBefore=%r" % insertBefore)
+            # now insertBefore is an int, or something we can not handle
+            if isinstance(insertBefore, int):
+                if insertBefore < 0:  # indexing from back
+                    insertBefore += len(self._colNames)
+                self._colNames.insert(insertBefore, name)
+                self._colTypes.insert(insertBefore, type_)
+                self._colFormats.insert(insertBefore, format_)
+                for row, v in zip(self.rows, values):
+                    row.insert(insertBefore, v)
+
+            else:
+                raise Exception("can not handle insertBefore=%r" % insertBefore)
+
+        if insertAfter is not None:
+            # colname -> index
+            if isinstance(insertAfter, str):
+                if insertAfter not in self._colNames:
+                    raise Exception("column %r does not exist", insertAfter)
+                insertAfter = self.getIndex(insertAfter)
+
+            # now insertAfter is an int, or something we can not handle
+            if isinstance(insertAfter, int):
+                if insertAfter < 0:  # indexing from back
+                    insertAfter += len(self._colNames)
+                self._colNames.insert(insertAfter + 1, name)
+                self._colTypes.insert(insertAfter + 1, type_)
+                self._colFormats.insert(insertAfter + 1, format_)
+                if insertAfter == len(self._colNames) - 1:
+                    for row, v in zip(self.rows, values):
+                        row.append(v)
+                else:
+                    for row, v in zip(self.rows, values):
+                        row.insert(insertAfter + 1, v)
+
+            else:
+                raise Exception("can not handle insertAfter=%r" % insertAfter)
 
         self.resetInternals()
 
     def addConstantColumn(self, name, value, type_=None, format_="",
-                          insertBefore=None):
+                          insertBefore=None, insertAfter=None):
         """
         see :py:meth:`~.addColumn`.
 
@@ -1030,17 +1059,17 @@ class Table(object):
         if "__" in name:
             raise Exception("double underscore in %r not allowed" % name)
         self._addConstantColumnWithoutNameCheck(name, value, type_, format_,
-                                                insertBefore)
+                                                insertBefore, insertAfter)
 
     def _addConstantColumnWithoutNameCheck(self, name, value, type_=None,
-                                           format_="", insertBefore=None):
+                                           format_="", insertBefore=None, insertAfter=None):
 
         if type_ is not None:
             assert isinstance(type_, type), "type_ param is not a type"
         if name in self._colNames:
             raise Exception("column with name '%s' already exists" % name)
         return self._addColumn(name, [value] * len(self), type_, format_,
-                               insertBefore)
+                               insertBefore, insertAfter)
 
     def resetInternals(self):
         """  **internal method**
