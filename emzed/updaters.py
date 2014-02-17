@@ -1,5 +1,7 @@
 # encoding: latin-1
 
+import _tools
+
 def setup_updaters(data_home=None):
 
     from core.update_handling import registry
@@ -64,8 +66,9 @@ def _print_first_start_info():
     print
     print "".ljust(80, ".")
 
-import _tools
-# is_started_from_cmdline() == True iff invoked via emzed.workbench command line command
+
+# is_started_from_cmdline() == True iff invoked via emzed.workbench command line command.
+#
 # in this case nothing should happen, because we want this actions
 # later in spyders ipython console where is_started_from_cmdline() is False.
 if not _tools.gui_running() and not _tools.is_started_from_cmdline() and _tools.is_first_start():
