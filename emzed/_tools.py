@@ -1,13 +1,15 @@
 
-def is_started_from_cmdline():
+def is_started_as_emzed_console():
 
-    import inspect
-    info = inspect.stack()[-1][1]
-    result = False
-    if info != "<string>":
-        if info.endswith("emzed.workbench"):
-            result = True
-    return result
+    if "__emzed_imported_by" in globals():
+        return __emzed_imported_by == "emzed.console"
+    return False
+
+def is_started_as_emzed_workbench():
+
+    if "__emzed_imported_by" in globals():
+        return __emzed_imported_by == "emzed.workbench"
+    return False
 
 
 def gui_running():

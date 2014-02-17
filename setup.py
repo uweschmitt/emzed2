@@ -12,8 +12,9 @@ setup(name="emzed",
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
                           "emzed.inspect = emzed.cmdline:inspect",
-                          ]
-
+                          ],
+          "console_scripts": ["emzed.console = emzed.console:main",
+              ]
       },
       include_package_data=True,
       zip_safe=False,

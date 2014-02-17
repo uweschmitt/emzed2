@@ -29,19 +29,7 @@ if sys.platform == "win32":
 ###########################################################################
 
 
-
-def install_emzed(user_ns=None):
-
-    import emzed
-
-    emzed.project.install_builtins()
-    emzed.project.activate_last_project()
-
-    emzed.updaters.interactive_update()
-
-    import os, sys
-    user_ns.update(locals())
-
+from install import install_emzed
 
 # Remove this module's path from sys.path:
 try:
@@ -100,6 +88,7 @@ elif os.environ.get('IPYTHON', False):
     ###########################################################################
     user_ns = dict()
     install_emzed(user_ns)
+    user_ns["emzed"].updaters.interactive_update()
     # ipython does not like __builtins__ in namespace:
     if "__builtins__" in user_ns:
         del user_ns["__builtins__"]
@@ -241,5 +230,6 @@ on Windows platforms (only IPython v0.10 is fully supported).
 else: # standard shell
     ###########################################################################
     install_emzed(locals())
+    user_ns["__emzed_imported_by"] = "emzed.workbench"
     ###########################################################################
 

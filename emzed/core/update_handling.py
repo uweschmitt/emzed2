@@ -100,7 +100,6 @@ class Updater(object):
 
     def get_latest_update_ts(self):
         path = self._get_ts_file_path()
-        print "read ts from", path
         if not os.path.exists(path):
             return -1.0
         with open(path, "rt") as fp:
@@ -119,7 +118,6 @@ class Updater(object):
             os.remove(path)
 
     def _update_latest_update_ts(self, seconds_since_epoch):
-        print "update_latest_update_ts", self.impl.get_id(), seconds_since_epoch
         path = self._get_ts_file_path()
         with open(path, "wt") as fp:
             readable = time.asctime(time.localtime(seconds_since_epoch))
@@ -150,7 +148,6 @@ class Updater(object):
 
     def do_update(self, limit=None):
         """ returns flag, message """
-        print "do_update"
         try:
             self.impl.do_update(limit)
         except BaseException, e:

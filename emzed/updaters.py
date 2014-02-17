@@ -71,7 +71,7 @@ def _print_first_start_info():
 #
 # in this case nothing should happen, because we want this actions
 # later in spyders ipython console where is_started_from_cmdline() is False.
-if not _tools.gui_running() and not _tools.is_started_from_cmdline() and _tools.is_first_start():
+if _tools.is_started_as_emzed_console() and _tools.is_first_start():
     _print_first_start_info()
 
 
@@ -112,7 +112,7 @@ def print_update_status():
             else:
                 print
         else:
-            print "local version is new enough"
+            print "no need to update local verison"
     print
 
 def _interactive_update():
