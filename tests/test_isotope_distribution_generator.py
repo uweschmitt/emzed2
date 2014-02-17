@@ -36,6 +36,8 @@ def testIDGen():
 
     # for R=None exact formulas for peaks should be created, we check this:
     t = emzed.utils.isotopeDistributionTable("C4Cl", R=None)
-    assert len(t) == 4
-    assert all(abs(m1-m2) < 1e-5 for (m1, m2) in zip(t.mass.values,
-                                                     t.mf.apply(emzed.mass.of).values))
+    print t
+    assert len(t) == 5
+    assert all(abs(m1-m2) < 1e-5 
+               for (m1, m2) in zip(t.mass.values, t.mf.apply(emzed.mass.of).values)
+               if m1 is not None)

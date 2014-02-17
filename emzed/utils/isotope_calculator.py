@@ -32,6 +32,7 @@ def plotIsotopeDistribution(formula, R=None, fullC13=False, minp=0.01,
     gen = _setupIsotopeDistributionGenerator(formula, R, fullC13, minp, **kw)
     gen.show(plotGauss)
 
+
 def isotopeDistributionTable(formula, R=None, fullC13=False, minp=0.01, **kw):
     """
     generates Table for most common isotopes of molecule with given mass
@@ -73,6 +74,5 @@ def isotopeDistributionTable(formula, R=None, fullC13=False, minp=0.01, **kw):
     for mass, formula, abundance in gen.getCentroids():
         t.addRow([formula, mass, abundance], False)
     t.resetInternals()
+    t.replaceColumn("abundance", t.abundance / t.abundance.sum, format_ = "%.4f")
     return t
-
-
