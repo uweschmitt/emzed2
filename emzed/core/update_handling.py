@@ -1,3 +1,4 @@
+import pdb
 # encoding:latin-1
 
 import os
@@ -144,7 +145,7 @@ class Updater(object):
         except BaseException, e:
             import traceback
             traceback.print_exc()
-            return False, str(e)
+            return False, e.message
         return self._finalize_update()
 
     def do_update(self, limit=None):
@@ -155,7 +156,7 @@ class Updater(object):
         except BaseException, e:
             import traceback
             traceback.print_exc()
-            return False, str(e)
+            return False, e.message
         return self._finalize_update()
 
     def _finalize_update(self):
@@ -180,7 +181,7 @@ class Updater(object):
             # is readable ?
             os.listdir(exchange_folder)
         except BaseException, e:
-            return None, str(e)
+            return None, e.message
         try:
             is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
         except:
@@ -198,13 +199,13 @@ class Updater(object):
             # is readable ?
             os.listdir(exchange_folder)
         except BaseException, e:
-            return False, str(e)
+            return False, e.message
         try:
             message = self.impl.update_from_exchange_folder(exchange_folder)
             self._update_latest_update_ts(time.time())
             self.impl.touch_data_home_files()
         except Exception, e:
-            return False, e.message()
+            return False, e.message
         return True, message
 
 
