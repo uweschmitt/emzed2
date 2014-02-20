@@ -70,26 +70,33 @@ def _build_starttable(tables, force_merge):
     for table in tables:
         for name in table._colNames:
             type_ = table.getType(name)
-            if types.get(name, type_) != type_:
+            expected_type = types.get(name, type_)
+            if expected_type != type_:
+                msg = "type conflict for column %s: expected %r and got %r" % (name,
+                                                                                expected_type,
+                                                                                type_)
                 if not force_merge:
-                    raise Exception("type conflictfor column %s" % name)
-                print "type conflict:",name, types.get(name, type_), type_
+                    raise Exception(msg)
+                print msg
             types[name] = type_
 
     formats = dict()
     for table in tables:
         for name in table._colNames:
             format_ = table.getFormat(name)
-            if formats.get(name, format_) != format_:
+            expected_format = formats.get(name, format_)
+            if expected_format != format_:
+                msg = "format conflict for column %s: expected %r and got %r" % (name,
+                                                                                 expected_format,
+                                                                                 format_)
                 if not force_merge:
-                    raise Exception("format conflict for column %s" % name)
-                print "format conflict:", name, formats.get(name, format_), format_
-            formats[name] = format_
+                    raise Exception(msg)
+                print msg
 
+            formats[name] = format_
 
     final_types = [types.get(n) for n in colum_names]
     final_formats = [formats.get(n) for n in colum_names]
 
-    #prototype = Table._create(colum_names, final_types, final_formats)
     return colum_names, final_types, final_formats
 
