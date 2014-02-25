@@ -42,6 +42,41 @@ def configsForSpectra(n):
     return [dict(color=getColors(i), linewidth=1) for i in range(n)]
 
 
+
+class EmzedTableView(QTableView):
+
+    def __init__(self, dialog):
+        super(EmzedTableView, self).__init__()
+        self.dialog = dialog
+
+    @protect_signal_handler
+    def showEvent(self, evt):
+        if not self.isSortingEnabled():
+            self.setSortingEnabled(True)
+            self.resizeColumnsToContents()
+            self.model().emptyActionStack()
+            self.dialog.updateMenubar()
+
+    @protect_signal_handler
+    def keyPressEvent(self, evt):
+        if (evt.modifiers(), evt.key()) == (Qt.ControlModifier, Qt.Key_F):
+            if self.selectedIndexes():
+                column = self.selectedIndexes()[0].column()
+            else:
+                column = self.model().current_sort_idx
+
+            # some columns are invisible, so we need a lookup:
+            col_name = self.model().getShownColumnName(column)
+            look_for, ok = QInputDialog.getText(self, "Search Column %s" % col_name,
+                                                "Lookup Column %s for :" % col_name)
+            if ok:
+                look_for = str(look_for).strip()
+                if look_for:
+                    row = self.model().lookup(look_for, col_name)
+                    if row is not None:
+                        ix = self.model().index(row, column)
+                        self.setCurrentIndex(ix)
+
 class TableExplorer(EmzedDialog):
 
     def __init__(self, tables, offerAbortOption, parent=None):
@@ -114,39 +149,9 @@ class TableExplorer(EmzedDialog):
 
     def setupTableViewFor(self, model):
 
-        class MyView(QTableView):
-
-            @protect_signal_handler
-            def showEvent(self, evt, model=model, parent=self):
-                print self, evt, parent
-                if not self.isSortingEnabled():
-                    self.setSortingEnabled(True)
-                    self.resizeColumnsToContents()
-                    model.emptyActionStack()
-                    parent.updateMenubar()
-
-            @protect_signal_handler
-            def keyPressEvent(self, evt, parent=self):
-                if (evt.modifiers(), evt.key()) == (Qt.ControlModifier, Qt.Key_F):
-                    if self.selectedIndexes():
-                        column = self.selectedIndexes()[0].column()
-                    else:
-                        column = parent.model.current_sort_idx
-                    table = parent.model.table
-                    col_name = table.getColNames()[column]
-                    look_for, ok = QInputDialog.getText(self, "Search Column %s" % col_name,
-                                                        "Lookup Column %s for :" % col_name)
-                    if ok:
-                        look_for = str(look_for).strip()
-                        if look_for:
-                            for row, value in enumerate(getattr(table, col_name)):
-                                if str(value).strip() == look_for:
-                                    ix = parent.model.index(row, column)
-                                    self.setCurrentIndex(ix)
-
 
         #tableView.showEvent = handler
-        tableView = MyView(self)
+        tableView = EmzedTableView(self)
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)
@@ -479,6 +484,8 @@ class TableExplorer(EmzedDialog):
         if group_by_idx == 0:
             selected_rows = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
         else:
+            # todo: 1) only offer visible columns for grouping
+            # todo: 2) move parts of code below to model and/or view !
             table = self.model.table
             col_name = table.getColNames()[group_by_idx - 1]
             selected_value = table.getValue(table.rows[rowIdx], col_name)

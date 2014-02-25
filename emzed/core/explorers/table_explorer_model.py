@@ -399,7 +399,7 @@ class TableModel(QAbstractTableModel):
         if len(self.widgetColToDataCol):
             dataColIdx = self.widgetColToDataCol[colIdx]
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
-            self.current_sort_idx = dataColIdx
+            self.current_sort_idx = colIdx # dataColIdx
 
     def integrate(self, idx, postfix, method, rtmin, rtmax):
         self.runAction(IntegrateAction, postfix, idx, method, rtmin, rtmax)
@@ -442,6 +442,20 @@ class TableModel(QAbstractTableModel):
             title += " rt_aligned=%s" % table.meta.get("rt_aligned", "False")
             title += " mz_aligned=%s" % table.meta.get("mz_aligned", "False")
         return title
+
+    def getShownColumnName(self, col_idx):
+        """ lookup name of visible column #col_idx """
+        data_col_idx = self.widgetColToDataCol[col_idx]
+        return self.table.getColNames()[data_col_idx]
+
+    def lookup(self, look_for, col_name):
+        look_for = str(look_for).strip()
+        ix = self.table.getIndex(col_name)
+        formatter = self.table.colFormatters[ix]
+        for row, value in enumerate(getattr(self.table, col_name)):
+            if formatter(value).strip() == look_for:
+                return row
+        return None
 
     def getSmoothedEics(self, rowIdx, rts):
         allsmoothed = []
