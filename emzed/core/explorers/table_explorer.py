@@ -113,16 +113,40 @@ class TableExplorer(EmzedDialog):
             self.tableViews.append(self.setupTableViewFor(model))
 
     def setupTableViewFor(self, model):
-        tableView = QTableView(self)
 
-        @protect_signal_handler
-        def handler(evt, view=tableView, model=model, self=self):
-            if not view.isSortingEnabled():
-                view.setSortingEnabled(True)
-                view.resizeColumnsToContents()
-                model.emptyActionStack()
-                self.updateMenubar()
-        tableView.showEvent = handler
+        class MyView(QTableView):
+
+            @protect_signal_handler
+            def showEvent(self, evt, model=model, parent=self):
+                print self, evt, parent
+                if not self.isSortingEnabled():
+                    self.setSortingEnabled(True)
+                    self.resizeColumnsToContents()
+                    model.emptyActionStack()
+                    parent.updateMenubar()
+
+            @protect_signal_handler
+            def keyPressEvent(self, evt, parent=self):
+                if (evt.modifiers(), evt.key()) == (Qt.ControlModifier, Qt.Key_F):
+                    if self.selectedIndexes():
+                        column = self.selectedIndexes()[0].column()
+                    else:
+                        column = parent.model.current_sort_idx
+                    table = parent.model.table
+                    col_name = table.getColNames()[column]
+                    look_for, ok = QInputDialog.getText(self, "Search Column %s" % col_name,
+                                                        "Lookup Column %s for :" % col_name)
+                    if ok:
+                        look_for = str(look_for).strip()
+                        if look_for:
+                            for row, value in enumerate(getattr(table, col_name)):
+                                if str(value).strip() == look_for:
+                                    ix = parent.model.index(row, column)
+                                    self.setCurrentIndex(ix)
+
+
+        #tableView.showEvent = handler
+        tableView = MyView(self)
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)

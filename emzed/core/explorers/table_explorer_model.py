@@ -104,10 +104,9 @@ class SortTableAction(TableAction):
     actionName = "sort table"
 
     def __init__(self, model, dataColIdx, colIdx, order):
-        super(SortTableAction, self).__init__(model, dataColIdx=dataColIdx,
-                                              colIdx=colIdx, order=order)
-        self.toview = dict(sortByColumn=colIdx,
-                           ascending=(order == Qt.AscendingOrder))
+        super(SortTableAction, self).__init__(model, dataColIdx=dataColIdx, colIdx=colIdx,
+                                              order=order)
+        self.toview = dict(sortByColumn=colIdx, ascending=(order == Qt.AscendingOrder))
 
     def do(self):
         table = self.model.table
@@ -400,6 +399,7 @@ class TableModel(QAbstractTableModel):
         if len(self.widgetColToDataCol):
             dataColIdx = self.widgetColToDataCol[colIdx]
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
+            self.current_sort_idx = dataColIdx
 
     def integrate(self, idx, postfix, method, rtmin, rtmax):
         self.runAction(IntegrateAction, postfix, idx, method, rtmin, rtmax)
