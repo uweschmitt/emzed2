@@ -4,5 +4,5 @@ def main():
     user_ns = dict()
     install_emzed(user_ns)
     user_ns["__emzed_imported_by"] = "emzed.console"
-    shell = IPython.Shell.start(user_ns=user_ns)
+    shell = IPython.Shell.IPShellQt4(user_ns=user_ns)
     shell.mainloop()
