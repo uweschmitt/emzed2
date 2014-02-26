@@ -76,6 +76,8 @@ class EmzedTableView(QTableView):
                     if row is not None:
                         ix = self.model().index(row, column)
                         self.setCurrentIndex(ix)
+        return super(EmzedTableView, self).keyPressEvent(evt)
+
 
 class TableExplorer(EmzedDialog):
 
