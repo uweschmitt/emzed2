@@ -63,8 +63,7 @@ def patch_RemoteDictEditorTableView():
 def patch_NamespaceBrowser():
 
     from spyderlib.widgets.externalshell.monitor import communicate
-    from spyderlib.widgets.externalshell.namespacebrowser\
-                                                 import NamespaceBrowser
+    from spyderlib.widgets.externalshell.namespacebrowser import NamespaceBrowser
 
     @add(NamespaceBrowser, verbose=True)
     def is_peakmap(self, name):
@@ -174,10 +173,11 @@ def patch_userconfig():
                             { "pythonstartup/default" : False,
                               "pythonstartup/custom"  : True,
                               "pythonstartup" : _path_to_emzed_startup,
-                               "object_inspector": False,
+                              "object_inspector": False,
                               "open_python_at_startup"  : False,
                               "open_ipython_at_startup"  : True,
                               "start_ipython_kernel_at_startup"  : False,
+                              "ipython_options" : "-q4thread -colors LightBG",
                             }
                  ,
                  #"ipython_console":  

@@ -599,7 +599,6 @@ fields = [ f for f in fields if not f.endswith("emzed/workbench")]
 os.putenv("PYTHONPATH", os.pathsep.join(fields))
 sys.path = [ f for f in sys.path[:] if not f.endswith("emzed/workbench")]
 
-
 ## Restoring original PYTHONPATH
 #try:
 #    os.environ['PYTHONPATH'] = os.environ['OLD_PYTHONPATH']
