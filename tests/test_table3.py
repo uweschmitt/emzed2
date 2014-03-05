@@ -17,3 +17,12 @@ def test_insert_before_and_after():
     assert (a, b, c, d) == (0, 1, 2, 3)
 
 
+def test_col_with_tuples():
+    t = emzed.utils.toTable("b", [(1, 2)])
+    import cStringIO
+    fp = cStringIO.StringIO()
+    t.print_(out=fp)
+    out = fp.getvalue()
+    lines = [l.strip() for l in out.split("\n")]
+    assert lines[3] == "(1, 2)"
+

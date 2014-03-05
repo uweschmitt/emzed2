@@ -1,4 +1,3 @@
-import pdb
 import copy
 import os
 import itertools
@@ -119,7 +118,7 @@ def _formatter(f):
     elif f.startswith("%"):
         def interpolationformat(s, f=f):
             try:
-                return "-" if s is None else f % s
+                return "-" if s is None else f % (s,)
             except:
                 return ""
         return interpolationformat

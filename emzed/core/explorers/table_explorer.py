@@ -399,7 +399,7 @@ class TableExplorer(EmzedDialog):
 
         for col_name in self.model.table.getColNames():
             t = self.model.table.getColType(col_name)
-            if t is object or t is None or has_inspector(t):
+            if t in (list, tuple, object, dict, set) or t is None or has_inspector(t):
                 self.model.addNonEditable(col_name)
 
         self.choosePostfix.clear()
