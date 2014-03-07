@@ -880,6 +880,9 @@ class GroupedAggregateExpression(BaseExpression):
         self.ignore_none = ignore_none
         self.group_by_column = group_by_column
 
+    def _evalsize(self, ctx=None):
+        return self.left._evalsize(ctx)
+
     def _eval(self, ctx=None):
         child_values, __, child_type = saveeval(self.left, ctx)
         group_values, __, group_type = saveeval(self.group_by_column, ctx)
@@ -954,8 +957,8 @@ class AggregateExpression(BaseExpression):
     def __str__(self):
         return self.funname % self.left
 
-    def _evalsize(self):
-        return 1
+    def _evalsize(self, ctx=None):
+        return self.left._evalsize(ctx)
 
 
 class LogicExpression(BaseExpression):

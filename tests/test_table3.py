@@ -26,3 +26,8 @@ def test_col_with_tuples():
     lines = [l.strip() for l in out.split("\n")]
     assert lines[3] == "(1, 2)"
 
+
+def test_evalsize_of_grouped_aggregate_values():
+    # tests a bug fixed in commit 843144a
+    t = emzed.utils.toTable("v", [1, 1, 2])
+    assert (t.v.count.group_by(t.v) == 1).values == (False, False, True)
