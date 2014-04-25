@@ -7,6 +7,7 @@ _here = os.path.abspath(os.path.dirname(__file__))
 _path_to_emzed_startup = os.path.join(_here, "startup.py")
 _path_to_emzed_ipython_startup = os.path.join(_here, "ipython_startup.py")
 
+
 def patch_spyderlib():
 
     patch_qt_version_check()
@@ -25,17 +26,15 @@ def patch_spyderlib():
     # sitecustomize.py
     patch_baseshell()
 
-
     # patch dialogs for emzed specific types:
-
     patch_RemoteDictEditorTableView()
     patch_NamespaceBrowser()
 
 
 def patch_RemoteDictEditorTableView():
 
-    from  spyderlib.widgets.dicteditor import (RemoteDictEditorTableView,
-                                               BaseTableView)
+    from spyderlib.widgets.dicteditor import (RemoteDictEditorTableView,
+                                              BaseTableView)
 
     @replace(RemoteDictEditorTableView.edit_item, verbose=True)
     def patch(self):
@@ -44,14 +43,14 @@ def patch_RemoteDictEditorTableView():
             if not index.isValid():
                 return
             key = self.model.get_key(index)
-            if (self.is_list(key) or self.is_dict(key) 
-                or self.is_array(key) or self.is_image(key)):
-                # If this is a remote dict editor, the following avoid 
+            if (self.is_list(key) or self.is_dict(key)
+                    or self.is_array(key) or self.is_image(key)):
+                # If this is a remote dict editor, the following avoid
                 # transfering large amount of data through the socket
                 self.oedit(key)
             # START MOD EMZED
             elif self.is_peakmap(key) or self.is_table(key) or\
-                 self.is_tablelist(key):
+                    self.is_tablelist(key):
                 self.oedit(key)
             # END MOD EMZED
             else:
@@ -69,22 +68,21 @@ def patch_NamespaceBrowser():
     def is_peakmap(self, name):
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
-           "isinstance(globals()['%s'], emzed.core.data_types.PeakMap)" % name)
+                           "isinstance(globals()['%s'], emzed.core.data_types.PeakMap)" % name)
 
     @add(NamespaceBrowser, verbose=True)
     def is_table(self, name):
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
-             "isinstance(globals()['%s'], emzed.core.data_types.Table)" % name)
+                           "isinstance(globals()['%s'], emzed.core.data_types.Table)" % name)
 
     @add(NamespaceBrowser, verbose=True)
     def is_tablelist(self, name):
-
         """Return True if variable is a PeakMap"""
         return communicate(self._get_sock(),
-            "isinstance(globals()['%s'], list) "\
-            "and all(isinstance(li, emzed.core.data_types.Table)"\
-            "        for li in globals()['%s'])" %(name, name))
+                           "isinstance(globals()['%s'], list) "
+                           "and all(isinstance(li, emzed.core.data_types.Table)"
+                           "        for li in globals()['%s'])" % (name, name))
 
     @replace(NamespaceBrowser.setup, verbose=True)
     def setup(self, *a, **kw):
@@ -98,7 +96,6 @@ def patch_NamespaceBrowser():
         NamespaceBrowser._orig_import_data(self, filenames)
         self.save_button.setEnabled(self.filename is not None)
 
-
     @add(NamespaceBrowser, verbose=True)
     def get_remote_view_settings(self):
         """Return dict editor view settings for the remote process,
@@ -108,7 +105,6 @@ def patch_NamespaceBrowser():
             return self.get_view_settings()
 
 
-
 def patch_baseshell():
 
     # modifies assembly of PYTHONPATH before starting the external
@@ -116,15 +112,25 @@ def patch_baseshell():
     # so the sitecustomize will be loaded from patched_modules\
     # and not from spyderlib\widgets\externalshell\
 
+    print "patch baseshell"
+
     import spyderlib.widgets.externalshell.baseshell as baseshell
+
     @replace(baseshell.add_pathlist_to_PYTHONPATH, verbose=True)
     def patched(env, pathlist, _here=_here):
+        # fp = open("/tmp/logx", "w")
+        # print >> fp, "patched", _here
         for i, p in enumerate(pathlist):
             # replace path to ../externalshell/ (which contains
             # sitecustomize.py) with path to patched_modules/
+            # print >> fp, i, p
             if p.rstrip("/").endswith("externalshell"):
                 pathlist[i] = _here
-        return baseshell._orig_add_pathlist_to_PYTHONPATH(env, pathlist)
+        # print >> fp, env
+        baseshell._orig_add_pathlist_to_PYTHONPATH(env, pathlist)
+        # print >> fp, env
+        # fp.close()
+
 
 def patch_userconfig():
 
@@ -135,6 +141,7 @@ def patch_userconfig():
 
     # this works:
     import spyderlib.userconfig
+
     @replace(spyderlib.userconfig.get_home_dir)
     def patched():
         """
@@ -159,7 +166,6 @@ def patch_userconfig():
         except:
             raise RuntimeError('Please define environment variable $HOME')
 
-
     from spyderlib.userconfig import UserConfig
 
     class MyConfig(UserConfig):
@@ -170,39 +176,37 @@ def patch_userconfig():
         def __init__(self, name, defaults, *a, **kw):
             __my_defaults = {
                 "console":
-                            { "pythonstartup/default" : False,
-                              "pythonstartup/custom"  : True,
-                              "pythonstartup" : _path_to_emzed_startup,
-                              "object_inspector": False,
-                              "open_python_at_startup"  : False,
-                              "open_ipython_at_startup"  : True,
-                              "start_ipython_kernel_at_startup"  : False,
-                              "ipython_options" : "-q4thread -colors LightBG",
-                            }
-                 ,
-                 #"ipython_console":  
-                            #{
-                              #"open_ipython_at_startup"  : True,
-                               #"startup/run_file" : _path_to_emzed_ipython_startup,
-                               #"startup/use_run_file" : True,
-                            #},
-#
-                 "inspector":
-                             { "automatic_import" : False,  # faster !
-                             }
-                 ,
-                 "variable_explorer":
-                             { "remote_editing" : True,
-                             }
-                 ,
-                 "editor":
-                             # paranthesis closing is annoying
-                             { "close_parentheses" : False,
-                               "outline_explorer": True,
-                               "object_inspector": True,
-                               "edge_line_column": 99,
-                             }
-                 ,
+                            {"pythonstartup/default": False,
+                             "pythonstartup/custom": True,
+                             "pythonstartup": _path_to_emzed_startup,
+                             "object_inspector": False,
+                             "open_python_at_startup": False,
+                             "open_ipython_at_startup": True,
+                             "start_ipython_kernel_at_startup": False,
+                             "ipython_options": "-q4thread -colors LightBG",
+                             },
+
+                # "ipython_console":
+                # {
+                # "open_ipython_at_startup"  : True,
+                # "startup/run_file" : _path_to_emzed_ipython_startup,
+                # "startup/use_run_file" : True,
+                # },
+                #
+                "inspector":
+                {"automatic_import": False,  # faster !
+                 },
+                "variable_explorer":
+                {"remote_editing": True,
+                 },
+                "editor":
+                # paranthesis closing is annoying
+                {
+                    "close_parentheses": False,
+                    "outline_explorer": True,
+                    "object_inspector": True,
+                    "edge_line_column": 99,
+                    },
             }
             for section, settings in defaults:
                 override = __my_defaults.get(section)
@@ -211,7 +215,6 @@ def patch_userconfig():
 
             # using UserConfig.__init__ would recurse here as we set UserConfig = MyConfig below !
             MyConfig.__orig_base_class.__init__(self, name, defaults, *a, **kw)
-
 
     import spyderlib.userconfig
     spyderlib.userconfig.UserConfig = MyConfig
@@ -232,16 +235,17 @@ def patch_qt_version_check():
             actual_ver = qt.__version__
             if LooseVersion(actual_ver) < LooseVersion(required_ver):
                 show_warning("Please check Spyder installation requirements:\n"
-                            "%s %s+ is required (found v%s)."
-                            % (package_name, required_ver, actual_ver))
+                             "%s %s+ is required (found v%s)."
+                             % (package_name, required_ver, actual_ver))
             print "Qt version", actual_ver, "passed version test"
         except ImportError:
             show_warning("Please check Spyder installation requirements:\n"
-                        "%s %s+ (or %s %s+) is required."
-                        % (qt_infos['pyqt']+qt_infos['pyside']))
+                         "%s %s+ (or %s %s+) is required."
+                         % (qt_infos['pyqt']+qt_infos['pyside']))
 
     import spyderlib.requirements
     spyderlib.requirements.check_qt = check_qt
+
 
 def patch_baseconfig():
     from spyderlib import baseconfig
@@ -256,10 +260,6 @@ def patch_baseconfig():
     @replace(baseconfig.get_module_source_path, verbose=True)
     def patch(modname, basename=None):
         if modname == "spyderlib.widgets.externalshell"\
-            and basename=="startup.py":
-                return _path_to_emzed_startup
-            #return os.path.join(os.environ.get("EMZED_HOME"),
-                                #"patched_modules",
-                                #"startup.py")
+                and basename == "startup.py":
+            return _path_to_emzed_startup
         return baseconfig._orig_get_module_source_path(modname, basename)
-
