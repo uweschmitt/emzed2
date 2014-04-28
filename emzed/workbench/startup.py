@@ -28,8 +28,14 @@ if sys.platform == "win32":
     pkg_resources.require("ipython==0.10")
 ###########################################################################
 
-
+# fix for mac:
+sys.path.insert(0, osp.dirname(osp.abspath(__file__)))
 from install import install_emzed
+sys.path.pop(0)
+
+import sitecustomize
+print "loaded sitecustomize from", sitecustomize.__file__
+print "spyder encoding is set to", os.environ['SPYDER_ENCODING']
 
 # Remove this module's path from sys.path:
 try:
@@ -203,23 +209,12 @@ on Windows platforms (only IPython v0.10 is fully supported).
 
     if ip is not None:
 
-        try:
-            #ip.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
-            pass
-        except:
-            pass
-        # else  we load patched sitecostuomize.py on windows:
         ip.ex("os.unsetenv('PYTHONPATH')")
         for name in ["e", "pi", "path"]:
             try:
                 ip.ex("del %s" % name)
             except:
                 pass
-    #try:
-        #__ipythonshell__.magic('config PromptManager.in_template = "EMZED_DEVELOP\\nIn [\\#]: "')
-        #pass
-    #except:
-        #pass
     __ipythonshell__.mainloop()
 
     ###########################################################################
