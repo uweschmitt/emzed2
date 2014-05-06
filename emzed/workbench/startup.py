@@ -99,7 +99,6 @@ elif os.environ.get('IPYTHON', False):
     if "__builtins__" in user_ns:
         del user_ns["__builtins__"]
 
-
     ###########################################################################
     # end of       modification ###############################################
     ###########################################################################
@@ -225,6 +224,5 @@ on Windows platforms (only IPython v0.10 is fully supported).
 else: # standard shell
     ###########################################################################
     install_emzed(locals())
-    user_ns["__emzed_imported_by"] = "emzed.workbench"
     ###########################################################################
 

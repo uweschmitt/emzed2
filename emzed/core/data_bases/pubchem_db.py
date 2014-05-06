@@ -213,6 +213,7 @@ class PubChemDB(object):
                 callback(i, len(newIds))
             except BaseException, e:
                 if e != "aborted":
+                    self.store()  # in case of bad internet connection save immediate result
                     raise
         try:
             self.table.dropColumns("url")

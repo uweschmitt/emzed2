@@ -64,7 +64,7 @@ if is_module_installed('IPython.frontend.qt', '>=0.12'):
 
 #EMZEDADDON
 here = os.path.dirname(os.path.abspath(__file__))
-#os.environ["EMZED_HOME"] = here
+
 import spyderlib
 os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
 print os.environ["SPYDER_PARENT_DIR"]

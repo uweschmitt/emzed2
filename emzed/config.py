@@ -22,7 +22,7 @@ def _check_first_start():
     # in this case nothing should happen, because we want this actions
     # later in spyders ipython console where is_started_from_cmdline() is False.
     from _tools import *
-    if is_first_start() and is_started_as_emzed_console():
+    if is_first_start() and runs_inside_emzed_console():
         global_config.set_defaults()
         print
         print "loading emzed.config ".ljust(80, ".")
@@ -36,7 +36,7 @@ def _check_first_start():
         print
         print "".ljust(80, ".")
         store()
-    elif is_first_start() and is_started_as_emzed_workbench():
+    elif is_first_start() and runs_inside_emzed_workbench():
         if gui_running():
             aborted = edit(reset_to_defaults=True)
             if not aborted:
