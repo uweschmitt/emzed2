@@ -37,6 +37,8 @@ from plotting_widgets import MzPlotter
 
 from helpers import protect_signal_handler
 
+from lru_cache import lru_cache
+
 from ...io.load_utils import loadPeakMap
 
 
@@ -68,12 +70,12 @@ class PeakMapImageBase(object):
         self.peakmaps = peakmaps
         rtmins, rtmaxs = zip(*[pm.rtRange() for pm in peakmaps])
         mzmins, mzmaxs = zip(*[pm.mzRange() for pm in peakmaps])
-        self.rtmin = min(rtmins)
-        self.rtmax = max(rtmaxs)
-        self.mzmin = min(mzmins)
-        self.mzmax = max(mzmaxs)
+        self.rt_min = min(rtmins)
+        self.rt_max = max(rtmaxs)
+        self.mz_min = min(mzmins)
+        self.mz_max = max(mzmaxs)
 
-        self.bounds = QRectF(QPointF(self.rtmin, self.mzmin), QPointF(self.rtmax, self.mzmax))
+        self.bounds = QRectF(QPointF(self.rt_min, self.mz_min), QPointF(self.rt_max, self.mz_max))
 
         self.total_imin = 0.0
         maxi = [np.max(s.peaks[:, 1]) for pm in peakmaps for s in pm.spectra if len(s.peaks)]
@@ -89,7 +91,7 @@ class PeakMapImageBase(object):
         self.is_log = 1
 
     def get_peakmap_bounds(self):
-        return self.rtmin, self.rtmax, self.mzmin, self.mzmax
+        return self.rt_min, self.rt_max, self.mz_min, self.mz_max
 
     def set_imin(self, imin):
         self.imin = imin
@@ -109,21 +111,15 @@ class PeakMapImageBase(object):
     def set_logarithmic_scale(self, is_log):
         self.is_log = is_log
 
-    def compute_image(self, idx, srcRect, canvasRect):
+    @lru_cache(maxsize=100)
+    def compute_image(self, idx, NX, NY, rt_min, rt_max, mz_min, mz_max):
 
-        x1, y1 = canvasRect.left(), canvasRect.top()
-        x2, y2 = canvasRect.right(), canvasRect.bottom()
-        NX = x2 - x1
-        NY = y2 - y1
-
-        rtmin, mzmax, rtmax, mzmin = srcRect
-
-        if rtmin >= rtmax or mzmin >= mzmax:
+        if rt_min >= rt_max or mz_min >= mz_max:
             smoothed = np.zeros((1, 1))
         else:
             # optimized:
             # one additional row / col as we loose one row and col during smoothing:
-            data = sample_image(self.peakmaps[idx], rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
+            data = sample_image(self.peakmaps[idx], rt_min, rt_max, mz_min, mz_max, NX + 1, NY + 1)
 
             # enlarge single pixels to 2 x 2 pixels:
             smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
@@ -207,11 +203,11 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
 
         x1, y1 = canvasRect.left(), canvasRect.top()
         x2, y2 = canvasRect.right(), canvasRect.bottom()
-
         NX = x2 - x1
         NY = y2 - y1
+        rt_min, mz_max, rt_max, mz_min = srcRect
 
-        self.data = self.compute_image(0, srcRect, canvasRect)
+        self.data = self.compute_image(0, NX, NY, rt_min, rt_max, mz_min, mz_max)
 
         # draw
         srcRect = (0, 0, NX, NY)
@@ -225,10 +221,10 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
 
     def __init__(self, peakmap, peakmap2):
         PeakMapImageBase.__init__(self, [peakmap, peakmap2])
-        self.xmin = self.rtmin
-        self.xmax = self.rtmax
-        self.ymin = self.mzmin
-        self.ymax = self.mzmax
+        self.xmin = self.rt_min
+        self.xmax = self.rt_max
+        self.ymin = self.mz_min
+        self.ymax = self.mz_max
         RawImageItem.__init__(self, data=np.zeros((1, 1, 3), np.uint32))
         self.update_border()
 
@@ -265,18 +261,26 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
         self.last_xmap = xMap
         self.last_ymap = yMap
 
-        rtmin, mzmax, rtmax, mzmin = srcRect
+        rt_min, mz_max, rt_max, mz_min = srcRect
 
-        image = self.compute_image(0, srcRect, canvasRect)[::-1, :]
-        image2 = self.compute_image(1, srcRect, canvasRect)[::-1, :]
+        x1, y1 = canvasRect.left(), canvasRect.top()
+        x2, y2 = canvasRect.right(), canvasRect.bottom()
+        NX = x2 - x1
+        NY = y2 - y1
+        rt_min, mz_max, rt_max, mz_min = srcRect
+
+        image = self.compute_image(0, NX, NY, rt_min, rt_max, mz_min, mz_max)[::-1, :]
+        image2 = self.compute_image(1, NX, NY, rt_min, rt_max, mz_min, mz_max)[::-1, :]
 
         self.data = np.zeros_like(image, dtype=np.uint32)[::-1, :]
         self.data[:] = 255 << 24  # alpha = 1.0
+        # add image as rgb(255, 255, 0)
         self.data += image * 256.0 * 256
         self.data += image * 256.0
+        # add image2 as rgb(0, 0, 256)
         self.data += image2
 
-        self.bounds = QRectF(rtmin, mzmin, rtmax - rtmin, mzmax - mzmin)
+        self.bounds = QRectF(rt_min, mz_min, rt_max - rt_min, mz_max - mz_min)
 
         RGBImageItem.draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap)
 
@@ -288,21 +292,21 @@ class PeakmapCursorRangeInfo(ObjectInfo):
         self.marker = marker
 
     def get_text(self):
-        rtmin, mzmin, rtmax, mzmax = self.marker.get_rect()
-        if not np.isnan(rtmax):
-            rtmin, rtmax = sorted((rtmin, rtmax))
-        if not np.isnan(mzmax):
-            mzmin, mzmax = sorted((mzmin, mzmax))
-        if not np.isnan(rtmax):
-            delta_mz = mzmax - mzmin
-            delta_rt = rtmax - rtmin
-            line0 = "mz: %10.5f ..  %10.5f (delta=%5.5f)" % (mzmin, mzmax, delta_mz)
-            line1 = "rt:  %6.2fm   ..   %6.2fm   (delta=%.1fs)" % (rtmin / 60.0,
-                                                                   rtmax / 60.0,
+        rt_min, mz_min, rt_max, mz_max = self.marker.get_rect()
+        if not np.isnan(rt_max):
+            rt_min, rt_max = sorted((rt_min, rt_max))
+        if not np.isnan(mz_max):
+            mz_min, mz_max = sorted((mz_min, mz_max))
+        if not np.isnan(rt_max):
+            delta_mz = mz_max - mz_min
+            delta_rt = rt_max - rt_min
+            line0 = "mz: %10.5f ..  %10.5f (delta=%5.5f)" % (mz_min, mz_max, delta_mz)
+            line1 = "rt:  %6.2fm   ..   %6.2fm   (delta=%.1fs)" % (rt_min / 60.0,
+                                                                   rt_max / 60.0,
                                                                    delta_rt)
             return "<pre>%s</pre>" % "<br>".join((line0, line1))
         else:
-            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mzmin, rtmin / 60.0)
+            return """<pre>mz: %9.5f<br>rt: %6.2fm</pre>""" % (mz_min, rt_min / 60.0)
 
 
 class RtCursorInfo(ObjectInfo):
@@ -487,14 +491,14 @@ class ChromatogramPlot(CurvePlot):
             return max(seq) if len(seq) else default
 
         self.add_item(self.rt_label)
-        rtmin = mmin(rts, default=0.0)
-        rtmax = mmax(rts)
+        rt_min = mmin(rts, default=0.0)
+        rt_max = mmax(rts)
         maxchroma = mmax(chroma)
         if rts2 is not None:
-            rtmin = min(rtmin, mmin(rts2, rtmin))
-            rtmax = max(rtmax, mmax(rts2, rtmax))
+            rt_min = min(rt_min, mmin(rts2, rt_min))
+            rt_max = max(rt_max, mmax(rts2, rt_max))
             maxchroma = max(maxchroma, mmax(chroma2, maxchroma))
-        self.set_plot_limits(rtmin, rtmax, 0, maxchroma)
+        self.set_plot_limits(rt_min, rt_max, 0, maxchroma)
         self.updateAxes()
         self.replot()
 
@@ -506,7 +510,7 @@ class ModifiedImagePlot(ImagePlot):
     # as this class is used for patching, the __init__ is never called, so we set default
     # values as class atributes:
 
-    rtmin = rtmax = mzmin = mzmax = None
+    rt_min = rt_max = mz_min = mz_max = None
     peakmap_range = (None, None, None, None)
     coords = (None, None)
     dragging = False
@@ -524,21 +528,21 @@ class ModifiedImagePlot(ImagePlot):
         if evt.button() == Qt.RightButton:
             self.go_back_in_history()
 
-    def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
-        self.rtmin = rtmin = max(rtmin, self.peakmap_range[0])
-        self.rtmax = rtmax = min(rtmax, self.peakmap_range[1])
-        self.mzmin = mzmin = max(mzmin, self.peakmap_range[2])
-        self.mzmax = mzmax = min(mzmax, self.peakmap_range[3])
-        self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
-        self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
+    def set_limits(self, rt_min, rt_max, mz_min, mz_max, add_to_history):
+        self.rt_min = rt_min = max(rt_min, self.peakmap_range[0])
+        self.rt_max = rt_max = min(rt_max, self.peakmap_range[1])
+        self.mz_min = mz_min = max(mz_min, self.peakmap_range[2])
+        self.mz_max = mz_max = min(mz_max, self.peakmap_range[3])
+        self.set_plot_limits(rt_min, rt_max, mz_min, mz_max, "bottom", "right")
+        self.set_plot_limits(rt_min, rt_max, mz_min, mz_max, "top", "left")
 
         # only rgb plot needs update of bounds:
         peakmap_item = self.get_unique_item(RGBPeakMapImageItem)
         if peakmap_item is not None:
-            peakmap_item.bounds = QRectF(QPointF(rtmin, mzmin), QPointF(rtmax, mzmax))
+            peakmap_item.bounds = QRectF(QPointF(rt_min, mz_min), QPointF(rt_max, mz_max))
 
         if add_to_history:
-            self.history.new_head((rtmin, rtmax, mzmin, mzmax))
+            self.history.new_head((rt_min, rt_max, mz_min, mz_max))
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
         self.replot()
@@ -548,16 +552,16 @@ class ModifiedImagePlot(ImagePlot):
     def go_back_in_history(self, filter_=None, evt=None):
         item = self.history.go_back()
         if item is not None:
-            rtmin, rtmax, mzmin, mzmax = item
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            rt_min, rt_max, mz_min, mz_max = item
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=False)
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
     def go_forward_in_history(self, filter_=None, evt=None):
         item = self.history.go_forward()
         if item is not None:
-            rtmin, rtmax, mzmin, mzmax = item
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            rt_min, rt_max, mz_min, mz_max = item
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=False)
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
@@ -565,23 +569,23 @@ class ModifiedImagePlot(ImagePlot):
         """ resets zoom """
         item = self.history.skip_to_beginning()
         if item is not None:
-            rtmin, rtmax, mzmin, mzmax = item
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            rt_min, rt_max, mz_min, mz_max = item
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=False)
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     @protect_signal_handler
     def go_to_end_of_history(self, filter_=None, evt=None):
         item = self.history.skip_to_end()
         if item is not None:
-            rtmin, rtmax, mzmin, mzmax = item
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            rt_min, rt_max, mz_min, mz_max = item
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=False)
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
     def set_history_position(self, idx):
         item = self.history.set_position(idx)
         if item is not None:
-            rtmin, rtmax, mzmin, mzmax = item
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=False)
+            rt_min, rt_max, mz_min, mz_max = item
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=False)
 
     def get_coords(self, evt):
         return self.invTransform(self.xBottom, evt.x()), self.invTransform(self.yLeft, evt.y())
@@ -639,8 +643,8 @@ class ModifiedImagePlot(ImagePlot):
         now = self.get_coords(evt)
         rect_marker = self.get_unique_item(RectangleShape)
         rect_marker.setVisible(1)
-        now_rt = max(self.rtmin, min(now[0], self.rtmax))
-        now_mz = max(self.mzmin, min(now[1], self.mzmax))
+        now_rt = max(self.rt_min, min(now[0], self.rt_max))
+        now_mz = max(self.mz_min, min(now[1], self.mz_max))
         rect_marker.set_rect(self.start_at[0], self.start_at[1], now_rt, now_mz)
         self.moved = True
         self.replot()
@@ -668,21 +672,21 @@ class ModifiedImagePlot(ImagePlot):
         self.dragging = False
 
         if self.moved and not self.with_shift_key:
-            rtmin, rtmax = self.start_at[0], stop_at[0]
-            # be sure that rtmin <= rtmax:
-            rtmin, rtmax = min(rtmin, rtmax), max(rtmin, rtmax)
+            rt_min, rt_max = self.start_at[0], stop_at[0]
+            # be sure that rt_min <= rt_max:
+            rt_min, rt_max = min(rt_min, rt_max), max(rt_min, rt_max)
 
-            mzmin, mzmax = self.start_at[1], stop_at[1]
-            # be sure that mzmin <= mzmax:
-            mzmin, mzmax = min(mzmin, mzmax), max(mzmin, mzmax)
+            mz_min, mz_max = self.start_at[1], stop_at[1]
+            # be sure that mz_min <= mz_max:
+            mz_min, mz_max = min(mz_min, mz_max), max(mz_min, mz_max)
 
             # keep coordinates in peakmap:
-            rtmin = max(self.rtmin, min(self.rtmax, rtmin))
-            rtmax = max(self.rtmin, min(self.rtmax, rtmax))
-            mzmin = max(self.mzmin, min(self.mzmax, mzmin))
-            mzmax = max(self.mzmin, min(self.mzmax, mzmax))
+            rt_min = max(self.rt_min, min(self.rt_max, rt_min))
+            rt_max = max(self.rt_min, min(self.rt_max, rt_max))
+            mz_min = max(self.mz_min, min(self.mz_max, mz_min))
+            mz_max = max(self.mz_min, min(self.mz_max, mz_max))
 
-            self.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+            self.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=True)
         else:
             self.replot()
 
@@ -817,16 +821,16 @@ def create_table_widget(table, parent):
 
 
 def get_range(peakmap, peakmap2):
-    rtmin, rtmax = peakmap.rtRange()
-    mzmin, mzmax = peakmap.mzRange()
+    rt_min, rt_max = peakmap.rtRange()
+    mz_min, mz_max = peakmap.mzRange()
     if peakmap2 is not None:
         rtmin2, rtmax2 = peakmap2.rtRange()
         mzmin2, mzmax2 = peakmap2.mzRange()
-        rtmin = min(rtmin, rtmin2)
-        rtmax = max(rtmax, rtmax2)
-        mzmin = min(mzmin, mzmin2)
-        mzmax = max(mzmax, mzmax2)
-    return rtmin, rtmax, mzmin, mzmax
+        rt_min = min(rt_min, rtmin2)
+        rt_max = max(rt_max, rtmax2)
+        mz_min = min(mz_min, mzmin2)
+        mz_max = max(mz_max, mzmax2)
+    return rt_min, rt_max, mz_min, mz_max
 
 
 def create_image_widget():
@@ -1105,7 +1109,7 @@ class PeakMapExplorer(EmzedDialog):
         if self.dual_mode:
             self.peakmap2 = peakmap2.getDominatingPeakmap()
 
-        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
+        self.rt_min, self.rt_max, self.mz_min, self.mz_max = get_range(self.peakmap, self.peakmap2)
         self.setWindowTitle()
 
     def setup_initial_values(self):
@@ -1115,13 +1119,13 @@ class PeakMapExplorer(EmzedDialog):
         imax = 10 ** math.ceil(math.log10(imax))
         self.imax_input.setText("%g" % imax)
 
-        self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
+        self.set_range_value_fields(self.rt_min, self.rt_max, self.mz_min, self.mz_max)
 
-    def set_range_value_fields(self, rtmin, rtmax, mzmin, mzmax):
-        self.rtmin_input.setText("%.2f" % (rtmin / 60.0))
-        self.rtmax_input.setText("%.2f" % (rtmax / 60.0))
-        self.mzmin_input.setText("%.5f" % mzmin)
-        self.mzmax_input.setText("%.5f" % mzmax)
+    def set_range_value_fields(self, rt_min, rt_max, mz_min, mz_max):
+        self.rtmin_input.setText("%.2f" % (rt_min / 60.0))
+        self.rtmax_input.setText("%.2f" % (rt_max / 60.0))
+        self.mzmin_input.setText("%.5f" % mz_min)
+        self.mzmax_input.setText("%.5f" % mz_max)
 
     def setup_input_widgets(self):
         self.log_label = QLabel("Logarithmic Scale:", self)
@@ -1469,15 +1473,15 @@ class PeakMapExplorer(EmzedDialog):
     @protect_signal_handler
     def row_selected(self, row_idx):
         row = self.table.getValues(self.table.rows[row_idx])
-        needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
+        needed = ["rt_min", "rt_max", "mz_min", "mz_max"]
         if all(n in row for n in needed):
-            rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
-            self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+            rt_min, rt_max, mz_min, mz_max = [row.get(ni) for ni in needed]
+            self.peakmap_plotter.set_limits(rt_min, rt_max, mz_min, mz_max, True)
         else:
-            needed = ["mzmin", "mzmax"]
+            needed = ["mz_min", "mz_max"]
             if all(n in row for n in needed):
-                mzmin, mzmax = [row.get(ni) for ni in needed]
-                self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, mzmin, mzmax, True)
+                mz_min, mz_max = [row.get(ni) for ni in needed]
+                self.peakmap_plotter.set_limits(self.rt_min, self.rt_max, mz_min, mz_max, True)
 
     @protect_signal_handler
     def cell_clicked(self, item):
@@ -1503,9 +1507,9 @@ class PeakMapExplorer(EmzedDialog):
     def history_changed(self, history):
         self.history_list.clear()
         for item in history.items:
-            rtmin, rtmax, mzmin, mzmax = item
-            str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm " % (mzmin, mzmax, rtmin / 60.0,
-                                                              rtmax / 60.0)
+            rt_min, rt_max, mz_min, mz_max = item
+            str_item = "%10.5f .. %10.5f %6.2fm...%6.2fm " % (mz_min, mz_max, rt_min / 60.0,
+                                                              rt_max / 60.0)
             self.history_list.addItem(str_item)
 
         self.history_back_button.setEnabled(not history.current_position_is_beginning())
@@ -1527,30 +1531,29 @@ class PeakMapExplorer(EmzedDialog):
     @protect_signal_handler
     def changed_axis(self, evt=None):
         if evt is not None:
-            rtmin, rtmax = evt.get_axis_limits("bottom")
-            mzmin, mzmax = evt.get_axis_limits("left")
+            rt_min, rt_max = evt.get_axis_limits("bottom")
+            mz_min, mz_max = evt.get_axis_limits("left")
         else:
-            rtmin, rtmax = self.peakmap.rtRange()
-            mzmin, mzmax = self.peakmap.mzRange()
+            rt_min, rt_max = self.peakmap.rtRange()
+            mz_min, mz_max = self.peakmap.mzRange()
 
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        self.set_sliders(rtmin, rtmax, mzmin, mzmax)
+        self.set_range_value_fields(rt_min, rt_max, mz_min, mz_max)
+        self.set_sliders(rt_min, rt_max, mz_min, mz_max)
 
-        rts, chroma = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+        rts, chroma = self.peakmap.chromatogram(mz_min, mz_max, rt_min, rt_max)
         if self.dual_mode:
-            rts2, chroma2 = self.peakmap2.chromatogram(
-                rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+            rts2, chroma2 = self.peakmap2.chromatogram(mz_min, mz_max, rt_min, rt_max)
             self.chromatogram_plotter.plot(rts, chroma, rts2, chroma2)
         else:
             self.chromatogram_plotter.plot(rts, chroma)
 
         if self.dual_mode:
-            data = [(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000),
-                    (self.peakmap2, rtmin, rtmax, mzmin, mzmax, 3000)]
+            data = [(self.peakmap, rt_min, rt_max, mz_min, mz_max, 3000),
+                    (self.peakmap2, rt_min, rt_max, mz_min, mz_max, 3000)]
             configs = [dict(color="#aaaa00"), dict(color="#0000aa")]
             self.mz_plotter.plot(data, configs)
         else:
-            self.mz_plotter.plot([(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)])
+            self.mz_plotter.plot([(self.peakmap, rt_min, rt_max, mz_min, mz_max, 3000)])
 
         self.mz_plotter.widget.plot.reset_x_limits()
         self.mz_plotter.widget.plot.reset_y_limits()
@@ -1631,7 +1634,7 @@ class PeakMapExplorer(EmzedDialog):
     def set_image_range(self):
         # statt der folgenden beiden zeilen, diese werte auslesen:
         try:
-            rtmin, rtmax, mzmin, mzmax = map(float, (self.rtmin_input.text(),
+            rt_min, rt_max, mz_min, mz_max = map(float, (self.rtmin_input.text(),
                                                      self.rtmax_input.text(),
                                                      self.mzmin_input.text(),
                                                      self.mzmax_input.text(),)
@@ -1640,38 +1643,38 @@ class PeakMapExplorer(EmzedDialog):
             guidata.qapplication().beep()
             return
 
-        rtmin *= 60.0
-        rtmax *= 60.0
+        rt_min *= 60.0
+        rt_max *= 60.0
 
-        if rtmin < self.rtmin:
-            rtmin = self.rtmin
-        if rtmax > self.rtmax:
-            rtmax = self.rtmax
-        if mzmin < self.mzmin:
-            mzmin = self.mzmin
-        if mzmax > self.mzmax:
-            mzmax = self.mzmax
-        rtmin, rtmax = sorted((rtmin, rtmax))
-        mzmin, mzmax = sorted((mzmin, mzmax))
+        if rt_min < self.rt_min:
+            rt_min = self.rt_min
+        if rt_max > self.rt_max:
+            rt_max = self.rt_max
+        if mz_min < self.mz_min:
+            mz_min = self.mz_min
+        if mz_max > self.mz_max:
+            mz_max = self.mz_max
+        rt_min, rt_max = sorted((rt_min, rt_max))
+        mz_min, mz_max = sorted((mz_min, mz_max))
 
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        self.set_range_value_fields(rt_min, rt_max, mz_min, mz_max)
 
-        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
-        self.set_sliders(rtmin, rtmax, mzmin, mzmax)
+        self.peakmap_plotter.set_limits(rt_min, rt_max, mz_min, mz_max, add_to_history=True)
+        self.set_sliders(rt_min, rt_max, mz_min, mz_max)
 
-    def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
+    def set_sliders(self, rt_min, rt_max, mz_min, mz_max):
 
-        for value, max_value, slider in ((rtmin, self.rtmax, self.rtmin_slider),
-                                        (rtmax, self.rtmax, self.rtmax_slider),):
+        for value, max_value, slider in ((rt_min, self.rt_max, self.rtmin_slider),
+                                        (rt_max, self.rt_max, self.rtmax_slider),):
 
             slider_value = int(slider.maximum() * value / max_value)
             slider.blockSignals(True)
             slider.setSliderPosition(slider_value)
             slider.blockSignals(False)
 
-        min_v = self.mzmin
-        max_v = self.mzmax
-        for value, slider in ((mzmin, self.mzmin_slider), (mzmax, self.mzmax_slider)):
+        min_v = self.mz_min
+        max_v = self.mz_max
+        for value, slider in ((mz_min, self.mzmin_slider), (mz_max, self.mzmax_slider)):
             slider_value = int(slider.maximum() * (value - min_v) / (max_v - min_v))
             slider.blockSignals(True)
             slider.setSliderPosition(slider_value)
@@ -1679,29 +1682,29 @@ class PeakMapExplorer(EmzedDialog):
 
     @protect_signal_handler
     def img_range_slider_changed(self, int):
-        rtmin = self.rtmin + (self.rtmax - self.rtmin) * \
+        rt_min = self.rt_min + (self.rt_max - self.rt_min) * \
             self.rtmin_slider.sliderPosition() / self.rtmin_slider.maximum()
-        rtmax = self.rtmin + (self.rtmax - self.rtmin) * \
+        rt_max = self.rt_min + (self.rt_max - self.rt_min) * \
             self.rtmax_slider.sliderPosition() / self.rtmax_slider.maximum()
 
-        if rtmax < rtmin:
+        if rt_max < rt_min:
             self.rtmax_slider.setSliderPosition(self.rtmin_slider.sliderPosition())
-            rtmax = rtmin
+            rt_max = rt_min
 
-        mzmin = self.mzmin + (self.mzmax - self.mzmin) * \
+        mz_min = self.mz_min + (self.mz_max - self.mz_min) * \
             self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
-        mzmax = self.mzmin + (self.mzmax - self.mzmin) * \
+        mz_max = self.mz_min + (self.mz_max - self.mz_min) * \
             self.mzmax_slider.sliderPosition() / self.mzmax_slider.maximum()
 
-        if mzmax < mzmin:
+        if mz_max < mz_min:
             self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
-            mzmax = mzmin
+            mz_max = mz_min
 
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        self.set_range_value_fields(rt_min, rt_max, mz_min, mz_max)
 
     def plot_peakmap(self):
         self.peakmap_plotter.set_limits(
-            self.rtmin, self.rtmax, self.mzmin, self.mzmax, add_to_history=True)
+            self.rt_min, self.rt_max, self.mz_min, self.mz_max, add_to_history=True)
 
 
 def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None):
