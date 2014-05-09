@@ -3,15 +3,14 @@
 import traceback
 import os
 
+_emzed_runs_inside = None
+
 try:
     import sitecustomize
 
 except:
     pass
-
 else:
-
-    _emzed_runs_inside = None
 
     p = traceback.extract_stack()[0][0]
     mod_name = os.path.split(p)[-1]
