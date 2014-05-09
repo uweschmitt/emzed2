@@ -39,7 +39,9 @@ def test_load_map(path, tmpdir):
     # without unicode
     emzed.io.storePeakMap(ds2, tmpdir.join("utilstest.mzData").strpath)
     ds3 = emzed.io.loadPeakMap(tmpdir.join("utilstest.mzData").strpath)
+
     assert len(ds)==len(ds3)
+    assert ds3.uniqueId() == ds2.uniqueId()
 
 
 def test_merge_tables():
