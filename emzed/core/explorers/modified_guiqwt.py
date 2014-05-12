@@ -41,8 +41,8 @@ class RtSelectionTool(InteractiveTool):
         start_state = filter.new_state()
         # Bouton gauche :
         ObjectHandler(filter, Qt.LeftButton, start_state=start_state)
-        ObjectHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier,
-                      start_state=start_state, multiselection=True)
+        # ObjectHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier,
+                      # start_state=start_state, multiselection=True)
 
         filter.add_event(start_state,
                          KeyEventMatch((Qt.Key_Enter, Qt.Key_Return,)),
@@ -67,9 +67,11 @@ class RtSelectionTool(InteractiveTool):
 
         # Bouton du milieu
         PanHandler(filter, Qt.MidButton, start_state=start_state)
+        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
         # Bouton droit
         ZoomHandler(filter, Qt.RightButton, start_state=start_state)
+        ZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)
@@ -116,6 +118,7 @@ class MzSelectionTool(InteractiveTool):
 
         # Bouton du milieu
         PanHandler(filter, Qt.MidButton, start_state=start_state)
+        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
         # Bouton droit
         class ZoomHandlerWithStopingEvent(ZoomHandler):
@@ -124,6 +127,7 @@ class MzSelectionTool(InteractiveTool):
                 filter_.plot.do_finish_zoom_view(x_state, y_state)
 
         ZoomHandlerWithStopingEvent(filter, Qt.RightButton, start_state=start_state)
+        ZoomHandlerWithStopingEvent(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)

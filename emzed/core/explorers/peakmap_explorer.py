@@ -369,10 +369,12 @@ class PeakmapZoomTool(InteractiveTool):
 
         # Bouton du milieu
         PanHandler(filter, Qt.MidButton, start_state=start_state)
+        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
         # AutoZoomHandler(filter, Qt.MidButton, start_state=start_state)
 
         # Bouton droit
         ZoomHandler(filter, Qt.RightButton, start_state=start_state)
+        ZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
         # MenuHandler(filter, Qt.RightButton, start_state=start_state)
 
         # Autres (touches, move)
