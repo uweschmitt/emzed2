@@ -1,4 +1,7 @@
+import pdb
 import os
+import datetime
+import traceback
 import glob
 import sys
 import pandas
@@ -89,7 +92,7 @@ class RInterpreter(object):
 
     """
 
-    def __init__(self, dump_stdout=True, r_exe=None, **kw):
+    def __init__(self, dump_stdout=True, r_exe=None, do_log=False, **kw):
         """Starts a R process.
 
            In case of ``dump_stdout`` being ``True``, console output from R is imediatly
@@ -103,9 +106,17 @@ class RInterpreter(object):
             else:
                 r_exe = "R"
 
+        fh = open("log_last_use_emzed_r_bridge.txt", "a") if do_log else None
+        self.__dict__["fh"] = fh
+
         try:
+            if do_log:
+                print >> fh, "\nstart subprocess %s at %s" % (r_exe, datetime.datetime.now())
             session = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
         except:
+            print >> fh, "\nfailure"
+            traceback.print_exc(file=fh)
+            fh.close()
             raise Exception("could not start R, is R installed ?")
         self.__dict__["session"] = session
 
@@ -117,8 +128,15 @@ class RInterpreter(object):
 
     def execute(self, *cmds):
         """executes commands. Each command by be a multiline command. """
+        if self.fh is not None:
+            print >> self.fh, "#", datetime.datetime.now()
         for cmd in cmds:
+            if self.fh is not None:
+                print >> self.fh, cmd
             self.session(cmd)
+
+        if self.fh is not None:
+            print >> self.fh, 60 * "="
         return self
 
     def get_df_as_table(self, name, title=None, meta=None, types=None, formats=None):
