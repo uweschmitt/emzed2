@@ -1057,20 +1057,11 @@ class PeakMapExplorer(EmzedDialog):
             title = "yellow=%s, blue=%s" % (p1, p2)
         super(PeakMapExplorer, self).setWindowTitle(title)
 
-    def setup(self, peakmap, peakmap2=None, table=None, rtmin=None, rtmax=None, mzmin=None,
-              mzmax=None):
+    def setup(self, peakmap, peakmap2=None, table=None):
         self.table = table
         self.process_peakmap(peakmap, peakmap2)
 
         self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
-        if rtmin is not None:
-            self.rtmin = rtmin
-        if rtmax is not None:
-            self.rtmax = rtmax
-        if mzmin is not None:
-            self.mzmin = mzmin
-        if mzmax is not None:
-            self.mzmax = mzmax
         self.setup_table_widgets()
         self.setup_input_widgets()
         self.setup_plot_widgets()
@@ -1712,8 +1703,15 @@ class PeakMapExplorer(EmzedDialog):
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
 
     def plot_peakmap(self):
-        self.peakmap_plotter.set_limits(
-            self.rtmin, self.rtmax, self.mzmin, self.mzmax, add_to_history=True)
+        self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, self.mzmin, self.mzmax,
+                                        add_to_history=True)
+
+    def zoom(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None):
+        rtmin = self.rtmin if rtmin is None else rtmin
+        rtmax = self.rtmax if rtmax is None else rtmax
+        mzmin = self.mzmin if mzmin is None else mzmin
+        mzmax = self.mzmax if mzmax is None else mzmax
+        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
 
 
 def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, rtmin=None,
@@ -1728,7 +1726,9 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, 
     app = guidata.qapplication()  # singleton !
     ok_rows = []
     win = PeakMapExplorer(ok_rows, parent=parent)
-    win.setup(peakmap, peakmap2, table, rtmin, rtmax, mzmin, mzmax)
+    win.setup(peakmap, peakmap2, table)
+    win.zoom(rtmin, rtmax, mzmin, mzmax)
+
     if modal:
         win.raise_()
         win.exec_()

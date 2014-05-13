@@ -466,11 +466,13 @@ class Table(object):
         """
         return Bunch((n, self.getValue(row, n)) for n in self._colNames)
 
-    def getValue(self, row, colName):
+    def getValue(self, row, colName, default=None):
         """ returns value of column ``colName`` in a given ``row``
 
             Example: ``table.getValue(table.rows[0], "mz")``
         """
+        if colName not in self._colNames:
+            return default
         return row[self.getIndex(colName)]
 
     def setRow(self, idx, row):

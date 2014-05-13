@@ -276,8 +276,16 @@ class TableModel(QAbstractTableModel):
     def columnCount(self, index=QModelIndex()):
         return len(self.widgetColToDataCol)
 
-    def cell_value(self, index):
+    def column_name(self, index):
+        __, col = self.table_index(index)
+        return self.table.getColNames()[col]
+
+    def table_index(self, index):
         cidx = self.widgetColToDataCol[index.column()]
+        return index.row(), cidx
+
+    def cell_value(self, index):
+        __, cidx = self.table_index(index)
         value = self.table.rows[index.row()][cidx]
         return value
 
@@ -334,7 +342,7 @@ class TableModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         assert isinstance(value, QVariant)
         if index.isValid() and 0 <= index.row() < len(self.table):
-            dataIdx = self.widgetColToDataCol[index.column()]
+            __, dataIdx = self.table_index(index)
             expectedType = self.table._colTypes[dataIdx]
             if value.toString().trimmed() == "-":
                 value = None
