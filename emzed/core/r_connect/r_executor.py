@@ -111,10 +111,10 @@ class RInterpreter(object):
 
         try:
             if do_log:
-                print >> fh, "\nstart subprocess %s at %s" % (r_exe, datetime.datetime.now())
+                print >> fh, "\n# start subprocess %s at %s" % (r_exe, datetime.datetime.now())
             session = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
         except:
-            print >> fh, "\nfailure"
+            print >> fh, "\n# failure"
             traceback.print_exc(file=fh)
             fh.close()
             raise Exception("could not start R, is R installed ?")
@@ -136,7 +136,7 @@ class RInterpreter(object):
             self.session(cmd)
 
         if self.fh is not None:
-            print >> self.fh, 60 * "="
+            print >> self.fh, "#", 60 * "="
         return self
 
     def get_df_as_table(self, name, title=None, meta=None, types=None, formats=None):
