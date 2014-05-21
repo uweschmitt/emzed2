@@ -420,11 +420,44 @@ class Table(object):
         """
         return all(self.hasColumn(n) for n in names)
 
+    def ensureColNames(self, *names):
+        """ convenient function to assert existence of column names
+        """
+
+        def flatten(args):
+            result = list()
+            for arg in args:
+                if isinstance(arg, (tuple, list)):
+                    result.extend(arg)
+                else:
+                    result.append(arg)
+            return result
+
+        names = flatten(names)
+        missing = set()
+        found = set()
+        for name in names:
+            if name not in self._colNames:
+                missing.add(name)
+            else:
+                found.add(name)
+        if missing:
+            tobe = ", ".join(sorted(set(names)))
+            found = ", ".join(sorted(found))
+            missing = ", ".join(sorted(missing))
+            if tobe != missing:
+                msg = "expected names %s, found %s but %s where missing" % (tobe, found, missing)
+            else:
+                msg = "expected names %s but found %s" % (tobe, found)
+
+            raise Exception(msg)
+
     def requireColumn(self, name):
-        """ throws exception if column with name ``name`` does not exist"""
-        if not name in self._colNames:
-            raise Exception("column %r required" % name)
-        return self
+        """ throws exception if column with name ``name`` does not exist
+
+            this method only exists for compatibility with older emzed code.
+        """
+        self.ensureColNames(name)
 
     def getIndex(self, colName):
         """ gets the integer index of the column ``colName``.
@@ -754,8 +787,7 @@ class Table(object):
         """
         # check all names before manipulating the table,
         # so this operation is atomic
-        for name in names:
-            self.requireColumn(name)
+        self.ensureColNames(*names)
         for name in names:
             delattr(self, name)
 
@@ -816,8 +848,7 @@ class Table(object):
 
 
         """
-        for name in colNames:
-            self.requireColumn(name)
+        self.ensureColNames(colNames)
 
         groups = set()
         for row in self.rows:
@@ -889,7 +920,7 @@ class Table(object):
 
         """
 
-        self.requireColumn(name)
+        self.ensureColNames(name)
         # we do:
         #      add tempcol, then delete oldcol, then rename tempcol -> oldcol
         # this is easier to implement, has no code duplication, but maybe a
@@ -1531,8 +1562,7 @@ class Table(object):
         converts table to pyopenms FeatureMap type.
         """
 
-        self.requireColumn("mz")
-        self.requireColumn("rt")
+        self.ensureColNames("rt", "mz")
 
         if "feature_id" in self._colNames:
             # feature table from openms
@@ -1611,7 +1641,7 @@ class Table(object):
         return result
 
     def collapse(self, *col_names):
-        assert all(col_name in self._colNames for col_name in col_names)
+        self.ensureColNames(*col_names)
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]
