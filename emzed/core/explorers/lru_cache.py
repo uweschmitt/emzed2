@@ -28,5 +28,7 @@ def lru_cache(maxsize=100):
             cache[key] = result         # record recent use of this key
             return result
         wrapper.hits = wrapper.misses = 0
+        wrapper.cache = cache
+        wrapper.invalidate_cache = lambda: cache.clear()
         return wrapper
     return decorating_function

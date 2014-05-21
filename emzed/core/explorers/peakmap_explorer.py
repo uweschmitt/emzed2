@@ -93,14 +93,6 @@ class PeakMapImageBase(object):
     def get_peakmap_bounds(self):
         return self.rtmin, self.rtmax, self.mzmin, self.mzmax
 
-    def set_imin(self, imin):
-        self.imin = imin
-
-    def set_imax(self, imax):
-        self.imax = imax
-
-    def set_gamma(self, gamma):
-        self.gamma = gamma
 
     def get_gamma(self):
         return self.gamma
@@ -108,7 +100,24 @@ class PeakMapImageBase(object):
     def get_total_imax(self):
         return self.total_imax
 
+    def set_imin(self, imin):
+        if self.imin != imin:
+            self.compute_image.invalidate_cache()
+        self.imin = imin
+
+    def set_imax(self, imax):
+        if self.imax != imax:
+            self.compute_image.invalidate_cache()
+        self.imax = imax
+
+    def set_gamma(self, gamma):
+        if self.gamma != gamma:
+            self.compute_image.invalidate_cache()
+        self.gamma = gamma
+
     def set_logarithmic_scale(self, is_log):
+        if self.is_log != is_log:
+            self.compute_image.invalidate_cache()
         self.is_log = is_log
 
     @lru_cache(maxsize=100)
