@@ -58,10 +58,6 @@ class Spectrum(object):
         if meta is None:
             meta = dict()
 
-        # level=1 -> no precursors
-        if msLevel == 1:
-            assert not precursors, "conflict: level 1 spec has precursors"
-
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
