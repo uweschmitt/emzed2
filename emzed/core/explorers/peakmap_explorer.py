@@ -33,6 +33,8 @@ from pkg_resources import resource_string
 
 from emzed_optimizations.sample import sample_image
 
+from modified_guiqwt import ModifiedCurveItem
+
 from plotting_widgets import MzPlotter
 
 from helpers import protect_signal_handler
@@ -41,6 +43,7 @@ from lru_cache import lru_cache
 
 from ...io.load_utils import loadPeakMap
 
+from ...gui.file_dialogs import askForSave, askForSingleFile, askForMultipleFiles
 
 from emzed_dialog import EmzedDialog
 
@@ -488,11 +491,14 @@ class ChromatogramPlot(CurvePlot):
         self.del_all_items()
         if rts2 is None:
             curve = make.curve(rts, chroma, linewidth=1.5, color="#666666")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
         else:
             curve = make.curve(rts, chroma, linewidth=1.5, color="#aaaa00")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
             curve = make.curve(rts2, chroma2, linewidth=1.5, color="#0000aa")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
 
         def mmin(seq, default=1.0):
@@ -1405,26 +1411,14 @@ class PeakMapExplorer(EmzedDialog):
 
             self.table_widget.keyReleaseEvent = key_release_handler
 
-    def _ask_for_file(self, last_dir, flag, caption, filter_):
-        dlg = QFileDialog(self, directory=last_dir or "", caption=caption)
-        dlg.setNameFilter(filter_)
-        dlg.setFileMode(flag)
-        dlg.setWindowFlags(Qt.Window)
-        dlg.activateWindow()
-        dlg.raise_()
-        if dlg.exec_():
-            path = str(dlg.selectedFiles()[0].toLatin1())
-            if sys.platform == "win32":
-                # sometimes probs with network paths like "//gram/omics/....":
-                path = path.replace("/", "\\")
-            return path
-
     @protect_signal_handler
     def do_save(self):
         pix = self.peakmap_plotter.paint_pixmap()
         while True:
-            path = self._ask_for_file(self.last_used_directory_for_save, QFileDialog.AnyFile,
-                                      "Save Image", "(*.png *.PNG)")
+            path = askForSave(self.last_used_directory_for_save,
+                              caption="Save Image",
+                              extensions = ("png", "PNG")
+                              )
             if path is None:
                 break
             __, ext = os.path.splitext(path)
@@ -1437,8 +1431,10 @@ class PeakMapExplorer(EmzedDialog):
         return
 
     def _do_load(self, title, attribute):
-        path = self._ask_for_file(self.last_used_directory_for_load, QFileDialog.ExistingFile,
-                                  title, "(*.mzML *.mzData *.mzXML)")
+        path = askForSingleFile(self.last_used_directory_for_load,
+                                caption=title,
+                                extensions=("mzML", "mzData", "mzXML")
+                                )
         if path is not None:
             setattr(self, attribute, loadPeakMap(path))
             self.process_peakmap(self.peakmap, self.peakmap2)
