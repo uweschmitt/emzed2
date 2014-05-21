@@ -129,6 +129,7 @@ def _formatter(f):
 
 
 class Table(object):
+
     """
     A table holds rows of the same length. Each Column of the table has
     a *name*, a *type* and *format* information, which indicates how to render
@@ -616,6 +617,9 @@ class Table(object):
             keyword_args.update(d)
         self._colNames = [keyword_args.get(n, n) for n in self._colNames]
         self.resetInternals()
+
+    def renameColumn(self, old_name, new_name):
+        self.renameColumns({old_name: new_name})
 
     def renameColumns(self, *dicts, **keyword_args):
         """renames columns **in place**.
@@ -1457,7 +1461,7 @@ class Table(object):
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
             print >> out,  "..."
-            for row in self.rows[-to_print-1:]:
+            for row in self.rows[-to_print - 1:]:
                 ri = [row[i] for i in ix]
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
@@ -1655,7 +1659,6 @@ class Table(object):
             rows.append(row)
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
-
 
     def compressPeakMaps(self):
         """

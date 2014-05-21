@@ -822,6 +822,13 @@ class TestTable(unittest.TestCase):
         t.renameColumns(dict(a="x"), dict(c="z"), b="y")
         assert tuple(t.getColNames()) == ("x", "y", "z")
 
+        t.renameColumn("x", "a")
+        assert tuple(t.getColNames()) == ("a", "y", "z")
+        t.renameColumn("y", "b")
+        assert tuple(t.getColNames()) == ("a", "b", "z")
+        t.renameColumn("z", "c")
+        assert tuple(t.getColNames()) == ("a", "b", "c")
+
     def testSplitBy(self):
         t = toTable("a", [1,1,3,4])
         t.addColumn("b", [1,1,3,3])
