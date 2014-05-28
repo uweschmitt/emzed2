@@ -991,9 +991,15 @@ class Table(object):
             return self._addColumnByCallback(name, what, type_, format_,
                                              insertBefore, insertAfter)
 
-        if type(what) in [list, tuple, types.GeneratorType, np.array]:
+        if isinstance(what, (list, tuple, types.GeneratorType)):
             return self._addColumFromIterable(name, what, type_, format_,
                                               insertBefore, insertAfter)
+        if isinstance(what, np.ndarray):
+            if what.ndim == 1:
+                return self._addColumFromIterable(name, what, type_, format_,
+                                                  insertBefore, insertAfter)
+            else:
+                warnings.warn("you added %d numpy array as colum", what.ndim)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
                                                        format_, insertBefore, insertAfter)
