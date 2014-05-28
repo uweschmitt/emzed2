@@ -194,9 +194,14 @@ else:
         rv = _mystr(p.stdout.readline())
         if dump_stdout:
             if rv[0] not in ">[":
-               sys.stdout.write(rv)
-               sys.stdout.flush()
+                sys.stdout.write(rv)
+                sys.stdout.flush()
         return rv
+
+
+class Bunch(dict):
+    """ enhanced dict which allows attribut access for getting dict values """
+    __getattr__ = dict.__getitem__
 
 
 def NoneStr(obj):
@@ -769,16 +774,21 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         head = rlt.startswith(head) and len(head) or len(head) - 1
         tail = rlt.endswith(self.newline) and len(
             rlt) - len(self.newline) or len(rlt) - len(self.newline) + 1  # - len('"')
-        NA = None  # map NA during eval to None
-        # The inner eval remove quotes and recover escaped characters.
+
+        # modify some local object assignment. NA from R gets mapped to None
+        # and we repalce dicts with an enhanced type "Bunch", which allows attribute
+        # access 
+        locals_ = locals().copy()
+        locals_["NA"] = None
+        locals_["dict"] = Bunch
         try:
-            inner = eval(rlt[head:tail])
+            # The first eval remove quotes and recover escaped characters.
+            inner = eval(rlt[head:tail], globals(), locals_)
         except:
             raise RError("r bridge could not eval %r" % rlt[head:tail])
         inner = inner.replace("\n", "\\n")
         try:
-            rlt = eval(inner)
-            del NA
+            rlt = eval(inner, globals(), locals_)
         except:
             raise RError("r bridge could not eval %r" % inner)
         return rlt
