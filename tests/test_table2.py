@@ -625,7 +625,25 @@ def test_aggregate_types():
     t = emzed.utils.toTable("group", [1, 1, 2])
     assert type(t.group.max()) in (int, long)
 
+def test_any_all_agg_expressions():
+    t = emzed.utils.toTable("v", [0, 0])
+    # pep8 would recomment "is" instead of "==" below, but py.tests assert rewriting can not
+    # handle this
+    assert t.v.all_true() == False
+    assert t.v.all_false() == True
+    assert t.v.any_true() == False
+    assert t.v.any_false() == True
 
+    t = emzed.utils.toTable("v", [0, 1])
+    assert t.v.all_true() == False
+    assert t.v.all_false() == False
+    assert t.v.any_true() == True
+    assert t.v.any_false() == True
 
+    t = emzed.utils.toTable("v", [1, 1])
+    assert t.v.all_true() == True
+    assert t.v.all_false() == False
+    assert t.v.any_true() == True
+    assert t.v.any_false() == False
 
 
