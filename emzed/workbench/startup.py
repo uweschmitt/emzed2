@@ -134,6 +134,17 @@ on Windows platforms (only IPython v0.10 is fully supported).
         # (path exception due to regression of python 2.7.4, which was not
         # fixed in IPython 0.10)
         #######################################################################
+
+        # we keep ipython for spyder seperate from other ipython installations and
+        # on win we put it to appdata so that it is available for roaming
+        if sys.platform == "win32":
+            base_dir = os.environ.get("APPDATA", "")
+            ipython_dir = os.path.join(base_dir, "_emzed2_ipython")
+        else:
+            base_dir = os.environ.get("HOME", "")
+            ipython_dir = os.path.join(base_dir, ".emzed2_ipython")
+
+        os.environ["IPYTHONDIR"] = ipython_dir
         import IPython.external.path
         IPython.external.path.path.isdir = lambda self: osp.isdir(self)
         import IPython.Shell
