@@ -854,6 +854,14 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
 
     run, assign, remove = __call__, __setitem__, __delitem__
 
+    def kill(self):
+        """ sends SIGKILL to R interpreter instance"""
+        return self.prog.kill()
+
+    def terminate(self):
+        """ sends SIGTERM to R interpreter instance"""
+        return self.prog.terminate()
+
 
 # for a single-round duty:
 def runR(CMDS, Robj='R', max_len=1000, use_numpy=True, use_pandas=True, use_dict=None, host='localhost', user=None, ssh='ssh'):
