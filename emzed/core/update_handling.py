@@ -180,7 +180,7 @@ class Updater(object):
         except BaseException, e:
             return None, e.message
         try:
-            is_newer  = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
+            is_newer = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
         except:
             return False, None
         return is_newer, None
@@ -273,7 +273,7 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         pass
 
     def check_for_newer_version_on_exchange_folder(self, exchange_folder):
-        return None, ""
+        return None
 
     def update_from_exchange_folder(self, exchange_folder):
         pass

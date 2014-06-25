@@ -3,6 +3,7 @@ import pyopenms
 import numpy as np
 import os.path
 import copy
+import hashlib
 from collections import defaultdict
 import warnings
 
@@ -24,7 +25,7 @@ class Spectrum(object):
         MS Spectrum Type
     """
 
-    def __init__(self, peaks, rt, msLevel, polarity, precursors=None):
+    def __init__(self, peaks, rt, msLevel, polarity, precursors=None, meta=None):
         """
            peaks:      n x 2 matrix
                        first column: m/z values
@@ -54,18 +55,18 @@ class Spectrum(object):
         if precursors is None:
             precursors = []
 
-        # level=1 -> no precursors
-        if msLevel == 1:
-            assert not precursors, "conflict: level 1 spec has precursors"
+        if meta is None:
+            meta = dict()
 
-        self.rt = rt
-        self.msLevel = msLevel
-        self.precursors = precursors
-        self.polarity = polarity
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
         self.peaks = peaks[perm, :].astype(np.float32)
+        self.rt = rt
+        self.msLevel = msLevel
+        self.polarity = polarity
+        self.precursors = precursors
+        self.meta = meta
 
     def __eq__(self, other):
 
@@ -77,6 +78,20 @@ class Spectrum(object):
 
     def __neq__(self, other):
         return not self.__eq__(other)
+
+    def uniqueId(self):
+        if "unique_id" not in self.meta:
+            h = hashlib.sha256()
+            # peaks.data is binary representation of numpy array peaks:
+            h.update("%.6e" % self.rt)
+            h.update(str(self.msLevel))
+            h.update(str(self.peaks.data))
+            h.update(str(self.polarity))
+            for mz, ii in self.precursors:
+                h.update("%.6e" % mz)
+                h.update("%.6e" % ii)
+            self.meta["unique_id"] = h.hexdigest()
+        return self.meta["unique_id"]
 
     @classmethod
     def fromMSSpectrum(clz, mspec):
@@ -172,6 +187,11 @@ class Spectrum(object):
         spec.set_peaks(self.peaks)
         return spec
 
+    def __setstate__(self, state):
+        self.__dict__ = state
+        if not hasattr(self, "meta"):
+            self.meta = dict()
+
 
 class PeakMap(object):
     """
@@ -183,7 +203,7 @@ class PeakMap(object):
         meta data about its source.
     """
 
-    def __init__(self, spectra, meta=dict()):
+    def __init__(self, spectra, meta=None):
         """
             spectra : iterable (list, tuple, ...)  of objects of type
             :py:class:`~.Spectrum`
@@ -195,6 +215,8 @@ class PeakMap(object):
         except:
             raise Exception("spectra param is not iterable")
 
+        if meta is None:
+            meta = dict()
         self.meta = meta
         polarities = set(spec.polarity for spec in spectra)
         if len(polarities) > 1:
@@ -408,6 +430,14 @@ class PeakMap(object):
         meta["full_source"] = mse.getLoadedFilePath()
         meta["source"] = os.path.basename(meta.get("full_source"))
         return clz(specs, meta)
+
+    def uniqueId(self):
+        if "unique_id" not in self.meta:
+            h = hashlib.sha256()
+            for spec in self.spectra:
+                h.update(spec.uniqueId())
+            self.meta["unique_id"] = h.hexdigest()
+        return self.meta["unique_id"]
 
     def __len__(self):
         """returns number of all spectra (all ms levels) in peakmap"""

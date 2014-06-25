@@ -33,12 +33,17 @@ from pkg_resources import resource_string
 
 from emzed_optimizations.sample import sample_image
 
+from modified_guiqwt import ModifiedCurveItem
+
 from plotting_widgets import MzPlotter
 
 from helpers import protect_signal_handler
 
+from lru_cache import lru_cache
+
 from ...io.load_utils import loadPeakMap
 
+from ...gui.file_dialogs import askForSave, askForSingleFile, askForMultipleFiles
 
 from emzed_dialog import EmzedDialog
 
@@ -91,14 +96,6 @@ class PeakMapImageBase(object):
     def get_peakmap_bounds(self):
         return self.rtmin, self.rtmax, self.mzmin, self.mzmax
 
-    def set_imin(self, imin):
-        self.imin = imin
-
-    def set_imax(self, imax):
-        self.imax = imax
-
-    def set_gamma(self, gamma):
-        self.gamma = gamma
 
     def get_gamma(self):
         return self.gamma
@@ -106,17 +103,28 @@ class PeakMapImageBase(object):
     def get_total_imax(self):
         return self.total_imax
 
+    def set_imin(self, imin):
+        if self.imin != imin:
+            self.compute_image.invalidate_cache()
+        self.imin = imin
+
+    def set_imax(self, imax):
+        if self.imax != imax:
+            self.compute_image.invalidate_cache()
+        self.imax = imax
+
+    def set_gamma(self, gamma):
+        if self.gamma != gamma:
+            self.compute_image.invalidate_cache()
+        self.gamma = gamma
+
     def set_logarithmic_scale(self, is_log):
+        if self.is_log != is_log:
+            self.compute_image.invalidate_cache()
         self.is_log = is_log
 
-    def compute_image(self, idx, srcRect, canvasRect):
-
-        x1, y1 = canvasRect.left(), canvasRect.top()
-        x2, y2 = canvasRect.right(), canvasRect.bottom()
-        NX = x2 - x1
-        NY = y2 - y1
-
-        rtmin, mzmax, rtmax, mzmin = srcRect
+    @lru_cache(maxsize=100)
+    def compute_image(self, idx, NX, NY, rtmin, rtmax, mzmin, mzmax):
 
         if rtmin >= rtmax or mzmin >= mzmax:
             smoothed = np.zeros((1, 1))
@@ -191,7 +199,7 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
         finally:
             painter.end()
 
-    #---- QwtPlotItem API ------------------------------------------------------
+    #  ---- QwtPlotItem API ------------------------------------------------------
     def draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap):
 
         # normally we use this method indirectly from quiqwt which takes the burden of constructing
@@ -207,11 +215,11 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
 
         x1, y1 = canvasRect.left(), canvasRect.top()
         x2, y2 = canvasRect.right(), canvasRect.bottom()
-
         NX = x2 - x1
         NY = y2 - y1
+        rtmin, mzmax, rtmax, mzmin = srcRect
 
-        self.data = self.compute_image(0, srcRect, canvasRect)
+        self.data = self.compute_image(0, NX, NY, rtmin, rtmax, mzmin, mzmax)
 
         # draw
         srcRect = (0, 0, NX, NY)
@@ -251,7 +259,7 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
         finally:
             painter.end()
 
-    #---- QwtPlotItem API ------------------------------------------------------
+    #  ---- QwtPlotItem API ------------------------------------------------------
     def draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap):
 
         # normally we use this method indirectly from quiqwt which takes the burden of constructing
@@ -267,13 +275,21 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
 
         rtmin, mzmax, rtmax, mzmin = srcRect
 
-        image = self.compute_image(0, srcRect, canvasRect)[::-1, :]
-        image2 = self.compute_image(1, srcRect, canvasRect)[::-1, :]
+        x1, y1 = canvasRect.left(), canvasRect.top()
+        x2, y2 = canvasRect.right(), canvasRect.bottom()
+        NX = x2 - x1
+        NY = y2 - y1
+        rtmin, mzmax, rtmax, mzmin = srcRect
+
+        image = self.compute_image(0, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
+        image2 = self.compute_image(1, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
 
         self.data = np.zeros_like(image, dtype=np.uint32)[::-1, :]
         self.data[:] = 255 << 24  # alpha = 1.0
+        # add image as rgb(255, 255, 0)
         self.data += image * 256.0 * 256
         self.data += image * 256.0
+        # add image2 as rgb(0, 0, 256)
         self.data += image2
 
         self.bounds = QRectF(rtmin, mzmin, rtmax - rtmin, mzmax - mzmin)
@@ -365,10 +381,12 @@ class PeakmapZoomTool(InteractiveTool):
 
         # Bouton du milieu
         PanHandler(filter, Qt.MidButton, start_state=start_state)
+        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
         # AutoZoomHandler(filter, Qt.MidButton, start_state=start_state)
 
         # Bouton droit
         ZoomHandler(filter, Qt.RightButton, start_state=start_state)
+        ZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
         # MenuHandler(filter, Qt.RightButton, start_state=start_state)
 
         # Autres (touches, move)
@@ -473,11 +491,14 @@ class ChromatogramPlot(CurvePlot):
         self.del_all_items()
         if rts2 is None:
             curve = make.curve(rts, chroma, linewidth=1.5, color="#666666")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
         else:
             curve = make.curve(rts, chroma, linewidth=1.5, color="#aaaa00")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
             curve = make.curve(rts2, chroma2, linewidth=1.5, color="#0000aa")
+            curve.__class__ = ModifiedCurveItem
             self.add_item(curve)
 
         def mmin(seq, default=1.0):
@@ -1021,7 +1042,6 @@ class PeakMapExplorer(EmzedDialog):
 
     def __init__(self, ok_rows_container=[], parent=None):
         super(PeakMapExplorer, self).__init__(parent)
-        #QDialog.__init__(self, parent)
         self.setWindowFlags(Qt.Window)
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -1056,6 +1076,7 @@ class PeakMapExplorer(EmzedDialog):
         self.table = table
         self.process_peakmap(peakmap, peakmap2)
 
+        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
         self.setup_table_widgets()
         self.setup_input_widgets()
         self.setup_plot_widgets()
@@ -1105,7 +1126,6 @@ class PeakMapExplorer(EmzedDialog):
         if self.dual_mode:
             self.peakmap2 = peakmap2.getDominatingPeakmap()
 
-        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
         self.setWindowTitle()
 
     def setup_initial_values(self):
@@ -1283,7 +1303,6 @@ class PeakMapExplorer(EmzedDialog):
         frame.setLineWidth(1)
         frame.setFrameStyle(QFrame.Box | QFrame.Plain)
         frame.setLayout(controls_layout)
-        #layout.addWidget(frame, 0, 1)
 
         controls_layout = QGridLayout()
         controls_layout.setSpacing(5)
@@ -1392,30 +1411,18 @@ class PeakMapExplorer(EmzedDialog):
 
             self.table_widget.keyReleaseEvent = key_release_handler
 
-    def _ask_for_file(self, last_dir, flag, caption, filter_):
-        dlg = QFileDialog(self, directory=last_dir or "", caption=caption)
-        dlg.setNameFilter(filter_)
-        dlg.setFileMode(flag)
-        dlg.setWindowFlags(Qt.Window)
-        dlg.activateWindow()
-        dlg.raise_()
-        if dlg.exec_():
-            path = str(dlg.selectedFiles()[0].toLatin1())
-            if sys.platform == "win32":
-                # sometimes probs with network paths like "//gram/omics/....":
-                path = path.replace("/", "\\")
-            return path
-
     @protect_signal_handler
     def do_save(self):
         pix = self.peakmap_plotter.paint_pixmap()
         while True:
-            path = self._ask_for_file(self.last_used_directory_for_save, QFileDialog.AnyFile,
-                                      "Save Image", "(*.png *.PNG)")
+            path = askForSave(self.last_used_directory_for_save,
+                              caption="Save Image",
+                              extensions = ("png", "PNG")
+                              )
             if path is None:
                 break
             __, ext = os.path.splitext(path)
-            if not ext in (".png", ".PNG"):
+            if ext not in (".png", ".PNG"):
                 QMessageBox.warning(self, "Warning", "wrong/missing extension '.png'")
             else:
                 self.last_used_directory_for_save = os.path.dirname(path)
@@ -1424,8 +1431,10 @@ class PeakMapExplorer(EmzedDialog):
         return
 
     def _do_load(self, title, attribute):
-        path = self._ask_for_file(self.last_used_directory_for_load, QFileDialog.ExistingFile,
-                                  title, "(*.mzML *.mzData *.mzXML)")
+        path = askForSingleFile(self.last_used_directory_for_load,
+                                caption=title,
+                                extensions=("mzML", "mzData", "mzXML")
+                                )
         if path is not None:
             setattr(self, attribute, loadPeakMap(path))
             self.process_peakmap(self.peakmap, self.peakmap2)
@@ -1536,10 +1545,9 @@ class PeakMapExplorer(EmzedDialog):
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
         self.set_sliders(rtmin, rtmax, mzmin, mzmax)
 
-        rts, chroma = self.peakmap.chromatogram(rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+        rts, chroma = self.peakmap.chromatogram(mzmin, mzmax, rtmin, rtmax)
         if self.dual_mode:
-            rts2, chroma2 = self.peakmap2.chromatogram(
-                rtmin=rtmin, rtmax=rtmax, mzmin=mzmin, mzmax=mzmax)
+            rts2, chroma2 = self.peakmap2.chromatogram(mzmin, mzmax, rtmin, rtmax)
             self.chromatogram_plotter.plot(rts, chroma, rts2, chroma2)
         else:
             self.chromatogram_plotter.plot(rts, chroma)
@@ -1632,10 +1640,10 @@ class PeakMapExplorer(EmzedDialog):
         # statt der folgenden beiden zeilen, diese werte auslesen:
         try:
             rtmin, rtmax, mzmin, mzmax = map(float, (self.rtmin_input.text(),
-                                                     self.rtmax_input.text(),
-                                                     self.mzmin_input.text(),
-                                                     self.mzmax_input.text(),)
-                                             )
+                                                         self.rtmax_input.text(),
+                                                         self.mzmin_input.text(),
+                                                         self.mzmax_input.text(),)
+                                                 )
         except:
             guidata.qapplication().beep()
             return
@@ -1662,7 +1670,7 @@ class PeakMapExplorer(EmzedDialog):
     def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
 
         for value, max_value, slider in ((rtmin, self.rtmax, self.rtmin_slider),
-                                        (rtmax, self.rtmax, self.rtmax_slider),):
+                                         (rtmax, self.rtmax, self.rtmax_slider),):
 
             slider_value = int(slider.maximum() * value / max_value)
             slider.blockSignals(True)
@@ -1700,11 +1708,19 @@ class PeakMapExplorer(EmzedDialog):
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
 
     def plot_peakmap(self):
-        self.peakmap_plotter.set_limits(
-            self.rtmin, self.rtmax, self.mzmin, self.mzmax, add_to_history=True)
+        self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, self.mzmin, self.mzmax,
+                                        add_to_history=True)
+
+    def zoom(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None):
+        rtmin = self.rtmin if rtmin is None else rtmin
+        rtmax = self.rtmax if rtmax is None else rtmax
+        mzmin = self.mzmin if mzmin is None else mzmin
+        mzmax = self.mzmax if mzmax is None else mzmax
+        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
 
 
-def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None):
+def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, rtmin=None,
+                   rtmax=None, mzmin=None, mzmax=None):
     """
     allows the visual inspection of a peakmap
     """
@@ -1716,6 +1732,8 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None):
     ok_rows = []
     win = PeakMapExplorer(ok_rows, parent=parent)
     win.setup(peakmap, peakmap2, table)
+    win.zoom(rtmin, rtmax, mzmin, mzmax)
+
     if modal:
         win.raise_()
         win.exec_()

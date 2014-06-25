@@ -194,9 +194,14 @@ else:
         rv = _mystr(p.stdout.readline())
         if dump_stdout:
             if rv[0] not in ">[":
-               sys.stdout.write(rv)
-               sys.stdout.flush()
+                sys.stdout.write(rv)
+                sys.stdout.flush()
         return rv
+
+
+class Bunch(dict):
+    """ enhanced dict which allows attribut access for getting dict values """
+    __getattr__ = dict.__getitem__
 
 
 def NoneStr(obj):
@@ -763,18 +768,29 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         cmd = '.getRvalue4Python__(%s, use_dict=%s, has_numpy=%s, has_pandas=%s)' % (
             obj, use_dict is None and 'NULL' or use_dict and 'TRUE' or 'FALSE', self.has_numpy and 'TRUE' or 'FALSE', self.has_pandas and 'TRUE' or 'FALSE')
         rlt = self.__call__(cmd, use_try=use_try)
+        # rlt = rlt.replace("\n", "\\n");
         head = (use_try and 'try({%s})%s[1] ' or '%s%s[1] ') % (cmd, self.newline)
         # sometimes (e.g. after "library(fastICA)") the R on Windows uses '\n' instead of '\r\n'
         head = rlt.startswith(head) and len(head) or len(head) - 1
         tail = rlt.endswith(self.newline) and len(
             rlt) - len(self.newline) or len(rlt) - len(self.newline) + 1  # - len('"')
+
+        # modify some local object assignment. NA from R gets mapped to None
+        # and we repalce dicts with an enhanced type "Bunch", which allows attribute
+        # access 
+        locals_ = locals().copy()
+        locals_["NA"] = None
+        locals_["dict"] = Bunch
         try:
-            NA = None  # map NA during eval to None
-            # The inner eval remove quotes and recover escaped characters.
-            rlt = eval(eval(rlt[head:tail]))
-            del NA
+            # The first eval remove quotes and recover escaped characters.
+            inner = eval(rlt[head:tail], globals(), locals_)
         except:
-            raise RError(rlt)
+            raise RError("r bridge could not eval %r" % rlt[head:tail])
+        inner = inner.replace("\n", "\\n")
+        try:
+            rlt = eval(inner, globals(), locals_)
+        except:
+            raise RError("r bridge could not eval %r" % inner)
         return rlt
 
     def __setitem__(self, obj, val):  # to model a dict: "r['XXX'] = YYY"

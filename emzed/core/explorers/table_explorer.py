@@ -7,7 +7,7 @@ import guidata
 
 from plotting_widgets import RtPlotter, MzPlotter
 
-from ..data_types import Table
+from ..data_types import Table, PeakMap
 
 from table_explorer_model import *
 
@@ -337,8 +337,21 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def handle_double_click(self, idx):
-        value = self.model.cell_value(idx)
-        insp = inspector(value, modal=False, parent=self)
+        row, col = self.model.table_index(idx)
+        cell_value = self.model.cell_value(idx)
+        extra_args = dict()
+        if isinstance(cell_value, PeakMap):
+            col_name = self.model.column_name(idx)
+            if "__" in col_name:
+                prefix, __, __ = col_name.partition("__")
+                full_prefix = prefix + "__"
+            else:
+                full_prefix = ""
+            for n in "rtmin", "rtmax", "mzmin", "mzmax":
+                full_n = full_prefix + n
+                value = self.model.table.getValue(self.model.table.rows[row], full_n, None)
+                extra_args[n] = value
+        insp = inspector(cell_value, modal=False, parent=self, **extra_args)
         if insp is not None:
             insp()
 

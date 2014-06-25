@@ -1,5 +1,32 @@
 # encoding:latin-1
 
+import traceback
+import os
+
+_emzed_runs_inside = None
+
+try:
+    import sitecustomize
+
+except:
+    pass
+else:
+
+    p = traceback.extract_stack()[0][0]
+    mod_name = os.path.split(p)[-1]
+
+    if mod_name == "emzed.console":
+        _emzed_runs_inside = "emzed.console"
+    else:
+        # test if loaded sitecustomize is .../emzed/workbench/sitecustomize.py[c]
+        two_upfolders = os.path.abspath(sitecustomize.__file__).split(os.path.sep)[-3:-1]
+        if two_upfolders == ["emzed", "workbench"]:
+            _emzed_runs_inside = "emzed.workbench"
+        del two_upfolders
+
+    del p, mod_name, traceback, os
+
+
 import patches as _patches
 _patches.apply_()
 
@@ -690,5 +717,6 @@ Program, unless a warranty or assumption of liability accompanies a
 copy of the Program in return for a fee.
 
 """
+
 
 

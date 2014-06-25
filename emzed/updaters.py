@@ -71,7 +71,7 @@ def _print_first_start_info():
 #
 # in this case nothing should happen, because we want this actions
 # later in spyders ipython console where is_started_from_cmdline() is False.
-if _tools.is_started_as_emzed_console() and _tools.is_first_start():
+if _tools.runs_inside_emzed_console() and _tools.is_first_start():
     _print_first_start_info()
 
 

@@ -1,11 +1,13 @@
-#encoding:utf-8
+# encoding:utf-8
+
 
 def _normalize_network_paths(*paths):
     import sys
     if sys.platform == "win32":
         # sometimes probs with network paths like "//gram/omics/....":
-        return [ p.replace("/", "\\") for p in paths ]
+        return [p.replace("/", "\\") for p in paths]
     return paths
+
 
 def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
                  multipleFiles=True, extensions=None, caption=None):
@@ -21,14 +23,13 @@ def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
         startAt = os.getcwd()
 
     if caption is not None:
-        di=QFileDialog(directory=startAt, caption=caption)
+        di = QFileDialog(directory=startAt, caption=caption)
     else:
-        di=QFileDialog(directory=startAt)
+        di = QFileDialog(directory=startAt)
 
     if extensions is not None:
-        filter_ = "(%s)" % " ".join( "*."+e for e in extensions)
+        filter_ = "(%s)" % " ".join("*." + e for e in extensions)
         di.setNameFilter(filter_)
-
 
     if onlyDirectories:
         di.setFileMode(QFileDialog.DirectoryOnly)
@@ -43,8 +44,8 @@ def __fileDialog(startAt=None, onlyDirectories=False, anyFile=False,
     di.activateWindow()
     di.raise_()
     if di.exec_():
-        files= di.selectedFiles()
-        res = [ str(f.toLatin1()) for f in files]
+        files = di.selectedFiles()
+        res = [str(f.toLatin1()) for f in files]
         res = _normalize_network_paths(*res)
         return res
     return [None]
@@ -61,8 +62,8 @@ def askForDirectory(startAt=None, caption="Choose Folder"):
     """
     return __fileDialog(startAt, onlyDirectories=True, caption=caption)[0]
 
-def askForSave(startAt=None, extensions=None, caption="Save As"):
 
+def askForSave(startAt=None, extensions=None, caption="Save As"):
     """
           asks for a single file, which needs not to exist.
 
@@ -79,11 +80,34 @@ def askForSave(startAt=None, extensions=None, caption="Save As"):
           returns the path of the selected file as a string,
           or None if the user aborts the dialog.
     """
-    return __fileDialog(startAt, anyFile=True, multipleFiles=False,
-                                 extensions=extensions, caption=caption)[0]
+
+    # the former  version using __fileDialog with appropriate flags did not work on
+    # mac os x
+
+    import guidata
+    app = guidata.qapplication()
+    from PyQt4.QtGui import QFileDialog
+    from PyQt4.QtCore import Qt, QString
+
+    import os
+
+    if startAt is None:
+        directory = os.getcwd()
+    else:
+        directory = startAt
+
+    if extensions is not None:
+        filter_ = "(%s)" % " ".join("*.%s" % e for e in extensions)
+    else:
+        filter_ = QString()
+
+    path = QFileDialog.getSaveFileName(caption=caption, directory=directory, filter=filter_)
+    if str(path) == "":
+        return None
+    return _normalize_network_paths(str(path.toLatin1()))[0]
+
 
 def askForSingleFile(startAt=None, extensions=None, caption="Open File"):
-
     """
           asks for a single file.
 
@@ -102,6 +126,7 @@ def askForSingleFile(startAt=None, extensions=None, caption="Open File"):
           or None if the user aborts the dialog.
     """
     return __fileDialog(startAt, multipleFiles=False, extensions=extensions, caption=caption)[0]
+
 
 def askForMultipleFiles(startAt=None, extensions=None, caption="Open Files"):
     """

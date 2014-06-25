@@ -1,15 +1,13 @@
 
-def is_started_as_emzed_console():
 
-    if "__emzed_imported_by" in globals():
-        return __emzed_imported_by == "emzed.console"
-    return False
+def runs_inside_emzed_console():
+    import emzed
+    return getattr(emzed, "_emzed_runs_inside", "") == "emzed.console"
 
-def is_started_as_emzed_workbench():
 
-    if "__emzed_imported_by" in globals():
-        return __emzed_imported_by == "emzed.workbench"
-    return False
+def runs_inside_emzed_workbench():
+    import emzed
+    return getattr(emzed, "_emzed_runs_inside", "") == "emzed.workbench"
 
 
 def gui_running():

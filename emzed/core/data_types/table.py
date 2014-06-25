@@ -129,6 +129,7 @@ def _formatter(f):
 
 
 class Table(object):
+
     """
     A table holds rows of the same length. Each Column of the table has
     a *name*, a *type* and *format* information, which indicates how to render
@@ -420,11 +421,44 @@ class Table(object):
         """
         return all(self.hasColumn(n) for n in names)
 
+    def ensureColNames(self, *names):
+        """ convenient function to assert existence of column names
+        """
+
+        def flatten(args):
+            result = list()
+            for arg in args:
+                if isinstance(arg, (tuple, list)):
+                    result.extend(arg)
+                else:
+                    result.append(arg)
+            return result
+
+        names = flatten(names)
+        missing = set()
+        found = set()
+        for name in names:
+            if name not in self._colNames:
+                missing.add(name)
+            else:
+                found.add(name)
+        if missing:
+            tobe = ", ".join(sorted(set(names)))
+            found = ", ".join(sorted(found))
+            missing = ", ".join(sorted(missing))
+            if tobe != missing:
+                msg = "expected names %s, found %s but %s where missing" % (tobe, found, missing)
+            else:
+                msg = "expected names %s but found %s" % (tobe, found)
+
+            raise Exception(msg)
+
     def requireColumn(self, name):
-        """ throws exception if column with name ``name`` does not exist"""
-        if not name in self._colNames:
-            raise Exception("column %r required" % name)
-        return self
+        """ throws exception if column with name ``name`` does not exist
+
+            this method only exists for compatibility with older emzed code.
+        """
+        self.ensureColNames(name)
 
     def getIndex(self, colName):
         """ gets the integer index of the column ``colName``.
@@ -466,11 +500,13 @@ class Table(object):
         """
         return Bunch((n, self.getValue(row, n)) for n in self._colNames)
 
-    def getValue(self, row, colName):
+    def getValue(self, row, colName, default=None):
         """ returns value of column ``colName`` in a given ``row``
 
             Example: ``table.getValue(table.rows[0], "mz")``
         """
+        if colName not in self._colNames:
+            return default
         return row[self.getIndex(colName)]
 
     def setRow(self, idx, row):
@@ -581,6 +617,9 @@ class Table(object):
             keyword_args.update(d)
         self._colNames = [keyword_args.get(n, n) for n in self._colNames]
         self.resetInternals()
+
+    def renameColumn(self, old_name, new_name):
+        self.renameColumns({old_name: new_name})
 
     def renameColumns(self, *dicts, **keyword_args):
         """renames columns **in place**.
@@ -752,8 +791,7 @@ class Table(object):
         """
         # check all names before manipulating the table,
         # so this operation is atomic
-        for name in names:
-            self.requireColumn(name)
+        self.ensureColNames(*names)
         for name in names:
             delattr(self, name)
 
@@ -814,8 +852,7 @@ class Table(object):
 
 
         """
-        for name in colNames:
-            self.requireColumn(name)
+        self.ensureColNames(colNames)
 
         groups = set()
         for row in self.rows:
@@ -887,7 +924,7 @@ class Table(object):
 
         """
 
-        self.requireColumn(name)
+        self.ensureColNames(name)
         # we do:
         #      add tempcol, then delete oldcol, then rename tempcol -> oldcol
         # this is easier to implement, has no code duplication, but maybe a
@@ -954,9 +991,15 @@ class Table(object):
             return self._addColumnByCallback(name, what, type_, format_,
                                              insertBefore, insertAfter)
 
-        if type(what) in [list, tuple, types.GeneratorType, np.array]:
+        if isinstance(what, (list, tuple, types.GeneratorType)):
             return self._addColumFromIterable(name, what, type_, format_,
                                               insertBefore, insertAfter)
+        if isinstance(what, np.ndarray):
+            if what.ndim == 1:
+                return self._addColumFromIterable(name, what, type_, format_,
+                                                  insertBefore, insertAfter)
+            else:
+                warnings.warn("you added %d numpy array as colum", what.ndim)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
                                                        format_, insertBefore, insertAfter)
@@ -1424,7 +1467,7 @@ class Table(object):
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
             print >> out,  "..."
-            for row in self.rows[-to_print-1:]:
+            for row in self.rows[-to_print - 1:]:
                 ri = [row[i] for i in ix]
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
@@ -1529,8 +1572,7 @@ class Table(object):
         converts table to pyopenms FeatureMap type.
         """
 
-        self.requireColumn("mz")
-        self.requireColumn("rt")
+        self.ensureColNames("rt", "mz")
 
         if "feature_id" in self._colNames:
             # feature table from openms
@@ -1609,7 +1651,7 @@ class Table(object):
         return result
 
     def collapse(self, *col_names):
-        assert all(col_name in self._colNames for col_name in col_names)
+        self.ensureColNames(*col_names)
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]
@@ -1624,40 +1666,27 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
-
     def compressPeakMaps(self):
         """
-        sometimes duplicate peakmaps occur as different objects in a table,
-        that is: different id() but same content.
-        this function removes duplicates and replaces different instances
-        of the same data by one particular instance.
+        sometimes duplicate peakmaps occur as different objects in a table, that is: different id()
+        but same content.  this function removes duplicates and replaces different instances of the
+        same data by one particular instance.
         """
-        import hashlib
-
-        def _compute_digest(pm):
-            h = hashlib.sha512()
-            for spec in pm.spectra:
-                # peaks.data is binary representation of numpy array peaks:
-                h.update(str(spec.peaks.data))
-            return h.digest()
-
         from .ms_types import PeakMap
+        # simulate set like behaviour. we do not use a Python set as we do not want to
+        # overwrite PeakMap.__hash__
+        #
+        # PeakMap.uniqueId() *is sensitive for the content of the peakmap* but would slow down
+        # calls of hash(peak_map).
         peak_maps = dict()
-        digests = dict()
         for row in self.rows:
             for cell in row:
                 if isinstance(cell, PeakMap):
-                    if not hasattr(cell, "_digest"):
-                        d = digests.get(id(cell))
-                        if d is None:
-                            d = _compute_digest(cell)
-                            digests[id(cell)] = d
-                        cell._digest = d
-                    peak_maps[cell._digest] = cell
+                    peak_maps[cell.uniqueId()] = cell
         for row in self.rows:
             for i, cell in enumerate(row):
                 if isinstance(cell, PeakMap):
-                    row[i] = peak_maps[cell._digest]
+                    row[i] = peak_maps[cell.uniqueId()]
         self.resetInternals()
 
     @staticmethod
