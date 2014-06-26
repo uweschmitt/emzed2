@@ -458,44 +458,44 @@ class BaseExpression(object):
         return AggregateExpression(self, lambda v: min(v), "min(%s)", None)
 
     @property
-    def all_true(self):
+    def allTrue(self):
         """
         This is an **aggregation expression** which evaluates an
         expression to true if all values "represent" true.
 
-        Example: ``tab.rt.all_true``
+        Example: ``tab.rt.allTrue``
         """
-        return AggregateExpression(self, lambda v: all(v), "all_true(%s)", None)
+        return AggregateExpression(self, lambda v: all(v), "allTrue(%s)", None)
 
     @property
-    def any_true(self):
+    def anyTrue(self):
         """
         This is an **aggregation expression** which evaluates an
         expression to true if any value "represent" true.
 
-        Example: ``tab.rt.any_true``
+        Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: any(v), "any_true(%s)", None)
+        return AggregateExpression(self, lambda v: any(v), "anyTrue(%s)", None)
 
     @property
-    def all_false(self):
+    def allFalse(self):
         """
         This is an **aggregation expression** which evaluates an
         expression to true if all values "represent" false.
 
-        Example: ``tab.rt.all_true``
+        Example: ``tab.rt.allFalse``
         """
-        return AggregateExpression(self, lambda v: not any(v), "all_false(%s)", None)
+        return AggregateExpression(self, lambda v: not any(v), "allFalse(%s)", None)
 
     @property
-    def any_false(self):
+    def anyFalse(self):
         """
         This is an **aggregation expression** which evaluates an
         expression to true if any values "represent" false.
 
-        Example: ``tab.rt.any_true``
+        Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: not all(v), "any_false(%s)", None)
+        return AggregateExpression(self, lambda v: not all(v), "anyFalse(%s)", None)
 
     @property
     def max(self):
