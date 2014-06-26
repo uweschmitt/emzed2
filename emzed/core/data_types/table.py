@@ -38,7 +38,7 @@ def guessFormatFor(name, type_):
             return "%.5f"
         if name.startswith("rt"):
             return fms
-    return standardFormats.get(type_, "%s")
+    return standardFormats.get(type_, "%r")
 
 
 def computekey(o):
@@ -1514,7 +1514,7 @@ class Table(object):
         if type_ is None:
             type_ = common_type_for(values)
         if format_ == "":
-            format_ = guessFormatFor(colName, type_) or "%r"
+            format_ = guessFormatFor(colName, type_)
         if meta is None:
             meta = dict()
         else:
