@@ -69,12 +69,12 @@ adduct lists can be converted to a *Table* eg:
 .. pycon::
 
     print emzed.adducts.labels
-    subgroup = emzed.adducts.get("[M+H]+", "[M+Na]+")
+    subgroup = emzed.adducts.get("M+H", "M+2Na-H")
     subgroup.toTable().print_()
 
     print emzed.adducts.namedLabels
     print emzed.adducts.M_plus_H
-    print emzed.adducts.M_plus_Na_minus_H2
+    print emzed.adducts.M_plus_2Na_minus_H
 
 
 The following preselected groups of adducts exist:
