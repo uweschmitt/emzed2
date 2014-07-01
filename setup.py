@@ -3,12 +3,18 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version_str = "2.2.4"
+version = (2, 3, 0)
+
+if __name__ == "__main__":
+    import os
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "emzed", "version.py"), "w") as fp:
+        fp.write("version = %r\n" % (version,))
 
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
-      version=version_str,
+      version="%d.%d.%d" % version,
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
                           "emzed.inspect = emzed.cmdline:inspect",
