@@ -1172,7 +1172,10 @@ class FunctionExpression(BaseExpression):
                     types.remove(None)
                 if len(types) > 1:
                     raise Exception("no unique return type in function result: %r" % types)
-                type_ = types.pop()
+                if types:
+                    type_ = types.pop()
+                else:
+                    type_ = object
                 if cleanup(type_) in _basic_num_types:
                     values = np.array(values)
                     return values, None, cleanup(type_)
