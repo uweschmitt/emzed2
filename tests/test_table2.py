@@ -1,5 +1,6 @@
 
-from emzed.core.data_types import Table
+from emzed.core.data_types import Table, PeakMap
+from emzed.core.data_types.col_types import Blob
 import emzed.utils
 import emzed.mass
 import numpy as np
@@ -507,6 +508,15 @@ def test_collapse():
     assert len(subs[1]) == 1
     assert subs[2].getColNames() == ["id", "a", "b"]
     assert len(subs[2]) == 1
+
+
+def test_uniuqe_id():
+    ti = emzed.utils.toTable("id", [1, 1, 2])
+    t = emzed.utils.toTable("t", (ti, ti, None))
+    # peakmap unique id already tested by compression of peakmap:
+    t.addColumn("pm", PeakMap([]))
+    t.addColumn("blob", Blob("data"))
+    assert t.uniqueId() == "97c21552d3d0189013396c179f69c2154192dcf7bcc75c9d85653c343510740a"
 
 
 def test_missing_values_binary_expressions():

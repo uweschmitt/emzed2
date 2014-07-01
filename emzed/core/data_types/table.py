@@ -2,20 +2,23 @@ import copy
 import os
 import itertools
 import re
-import numpy
+import hashlib
 import cPickle
 import cStringIO
 import sys
 import inspect
-import numpy as np
 from collections import Counter, OrderedDict, defaultdict
 import warnings
 
-import emzed
-from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+import numpy as np
 import pyopenms
 
+from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+
 from . import tools
+
+from .ms_types import PeakMap
+from .col_types import Blob
 
 __doc__ = """
 
@@ -1351,7 +1354,7 @@ class Table(object):
                     rows.extend([r1[:] + row[:] for row in t.rows])
                 else:
                     rows.extend([r1[:] + filler[:]])
-            elif numpy.any(flags):
+            elif np.any(flags):
                 rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
             else:
                 rows.extend([r1[:] + filler[:]])
@@ -1666,13 +1669,33 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
+
+    def uniqueId(self):
+        if "unique_id" not in self.meta:
+            h = hashlib.sha256()
+            def update(what):
+                h.update(cPickle.dumps(what))
+
+            update(self._colNames)
+            update(self._colTypes)
+            update(self._colFormats)
+            update(self.meta)
+            for row in self.rows:
+                for val in row:
+                    if isinstance(val, (Table, PeakMap, Blob)):
+                        h.update(val.uniqueId())
+                    else:
+                        update(val)
+            self.meta["unique_id"] = h.hexdigest()
+        return self.meta["unique_id"]
+
+
     def compressPeakMaps(self):
         """
         sometimes duplicate peakmaps occur as different objects in a table, that is: different id()
         but same content.  this function removes duplicates and replaces different instances of the
         same data by one particular instance.
         """
-        from .ms_types import PeakMap
         # simulate set like behaviour. we do not use a Python set as we do not want to
         # overwrite PeakMap.__hash__
         #

@@ -71,6 +71,7 @@ def test_load_binary():
     assert isinstance(value, col_types.Blob)
     assert value.type_ == "PNG"
     assert len(value.data) > 0
+    assert value.uniqueId() == "487cd4e56a15e16622dd2daa781324d57129b709c39ad95eb556e3e939aa40a4"
 
 
 def test_logical_with_Nones_1():
