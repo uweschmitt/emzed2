@@ -38,8 +38,8 @@ About
 
 *emzed* is an open source framework for analyzing and processing LCMS
 data. The framework was developed by D-BIOL (Patrick Kiefer, lab of
-Julia Vorholt, Institute of Microbiology, ETH Zurich) and Uwe Schmitt (mineway
-GmbH, Germany) with several ideas in mind:
+Julia Vorholt, Institute of Microbiology, ETH Zurich) and Uwe Schmitt (ID Scientific
+IT Services, ETH Zurich) with several ideas in mind:
 
 .. image:: emzed_screen.png
    :align: right

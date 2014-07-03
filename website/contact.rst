@@ -4,7 +4,6 @@ Contact
 .. spelling::
 
    uschmitt
-   mineway
    de
 
 .. important::
@@ -37,11 +36,9 @@ Contact
 
    * - Software Design & Implementation
      - Uwe Schmitt
-     - uschmitt (at) mineway (dot) de
-     - | mineway GmbH
-       | Im Helmerswald 2
-       | 66121 Saarbrücken
-       | Germany
-
-
-
+     - uwe.schmitt (at) id (dot) ethz (dot) ch
+     - | ID Scientific IT Services
+       | SOW G 13
+       | Sonneggstrasse 63
+       | CH-8092 Zurich
+       | Switzerland
