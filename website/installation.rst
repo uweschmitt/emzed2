@@ -3,6 +3,8 @@
 Installation
 ============
 
+The current version of *emzed* was developed and tested on 32 and 64 bit Windows XP, 7 and 8 just
+as 64 bit Ubuntu Linux.
 
 .. _before_you_start:
 

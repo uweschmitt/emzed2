@@ -3,8 +3,50 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to emzed 2
-------------------
+What is emzed ?
+---------------
+
+  *emzed* is an open source framework for rapid and interactive development of
+  LCMS data analysis workflows in `Python <http://www.python.org>`_.
+
+
+What does this mean ?
+~~~~~~~~~~~~~~~~~~~~~
+
+  *emzed* makes experimenting with new analysis strategies for LCMS data as simple as possible.
+
+
+Fundamental principles of emzed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Analysis workflows are *Python* scripts composing **emzed modules**.
+   Single processing steps are explicit and clear which supports reproducible results.
+
+2. We choose **Python** which makes programming with *emzed* as simple as possible.
+
+3. In order to strengthen the trust in analysis results, emzed provides **interactive
+   visualization** of input data, as well as inspection of intermediate and final results.
+
+4. *emzed* ships with **emzed workbench** which is a integrated development environent (IDE) to
+   support the use of *emzed modules* and the overall development process.
+
+
+Screenshots
+~~~~~~~~~~~
+
+.. fancybox:: welcome2emzed_fig1.png
+    :width: 35.2%
+    :height: 35.2%
+
+.. fancybox:: welcome2emzed_fig2a.png
+    :width: 25.3%
+    :height: 25.3%
+
+
+.. fancybox:: welcome2emzed_fig2b.png
+    :width: 26.5%
+    :height: 26.5%
+
 
 
 Website Navigation
@@ -13,6 +55,7 @@ Website Navigation
 .. toctree::
    :maxdepth: 1
 
+   more
    installation
    getting_started
    tour
@@ -27,85 +70,6 @@ Website Navigation
    contact
 
    references
-
-
-About
-~~~~~
-
-.. image:: OSI-Approved-License-50x52.png
-   :scale: 50 %
-   :align: right
-
-*emzed* is an open source framework for analyzing and processing LCMS
-data. The framework was developed by D-BIOL (Patrick Kiefer, lab of
-Julia Vorholt, Institute of Microbiology, ETH Zurich) and Uwe Schmitt (ID Scientific
-IT Services, ETH Zurich) with several ideas in mind:
-
-.. image:: emzed_screen.png
-   :align: right
-
-* Current frameworks and software are located on one of the following extremes: 
-
- * Fast and flexible frameworks, but in languages as C++ which only
-   can be used efficiently by experienced programmers. Further playing with new
-   ideas for analyzing data is hard due to the programming
-   effort and slow edit-compile cycles.  
-
- * Closed black box solutions with graphical user interfaces. These
-   are easy to use, but show restricted flexibility.
-
-Our goal was to combine the positive aspects of both extremes: an easy
-to learn framework which is flexible and allows inspection and analysis
-of data either interactive or by easy to write Python scripts. This is
-one of the reasons why we choose Python as programming language.
-
-* The invention of programming environments as Matlab and R
-  leveraged the productivity of mathematicians and other scientists. We
-  try to introduce this concept for analyzing LCMS data.
-
-  *emzed* is based on Spyder [spyderlib]_ for providing
-  the workspace and [guiqwt]_ and [guidata]_ for plotting.
-
-* Instead of reinventing the wheel we cherry picked algorithms from
-  other frameworks and libraries. In the current version we use
-  algorithms from Open-MS [openms]_ and XCMS [xcms]_.
-
-* In order to avoid imports and exports to other software, we try to
-  integrate all needed functionality in one framework.
-
-
-The current version of *emzed* was developed and tested on 32 and 64 bit Windows XP, 7 and 8 just
-as 64 bit Ubuntu Linux.
-
-
-
-Credits
-~~~~~~~
-
-We make use of the following frameworks and we thank their developers for the
-great work:
-
-     * Open-MS [openms]_
-     * XCMS [xcms]_
-     * spyderlib [spyderlib]_
-     * guidata and guiqwt [guidata]_, [guiqwt]_
-
-Personal thanks go to:
-
-     *  Department of Biology, ETH Zurich
-
-     *  Pierre Raybaut
-
-     *  `Julia A Vorholt <http://www.micro.biol.ethz.ch/research/vorholt/jvorholt>`_
-
-     *  Jacques Laville, central IT services ETH Zurich.
-
-     *  `Jonas Grossmann <http://www.fgcz.ch/people/jgrossmann>`_
-
-     *  `Peter Zoltan Kunszt <http://www.systemsx.ch/projects/systemsxch-projects/sybit/>`_
-
-     *  `Lars Gustav Malström <http://www.imsb.ethz.ch/researchgroup/malars>`_
-
 
 
 
