@@ -83,6 +83,7 @@ table.field-list {
   width: 100%;
   border-top: 1px solid #ccc;
   padding-top: 10px;
+  margin-top: 10px;
 }
 
 .bs-sidenav form, .bs-sidenav #sourcelink {

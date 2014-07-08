@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'emzed'
-copyright = u'2013, Uwe Schmitt & Patrick Kiefer'
+copyright = u'2012-2014, Uwe Schmitt & Patrick Kiefer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -158,13 +158,14 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {}
-#html_sidebars = {
-#           '**': [
-#                      'about.html', 'navigation.html', 'searchbox.html', 'donate.html',
-#                         ]
-#           }
+html_sidebars = {
+           '**': [
+                      # 'about.html', 'navigation.html', 'searchbox.html', 'donate.html',
+                       'navigation.html'
+                         ]
+           }
 
+html_sidebars = {}
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}
