@@ -104,7 +104,7 @@ To create such a virtual environment, we recommend to start in your home directo
     $ virtualenv-2.7 --system-site-packages emzed2
     ....
     $ cd emzed2
-    $ source emzed2/bin/activate
+    $ source bin/activate
     (emzed2)$ easy_install pyopenms
     (emzed2)$ pip install cython
     (emzed2)$ pip install guidata
