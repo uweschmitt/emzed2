@@ -17,8 +17,8 @@ tutorials at http://wiki.python.org/moin/BeginnersGuide
 
 
 
-We mark the user input in the following examples with a leading ``>>>``
-as
+We mark the user input in the following examples with a leading ``>>>`` ,
+as in the following code example:
 
 .. pycon::
     import emzed
@@ -105,7 +105,7 @@ B. You can extract an ion chromatogram by entering data
 Extracting chromatographic peaks
 ---------------------------------
 
-Actually, *emzed* includes two peak detection algorithm of the *XCMS* [xcms]_
+Actually, *emzed* includes two peak detection algorithms of the *XCMS* [xcms]_
 package: *centwave* [centwave]_ and *matched filters*. Accepted input file
 formats are *mzML*, *mzxml*, and *mzData*.  The output file format is
 *emzed*-specific and has the file extension ``.table``. In addition ``.csv``
@@ -314,7 +314,7 @@ information is stored in ``information.csv``:
     info = emzed.io.loadCSV("information.csv")
     info.print_()
 
-As you can see ``ms.loadCSV`` recognized that the column ``info.onEarth`` only
+As you can see ``emzed.io.loadCSV`` recognized that the column ``info.onEarth`` only
 contains integers.
 
 
@@ -383,7 +383,7 @@ and all all important elements
     print emzed.mass.C, emzed.mass.C12, emzed.mass.C13
 
 
-Further it helps to calculate masses of molecules from their sum
+Additionally, it provides functions to calculate masses of molecules from their sum
 formula
 
 .. pycon::
