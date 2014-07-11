@@ -28,17 +28,22 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
     started = time.time()
 
+    messages = []
+    if multiprocessing.current_process().daemon and n_cpus != 1:
+        messages.append("WARNING: you choose n_cpus = %d but integrate already runs inside a "
+                        "daemon process which is not allowed. therefore set n_cpus = 1" % n_cpus)
+        n_cpus = 1
+
     if n_cpus < 0:
         n_cpus = multiprocessing.cpu_count() + n_cpus
 
-    messages = []
     if n_cpus <= 0:
         messages.append("WARNING: you requested to use %d cores, "
                         "we use single core instead !" % n_cpus)
         n_cpus = 1
 
     if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
-        messages.append("WARNING: as the table has les thann %d rows, we switch to one cpu mode"
+        messages.append("INFO: as the table has les thann %d rows, we switch to one cpu mode"
                         % min_size_for_parallel_execution)
         n_cpus = 1     
 
