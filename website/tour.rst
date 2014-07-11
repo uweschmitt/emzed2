@@ -99,41 +99,41 @@ B. You can extract an ion chromatogram by entering data
    lower plot.
 
 
-.. _centwave_example:
+.. _metaboff_example:
 
 Extracting chromatographic peaks
 ---------------------------------
 
-Actually, *emzed* includes two peak detection algorithms of the *XCMS* [xcms]_
+Actually, *emzed* includes three peak detection algorithms: *MetaboFeatureFinder* from
+[openms]_ and two of the *XCMS* [xcms]_
 package: *centwave* [centwave]_ and *matched filters*. Accepted input file
-formats are *mzML*, *mzxml*, and *mzData*.  The output file format is
-*emzed*-specific and has the file extension ``.table``. In addition ``.csv``
-files are saved.
+formats are *mzML*, *mzXML*, and *mzData*.  The output file format is
+*emzed*-specific and has the file extension ``.table``.
 
-We continue with an example of *centWave* algorithm for high resolution LC-MS
+We continue with an example of *MetaboFeatureFinder* algorithm for high resolution LC-MS
 MS-1-data. Analysing MS-n for *n=2* data is possible too, please look at the
 SRM/MRM example workflow mentioned at :ref:`faq`:
 
-You can start the *centWave* feature detector by typing
+You can start the *MetaboFeatureFinder* feature detector by typing
 
 .. pycon::
-   tables = emzed.batches.runCentwave("*.mzXML", destination=".", configid="tour")!noexec
+   tables = emzed.batches.runMetaboFeatureFinder("*.mzXML", destination=".", configid="std")!noexec
 
 .. pycon::
    :invisible:
 
-   tables = emzed.batches.runCentwave("*.mzXML", destination=".", configid="tour") !noexec
+   tables = emzed.batches.runMetaboFeatureFinder("*.mzXML", destination=".", configid="std") !noexec
    for i, t in enumerate(tables): t.store("feat%d.table" % i) !noexec
    tables = [ emzed.io.loadTable("feat%d.table" % i) for i in range(3) ]
 
 The feature detector needs a few minutes depending on the power of your
-computer, we omitted the verbose output from *XCMS* [xcms]_ .  We predefined a
+computer, we omitted the verbose output.  We predefined a
 combination of parameters with the identifier ``tour`` in order to simplify the
 instructions. In general various parameters can be provided individually. For
 getting (a lot of) details use the *Python* help system
 
 .. pycon::
-   help(emzed.batches.runCentwave) !noexec
+   help(emzed.batches.runMetaboFeatureFinder) !noexec
 
 The return value ``tables`` is a  list containing three tables,
 you see them in the *variable explorer*.
