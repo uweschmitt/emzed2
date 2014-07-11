@@ -74,7 +74,7 @@ clicking at ``ds``.
 Alternatively use the command
 
 .. pycon::
-   ms.inspectPeakMap(pm) !noexec
+   ms.inspect(pm) !noexec
 
 .. image:: inspect_peakmap1.png
    :scale: 50 %
@@ -523,7 +523,7 @@ Building graphical interfaces
 -----------------------------
 
 Beyond the ``Table``-Explorer ``emzed.gui.inspect`` and the ``PeakMap``-Explorer
-``emzed.gui.inspectPeakMap`` assisted work-flows request certain parameters and
+``emzed.gui.inspect`` assisted work-flows request certain parameters and
 decisions at certain processing steps. To support this *emzed* has an builder
 for input forms.
 
