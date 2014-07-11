@@ -1,6 +1,5 @@
 .. _getting_started_with_emzed_modules:
 
-==================================
 Getting started with emzed modules
 ==================================
 

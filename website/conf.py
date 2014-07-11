@@ -165,7 +165,10 @@ html_sidebars = {
                          ]
            }
 
+html_sidebars = {'**': ['localtoc.html']} #, 'navigation.html' , 'sourcelink.html', 'searchbox.html']}
 html_sidebars = {}
+
+
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}

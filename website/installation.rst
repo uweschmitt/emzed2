@@ -18,9 +18,9 @@ The current version of *emzed* relies on Python 2.7.X and is not Python 3 ready.
 
 
 Installing on 64 bit Windows
-----------------------------
+~~~~~~~~~~
 
-.. caution::
+.. warning::
     For installing *emzed* on Windows please follow carefully the stepwise
     instructions. Version numbers and file names matter.
 
@@ -36,30 +36,33 @@ Installing on 64 bit Windows
       http://www.python.org.
 
 3. Run the *WinPython* installer. This step only unpacks *WinPython* to a target directory
-   you can choose. If you are unsure choose a directory like **C:\\WinPython-x.y.z**.
+   you can choose. We recommend to use **C:\\WinPython-2.7.6** unless you have some
+   special reasons.
 
    .. note::
-      keep the install target in mind, you will need this path for the next step.
+      Keep the install target in mind, you will need this path for the next step.
 
 4. Download the installer http://emzed.ethz.ch/downloads/emzed2_setup.exe.
-   and run it wit administator rights.
+   and run it with administator rights.
 
    The installer asks for the path to the Python interpreter to use.
-   You will find it inside the **python-x.y.z** subfolder of the installation
-   from the previous step.
-   If you folllowed the recommandation from step 3, the path to the Python interpreter
-   should be similar to **C:\\WinPython-x.y.z\\python-x.y.z\\python.exe**.
 
-   The installation process needs a few minutes, so stay patient.
+   If you folllowed the recommandation from step 3, the path to the Python interpreter
+   is **C:\\WinPython-2.7.6\\python-2.7.6\\python.exe**.
+   Else you will find the **python.exe** inside the **python-2.7.6** subfolder of the installation
+   target from the previous step.
+
+   The installation process opens a terminal window and runs for a few minutes, so stay patient.
 
 4. Now you should find *emzed* in Windows start menu.
 
-5. optional: install **R** if you want to use XCMS or any other R library.
+5. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
+   library.
 
 
 
 Installing on Ubuntu or Debian
-------------------------------
+~~~~~~~~~~
 
 1. *numpy*, *scipy* and *matplotlib* are difficult to build, first install
    those globally.  *PyQt4* should be installed globally too::
@@ -80,47 +83,57 @@ Installing on Ubuntu or Debian
    for starting *emzed* from the command line. Further you should find the *emzed* icon
    on your desktop.
 
+4. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
+   library::
+
+    $ sudo apt-get install r-base
 
 Manual installation on Linux
---------------------------
+~~~~~~~~~~
 
 If you have a Linux distribution for which the previous instructions failed, you have
 to proceed manually as described now:
 
 1. Install Python 2.7.
 
-2. Install numpy, at least versoin 1.7.0.
+2. Install numpy, at least version 1.7.0.
 
 3. Install Python packages scipy, matplotlib, PyQt4 and virtualenv.
 
-.. note::
-    In order to keep your Python installation in a clean and consistent state, we recommend
-    to install *emzed* using *virtualenv*.  This gives you an isolated environment without
-    version conflicts and avoids cluttering your system.
+4. We recommend to install *emzed* using *virtualenv* as described below.
 
-To create such a virtual environment, we recommend to start in your home directory::
+   .. note::
+        *virtualenv* is a Python tool to create *virtual environments* which keep your Python
+        installation in a clean and consistent state.
+        *virtualenv* creates a local Python installation in a given folder  without version
+        conflicts to parallell installations and avoids cluttering your system.
 
-    $ cd
-    $ virtualenv-2.7 --system-site-packages emzed2
-    ....
-    $ cd emzed2
-    $ source bin/activate
-    (emzed2)$ easy_install pyopenms
-    (emzed2)$ pip install cython
-    (emzed2)$ pip install guidata
-    (emzed2)$ pip install guiqwt
-    (emzed2)$ pip install sphinx
-    (emzed2)$ pip install -r http://emzed.ethz.ch/downloads/requirements.txt
-    (emzed2)$ deactivate
+   Execute the listed statements, they will install *emzed* inside the folder ``emzed2`` in your
+   home directory::
 
-Now you should be able to start *emzed workbench*::
+        $ cd
+        $ virtualenv-2.7 --system-site-packages emzed2
+        ....
+        $ cd emzed2
+        $ source bin/activate
+        (emzed2)$ easy_install pyopenms
+        (emzed2)$ pip install cython
+        (emzed2)$ pip install guidata
+        (emzed2)$ pip install guiqwt
+        (emzed2)$ pip install sphinx
+        (emzed2)$ pip install -r http://emzed.ethz.ch/downloads/requirements.txt
+        (emzed2)$ deactivate
 
-    $ source ~/emzed2/bin/activate
-    $ emzed.workbench
+   Now you should be able to start *emzed workbench*::
 
+        $ source ~/emzed2/bin/activate
+        $ emzed.workbench
+
+4. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
+   library.
 
 Getting the latest development version of emzed
------------------------------------------------
+~~~~~~~~~~
 
 *emzed* is hosted on http://github.com/uweschmitt/emzed2, after installing
 ``git`` you can check out the latest version using::

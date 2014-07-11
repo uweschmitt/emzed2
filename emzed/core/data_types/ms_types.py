@@ -473,9 +473,9 @@ class PeakMap(object):
         for spectrum in self.spectra:
             if spectrum.msLevel == msLevel:
                 spectrum = copy.copy(spectrum)
-                key = round(spectrum.precursors[0][0],
-                            significant_digits_precursor)
+                key = spectrum.precursors[0][0]
+                if significant_digits_precursor is not None:
+                    key = round(key, significant_digits_precursor)
                 ms2_spectra[key].append(spectrum)
 
-        return [(key, PeakMap(values, meta=self.meta.copy()))
-                for (key, values) in ms2_spectra.items()]
+        return [(key, PeakMap(values, meta=self.meta.copy())) for (key, values) in ms2_spectra.items()]

@@ -20,14 +20,17 @@ Fundamental principles of emzed
 ---------------
 
 1. Analysis workflows are *Python* scripts composing **emzed modules**.
-   Single processing steps are explicit and clear which supports reproducible results.
+   Single processing steps are explicit and clear which supports `reproducible research
+   <http://reproducibleresearch.net/>`_.
 
-2. We choose **Python** which makes programming with *emzed* as simple as possible.
+2. We choose **Python** which makes programming with *emzed* `as simple as possible
+   <http://xkcd.com/353/>`_.
 
 3. In order to strengthen the trust in analysis results, emzed provides **interactive
    visualization** of input data, as well as inspection of intermediate and final results.
 
-4. *emzed* ships with **emzed workbench** which is a integrated development environent (IDE) to
+4. *emzed* ships with **emzed workbench** which is an `integrated development environment (IDE) 
+   <http://en.wikipedia.org/wiki/Integrated_development_environment#Overview>`_ to
    support the use of *emzed modules* and the overall development process.
 
 
@@ -49,7 +52,7 @@ Screenshots
 
 
 
-Why did we develop emzed ?
+Development goals
 ---------------
 
 * When we started to implement own analysis workflows we found that the software landscape
@@ -59,7 +62,8 @@ Why did we develop emzed ?
   with graphical user interfaces which are simple to use and learn but hard to modify for
   special needs.
 
-  Our primary goal is to develop a framework which combines the positive aspects of the two extremes.
+  Our primary goal has been to develop a framework which combines the positive aspects of the two
+  extremes.
 
 * The invention of programming environments as *Matlab* and *R* leveraged the productivity of
   mathematicians and scientists from other fields. We try to introduce this concept for analyzing
@@ -70,9 +74,8 @@ Why did we develop emzed ?
 
 * Instead of reinventing the wheel we cherry pick algorithms from established libraries and
   frameworks as [openms]_ and [xcms]_. These are wrapped behind a **consistent application
-  programming interface (API)** and thus *emzed* based workflows reduce manual and error prone
+  programming interface (API)** and thus *emzed* based workflows avoid manual and error prone
   import and export steps.
-
 
 
 
@@ -80,24 +83,25 @@ Website Navigation
 ~~~~~~~~~~~~~~~~~~
 
 .. toctree::
-   :maxdepth: 2
 
-   more
-   installation
-   credits
-   getting_started
-   tour
-   explorers
-   api_ms
-   api_batches
-   api_tables_expressions
-   api_other
-   api_mstypes
-   faq
-   license
-   contact
+    :maxdepth: 2
 
-   references
+    more
+    installation
+    credits
+    getting_started
+    tour
+    explorers
+    api_ms
+    api_batches
+    api_tables_expressions
+    api_other
+    api_mstypes
+    faq
+    license
+    contact
+
+    references
 
 
 

@@ -78,7 +78,6 @@ the ``ls`` command.
 .. fancybox:: emzed_working_dir_ls.png
     :width: 40%
     :height: 40%
-    :align: center
 
 
 We will create now a new folder ``first_steps`` in the ``emzed_files``

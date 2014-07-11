@@ -23,4 +23,4 @@ Personal thanks go to:
 
 *  `Peter Zoltan Kunszt <http://www.systemsx.ch/projects/systemsxch-projects/sybit/>`_
 
-*  `Lars Gustav MalstrÃ¶m <http://www.imsb.ethz.ch/researchgroup/malars>`_
+*  `Lars Gustav Malström <http://www.imsb.ethz.ch/researchgroup/malars>`_
