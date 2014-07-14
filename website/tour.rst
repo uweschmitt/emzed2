@@ -168,14 +168,14 @@ Integrating Peaks
 -----------------
 
 To reduce the runtime in the following demonstration we will extract peaks with
-an signal to noise ratio above ``5e4``:
+a quality above ``5e4``:
 
 .. pycon::
    tab1, tab2, tab3 = tables
    print len(tab1)
-   tab1 = tab1.filter(tab1.sn > 5e4)
+   tab1 = tab1.filter(tab1.quality > 1e-2)
    print len(tab1)
-   tab2 = tab2.filter(tab2.sn > 5e4)
+   tab2 = tab2.filter(tab2.quality > 1e-2)
 
 Detected Peaks can be integrated. To perform peak integration columns *rtmin*,
 *rtmax*, *mzmin*, and *mzmax* are mandatory. We use the *EMG* integrator:
@@ -230,8 +230,8 @@ alignment:
 
 .. pycon::
    tabA1, tabA2, tabA3 = tablesAligned
-   tabA1 = tabA1.filter(tabA1.sn>5e4)
-   tabA2 = tabA2.filter(tabA2.sn>5e4)
+   tabA1 = tabA1.filter(tabA1.quality>1e-2)
+   tabA2 = tabA2.filter(tabA2.quality>1e-2)
    after = tabA1.join(tabA2, tabA1.mz.approxEqual(tabA2.mz, 3*emzed.MMU) & tabA1.rt.approxEqual(tabA2.rt, 30*emzed.SECONDS))
 
 Open now the table ``after``, sort again and choose the same row as above.
