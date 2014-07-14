@@ -4,7 +4,7 @@
 [Setup]
 AppName=emzed
 
-AppVerName=emezd 2
+AppVerName=emzed 2
 
 DefaultGroupName=emzed
 DefaultDirName={pf}\emzed2
@@ -14,7 +14,7 @@ ChangesAssociations=Yes
 [Files]
 Source: "create_bootstrap.bat"; DestDir: "{app}"
 Source: "emzed_inspect.bat"; DestDir: "{app}"
-Source: "install.bat"; DestDir: "{app}"
+Source: "install_emzed.bat"; DestDir: "{app}"
 Source: "emzed_icon.ico"; DestDir: "{app}"
 Source: "ez_setup.py"; DestDir: "{app}"
 
