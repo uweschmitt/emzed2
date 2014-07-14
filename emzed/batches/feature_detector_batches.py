@@ -92,63 +92,61 @@ runCentwave.__doc__ += __rconnect.CentwaveFeatureDetector.__doc__
 
 def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
 
-    """
-         runs matched filters algorithm from xcms in batch mode.
-         input files are map files (mzXML, mzML, mzData),
-         output files are csv files
+ """
+ runs matched filters algorithm from xcms in batch mode.
+ input files are map files (mzXML, mzML, mzData),
+ output files are csv files
 
-         you can add modifications to the standard parameters, eg ppm,
-         as named arguments.
+ you can add modifications to the standard parameters, eg ppm,
+ as named arguments.
 
-         if you have multiple configs for matched filter, you can give an
-         configid as defined in algorithm_configs.py, or you are asked to choose
-         a config.
+ if you have multiple configs for matched filter, you can give an
+ configid as defined in algorithm_configs.py, or you are asked to choose
+ a config.
 
-         if you have a single config this one is used automatically
+ if you have a single config this one is used automatically
 
-         examples:
+ *Examples*:
+  runMatchedFilter():
+   asks for source files and target directory
+   asks for config if multiple algorithm_configs are defined
 
-              runMatchedFilter():
-                     asks for source files and target directory
-                     asks for config if multiple algorithm_configs are defined
+  runMatchedFilter(configid="std", ppm=17)
+   uses config with id "std", overwrites ppm parameter
+   with ppm=17.
 
-              runMatchedFilter(configid="std", ppm=17)
-                     uses config with id "std", overwrites ppm parameter
-                     with ppm=17.
+  runMatchedFilter(ppm=13):
+   asks for source files and target directory
+   runs matched filter with modified ppm=13 parameter.
 
-              runMatchedFilter(ppm=13):
-                     asks for source files and target directory
-                     runs matched filter with modified ppm=13 parameter.
+  runMatchedFilter(pattern):
+   looks for map files matching pattern
+   resulting csv files are stored next to input map file
 
-              runMatchedFilter(pattern):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
+  runMatchedFilter(pattern, mzDiff=0.003):
+   looks for map files matching pattern
+   resulting csv files are stored next to input map file
+   runs matched filter with modified mzDiff parameter
 
-              runMatchedFilter(pattern, mzDiff=0.003):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
-                     runs matched filter with modified mzDiff parameter
+  runMatchedFilter(pattern, destination):
+   looks for map files matching pattern
+   resulting csv files are stored at destination directory
 
-              runMatchedFilter(pattern, destination):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
+  runMatchedFilter(pattern, destination, ppm=17, peakwidth=(5,100) ):
+   looks for map files matching pattern
+   resulting csv files are stored at destination directory
+   runs matched filter with modified ppm and peakwidth parameters.
+ """
 
-              runMatchedFilter(pattern, destination, ppm=17, peakwidth=(5,100) ):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-                     runs matched filter with modified ppm and peakwidth parameters.
+ from ..core.r_connect import MatchedFilterFeatureDetector
+ from .. import _algorithm_configs
 
-    """
+ class P(FD):
 
-    from ..core.r_connect import MatchedFilterFeatureDetector
-    from .. import _algorithm_configs
+     def setup(self, config):
+         self.det = MatchedFilterFeatureDetector(**config)
 
-    class P(FD):
-
-        def setup(self, config):
-            self.det = MatchedFilterFeatureDetector(**config)
-
-    return P(_algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid, **params)
+ return P(_algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid, **params)
 
 runMatchedFilter.__doc__ += __rconnect.MatchedFilterFeatureDetector.__doc__
 

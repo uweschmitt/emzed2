@@ -194,209 +194,204 @@ def _get_temp_peakmap(msLevel, peakMap):
 
 class CentwaveFeatureDetector(object):
 
-    __doc__ = """ CentwaveFeatureDetector
+ __doc__ = """ 
+ *CentwaveFeatureDetector*:
+  Usage:
+          print CentwaveFeatureDetector.standardConfig
+          
+          detector = CentwaveFeatureDetector(param1=val1, ....)
+          detector.process(peakmap)
 
-    usage:
 
-           print CentwaveFeatureDetector.standardConfig
+ :download:`Docs from XCMS library <../emzed/core/r_connect/centwave.txt>`
+ """
 
-           detector = CentwaveFeatureDetector(param1=val1, ....)
-           detector.process(peakmap)
+ #__doc__ += resource_string("emzed.core.r_connect", "centwave.txt")
+ #__doc__ = unicode(__doc__, "utf-8")
 
+ standardConfig = dict(ppm=25,
+                       peakwidth=(20, 50),
+                       prefilter=(3, 100),
+                       snthresh = 10,
+                       integrate = 1,
+                       mzdiff=-0.001,
+                       noise=0,
+                       mzCenterFun="wMean",
+                       fitgauss=False,
+                       msLevel=None,
+                       verbose_columns = False)
 
-    Docs from XCMS library:
+ def __init__(self, **kw):
 
-    """
+     if not is_xcms_installed():
+         raise Exception("XCMS not installed yet")
 
-    __doc__ += resource_string("emzed.core.r_connect", "centwave.txt")
-    __doc__ = unicode(__doc__, "utf-8")
+     self.config = self.standardConfig.copy()
+     self.config.update(kw)
 
-    standardConfig = dict(ppm=25,
-                          peakwidth=(20, 50),
-                          prefilter=(3, 100),
-                          snthresh = 10,
-                          integrate = 1,
-                          mzdiff=-0.001,
-                          noise=0,
-                          mzCenterFun="wMean",
-                          fitgauss=False,
-                          msLevel=None,
-                          verbose_columns = False)
+ def process(self, peakMap):
+     assert isinstance(peakMap, PeakMap)
+     if len(peakMap) == 0:
+         raise Exception("empty peakmap")
 
-    def __init__(self, **kw):
+     temp_peakmap = _get_temp_peakmap(self.config.get("msLevel"), peakMap)
 
-        if not is_xcms_installed():
-            raise Exception("XCMS not installed yet")
+     td = tempfile.mkdtemp(prefix="emzed_r_script_centwave_")
 
-        self.config = self.standardConfig.copy()
-        self.config.update(kw)
+     temp_input = os.path.join(td, "input.mzData")
+     temp_output = os.path.join(td, "output.csv")
 
-    def process(self, peakMap):
-        assert isinstance(peakMap, PeakMap)
-        if len(peakMap) == 0:
-            raise Exception("empty peakmap")
+     # needed for network shares:
+     if sys.platform == "win32":
+         temp_input = temp_input.replace("/", "\\")
 
-        temp_peakmap = _get_temp_peakmap(self.config.get("msLevel"), peakMap)
+     FileHandler().storeExperiment(temp_input, temp_peakmap.toMSExperiment())
 
-        td = tempfile.mkdtemp(prefix="emzed_r_script_centwave_")
+     dd = self.config.copy()
+     dd["temp_input"] = temp_input
+     dd["temp_output"] = temp_output
+     dd["fitgauss"] = str(dd["fitgauss"]).upper()
+     dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
 
-        temp_input = os.path.join(td, "input.mzData")
-        temp_output = os.path.join(td, "output.csv")
+     script = """
+                 library(xcms)
+                 xs <- xcmsSet(%(temp_input)r, method="centWave",
+                                     ppm=%(ppm)d,
+                                     peakwidth=c%(peakwidth)r,
+                                     prefilter=c%(prefilter)r,
+                                     snthresh = %(snthresh)f,
+                                     integrate= %(integrate)d,
+                                     mzdiff   = %(mzdiff)f,
+                                     noise    = %(noise)f,
+                                     fitgauss = %(fitgauss)s,
+                                     verbose.columns = %(verbose_columns)s,
+                                     mzCenterFun = %(mzCenterFun)r
+                                 )
+                 print(xs@peaks)
+                 peaks <- data.frame(xs@peaks)
+                 """ % dd
 
-        # needed for network shares:
-        if sys.platform == "win32":
-            temp_input = temp_input.replace("/", "\\")
+     del dd["temp_input"]
+     del dd["temp_output"]
 
-        FileHandler().storeExperiment(temp_input, temp_peakmap.toMSExperiment())
+     table = execute(script).get_df_as_table("peaks",
+                               types=dict(mz=float, mzmin=float, mzmax=float,
+                                          rt=float, rtmin=float, ftmax=float,
+                                          into=float, intb=float, maxo=float,
+                                          sn=float, sample=int),
+                               formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
+                                            rt=formatSeconds, rtmin=formatSeconds,
+                                            rtmax=formatSeconds,
+                                            into="%.2e", intb="%.2e", maxo="%.2e",
+                                            sn="%.2e", peakmap="%s")
+                               )
 
-        dd = self.config.copy()
-        dd["temp_input"] = temp_input
-        dd["temp_output"] = temp_output
-        dd["fitgauss"] = str(dd["fitgauss"]).upper()
-        dd["verbose_columns"] = str(dd["verbose_columns"]).upper()
-
-        script = """
-                    library(xcms)
-                    xs <- xcmsSet(%(temp_input)r, method="centWave",
-                                        ppm=%(ppm)d,
-                                        peakwidth=c%(peakwidth)r,
-                                        prefilter=c%(prefilter)r,
-                                        snthresh = %(snthresh)f,
-                                        integrate= %(integrate)d,
-                                        mzdiff   = %(mzdiff)f,
-                                        noise    = %(noise)f,
-                                        fitgauss = %(fitgauss)s,
-                                        verbose.columns = %(verbose_columns)s,
-                                        mzCenterFun = %(mzCenterFun)r
-                                    )
-                    print(xs@peaks)
-                    peaks <- data.frame(xs@peaks)
-                    """ % dd
-
-        del dd["temp_input"]
-        del dd["temp_output"]
-
-        table = execute(script).get_df_as_table("peaks",
-                                  types=dict(mz=float, mzmin=float, mzmax=float,
-                                             rt=float, rtmin=float, ftmax=float,
-                                             into=float, intb=float, maxo=float,
-                                             sn=float, sample=int),
-                                  formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
-                                               rt=formatSeconds, rtmin=formatSeconds,
-                                               rtmax=formatSeconds,
-                                               into="%.2e", intb="%.2e", maxo="%.2e",
-                                               sn="%.2e", peakmap="%s")
-                                  )
-
-        table.addConstantColumn("centwave_config", dd, dict, None)
-        table.meta["generator"] = "xcms.centwave"
-        decorate(table, temp_peakmap)
-        return table
+     table.addConstantColumn("centwave_config", dd, dict, None)
+     table.meta["generator"] = "xcms.centwave"
+     decorate(table, temp_peakmap)
+     return table
 
 
 class MatchedFilterFeatureDetector(object):
 
-    __doc__ = """ MatchedFilterFeatureDetector
+ __doc__ = """
+ *MatchedFilterFeatureDetector*:
+  Usage:
+        print MatchedFilterFeatureDetector.standardConfig
+        
+        detector = MatchedFilterFeatureDetector(param1=val1, ....)
+        detector.process(peakmap)
+ 
+ :download:`Docs from XCMS library <../emzed/core/r_connect/matched_filter.txt>`
+ """
 
-    usage:
+ #__doc__ += resource_string("emzed.core.r_connect", "matched_filter.txt")
+ #__doc__ = unicode(__doc__, "utf-8")
 
-           print MatchedFilterFeatureDetector.standardConfig
+ standardConfig = dict(fwhm=30,
+                       sigma=30 / 2.3548,
+                       max_=5,
+                       snthresh=10,
+                       step=0.1,
+                       steps=2,
+                       mzdiff=0.8 - 2 * 2,
+                       msLevel=None,
+                       index=False)
 
-           detector = MatchedFilterFeatureDetector(param1=val1, ....)
-           detector.process(peakmap)
+ def __init__(self, **kw):
+     if not is_xcms_installed():
+         raise Exception("XCMS not installed yet")
+     self.config = self.standardConfig.copy()
+     self.config.update(kw)
 
+ def process(self, peakMap):
+     assert isinstance(peakMap, PeakMap)
+     if len(peakMap) == 0:
+         raise Exception("empty peakmap")
 
-    Docs from XCMS library:
+     temp_peakmap = _get_temp_peakmap(self.config.get("msLevel"), peakMap)
+     minRt = peakMap.spectra[0].rt
+     # matched filter  does not like rt <= 0, so we shift that rt starts
+     # with 1.0: we have to undo this shift later when parsing the output of
+     # xcms
+     shift = minRt - 1.0
+     peakMap.shiftRt(-shift)
 
-    """
+     td = tempfile.mkdtemp(prefix="emzed_r_script_matched_filter_")
 
-    __doc__ += resource_string("emzed.core.r_connect", "matched_filter.txt")
-    __doc__ = unicode(__doc__, "utf-8")
+     temp_input = os.path.join(td, "input.mzData")
+     temp_output = os.path.join(td, "output.csv")
 
-    standardConfig = dict(fwhm=30,
-                          sigma=30 / 2.3548,
-                          max_=5,
-                          snthresh=10,
-                          step=0.1,
-                          steps=2,
-                          mzdiff=0.8 - 2 * 2,
-                          msLevel=None,
-                          index=False)
+     # needed for network shares:
+     if sys.platform == "win32":
+         temp_input = temp_input.replace("/", "\\")
 
-    def __init__(self, **kw):
-        if not is_xcms_installed():
-            raise Exception("XCMS not installed yet")
-        self.config = self.standardConfig.copy()
-        self.config.update(kw)
+     FileHandler().storeExperiment(temp_input, peakMap.toMSExperiment())
 
-    def process(self, peakMap):
-        assert isinstance(peakMap, PeakMap)
-        if len(peakMap) == 0:
-            raise Exception("empty peakmap")
+     dd = self.config.copy()
+     dd["temp_input"] = temp_input
+     dd["temp_output"] = temp_output
+     dd["index"] = str(dd["index"]).upper()
 
-        temp_peakmap = _get_temp_peakmap(self.config.get("msLevel"), peakMap)
-        minRt = peakMap.spectra[0].rt
-        # matched filter  does not like rt <= 0, so we shift that rt starts
-        # with 1.0: we have to undo this shift later when parsing the output of
-        # xcms
-        shift = minRt - 1.0
-        peakMap.shiftRt(-shift)
+     script = """
+                 library(xcms)
+                 xs <- xcmsSet(%(temp_input)r, method="matchedFilter",
+                                 fwhm = %(fwhm)f, sigma = %(sigma)f,
+                                 max = %(max_)d,
+                                 snthresh = %(snthresh)f,
+                                 step = %(step)f, steps=%(steps)d,
+                                 mzdiff = %(mzdiff)f,
+                                 index = %(index)s,
+                                 sleep=0
+                                 )
+                 peaks <- data.frame(xs@peaks)
+                 """ % dd
 
-        td = tempfile.mkdtemp(prefix="emzed_r_script_matched_filter_")
+     del dd["temp_input"]
+     del dd["temp_output"]
 
-        temp_input = os.path.join(td, "input.mzData")
-        temp_output = os.path.join(td, "output.csv")
+     table = execute(script).get_df_as_table("peaks",
+                               types=dict(mz=float, mzmin=float, mzmax=float,
+                                          rt=float, rtmin=float, ftmax=float,
+                                          into=float, intf=float, maxo=float,
+                                          maxf=float, i=int,
+                                          sn=float, sample=int),
+                               formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
+                                            rt=formatSeconds, rtmin=formatSeconds,
+                                            rtmax=formatSeconds,
+                                            into="%.2e", intf="%.2e", maxo="%.2e",
+                                            maxf="%.2e", sn="%.2e")
+                               )
 
-        # needed for network shares:
-        if sys.platform == "win32":
-            temp_input = temp_input.replace("/", "\\")
-
-        FileHandler().storeExperiment(temp_input, peakMap.toMSExperiment())
-
-        dd = self.config.copy()
-        dd["temp_input"] = temp_input
-        dd["temp_output"] = temp_output
-        dd["index"] = str(dd["index"]).upper()
-
-        script = """
-                    library(xcms)
-                    xs <- xcmsSet(%(temp_input)r, method="matchedFilter",
-                                    fwhm = %(fwhm)f, sigma = %(sigma)f,
-                                    max = %(max_)d,
-                                    snthresh = %(snthresh)f,
-                                    step = %(step)f, steps=%(steps)d,
-                                    mzdiff = %(mzdiff)f,
-                                    index = %(index)s,
-                                    sleep=0
-                                    )
-                    peaks <- data.frame(xs@peaks)
-                    """ % dd
-
-        del dd["temp_input"]
-        del dd["temp_output"]
-
-        table = execute(script).get_df_as_table("peaks",
-                                  types=dict(mz=float, mzmin=float, mzmax=float,
-                                             rt=float, rtmin=float, ftmax=float,
-                                             into=float, intf=float, maxo=float,
-                                             maxf=float, i=int,
-                                             sn=float, sample=int),
-                                  formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
-                                               rt=formatSeconds, rtmin=formatSeconds,
-                                               rtmax=formatSeconds,
-                                               into="%.2e", intf="%.2e", maxo="%.2e",
-                                               maxf="%.2e", sn="%.2e")
-                                  )
-
-        # parse csv and
-        table.addConstantColumn("matchedfilter_config", dd, dict, None)
-        table.meta["generator"] = "xcms.matchedfilter"
-        decorate(table, temp_peakmap)
-        # undo shiftRt done above:
-        table.rtmin += shift
-        table.rtmax += shift
-        table.rt += shift
-        return table
+     # parse csv and
+     table.addConstantColumn("matchedfilter_config", dd, dict, None)
+     table.meta["generator"] = "xcms.matchedfilter"
+     decorate(table, temp_peakmap)
+     # undo shiftRt done above:
+     table.rtmin += shift
+     table.rtmax += shift
+     table.rt += shift
+     return table
 
 
 def decorate(table, peakMap):
