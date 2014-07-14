@@ -15,6 +15,7 @@ if __name__ == "__main__":
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
       version="%d.%d.%d" % version,
+      description="Rewrite of emzed framework for LCMS data analysis",
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
                           "emzed.inspect = emzed.cmdline:inspect",
