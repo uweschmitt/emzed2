@@ -1,9 +1,9 @@
-set INSTALLTARGET=%APPDATA%\emzed2
 set PYTHONPATH=%1
 > run_or_bootstrap.bat (
-    @echo call %INSTALLTARGET%\Scripts\activate ^|^| ^(
+    @echo set SCRIPTS=%%APPDATA%%\emzed2\Scripts
+    @echo call %%SCRIPTS%%\activate ^|^| ^(
     @echo     call install_emzed.bat %PYTHONPATH%
     @echo ^)
-    @echo call %INSTALLTARGET%\Scripts\activate
-    @echo call %INSTALLTARGET%\Scripts\emzed.workbench.exe
+    @echo call %%SCRIPTS%%\activate
+    @echo call %%SCRIPTS%%\emzed.workbench.exe
 )
