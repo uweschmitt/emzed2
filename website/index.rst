@@ -92,11 +92,17 @@ Website Navigation
     getting_started
     tour
     explorers
-    api_ms
+
+    api_mstypes
+    api_io
+    api_feature_finders
+    api_align
     api_batches
     api_tables_expressions
+    api_stats
+    api_gui
     api_other
-    api_mstypes
+
     faq
     license
     contact

@@ -194,11 +194,11 @@ def _get_temp_peakmap(msLevel, peakMap):
 
 class CentwaveFeatureDetector(object):
 
- __doc__ = """ 
+ __doc__ = """
  *CentwaveFeatureDetector*:
   Usage:
           print CentwaveFeatureDetector.standardConfig
-          
+
           detector = CentwaveFeatureDetector(param1=val1, ....)
           detector.process(peakmap)
 
@@ -298,15 +298,12 @@ class MatchedFilterFeatureDetector(object):
  *MatchedFilterFeatureDetector*:
   Usage:
         print MatchedFilterFeatureDetector.standardConfig
-        
+
         detector = MatchedFilterFeatureDetector(param1=val1, ....)
         detector.process(peakmap)
- 
+
  :download:`Docs from XCMS library <../emzed/core/r_connect/matched_filter.txt>`
  """
-
- #__doc__ += resource_string("emzed.core.r_connect", "matched_filter.txt")
- #__doc__ = unicode(__doc__, "utf-8")
 
  standardConfig = dict(fwhm=30,
                        sigma=30 / 2.3548,

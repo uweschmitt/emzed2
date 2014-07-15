@@ -87,10 +87,10 @@ class _ParamHandler(object):
                 else:
                     allowed = "unknown"
                 d = e.description
-                lla("    %s:" % k)
-                lla("         %s" % d)
-                lla("         default value : %s" % v)
-                lla("         allowed values: %s" % allowed)
+                lla("- **%s**:" % k)
+                lla("  %s" % d)
+                lla("  default value : %s" % v)
+                lla("  allowed values: %s" % allowed)
 
         lla("Common Parameters:")
         lla("")
