@@ -31,7 +31,7 @@ class FD(batch_runner.BatchRunner):
 def runCentwave(pattern=None, destination=None, configid="std", **params):
     """runs centwave algorithm from xcms in batch mode
 
-    - *pattern* is a used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
+    - *pattern* is used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
       files of type *.mzML*, *.mzXML* and *.mzData*.
     - *destination* is a target folder where the results are stored as *.csv* files
     - *configid* is a preconfiugred setting id, but following key pairs as *ppm=20* override this.
