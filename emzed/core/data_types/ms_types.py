@@ -22,27 +22,28 @@ def deprecation(message):
 class Spectrum(object):
 
     """
-        MS Spectrum Type
+    MS Spectrum Type
     """
 
     def __init__(self, peaks, rt, msLevel, polarity, precursors=None, meta=None):
-        """
-           peaks:      n x 2 matrix
+        """Initialize instance
+        
+        - peaks      
+                       n x 2 matrix
                        first column: m/z values
                        second column: intensities
-
-           rt:         float
+        - rt         
+                       float
                        retention time in seconds
-
-           msLevel:    int
+        - msLevel   
+                       int
                        MSn level.
-
-           polarity:   string of length 1
+        - polarity   
+                       string of length 1
                        values: 0, + or -
-
-           precursors: list of floats
+        - precursors 
+                       list of floats
                        precursor m/z values if msLevel > 1
-
            """
         assert type(peaks) == np.ndarray, type(peaks)
         assert peaks.ndim == 2, "peaks has wrong dimension"
@@ -69,7 +70,7 @@ class Spectrum(object):
         self.meta = meta
 
     def __eq__(self, other):
-
+        """Method to compare two instances of class Spectrum"""
         if self is other:
             return True
         return self.rt == other.rt and self.msLevel == other.msLevel \
@@ -77,9 +78,11 @@ class Spectrum(object):
             and self.peaks.shape == other.peaks.shape and np.all(self.peaks == other.peaks)
 
     def __neq__(self, other):
+        """Method to check if two instances of class Spectrum are *not* equal"""
         return not self.__eq__(other)
 
     def uniqueId(self):
+        """TODO describe"""
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
             # peaks.data is binary representation of numpy array peaks:
@@ -107,6 +110,7 @@ class Spectrum(object):
         return res
 
     def __str__(self):
+        """Return description of object as a string"""
         n = len(self)
         return "<Spectrum %#x with %d %s>" % (id(self), n, "peak" if n == 1 else "peaks")
 
@@ -115,6 +119,7 @@ class Spectrum(object):
         return self.peaks.shape[0]
 
     def __iter__(self):
+        """Returns an iterator of the peaks of the Spectrum object"""
         return iter(self.peaks)
 
     def intensityInRange(self, mzmin, mzmax):
@@ -195,11 +200,11 @@ class Spectrum(object):
 
 class PeakMap(object):
     """
-        This is the container object for spectra of type :ref:Spectrum.
+        This is the container object for spectra of type :py:class:`~.Spectrum`.
         Peakmaps can be loaded from .mzML, .mxXML or .mzData files,
         using :py:func:`~emzed.io.loadPeakMap`
 
-        A PeakMap is a list of :ref:Spectrum objects attached with
+        A PeakMap is a list of :py:class:`~.Spectrum` objects attached with
         meta data about its source.
     """
 
@@ -233,6 +238,7 @@ class PeakMap(object):
             self.polarity = None
 
     def all_peaks(self, msLevel=1):
+        """TODO describe"""       
         return np.vstack((s.peaks for s in self.spectra if s.msLevel == msLevel))
 
     def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None,
@@ -288,6 +294,7 @@ class PeakMap(object):
             return None
 
     def getDominatingPeakmap(self):
+        """TODO describe"""
         levels = self.getMsLevels()
         if len(levels) > 1 or 1 in levels:
             return self
@@ -320,7 +327,7 @@ class PeakMap(object):
                 and spec.msLevel == n]
 
     def remove(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
-
+        """TODO describe"""
         if not self.spectra:
             return
         if rtmin is None:
@@ -432,6 +439,7 @@ class PeakMap(object):
         return clz(specs, meta)
 
     def uniqueId(self):
+        """TODO describe"""
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
             for spec in self.spectra:
@@ -444,6 +452,7 @@ class PeakMap(object):
         return len(self.spectra)
 
     def __str__(self):
+        """Returns description of  PeakMap object as a string."""
         n = len(self)
         return "<PeakMap %#x with %d %s>" % (id(self), n, "spectrum" if n == 1 else "spectra")
 
