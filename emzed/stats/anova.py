@@ -18,6 +18,7 @@ def _getSamples(factorColumn, dependentColumn, minsize=1):
 
 
 def oneWayAnova(factorColumn, dependentColumn):
+    """TODO describe"""
     F, p = f_oneway(*_getSamples(factorColumn, dependentColumn))
     return F, p
 
