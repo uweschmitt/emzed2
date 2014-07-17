@@ -10,5 +10,5 @@ I/O
 .. autofunction:: emzed.io.loadTable
 .. autofunction:: emzed.io.storeTable
 
-.. autofunction:: emzed.io.loadBlob
-.. autofunction:: emzed.io.storeBlob
+.. .. autofunction:: emzed.io.loadBlob
+   .. autofunction:: emzed.io.storeBlob

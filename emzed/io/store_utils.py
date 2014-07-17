@@ -4,6 +4,7 @@ from utils import _prepare_path
 
 
 def storeBlob(data, path=None):
+    """TODO describe"""
     assert isinstance(data, basestring)
     path = _prepare_path(path, extensions=None, store=False)
     if path is None:

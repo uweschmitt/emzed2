@@ -113,7 +113,7 @@ class _ParamHandler(object):
 
 
 def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
-
+    """TODO Describe"""
     from .._algorithm_configs import metaboFFConfigs
 
     config_params = dict()
@@ -145,7 +145,7 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
         for k, v in sorted(sub_params.items()):
             print ("%s " % (k,)).ljust(35, "."), v
 
-    print "COMMON PARAMTERS"
+    print "COMMON PARAMETERS"
     print
     dump_param("common_")
     print

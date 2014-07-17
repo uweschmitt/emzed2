@@ -1,7 +1,7 @@
 
 
 def _prepare_path(path, extensions, store=True):
-
+    """TODO describe"""
     import sys
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())
