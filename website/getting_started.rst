@@ -145,24 +145,24 @@ How to use emzed modules?
 
 As an *example* we determine the isotope distribution of molecular formula
 *C6H13O9P*. It can be calculated using the method *isotopeDistributionTable* of
-the main *emzed* module *ms*. After typing ``ms.`` the auto completion shows
-all methods of the module *ms*.
+the main *emzed* module *utils*. After typing ``emzed.utils.`` the auto completion shows
+all methods of the module *utils*.
 
 .. fancybox:: ipython_autocompletion.png
 
-You can reduce the number of methods by typing ``ms.i`` and pressing the ``Tab``
+You can reduce the number of methods by typing ``emzed.utils.i`` and pressing the ``Tab``
 key.
 
 .. fancybox:: ipython_tab_button.png
 
 
-To get help on the function type ``ms.isotopeDistributionTable?`` or
-``help(ms.isotopeDistributionTable)`` and press ``Enter``.
+To get help on the function type ``emzed.utils.isotopeDistributionTable?`` or
+``help(emzed.utils.isotopeDistributionTable)`` and press ``Enter``.
 
 .. fancybox:: emzed_modules_help.png
 
 To execute the function type with default parameter settings type
-``isotopes = ms.isotopeDistributionTable("C6H13O9P")`` and press ``Enter``.
+``isotopes = emzed.utils.isotopeDistributionTable("C6H13O9P")`` and press ``Enter``.
 
 .. fancybox:: ipython_execute_function.png
 
