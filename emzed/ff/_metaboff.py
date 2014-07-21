@@ -113,7 +113,6 @@ class _ParamHandler(object):
 
 
 def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
-    """TODO Describe"""
     from .._algorithm_configs import metaboFFConfigs
 
     config_params = dict()

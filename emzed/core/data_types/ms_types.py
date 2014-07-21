@@ -82,7 +82,6 @@ class Spectrum(object):
         return not self.__eq__(other)
 
     def uniqueId(self):
-        """TODO describe"""
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
             # peaks.data is binary representation of numpy array peaks:
@@ -238,7 +237,6 @@ class PeakMap(object):
             self.polarity = None
 
     def all_peaks(self, msLevel=1):
-        """TODO describe"""       
         return np.vstack((s.peaks for s in self.spectra if s.msLevel == msLevel))
 
     def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None,
@@ -294,7 +292,6 @@ class PeakMap(object):
             return None
 
     def getDominatingPeakmap(self):
-        """TODO describe"""
         levels = self.getMsLevels()
         if len(levels) > 1 or 1 in levels:
             return self
@@ -327,7 +324,6 @@ class PeakMap(object):
                 and spec.msLevel == n]
 
     def remove(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
-        """TODO describe"""
         if not self.spectra:
             return
         if rtmin is None:
@@ -439,7 +435,6 @@ class PeakMap(object):
         return clz(specs, meta)
 
     def uniqueId(self):
-        """TODO describe"""
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
             for spec in self.spectra:

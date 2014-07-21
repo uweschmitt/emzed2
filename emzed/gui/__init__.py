@@ -14,8 +14,7 @@ from ..core.explorers import inspectChromatograms
 
 
 def inspectPeakMap(*a, **kw):
-    """TODO describe
-    DEPRECATED! PLEASE USE inspect INSTEAD!"""
+    """DEPRECATED! PLEASE USE inspect INSTEAD!"""
     print "DEPRECIATED ! PLEASE USE inspect INSTEAD !"
     inspect(*a, **kw)
 

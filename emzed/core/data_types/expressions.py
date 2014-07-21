@@ -205,7 +205,6 @@ class BaseExpression(object):
     """
 
     def __init__(self, left, right):
-        """TODO describe"""
         if not isinstance(left, BaseExpression):
             left = Value(left)
         if not isinstance(right, BaseExpression):

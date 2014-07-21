@@ -96,7 +96,6 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
 
 
 def loadBlob(path=None):
-    """TODO describe"""
     path = _prepare_path(path, None)
     if path is None:
         return None
