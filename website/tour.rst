@@ -74,7 +74,7 @@ clicking at ``ds``.
 Alternatively use the command
 
 .. pycon::
-   ms.inspect(pm) !noexec
+   emzed.gui.inspect(pm) !noexec
 
 .. image:: inspect_peakmap1.png
    :scale: 50 %
@@ -168,7 +168,7 @@ Integrating Peaks
 -----------------
 
 To reduce the runtime in the following demonstration we will extract peaks with
-a quality above ``5e4``:
+a quality above ``1e-2``:
 
 .. pycon::
    tab1, tab2, tab3 = tables
@@ -183,7 +183,7 @@ Detected Peaks can be integrated. To perform peak integration columns *rtmin*,
 .. pycon::
    tabInt = emzed.utils.integrate(tab1, 'emg_exact')
 
-If you open the dialog for ``tabInt`` you see
+If you open the dialog for ``tabInt`` you can select a row, as is shown in Figure A.
 
 .. image:: table_integrate.png
    :scale: 60 %
@@ -421,7 +421,7 @@ Generating isotope patterns
 
 As the ``Table`` objects provide powerful matchings, all we need to analyze
 isotope patterns occurring in feature tables is a way to generate tables
-containing these data. ``ms.isotopeDistributionTable`` does this
+containing these data. ``emzed.utils.isotopeDistributionTable`` does this
 
 
 .. pycon::

@@ -26,10 +26,10 @@ is a valid postfix. Postfixes are created by ``Table.join`` in order to ensure
 unique column names. Further the postfix identifies columns of common origin.
 
 
-Which kind of tables can be handled by ``ms.integrate`` ?
+Which kind of tables can be handled by ``emzed.utils.integrate`` ?
 ---------------------------------------------------------
 
-In general you can pass any kind of *eMZed* table to ``ms.integrate``.
+In general you can pass any kind of *eMZed* table to ``emzed.utils.integrate``.
 In order to apply peak integration you need column names which start
 with ``mzmin``, ``mzmax``, ``rtmin``, ``rtmax`` and ``peakmap`` and share
 the same postfix (see quesiton no. 2).
