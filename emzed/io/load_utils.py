@@ -57,7 +57,7 @@ def loadTable(path=None, compress_after_load=True):
 
 
 def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
-    # local import in order to keep namespaces clean
+    """local import in order to keep namespaces clean"""
     import csv
     import os.path
     import re

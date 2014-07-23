@@ -11,25 +11,25 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
 
         Parameters:
 
-            - *nPeaks*: max number of peaks matched by superimposer, -1
-              means: all peaks
+        - *nPeaks*: max number of peaks matched by superimposer, -1
+          means: all peaks
 
-            - *maxRtDifference*: max allowed difference in rt values for
-              searching matching features.
+        - *maxRtDifference*: max allowed difference in rt values for
+          searching matching features.
 
-            - *maxMzDifference*: max allowed difference in mz values for
-              super imposer.
+        - *maxMzDifference*: max allowed difference in mz values for
+          super imposer.
 
-            - *maxMzDifferencePairfinder*: max allowed difference in mz values
-              for pair finding.
+        - *maxMzDifferencePairfinder*: max allowed difference in mz values
+          for pair finding.
 
-            - *numBreakpoints*: number of break points of fitted spline.
-              default:5, more points result in splines with higher variation.
+        - *numBreakpoints*: number of break points of fitted spline.
+          default:5, more points result in splines with higher variation.
 
-            - *forceAlign*: has to be *True* to align already rt aligned tables.
+        - *forceAlign*: has to be *True* to align already rt aligned tables.
 
-            - *refTable*: extra reference table, if *None* the table
-              with most features among *tables* is taken.
+        - *refTable*: extra reference table, if *None* the table
+          with most features among *tables* is taken.
     """
 
     import os.path

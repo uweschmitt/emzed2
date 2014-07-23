@@ -89,7 +89,7 @@ class DialogBuilder(object):
             _docString = getattr(_item, "__doc__")
             if _docString is None:
                 _docString = ""
-            _dynamicMethodName = "add"+_itemName[:-4]
+            _dynamicMethodName = "        add"+_itemName[:-4]
             _docStrings.append(_dynamicMethodName+"(...):\n"+_docString)
 
     __doc__ = "\n".join(_docStrings)
@@ -104,25 +104,25 @@ class DialogBuilder(object):
         self.buttonCounter = 0
 
     def __getattr__(self, name):
-        """ dynamically provides methods which start with "add...", eg
-            "addInt(....)".
+        """dynamically provides methods which start with "add...", eg
+        "addInt(....)".
 
-            If one calls
+        If one calls
 
-                   b = Builder()
-                   b.addInt(params)
+               b = Builder()
+               b.addInt(params)
 
-            then
+        then
 
-                   b.addInt
+               b.addInt
 
-            is a stub function which is constructed and returned some
-            lines below. Then
+        is a stub function which is constructed and returned some
+        lines below. Then
 
-                   b.addInt(params)
+               b.addInt(params)
 
-            calls this stub function, which registers the corresponding
-            IntItem with the given params.
+        calls this stub function, which registers the corresponding
+        IntItem with the given params.
 
         """
         if name.startswith("add"):
@@ -191,7 +191,7 @@ class DialogBuilder(object):
         return self
 
     def addButton(self, label, callback, help=None):
-        """ addButton is not handled by __getattr__, as it need special
+        """ addButton is not handled by __getattr__, as it needs special
             handling.
 
             In contrast to the other DateItem subclasses, ButtonItem
@@ -222,7 +222,7 @@ class DialogBuilder(object):
     def show(self):
         """ opens the constructed dialog.
 
-            In order to d so we construct sublcass of DataSet on the fly.
+            In order to do so we construct sublcass of DataSet on the fly.
 
             the docstring of the class is the title of the dialog,
             class level attributes are instances of sublcasses of

@@ -1,7 +1,6 @@
 
 
 def _prepare_path(path, extensions, store=True):
-
     import sys
     if isinstance(path, unicode):
         path = path.encode(sys.getfilesystemencoding())

@@ -20,7 +20,7 @@ def mzAlign(table, mz_reference_table, tol=15 * MMU,
     result and intermediate data.  If you do not specify this value, a
     dialog for choosing the destination directory will be opened.
 
-    The input table **is not mofied** in place, the function returns the
+    The input table **is not modified** in place, the function returns the
     aligned table.
 
     the parameter *tol* is related to find matching peaks, *maxTol* and

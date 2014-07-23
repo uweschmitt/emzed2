@@ -143,10 +143,10 @@ class Table(object):
 
     format can be:
 
-         - a string interpolation string, e.g. "%.2f"
-         - ``None``, which suppresses rendering of this column
-         - python code which renders an object of name ``o``, e.g.
-           ``str(o)+"x"``
+    - a string interpolation string, e.g. "%.2f"
+    - ``None``, which suppresses rendering of this column
+    - python code which renders an object of name ``o``, e.g.
+      ``str(o)+"x"``
 
     """
 
@@ -909,21 +909,21 @@ class Table(object):
         """
         replaces column ``name`` **in place**.
 
-          - ``name`` is name of the new column
-          - ``*type_`` is one of the valid types described above.
-            If ``type_ == None`` the method tries to guess the type from ``what``.
-          - ``format_`` is a format string as "%d" or ``None`` or an executable
-            string with python code.
-            If you use ``format_=""`` the method will try to determine a
-            default format for the type.
+        - ``name`` is name of the new column
+        - ``*type_`` is one of the valid types described above.
+          If ``type_ == None`` the method tries to guess the type from ``what``.
+        - ``format_`` is a format string as "%d" or ``None`` or an executable
+          string with python code.
+          If you use ``format_=""`` the method will try to determine a
+          default format for the type.
 
         For the values ``what`` you can use
 
-           - an expression (see :py:class:`~emzed.core.data_types.expressions.Expression`)
-             as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
-           - a callback with signature ``callback(table, row, name)``
-           - a constant value
-           - a list with the correct length.
+        - an expression (see :py:class:`~emzed.core.data_types.expressions.Expression`)
+          as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
+        - a callback with signature ``callback(table, row, name)``
+        - a constant value
+        - a list with the correct length.
 
         """
 
@@ -1119,14 +1119,14 @@ class Table(object):
     def resetInternals(self):
         """  **internal method**
 
-            must be called after manipulation  of
+        must be called after manipulation  of
 
-            - self._colNames
-            - self._colFormats
+        - self._colNames
+        - self._colFormats
 
         or
 
-            - self.rows
+        - self.rows
         """
         self._setupFormatters()
         self._updateIndices()
