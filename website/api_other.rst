@@ -1,3 +1,5 @@
+.. _api_other:
+
 API helper modules
 ==================
 

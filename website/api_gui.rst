@@ -1,3 +1,4 @@
+.. _api_gui:
 
 Inspecting Tables and Peak maps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

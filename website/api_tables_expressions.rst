@@ -1,3 +1,5 @@
+.. _api_tables_expressions:
+
 API Tables and Expressions
 ==========================
 

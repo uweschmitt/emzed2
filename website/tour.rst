@@ -519,6 +519,8 @@ former examples and leave this paragraph empty.
     matched = emzed.utils.matchMetlin(t, "m0", ["M+H", "M+2H"], ppm=30)
     matched.print_()
 
+.. _dialogbuilder_example2:
+
 Building graphical interfaces
 -----------------------------
 
