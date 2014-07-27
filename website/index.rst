@@ -58,8 +58,8 @@ Development goals
 * When we started to implement own analysis workflows we found that the software landscape
   was almost divided into two classes:
   On the one side there exist fast and **flexible** frameworks, but in languages as C++ which only
-  can be used efficiently by experienced programmers. One the other side there are applications
-  with graphical user interfaces which are simple to use and learn but hard to modify for
+  can be used efficiently by experienced programmers. On the other hand, there are applications
+  with graphical user interfaces that are simple to use and learn but hard to modify for
   special needs.
 
   Our primary goal has been to develop a framework which combines the positive aspects of the two
