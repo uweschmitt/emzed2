@@ -4,21 +4,23 @@
 Exploring Peak Maps and Tables
 ==============================
 
-**Table:** Functions and commands for Peak map inspection
+**Table** of functions and commands for Peak map inspection. For Mac Users alternative commands which do not involve right or middle mouse buttons are also given, which may be used by Windows and Linux users as well.
 
 +-------------------+--------------+--------------------------------------+
-| description       |              |       command                        |
-|                   |              |                                      |
+| description       |              |       command                        |    
+|                   |              |                                      |   
 +===================+==============+======================================+
-| zoom              |              | press right mouse button and         |
+| zoom              |              | press right mouse button / or        | 
+|                   |              | press CTRL+(left) mouse button and   |
 |                   +--------------+--------------------------------------+
 |                   | in           | move right / up                      |
 |                   +--------------+--------------------------------------+
-|                   | out          | move left / down                     |
+|                   | out          | move left / down                     | 
 |                   +--------------+--------------------------------------+
-|                   | reset        | press ``backspace`` key              |
+|                   | reset        | press ``backspace`` key              | 
 +-------------------+--------------+--------------------------------------+
-| move plot along   |              | keep middle mouse button             |
+| move plot         |              | keep middle mouse button / or ALT+   |
+|                   |              | (left) mouse button                  |
 | along x-axis      |              | pressed and move mouse               |
 |                   |              | left / right                         |
 +-------------------+--------------+--------------------------------------+
