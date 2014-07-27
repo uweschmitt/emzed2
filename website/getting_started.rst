@@ -31,7 +31,7 @@ with an input prompt at the right.  You can resize and reorder them using your
 mouse. This configuration is stored if you close *emzed* and if you start
 *emzed* again, it will be restored.
 
-.. fancybox:: emzed_workbench_overview.png
+.. image:: emzed_workbench_overview.png
    :width: 50 %
    :height: 50 %
 
@@ -45,9 +45,8 @@ this is the location where the editor opens new files, and where scripts are
 started when using the *IPython* shell.
 
 
-.. fancybox:: emzed_working_dir.png
-   :width: 65 %
-   :height: 65 %
+.. image:: emzed_working_dir.png
+   :scale: 109 %
 
 To change the working directory look at the labeled buttons in the screen
 shot and follow theses instructions:
@@ -63,21 +62,20 @@ If you you change to the ``emzed_files/example_files``
 directory, which is located inside your home directory, you see that
 a statement similar to the following one is executed in your *IPython* shell:
 
-.. fancybox:: emzed_working_dir_cwd.png
+.. image:: emzed_working_dir_cwd.png
 
 This folder was created during the first startup of emzed.
 
 You can verify the current working directory by typing ``pwd`` in the IPython
 console. Press ``Enter``, type ``pwd`` and press ``Enter`` again.
 
-.. fancybox:: emzed_working_dir_pwd.png
+.. image:: emzed_working_dir_pwd.png
 
 You can display the content of the current working directory by submitting
 the ``ls`` command.
 
-.. fancybox:: emzed_working_dir_ls.png
-    :width: 40%
-    :height: 40%
+.. image:: emzed_working_dir_ls.png
+
 
 
 We will create now a new folder ``first_steps`` in the ``emzed_files``
@@ -85,7 +83,7 @@ directory. You can do that by clicking again the "choose folder button". Then
 make a new folder called ``first_steps``, select it, and press again the "set"
 button. We will use that folder later on during this tutorial.
 
-.. fancybox:: emzed_working_dir_temp_folder.png
+.. image:: emzed_working_dir_temp_folder.png
 
 
 How to to work with the IPython console?
@@ -97,7 +95,8 @@ below, this is the place to input and execute the demonstrated commands.
 
 Here is a very simple example how to use the console:
 
-.. fancybox:: ipython_code.png
+.. image:: ipython_code.png
+
 
 The command creates a string object called ``welcome``. With the print command
 the content of ``welcome`` is displayed in the console. The console provides
@@ -108,22 +107,22 @@ activate command completion after any character by pressing the ``Tab`` key.
 All methods which can be applied to the object are displayed in the console by
 typing the name of the object followed by a "``.``".  For given example:
 
-.. fancybox:: ipython_object_operations.png
+.. image:: ipython_object_operations.png
 
 We will now apply the function ``capitalize`` to the string ``welcome``. You
 get the documentation of ``capitalize`` by typing:
 
-.. fancybox:: ipython_object_function_documentation.png
+.. image:: ipython_object_function_documentation.png
 
 We can now to apply the function ``capitalize`` to the object ``welcome``:
 
-.. fancybox:: ipython_apply_function.png
+.. image:: ipython_apply_function.png
 
 The result of the last command executed in the IPython console is always
 accessible via underscore ``"_"``.  In case you forgot to assign a variable
 name to a result you can do that afterwards by using the underscore ``"_"``.
 
-.. fancybox:: ipython_working_with__.png
+.. image:: ipython_working_with__.png
 
 Further you can  navigate through commands you entered before using
 the ``Cursor-Up`` and ``Cursor-Down`` keys. For more information about
@@ -148,23 +147,24 @@ As an *example* we determine the isotope distribution of molecular formula
 the main *emzed* module *utils*. After typing ``emzed.utils.`` the auto completion shows
 all methods of the module *utils*.
 
-.. fancybox:: ipython_autocompletion.png
-
+.. image:: ipython_autocompletion.png
+   :scale: 133 %
+   
 You can reduce the number of methods by typing ``emzed.utils.i`` and pressing the ``Tab``
 key.
 
-.. fancybox:: ipython_tab_button.png
-
+.. image:: ipython_tab_button.png
+   :scale: 133 %
 
 To get help on the function type ``emzed.utils.isotopeDistributionTable?`` or
 ``help(emzed.utils.isotopeDistributionTable)`` and press ``Enter``.
 
-.. fancybox:: emzed_modules_help.png
+.. image:: emzed_modules_help.png
 
 To execute the function type with default parameter settings type
 ``isotopes = emzed.utils.isotopeDistributionTable("C6H13O9P")`` and press ``Enter``.
 
-.. fancybox:: ipython_execute_function.png
+.. image:: ipython_execute_function.png
 
 
 How to inspect objects?
@@ -176,17 +176,19 @@ The variable explorer provides an easy way to inspect all kinds of Python
 objects. All object names and their properties are listed in the variable
 explorer.  Here an example:
 
-.. fancybox:: variable_explorer.png
-
+.. image:: variable_explorer.png
+   :scale: 120 %
+   
 To visualize the content of the variable ``isotopes`` double click the row and
 a new window with the table explorer opens:
 
-.. fancybox:: table_explorer.png
-
+.. image:: table_explorer.png
+   :scale: 109 %
+   
 Some objects like e.g. tables have a print method. Type ``.print_()`` after
 a table object and you can directly print the result in the console.
 
-.. fancybox:: table_print().png
+.. image:: table_print().png
 
 How to run scripts ?
 --------------------
@@ -201,7 +203,7 @@ functions which can be executed in the IPython console.
 Here is a very simple example which implements a function that calculates the
 mass of water using the module `mass`:
 
-.. fancybox:: using_editor_code.png
+.. image:: using_editor_code.png
 
 Type the code into the editor and save it as ``using_editor.py``
 into the working directory ``.../emzed_files/first_steps`` which we
@@ -214,20 +216,21 @@ pressing the ``F5`` key. When the ``F5`` key is used the first
 time a dialog box will open. Choose the first option "Execute in current
 IPython or Python interpreter".
 
-    .. fancybox:: run_script.png
-
+    .. image:: run_script.png
+       :scale: 120 %
+   
 When running the script you see that the ``print`` statement in the
 last line of the example code is executed. Further the function
 ``mass_of_water`` is now available in the
 *IPython* console. To call this function type the name of the function
 followed by ``()`` and press ``Enter``.
 
-    .. fancybox:: run_script_executing.png
+    .. image:: run_script_executing.png
 
 
 2. You can also use the command ``runfile`` immediately. For given example:
 
-.. fancybox:: run_script_alternative.png
+.. image:: run_script_alternative.png
 
 If the script is not located in the working directory you have to add the path
 of the script to its name like  ``runfile(".../folder/filename.py")``.
