@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 3, 0)
+version = (2, 3, 1)
 
 if __name__ == "__main__":
     import os
