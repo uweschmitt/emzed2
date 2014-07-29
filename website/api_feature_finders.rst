@@ -1,3 +1,4 @@
+.. _api_feature_finders:
 
 API feature finding module
 ==========================

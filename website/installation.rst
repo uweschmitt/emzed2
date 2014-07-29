@@ -3,7 +3,7 @@
 Installation
 ------------
 
-The current version of *emzed* was developed and tested on 32 and 64 bit Windows XP, 7 and 8 just
+The current version of *emzed* was developed and tested on 32 and 64 bit Windows XP, 7 and 8 as well
 as 64 bit Ubuntu Linux and Mac OS X.
 The current version of *emzed* relies on Python 2.7.X and is not Python 3 ready.
 
@@ -17,12 +17,12 @@ The current version of *emzed* relies on Python 2.7.X and is not Python 3 ready.
 
 
 
-Installing on 64 bit Windows
+Installation on 64 bit Windows
 ~~~~~~~~~~
 
 .. warning::
-    For installing *emzed* on Windows please follow carefully the stepwise
-    instructions. Version numbers and file names matter.
+    For installing *emzed* on Windows please follow the stepwise
+    instructions carefully. Version numbers and file names matter.
 
 
 1. Download and install *Microsoft Visual C++ 2008 SP1 Redistributable Package
@@ -54,18 +54,17 @@ Installing on 64 bit Windows
 
    The installation process opens a terminal window and runs for a few minutes, so stay patient.
 
-4. Now you should find *emzed* in Windows start menu.
+4. Now you should find *emzed* in your Windows start menu.
 
 5. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
    library.
 
 
 
-Installing on Ubuntu or Debian
+Installation on Ubuntu or Debian
 ~~~~~~~~~~
 
-1. *numpy*, *scipy* and *matplotlib* are difficult to build, first install
-   those globally.  *PyQt4* should be installed globally too::
+1. First, you should install *numpy*, *scipy* and *matplotlib* globally as they are difficult to build. *PyQt4* should be installed globally too::
 
     $ sudo apt-get install python2.7
     $ sudo apt-get install python2.7-numpy python2.7-scipy python2.7-matplotlib python2.7-qt4
@@ -74,13 +73,13 @@ Installing on Ubuntu or Debian
 
 2. For the final installation download the installation script from
    http://emzed.ethz.ch/downloads/install_emzed2.sh.
-   Running the script you are asked for the 
+   The script will ask for the 
    target folder, we recommend to use the proposed default value.::
 
     $ bash install_emzed2.sh
 
-3. In case of success the script prints the direct path
-   for starting *emzed* from the command line. Further you should find the *emzed* icon
+3. After successful installation the script prints the direct path
+   for starting *emzed* from the command line. Further, you should find the *emzed* icon
    on your desktop.
 
 4. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
@@ -88,11 +87,11 @@ Installing on Ubuntu or Debian
 
     $ sudo apt-get install r-base
 
-Manual installation on Linux
+Manual Installation on Linux
 ~~~~~~~~~~
 
-If you have a Linux distribution for which the previous instructions failed, you have
-to proceed manually as described now:
+If you have a Linux distribution for which the previous instructions failed, you can install *emzed*
+manually as described now:
 
 1. Install Python 2.7.
 

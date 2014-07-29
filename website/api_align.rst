@@ -1,3 +1,5 @@
+.. _api_align:
+
 API align Module
 ================
 
