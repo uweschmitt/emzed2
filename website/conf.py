@@ -13,7 +13,7 @@
 
 import sys, os
 import sphinx_bootstrap_theme
-import sphinx_rtd_theme
+# import sphinx_rtd_theme
 # import alabaster
 
 # If extensions (or modules to document with autodoc) are in another directory,
