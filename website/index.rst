@@ -58,8 +58,8 @@ Development goals
 * When we started to implement own analysis workflows we found that the software landscape
   was almost divided into two classes:
   On the one side there exist fast and **flexible** frameworks, but in languages as C++ which only
-  can be used efficiently by experienced programmers. One the other side there are applications
-  with graphical user interfaces which are simple to use and learn but hard to modify for
+  can be used efficiently by experienced programmers. On the other hand, there are applications
+  with graphical user interfaces that are simple to use and learn but hard to modify for
   special needs.
 
   Our primary goal has been to develop a framework which combines the positive aspects of the two
@@ -80,7 +80,7 @@ Development goals
 
 
 Website Navigation
-~~~~~~~~~~~~~~~~~~
+---------------
 
 .. toctree::
 
@@ -93,6 +93,26 @@ Website Navigation
     tour
     explorers
 
+    faq
+    license
+    contact
+
+    references
+
+APIs: Overview
+~~~~~~~~~~~~~~
+.. toctree::
+
+    :maxdepth: 1
+    
+    api_overview
+    
+APIs: Detailed List
+~~~~~~~~~~~~~~~~~~~
+.. toctree::
+
+    :maxdepth: 2
+    
     api_mstypes
     api_io
     api_feature_finders
@@ -103,18 +123,13 @@ Website Navigation
     api_gui
     api_other
 
-    faq
-    license
-    contact
-
-    references
 
 
 
 
 
 Indexes and tables
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 * :ref:`genindex`
 * :ref:`modindex`

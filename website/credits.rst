@@ -2,7 +2,7 @@
 Credits
 ~~~~~~~
 
-We make use of the following frameworks and we thank their developers for the great work:
+We make use of the following frameworks and we thank their developers for their great work:
 
 * Open-MS [openms]_
 * XCMS [xcms]_

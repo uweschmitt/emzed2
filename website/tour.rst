@@ -3,7 +3,7 @@
 Getting started with emzed modules
 ==================================
 
-This is a short tour for getting a first impression about working with *emzed*
+This is a short tour which shall give you a first impression of working with *emzed*
 modules. We suppose that you followed the instructions at
 :ref:`installation` to get *emzed* installed and that you did the first
 steps as described in :ref:`getting_started`.
@@ -11,7 +11,7 @@ steps as described in :ref:`getting_started`.
 
 As *Python* is a programming language with a very clear syntax, even a novice
 Python programmer will very likely be able to grasp the examples below.
-However, Python is very easy to learn.  You find a comprehensive list of Python
+Indeed, Python is very easy to learn.  You find a comprehensive list of Python
 tutorials at http://wiki.python.org/moin/BeginnersGuide
 
 
@@ -62,11 +62,11 @@ You can access the spectra in this peak map using Python:
    lastSpec = ds.spectra[-1]
    print lastSpec.rt
 
-Internally retention times are always stored as seconds.
+Internally, retention times are always stored as seconds.
 
 The variable ``ds`` will appear in the *variable explorer*. You see that we
-have 464 spectra in this dataset and you can visualize them simply by double
-clicking at ``ds``.
+have 2278 spectra in this dataset and you can visualize them simply by double
+clicking on ``ds``.
 
 .. image:: peakmap_variable_explorer.png
    :scale: 60 %
@@ -95,7 +95,7 @@ B. You can extract an ion chromatogram by entering data
    central ``m/z`` value and a half window width ``w/2`` and then pressing
    ``Select``.  If you press the right button during moving the mouse the plots
    will zoom in or out.  Pressing the ``backspace`` key will reset the active
-   plot.  Further you can measure peak relations by dragging the mouse in the
+   plot.  Furthermore, you can measure peak relations by dragging the mouse in the
    lower plot.
 
 
@@ -104,7 +104,7 @@ B. You can extract an ion chromatogram by entering data
 Extracting chromatographic peaks
 ---------------------------------
 
-Actually, *emzed* includes three peak detection algorithms: *MetaboFeatureFinder* from
+*emzed* includes three peak detection algorithms: *MetaboFeatureFinder* from
 [openms]_ and two of the *XCMS* [xcms]_
 package: *centwave* [centwave]_ and *matched filters*. Accepted input file
 formats are *mzML*, *mzXML*, and *mzData*.  The output file format is
@@ -518,6 +518,8 @@ former examples and leave this paragraph empty.
     t.print_()
     matched = emzed.utils.matchMetlin(t, "m0", ["M+H", "M+2H"], ppm=30)
     matched.print_()
+
+.. _dialogbuilder_example2:
 
 Building graphical interfaces
 -----------------------------

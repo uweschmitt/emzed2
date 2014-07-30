@@ -1,3 +1,5 @@
+.. _api_batches:
+
 API batches module
 ==================
 
