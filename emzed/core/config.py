@@ -286,7 +286,7 @@ class _UserConfig(object):
         return os.path.join(folders.getEmzedFolder(), "config_emzed2.ini")
 
     def set_defaults(self):
-        self.parameters.emzed_store_url = "http://uweschmitt.info:37614"
+        self.parameters.emzed_store_url = ""
         self.parameters.pypi_url = "http://pypi.python.org/pypi"
         self.parameters.pypi_index_url = "http://pypi.python.org/simple"
         self.parameters.project_home = os.path.join(folders.getDataHome(), "emzed_projects")
