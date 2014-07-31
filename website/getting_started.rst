@@ -43,10 +43,9 @@ Like a Linux command line *emzed* has the concept of a *working directory*.
 This is the location where the editor opens new files, and where scripts are
 started when using the *IPython* shell.
 
-
 .. image:: emzed_working_dir.png
-   :scale: 109 %
-
+   :scale: 82 %
+   
 To change the working directory look at the labeled buttons in the screen
 shot and follow theses instructions:
 
@@ -62,6 +61,10 @@ directory, which is located inside your home directory, you see that
 a statement similar to the following one is executed in your *IPython* shell:
 
 .. image:: emzed_working_dir_cwd.png
+   :width: 677 px
+   :height: 50 px
+   :scale: 82 %
+.. original size:   677x42
 
 This folder was created during the first startup of emzed.
 
@@ -69,11 +72,16 @@ You can verify the current working directory by typing ``pwd`` in the IPython
 console: Press ``Enter``, type ``pwd`` and press ``Enter`` again.
 
 .. image:: emzed_working_dir_pwd.png
+   :width: 736 px
+   :height: 100 px
+   :scale: 75 %
+.. original size: 736x89   
 
 You can display the content of the current working directory by submitting
 the ``ls`` command.
 
 .. image:: emzed_working_dir_ls.png
+   :scale: 75 %
 
 
 
@@ -83,7 +91,10 @@ make a new folder called ``first_steps``, select it, and press the "set"
 button. We will use that folder later on during this tutorial.
 
 .. image:: emzed_working_dir_temp_folder.png
-
+   :width: 647 px
+   :height: 45 px
+   :scale: 75 %
+.. original size: 647x30
 
 How to to work with the IPython console?
 ----------------------------------------
@@ -95,6 +106,7 @@ below, this is the place to input and execute the demonstrated commands.
 Here is a very simple example how to use the console:
 
 .. image:: ipython_code.png
+   :scale: 75 %
 
 
 The command creates a string object called ``welcome``. With the print command
@@ -107,21 +119,25 @@ All methods which can be applied to the object are displayed in the console by
 typing the name of the object followed by a "``.``".  For given example:
 
 .. image:: ipython_object_operations.png
+   :scale: 75 %
 
 We will now apply the function ``capitalize`` to the string ``welcome``. You
 get the documentation of ``capitalize`` by typing:
 
 .. image:: ipython_object_function_documentation.png
+   :scale: 75 %
 
 We can now to apply the function ``capitalize`` to the object ``welcome``:
 
 .. image:: ipython_apply_function.png
+   :scale: 75 %
 
 The result of the last command executed in the IPython console is always
 accessible via underscore ``"_"``.  In case you forgot to assign a variable
 name to a result you can do that afterwards by using the underscore ``"_"``.
 
 .. image:: ipython_working_with__.png
+   :scale: 75 %
 
 Further, you can  navigate through commands you entered before using
 the ``Cursor-Up`` and ``Cursor-Down`` keys. For more information about
@@ -147,24 +163,27 @@ the main *emzed* module *utils*. After typing ``emzed.utils.`` the auto completi
 all methods of the module *utils*.
 
 .. image:: ipython_autocompletion.png
-   :scale: 133 %
-   
+   :scale: 90 %
 You can reduce the number of methods by typing ``emzed.utils.i`` and pressing the ``Tab``
 key.
 
 .. image:: ipython_tab_button.png
-   :scale: 133 %
+   :scale: 90 %
 
 To get help on the function type ``emzed.utils.isotopeDistributionTable?`` or
 ``help(emzed.utils.isotopeDistributionTable)`` and press ``Enter``.
 
 .. image:: emzed_modules_help.png
+   :scale: 75 %
 
 To execute the function with default parameter settings type
 ``isotopes = emzed.utils.isotopeDistributionTable("C6H13O9P")`` and press ``Enter``.
 
 .. image:: ipython_execute_function.png
-
+   :width: 563 px
+   :height: 80 px
+   :scale: 75 %
+.. original size: 563x73
 
 How to inspect objects?
 -----------------------
@@ -176,18 +195,19 @@ objects. All object names and their properties are listed in the variable
 explorer.  Here is an example:
 
 .. image:: variable_explorer.png
-   :scale: 120 %
+   :scale: 90 %
    
 To visualize the content of the variable ``isotopes`` double click the row and
 a new window with the table explorer opens:
 
 .. image:: table_explorer.png
-   :scale: 109 %
+   :scale: 82 %
    
 Some objects, like tables for example, have a print method. Type ``.print_()`` after
 a table object and you can directly print the result in the console.
 
 .. image:: table_print().png
+   :scale: 75 %
 
 How to run scripts ?
 --------------------
@@ -203,6 +223,7 @@ Here is a very simple example which implements a function that calculates the
 mass of water using the module `mass`:
 
 .. image:: using_editor_code.png
+   :scale: 75 %
 
 Type the code into the editor and save it as ``using_editor.py``
 into the working directory ``.../emzed_files/first_steps`` which we
@@ -216,7 +237,7 @@ time a dialog box will open. Choose the first option "Execute in current
 IPython or Python interpreter".
 
 .. image:: run_script.png
-   :scale: 120 %
+   :scale: 90 %
    
 When running the script you see that the ``print`` statement in the
 last line of the example code is executed. Furthermore, the function
@@ -225,11 +246,13 @@ last line of the example code is executed. Furthermore, the function
 followed by ``()`` and press ``Enter``.
 
 .. image:: run_script_executing.png
+   :scale: 75 %
 
 
 2. You can also use the command ``runfile`` immediately. For given example:
 
 .. image:: run_script_alternative.png
+   :scale: 75 %
 
 If the script is not located in the working directory you have to add the path
 of the script to its name, as in  ``runfile(".../folder/filename.py")``.
