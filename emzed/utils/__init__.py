@@ -10,6 +10,7 @@ from integration import integrate
 from ..core.data_types.table import Table
 
 mergeTables = Table.mergeTables
+stackTables = Table.stackTables
 
 try:
     del Table

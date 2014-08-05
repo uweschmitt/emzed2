@@ -357,6 +357,9 @@ class Table(object):
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
             setattr(self, name, col)
 
+    def numCols(self):
+        return len(self._colNames)
+
     def numRows(self):
         """
         returns the number of rows
@@ -1652,6 +1655,32 @@ class Table(object):
         result = extended_tables[0]
         result.append(extended_tables[1:])
         return result
+
+    @staticmethod
+    def stackTables(tables):
+        """dumb and fast version of Table.mergeTables if all tables have common column
+        names, types and formats.
+        """
+        if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different number columns")
+        if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different column names")
+        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different column types")
+        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different column formats")
+
+        all_rows = [row[:] for t in tables for row in t.rows]
+        t0 = tables[0]
+        full_meta = defaultdict(list)
+        for t in tables:
+            for k, v in t.meta.items():
+                full_meta[k].append(v)
+        for k, v in full_meta.items():
+            if len(v) == 1:
+                full_meta[k] = v[0]
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, meta=full_meta)
+
 
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)

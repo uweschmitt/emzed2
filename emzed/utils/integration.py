@@ -24,7 +24,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
                                        "pythonw.exe")
                                        )
     import time
-    from ..core.data_types.table import Table
+    from ..core.data_types.table import Table, PeakMap
 
     started = time.time()
 
@@ -45,7 +45,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
         messages.append("INFO: as the table has les thann %d rows, we switch to one cpu mode"
                         % min_size_for_parallel_execution)
-        n_cpus = 1     
+        n_cpus = 1
 
     elif n_cpus > multiprocessing.cpu_count():
         messages.append("WARNING: more processes demanded than available cpu cores, this might be "
@@ -77,12 +77,13 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         # peakmaps come back after. we reset those columns to their state before spreading
         # them:
         for t, pms in zip(tables, all_pms):
-            t.replaceColumn("peakmap", pms)
+            t.replaceColumn("peakmap", pms, type_=ftable.getColType("peakmap"),
+                                            format_=ftable.getColFormat("peakmap"))
 
         pool.close()
 
         tables = [t for t in tables if len(t) > 0]
-        result = Table.mergeTables(tables)
+        result = Table.stackTables(tables)
 
     if showProgress:
         needed = time.time() - started

@@ -49,3 +49,8 @@ def test_merge_tables():
     t2 = emzed.utils.mergeTables([t1, t1])
     assert len(t2) == 2*len(t1)
 
+
+def test_stack_tables():
+    t1 = emzed.utils.toTable("a", [1,2])
+    t2 = emzed.utils.stackTables([t1, t1])
+    assert len(t2) == 2*len(t1)
