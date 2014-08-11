@@ -1002,7 +1002,8 @@ class PeakMapPlotter(object):
         self.widget.plot.replot()
 
     def __getattr__(self, name):
-        return getattr(self.widget.plot, name)
+        if hasattr(self, "widget"):
+            return getattr(self.widget.plot, name)
 
     def get_plot(self):
         return self.widget.plot
