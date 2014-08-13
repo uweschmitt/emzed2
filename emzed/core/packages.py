@@ -45,6 +45,8 @@ SETUP_PY_TEMPLATE = """
 
 PKG_NAME = %(pkg_name)r
 
+VERSION = %(version)r
+
 
 ### install package as emzed extension ? #############################################
 #   -> package will appear in emzed.ext namespace after installation
@@ -96,16 +98,6 @@ LICENSE = "http://opensource.org/licenses/GPL-3.0"
 #                                                                                    #
 ######################################################################################
 
-
-from %(pkg_name)s.version import version as VERSION
-
-if APP_MAIN is not None:
-    try:
-        mod_name, fun_name = APP_MAIN.split(":")
-        exec "import %%s as _mod" %% mod_name
-        fun = getattr(_mod, fun_name)
-    except:
-        raise Exception("invalid specification %%r of APP_MAIN" %% APP_MAIN)
 
 VERSION_STRING = "%%s.%%s.%%s" %% VERSION
 
@@ -208,13 +200,9 @@ def _create_package_folder(pkg_folder, pkg_name, version):
 from minimal_module import hello # makes emzed.ext.%s.hello() visible
 
 # DO NOT TOUCH THE FOLLOWING LINE:
-from version import version as __version__
-    """ % pkg_name)
-
-    with open(os.path.join(package_folder, "version.py"), "w") as fp:
-        fp.write("""
-version = %r
-    """ % (version,))
+import pkg_resources
+__version__ = tuple(map(int, pkg_resources.require(__name__)[0].version.split(".")))
+del pkg_resources""" % pkg_name)
 
     with open(os.path.join(package_folder, "app.py"), "w") as fp:
         fp.write("""
