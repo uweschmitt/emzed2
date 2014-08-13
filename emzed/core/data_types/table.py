@@ -1712,7 +1712,6 @@ class Table(object):
             update(self._colNames)
             update(self._colTypes)
             update(self._colFormats)
-            update(self.meta)
             for row in self.rows:
                 for val in row:
                     if isinstance(val, (Table, PeakMap, Blob)):
