@@ -5,13 +5,6 @@ from setuptools import setup, find_packages
 # are needed when importing emzed
 version = (2, 3, 2)
 
-if __name__ == "__main__":
-    import os
-    here = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(here, "emzed", "version.py"), "w") as fp:
-        fp.write("version = %r\n" % (version,))
-
-
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
       version="%d.%d.%d" % version,
