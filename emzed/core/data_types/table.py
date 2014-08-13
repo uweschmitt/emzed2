@@ -1134,6 +1134,7 @@ class Table(object):
         self._setupFormatters()
         self._updateIndices()
         self._setupColumnAttributes()
+        self._reset_unique_id()
 
     def uniqueRows(self):
         """
@@ -1659,28 +1660,28 @@ class Table(object):
     @staticmethod
     def stackTables(tables):
         """dumb and fast version of Table.mergeTables if all tables have common column
-        names, types and formats.
+        names, types and formats unless they are empty.
         """
         if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
             raise Exception("tables have different number columns")
         if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
             raise Exception("tables have different column names")
-        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(tables, tables[1:])):
+
+        # check types and formats for non emtpy tables
+        ne = [t for t in tables if len(t) > 0]
+        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(ne, ne[1:])):
             raise Exception("tables have different column types")
-        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(tables, tables[1:])):
+        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(ne, ne[1:])):
             raise Exception("tables have different column formats")
 
         all_rows = [row[:] for t in tables for row in t.rows]
-        t0 = tables[0]
-        full_meta = defaultdict(list)
-        for t in tables:
-            for k, v in t.meta.items():
-                full_meta[k].append(v)
-        for k, v in full_meta.items():
-            if len(v) == 1:
-                full_meta[k] = v[0]
-        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, meta=full_meta)
 
+        for t0 in tables:    # look for first non emtpy table
+            if len(t0):
+                break
+        else:
+            return t0
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, dict())
 
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)
@@ -1698,6 +1699,10 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
+
+    def _reset_unique_id(self):
+        if "unique_id" in self.meta:
+            del self.meta["unique_id"
 
     def uniqueId(self):
         if "unique_id" not in self.meta:
