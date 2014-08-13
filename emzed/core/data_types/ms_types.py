@@ -27,21 +27,21 @@ class Spectrum(object):
 
     def __init__(self, peaks, rt, msLevel, polarity, precursors=None, meta=None):
         """Initialize instance
-        
-        - peaks      
+
+        - peaks
                        n x 2 matrix
                        first column: m/z values
                        second column: intensities
-        - rt         
+        - rt
                        float
                        retention time in seconds
-        - msLevel   
+        - msLevel
                        int
                        MSn level.
-        - polarity   
+        - polarity
                        string of length 1
                        values: 0, + or -
-        - precursors 
+        - precursors
                        list of floats
                        precursor m/z values if msLevel > 1
            """
@@ -84,9 +84,9 @@ class Spectrum(object):
     def uniqueId(self):
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
-            # peaks.data is binary representation of numpy array peaks:
             h.update("%.6e" % self.rt)
             h.update(str(self.msLevel))
+            # peaks.data is binary representation of numpy array peaks:
             h.update(str(self.peaks.data))
             h.update(str(self.polarity))
             for mz, ii in self.precursors:
