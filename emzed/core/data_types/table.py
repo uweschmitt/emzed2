@@ -1134,7 +1134,7 @@ class Table(object):
         self._setupFormatters()
         self._updateIndices()
         self._setupColumnAttributes()
-        self._reset_unique_id()
+        self._resetUniqueId()
 
     def uniqueRows(self):
         """
@@ -1699,10 +1699,9 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
-
-    def _reset_unique_id(self):
+    def _resetUniqueId(self):
         if "unique_id" in self.meta:
-            del self.meta["unique_id"
+            del self.meta["unique_id"]
 
     def uniqueId(self):
         if "unique_id" not in self.meta:
