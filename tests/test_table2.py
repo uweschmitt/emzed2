@@ -540,6 +540,20 @@ def test_missing_values_binary_expressions():
     assert (t.y / t.x).values == (None,)
 
 
+def test_enumeration():
+    t = emzed.utils.toTable("group_1", ["a", "a", "b", "b"])
+    t.addColumn("group_2", (3, 3, 3, 7))
+
+    t.addColumn("group_1_id", t.enumerateBy("group_1"), insertBefore="group_1")
+    t.addColumn("group_2_id", t.enumerateBy("group_2"), insertAfter="group_1_id")
+    t.addColumn("group_12_id", t.enumerateBy("group_1", "group_2"), insertAfter="group_2_id")
+
+    assert t.getColNames() == ["group_1_id", "group_2_id", "group_12_id", "group_1", "group_2"]
+    assert t.group_1_id.values == (0, 0, 1, 1)
+    assert t.group_2_id.values == (0, 0, 0, 1)
+    assert t.group_12_id.values == (0, 0, 1, 2)
+
+
 def test_grouped_aggregate_expressions():
 
     # without missing values #########################################
