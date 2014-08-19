@@ -913,19 +913,25 @@ class BinaryExpression(BaseExpression):
 
 class GroupedAggregateExpression(BaseExpression):
 
-    def __init__(self, left, efun, default_empty, ignore_none, group_by_column):
+    def __init__(self, left, efun, default_empty, ignore_none, group_by_columns):
         self.left = left
         self.efun = efun
         self.default_empty = default_empty
         self.ignore_none = ignore_none
-        self.group_by_column = group_by_column
+        self.group_by_columns = group_by_columns
 
     def _evalsize(self, ctx=None):
         return self.left._evalsize(ctx)
 
     def _eval(self, ctx=None):
         child_values, __, child_type = saveeval(self.left, ctx)
-        group_values, __, group_type = saveeval(self.group_by_column, ctx)
+
+        group_values = []
+        for group_by_column in self.group_by_columns:
+            values, __, group_type = saveeval(group_by_column, ctx)
+            group_values.append(values)
+
+        group_values = zip(*group_values)
 
         grouped_values = collections.defaultdict(list)
         for (g, v) in zip(group_values, child_values):
@@ -961,9 +967,9 @@ class AggregateExpression(BaseExpression):
         self.ignore_none = ignore_none
         self.default_empty = default_empty
 
-    def group_by(self, group_by_column):
+    def group_by(self, *group_by_columns):
         return GroupedAggregateExpression(self.left, self.efun, self.default_empty,
-                                          self.ignore_none, group_by_column)
+                                          self.ignore_none, group_by_columns)
 
     def __call__(self):
         values, _, type_ = self._eval()

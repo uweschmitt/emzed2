@@ -516,7 +516,7 @@ def test_uniuqe_id():
     # peakmap unique id already tested by compression of peakmap:
     t.addColumn("pm", PeakMap([]))
     t.addColumn("blob", Blob("data"))
-    assert t.uniqueId() == "97c21552d3d0189013396c179f69c2154192dcf7bcc75c9d85653c343510740a"
+    assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
 
 
 def test_missing_values_binary_expressions():
@@ -549,6 +549,14 @@ def test_grouped_aggregate_expressions():
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
     assert t.grouped_min.values == (1, 1, 3,)
+    t.print_()
+
+    # int types aggregated by two columns
+    t = emzed.utils.toTable("group_1", [1, 1, 2, 2])
+    t.addColumn("group_2", (1, 1, 1, 2))
+    t.addColumn("values", [1, 2, 3, 4])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group_1, t.group_2))
+    assert t.grouped_min.values == (1, 1, 3, 4,)
     t.print_()
 
     # float types aggregated
