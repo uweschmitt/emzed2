@@ -189,6 +189,7 @@ class Spectrum(object):
             oms_pcs.append(p)
         spec.setPrecursors(oms_pcs)
         spec.set_peaks(self.peaks)
+        spec.updateRanges()
         return spec
 
     def __setstate__(self, state):
