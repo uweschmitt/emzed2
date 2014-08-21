@@ -469,17 +469,16 @@ class PeakMap(object):
         return exp
 
     def splitLevelN(self, msLevel, significant_digits_precursor=2):
-        """splits peakmapt to dictionary of lists of spectra.
-           key of dictionary is precursor m/z rounded to
-           significant_digits_precursor
-        """
-        ms2_spectra = defaultdict(list)
+        """splits peakmap to list of tuples. the first entry of a tuple is the precursor mass, the
+        second one the corresponding peak map of spectra of level *msLevel*"""
+        msn_spectra = defaultdict(list)
         for spectrum in self.spectra:
             if spectrum.msLevel == msLevel:
                 spectrum = copy.copy(spectrum)
                 key = spectrum.precursors[0][0]
                 if significant_digits_precursor is not None:
                     key = round(key, significant_digits_precursor)
-                ms2_spectra[key].append(spectrum)
+                msn_spectra[key].append(spectrum)
 
-        return [(key, PeakMap(values, meta=self.meta.copy())) for (key, values) in ms2_spectra.items()]
+        meta = self.meta.copy()
+        return sorted([(key, PeakMap(values, meta=meta)) for (key, values) in msn_spectra.items()])
