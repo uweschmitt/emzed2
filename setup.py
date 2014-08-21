@@ -26,6 +26,7 @@ setup(name="emzed",
                         "spyder==2.1.13",
                         "html2text",
                         "pandas",
+                        "pacer",
                         "pyopenms",
                         ]
 

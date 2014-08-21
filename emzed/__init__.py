@@ -62,6 +62,7 @@ import elements
 import ext
 import mass
 import updaters
+import wfb
 
 # it is important to import config at last, because a missing config file indicates
 # the first start of emzed. other imported modules might need this information.
