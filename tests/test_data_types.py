@@ -102,7 +102,8 @@ class TestMSTypes(object):
         assert mzmin2 >= 300
         assert mzmax2 <= 1000
 
-        pytest.raises(lambda: pm.spectra[0].peaksInRange())
+        with pytest.raises(Exception):
+            pm.spectra[0].peaksInRange()
 
         pp1 = pm.spectra[0].peaksInRange(mzmax = 10000)
         pp2 = pm.spectra[0].peaksInRange(mzmin = 0)

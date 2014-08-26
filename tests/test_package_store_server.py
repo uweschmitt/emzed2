@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 import StringIO  # cStringIO for upload does not work !
 import requests
+import pytest
 
 import emzed.core.package_store.server as server
 import emzed.core.package_store.client as client
@@ -21,6 +22,7 @@ def test_start_stop(tmpdir):
         assert srv.is_alive()
 
 
+@pytest.mark.skipif()
 def test_store_upload(tmpdir):
     with run_background_server(tmpdir, 55556) as srv:
 
@@ -64,6 +66,7 @@ def test_store_upload(tmpdir):
         assert client.list_files(base_url, "test_account", "/hidden") == dict()
 
 
+@pytest.mark.skipif()
 def test_errors(tmpdir):
 
     @contextmanager
