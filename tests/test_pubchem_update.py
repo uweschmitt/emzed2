@@ -126,8 +126,10 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
 
     # simulate next startup, make db on exchange folder more current than local db
     import time
-    time.sleep(0.05)
     from emzed.db import _db_path
+    # we have to wait more than one second as Mac OS X has a resolution of 1.0 second
+    # for tracking modification times:
+    time.sleep(1.05)
     os.utime(_db_path(exchange_folder), None)  # like "touch" command on linux
 
     # now we should get back that a more update version on exchange folder exists
