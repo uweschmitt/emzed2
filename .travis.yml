@@ -9,14 +9,18 @@ install:
 - pip install --use-wheel cython
 - pip install --allow-all-external --allow-unverified guidata
 - pip install --allow-all-external --allow-unverified guiqwt
+- pip install --allow-all-external --allow-unverified sphinx
 - python setup.py develop
 script:
 - py.test -v --debug tests/
+cache: apt
 virtualenv:
   system_site_packages: true
 before_install:
+- sudo apt-get install -q -y cython
 - sudo apt-get install -q -y python-numpy
 - sudo apt-get install -q -y python-scipy
+- sudo apt-get install -q -y python-pandas
 - sudo apt-get install -q -y python-qt4 
 - sudo apt-get install -q -y python-qwt5-qt4
 - sudo apt-get install -q -y r-base
