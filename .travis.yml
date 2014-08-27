@@ -2,10 +2,10 @@ language: python
 python:
 - '2.7'
 install:
-- easy_install pyopenms
-- pip install -U "pip>=1.4"
-- pip install --use-wheel numpy
-- pip install --use-wheel scipy
+- pip install -U pip 
+- pip install -U setuptools
+- pip install -U wheel
+- pip install --allow-all-external --allow-unverified pyopenms
 - pip install --use-wheel cython
 - pip install --allow-all-external --allow-unverified guidata
 - pip install --allow-all-external --allow-unverified guiqwt
@@ -16,6 +16,8 @@ script:
 virtualenv:
   system_site_packages: true
 before_install:
+- sudo apt-get install -q -y python-numpy
+- sudo apt-get install -q -y python-scipy
 - sudo apt-get install -q -y python-qt4 
 - sudo apt-get install -q -y python-qwt5-qt4
 - sudo apt-get install -q -y r-base
