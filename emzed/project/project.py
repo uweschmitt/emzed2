@@ -87,12 +87,13 @@ def list_projects():
     return result
 
 
-def init(name=None):
+def init(name=None, project_home=None):
     """ creates new project named 'name' in project home folder """
     from ..gui import DialogBuilder, showWarning
-    project_home = global_config.get("project_home").strip()
-    if not project_home:
-        raise Exception("no project folder configured. please run emzed.config.edit()")
+    if project_home is None:
+        project_home = global_config.get("project_home").strip()
+        if not project_home:
+            raise Exception("no project folder configured. please run emzed.config.edit()")
 
     from ..core.packages import create_package_scaffold, check_name
     if name is None:
@@ -129,7 +130,7 @@ def init(name=None):
         open_in_spyder(os.path.join(folder, "setup.py"))
     except:
         pass
-    start_work(name)
+    start_work(name, project_home)
     __builtins__["___start_work_on_%s" % name] = lambda name=name: start_work(name)
 
 
@@ -184,7 +185,6 @@ def stop_work():
     except:
         pass
 
-    #from ..core.config import global_config
     global_config.set_("last_active_project", "")
     global_config.store()
 
@@ -240,30 +240,36 @@ def list_versions(secret=""):
             print "   %s.%s.%s" % v
 
 
-def start_work(name=None):
+def start_work(name=None, project_home=None):
     """ activate project 'name' for working on it """
     import os
     from ..core.packages import is_project_folder
     __builtins__["__old_home"] = os.getcwd()
+    full_path = None
     if name is None:
         if is_project_folder("."):
-            _set_active_project(os.getcwd())
+            full_path = os.path.abspath(os.getcwd())
+            _set_active_project(full_path)
         else:
             raise Exception("either cd to emzed project before you call emzed.project.start_work, "
                             "or provide a project name or a full path")
     else:
-        if is_project_folder(name):
-            _set_active_project(name)
-            print "CWD TO", name
-            os.chdir(name)
+        if project_home is None and is_project_folder(name):  # might happen in workbench
+            full_path = os.path.join(os.path.abspath(os.getcwd()), name)
+            _set_active_project(full_path)
+            print "CWD TO", full_path
+            os.chdir(full_path)
         else:
-            from ..core.config import global_config
-            project_home = global_config.get("project_home").strip()
-            path_in_project_home = os.path.join(project_home, name)
-            if is_project_folder(path_in_project_home):
-                _set_active_project(path_in_project_home)
-                print "CWD TO", path_in_project_home
-                os.chdir(path_in_project_home)
+            if project_home is None:
+                from ..core.config import global_config
+                project_home = global_config.get("project_home").strip()
+                if not project_home:
+                    raise Exception("no project folder configured. please run emzed.config.edit()")
+            full_path = os.path.join(project_home, name)
+            if is_project_folder(full_path):
+                _set_active_project(full_path)
+                print "CWD TO", full_path
+                os.chdir(full_path)
             else:
                 raise Exception("'%s' is not a valid project folder" % name)
 
@@ -275,7 +281,7 @@ def start_work(name=None):
         "python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
     from ..core.config import global_config
-    global_config.set_("last_active_project", name)
+    global_config.set_("last_active_project", full_path)
     global_config.store()
 
     proc = subprocess.Popen("pip show %s" % name, shell=True, stdout=subprocess.PIPE)
