@@ -17,6 +17,7 @@ install:
 - pip install sphinx
 script:
 - py.test -v --debug tests/
+- cat pytestdebug.log
 cache: apt
 virtualenv:
   system_site_packages: true
