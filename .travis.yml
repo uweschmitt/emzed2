@@ -9,7 +9,6 @@ install:
 - pip install --use-wheel cython
 - pip install --allow-all-external --allow-unverified guidata
 - pip install --allow-all-external --allow-unverified guiqwt
-- pip install -r requirements.txt --use-mirrors
 - python setup.py develop
 script:
 - py.test -v --debug tests/
