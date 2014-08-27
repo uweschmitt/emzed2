@@ -2,16 +2,18 @@ language: python
 python:
 - '2.7'
 install:
-- pip install -U pip 
+- pip install -U pip
 - pip install -U setuptools
 - pip install -U wheel
 - easy_install  pyopenms
 - pip install --use-wheel cython
 - pip install --allow-all-external --allow-unverified guidata guidata
 - pip install --allow-all-external --allow-unverified guiqwt guiqwt
-- pip install --allow-all-external --allow-unverified sphinx sphinx
+- pip install sphinx
 - python setup.py develop
+- pip install sphinx
 script:
+- pip install sphinx
 - py.test -v --debug tests/
 cache: apt
 virtualenv:
@@ -21,13 +23,13 @@ before_install:
 - sudo apt-get install -q -y python-numpy
 - sudo apt-get install -q -y python-scipy
 - sudo apt-get install -q -y python-pandas
-- sudo apt-get install -q -y python-qt4 
+- sudo apt-get install -q -y python-qt4
 - sudo apt-get install -q -y python-qwt5-qt4
 - sudo apt-get install -q -y r-base
 - sudo apt-get install -q -y python-matplotlib
-- sudo apt-get install -q -y r-cran-rmpi 
+- sudo apt-get install -q -y r-cran-rmpi
 - sudo apt-get install -q -y r-cran-rsprng
-- sudo apt-get install -q -y libnetcdf-dev 
+- sudo apt-get install -q -y libnetcdf-dev
 - sudo apt-get install -q -y libfftw3-dev
 env:
   global:
