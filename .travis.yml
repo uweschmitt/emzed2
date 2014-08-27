@@ -3,10 +3,12 @@ python:
 - '2.7'
 install:
 - easy_install pyopenms
-- pip install "pip>=1.4"
-- pip install cython
-- pip install guidata==1.6.1
-- pip install guiqwt==2.3.1
+- pip install -U "pip>=1.4"
+- pip install --use-wheel cython
+- pip install --allow-all-external guidata==1.6.1
+- pip install --use-wheel numpy
+- pip install --use-wheel scipy
+- pip install --allow-all-external guiqwt==2.3.1
 - pip install -r requirements.txt --use-mirrors
 - python setup.py develop
 script:
@@ -14,8 +16,6 @@ script:
 virtualenv:
   system_site_packages: true
 before_install:
-- sudo apt-get install -q -y python-numpy 
-- sudo apt-get install -q -y python.scipy 
 - sudo apt-get install -q -y python-qt4 
 - sudo apt-get install -q -y python-qwt5-qt4
 - sudo apt-get install -q -y r-base
