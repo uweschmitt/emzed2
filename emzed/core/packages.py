@@ -47,6 +47,10 @@ PKG_NAME = %(pkg_name)r
 
 VERSION = %(version)r
 
+# list all required packages here:
+
+REQUIRED_PACKAGES = ["emzed", ]
+
 
 ### install package as emzed extension ? #############################################
 #   -> package will appear in emzed.ext namespace after installation
@@ -66,8 +70,6 @@ APP_MAIN = "%(pkg_name)s.app:run"
 AUTHOR = %(author)r
 AUTHOR_EMAIL = %(author_email)r
 AUTHOR_URL = %(author_url)r
-
-# HINT: to modify version edit %(pkg_name)s/version.py !!!
 
 
 ### package descriptions #############################################################
@@ -111,18 +113,6 @@ if APP_MAIN is not None:
 
 if __name__ == "__main__":   # allows import setup.py for version checking
 
-    import distutils.config
-
-    def patched(self):
-        return dict(realm="pypi",
-                    username=%(user)r,
-                    password=%(password)r,
-                    repository=%(repository)r,
-                    server="local",
-                    )
-    distutils.config.PyPIRCCommand._read_pypirc = patched
-
-
     from setuptools import setup
     setup(name=PKG_NAME,
         packages=[ PKG_NAME ],
@@ -133,7 +123,8 @@ if __name__ == "__main__":   # allows import setup.py for version checking
         long_description=LONG_DESCRIPTION,
         license=LICENSE,
         version=VERSION_STRING,
-        entry_points = ENTRY_POINTS
+        entry_points = ENTRY_POINTS,
+        install_requires = REQUIRED_PACKAGES,
         )
    """
 
