@@ -122,6 +122,7 @@ APIs: Detailed List
     api_stats
     api_gui
     api_other
+    projects
 
 
 

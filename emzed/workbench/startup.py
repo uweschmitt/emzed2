@@ -35,7 +35,7 @@ sys.path.pop(0)
 
 import sitecustomize
 print "loaded sitecustomize from", sitecustomize.__file__
-print "spyder encoding is set to", os.environ['SPYDER_ENCODING']
+print "spyder encoding is set to", os.environ.get('SPYDER_ENCODING')
 
 # Remove this module's path from sys.path:
 try:
@@ -157,7 +157,7 @@ on Windows platforms (only IPython v0.10 is fully supported).
         __ipythonshell__ = IPython.Shell.start(user_ns=user_ns)
         # modification eMZEd end ##############################################
 
-        __ipythonshell__.IP.stdin_encoding = os.environ['SPYDER_ENCODING']
+        __ipythonshell__.IP.stdin_encoding = os.environ.get('SPYDER_ENCODING', 'latin-1')
         __ipythonshell__.IP.autoindent = 0
 
 
