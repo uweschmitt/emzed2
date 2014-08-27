@@ -87,12 +87,15 @@ def list_projects():
     return result
 
 
-def init(name=None):
+def init(name=None, folder=None):
     """ creates new project named 'name' in project home folder """
     from ..gui import DialogBuilder, showWarning
-    project_home = global_config.get("project_home").strip()
-    if not project_home:
-        raise Exception("no project folder configured. please run emzed.config.edit()")
+    if folder is not None:
+        project_home = folder
+    else:
+        project_home = global_config.get("project_home").strip()
+        if not project_home:
+            raise Exception("no project folder configured. please run emzed.config.edit()")
 
     from ..core.packages import create_package_scaffold, check_name
     if name is None:
