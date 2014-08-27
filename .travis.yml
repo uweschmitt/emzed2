@@ -5,11 +5,11 @@ install:
 - pip install -U pip 
 - pip install -U setuptools
 - pip install -U wheel
-- pip install --allow-all-external --allow-unverified pyopenms
+- pip install --allow-all-external --allow-unverified pyopenms pyopenms
 - pip install --use-wheel cython
-- pip install --allow-all-external --allow-unverified guidata
-- pip install --allow-all-external --allow-unverified guiqwt
-- pip install --allow-all-external --allow-unverified sphinx
+- pip install --allow-all-external --allow-unverified guidata guidata
+- pip install --allow-all-external --allow-unverified guiqwt guiqwt
+- pip install --allow-all-external --allow-unverified sphinx sphinx
 - python setup.py develop
 script:
 - py.test -v --debug tests/
