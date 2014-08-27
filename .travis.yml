@@ -13,7 +13,6 @@ install:
 - python setup.py develop
 - pip install sphinx
 script:
-- pip install sphinx
 - py.test -v --debug tests/
 cache: apt
 virtualenv:
