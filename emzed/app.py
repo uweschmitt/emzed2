@@ -6,7 +6,10 @@ reload(pkg_resources)  # migh be loaded already and is not up to date
 _loaded = []
 
 for ep in pkg_resources.iter_entry_points("emzed_package", name="main"):
-    runner = ep.load()
+    try:
+        runner = ep.load()
+    except:
+        continue
     _loaded.append(ep.module_name)
     name = ep.module_name.split(".")[0]
     #print "$$$ loaded emzed.app.%s from %s " % (name, runner)
