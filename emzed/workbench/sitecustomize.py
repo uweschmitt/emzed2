@@ -35,7 +35,8 @@ if os.environ.get("COLORIZE_SYS_STDERR", "").lower() == "true"\
             sys.stderr = self
 
         def __getattr__(self, name):
-            return getattr(self.old_stderr, name)
+            if hasattr(self, "old_stderr"):
+                return getattr(self.old_stderr, name)
 
         def write(self, text):
             if os.name == 'nt' and '\n' not in text:

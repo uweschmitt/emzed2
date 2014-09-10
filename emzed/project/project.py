@@ -1,6 +1,8 @@
 from ..core.config import global_config
 from ..core.packages import is_project_folder
 import os
+import glob
+import shutil
 import sys
 import subprocess
 
@@ -87,12 +89,13 @@ def list_projects():
     return result
 
 
-def init(name=None):
+def init(name=None, project_home=None):
     """ creates new project named 'name' in project home folder """
     from ..gui import DialogBuilder, showWarning
-    project_home = global_config.get("project_home").strip()
-    if not project_home:
-        raise Exception("no project folder configured. please run emzed.config.edit()")
+    if project_home is None:
+        project_home = global_config.get("project_home").strip()
+        if not project_home:
+            raise Exception("no project folder configured. please run emzed.config.edit()")
 
     from ..core.packages import create_package_scaffold, check_name
     if name is None:
@@ -129,7 +132,7 @@ def init(name=None):
         open_in_spyder(os.path.join(folder, "setup.py"))
     except:
         pass
-    start_work(name)
+    start_work(name, project_home)
     __builtins__["___start_work_on_%s" % name] = lambda name=name: start_work(name)
 
 
@@ -159,17 +162,19 @@ def install_builtins():
 def _install_builtins_after_workon():
     __builtins__["___stop_work"] = stop_work
     __builtins__["___run_tests"] = run_tests
-    __builtins__["___upload_to_package_store"] = upload
-    __builtins__["___remove_from_package_store"] = remove_from_package_store
-    __builtins__["___list_versions_on_package_store"] = list_versions
+    __builtins__["___build_wheel"] = build_wheel
+    __builtins__["___install_wheel"] = install_wheel
+    # __builtins__["___upload_to_package_store"] = _upload
+    # __builtins__["___remove_from_package_store"] = _remove_from_package_store
+    # __builtins__["___list_versions_on_package_store"] = _list_versions
 
 
 def _uninstall_builtins_after_stop_work():
     del __builtins__["___stop_work"]
     del __builtins__["___run_tests"]
-    del __builtins__["___upload_to_package_store"]
-    del __builtins__["___remove_from_package_store"]
-    del __builtins__["___list_versions_on_package_store"]
+    # del __builtins__["___upload_to_package_store"]
+    # del __builtins__["___remove_from_package_store"]
+    # del __builtins__["___list_versions_on_package_store"]
 
 
 def stop_work():
@@ -184,7 +189,6 @@ def stop_work():
     except:
         pass
 
-    #from ..core.config import global_config
     global_config.set_("last_active_project", "")
     global_config.store()
 
@@ -201,14 +205,53 @@ def run_tests(filter_=None):
                     stdout=sys.__stdout__)
 
 
-def upload(secret=""):
+def build_wheel():
+    """ creates a wheel for distributing current package """
+    ap = _get_active_project()
+    now = os.getcwd()
+    os.chdir(ap)
+    try:
+        rv = subprocess.call("python setup.py bdist_wheel", shell=True, stderr=sys.__stdout__, stdout=sys.__stdout__)
+        print
+        print "IF YOU GOT THE MESSAGE THAT THE WHEEL ALREADY EXISTS YOU SHOULD REMOVE THE WHEEL"
+        print "OR UPDATE THE VERSION NUMBER IN setup.py"
+        print
+        dist_folder = os.path.join(ap, "dist")
+        wheels = os.listdir(dist_folder)
+        for w in wheels:
+            shutil.move(os.path.join(dist_folder, w), ".")
+        print
+        print "FOR DISTRIBUTION:"
+        for w in glob.glob("*.whl"):
+            print "CREATED", w
+        print
+    finally:
+        os.chdir(now)
+
+
+def install_wheel(wheel_file=None):
+    from ..gui import askForSingleFile
+    if wheel_file is None:
+        wheel_file = askForSingleFile(extensions=["whl"])
+        if wheel_file is None:
+            raise Exception("installation of wheel aborted")
+    if not os.path.exists(wheel_file):
+        raise Exception("%s not found" % wheel_file)
+    __, ext = os.path.splitext(wheel_file)
+    if ext.lower() != ".whl":
+        raise Exception("wrong extension of %s, expected .whl" % wheel_file)
+    subprocess.call("pip install %s" % wheel_file, shell=True, stderr=sys.__stdout__, stdout=sys.__stdout__)
+
+
+
+def _upload(secret=""):
     """ uploads current project to package store"""
     ap = _get_active_project()
     from ..core.packages import upload_to_emzed_store
     upload_to_emzed_store(ap, secret)
 
 
-def remove_from_package_store(version_string, secret=""):
+def _remove_from_package_store(version_string, secret=""):
     """ removes version 'version_string' of current project from package store """
     ap = _get_active_project()
     from ..core.packages import delete_from_emzed_store
@@ -223,7 +266,7 @@ def remove_from_package_store(version_string, secret=""):
     delete_from_emzed_store(name, version_string, secret)
 
 
-def list_versions(secret=""):
+def _list_versions(secret=""):
     """ lists available versions of current project on package store """
     ap = _get_active_project()
     from ..core.packages import list_packages_from_emzed_store
@@ -240,30 +283,36 @@ def list_versions(secret=""):
             print "   %s.%s.%s" % v
 
 
-def start_work(name=None):
+def start_work(name=None, project_home=None):
     """ activate project 'name' for working on it """
     import os
     from ..core.packages import is_project_folder
     __builtins__["__old_home"] = os.getcwd()
+    full_path = None
     if name is None:
         if is_project_folder("."):
-            _set_active_project(os.getcwd())
+            full_path = os.path.abspath(os.getcwd())
+            _set_active_project(full_path)
         else:
             raise Exception("either cd to emzed project before you call emzed.project.start_work, "
                             "or provide a project name or a full path")
     else:
-        if is_project_folder(name):
-            _set_active_project(name)
-            print "CWD TO", name
-            os.chdir(name)
+        if project_home is None and is_project_folder(name):  # might happen in workbench
+            full_path = os.path.join(os.path.abspath(os.getcwd()), name)
+            _set_active_project(full_path)
+            print "CWD TO", full_path
+            os.chdir(full_path)
         else:
-            from ..core.config import global_config
-            project_home = global_config.get("project_home").strip()
-            path_in_project_home = os.path.join(project_home, name)
-            if is_project_folder(path_in_project_home):
-                _set_active_project(path_in_project_home)
-                print "CWD TO", path_in_project_home
-                os.chdir(path_in_project_home)
+            if project_home is None:
+                from ..core.config import global_config
+                project_home = global_config.get("project_home").strip()
+                if not project_home:
+                    raise Exception("no project folder configured. please run emzed.config.edit()")
+            full_path = os.path.join(project_home, name)
+            if is_project_folder(full_path):
+                _set_active_project(full_path)
+                print "CWD TO", full_path
+                os.chdir(full_path)
             else:
                 raise Exception("'%s' is not a valid project folder" % name)
 
@@ -275,7 +324,7 @@ def start_work(name=None):
         "python setup.py develop", shell=True, stderr=sys.__stderr__, stdout=sys.__stdout__)
 
     from ..core.config import global_config
-    global_config.set_("last_active_project", name)
+    global_config.set_("last_active_project", full_path)
     global_config.store()
 
     proc = subprocess.Popen("pip show %s" % name, shell=True, stdout=subprocess.PIPE)

@@ -61,8 +61,7 @@ class IsotopeDistributionGenerator(object):
         self.R = R
         if R is not None:
             # filter out "other isotopes" with abundance < minp:
-            self.centroids = [(m, iso_mf, a)
-                              for (m, iso_mf, a) in self.centroids if m is not None]
+            self.centroids = [(m, iso_mf, a) for (m, iso_mf, a) in self.centroids if m is not None]
             self.centroids = self._measuredCentroids()
 
     def _theoreticalCentroids(self):
@@ -127,6 +126,8 @@ class IsotopeDistributionGenerator(object):
         """ measured intensity at mass *m0* for given resolution """
         sum_ = 0.0
         for mass, mf, abundance in self.centroids:
+            if mass is None:
+                continue
             deltam = mass / self.R
             two_sigma_square = deltam * deltam / math.log(16.0)
             sum_ += abundance * np.exp(-(m0 - mass) ** 2 / two_sigma_square)
@@ -150,14 +151,17 @@ class IsotopeDistributionGenerator(object):
         window = []
         self.centroids.sort()
         lastm = self.centroids[0][0]
-        for m, iso_mf, a in self.centroids:
-            if m > lastm + 0.10:
+        if lastm is not None:
+            for m, iso_mf, a in self.centroids:
+                if m is None:
+                    continue
+                if m > lastm + 0.10:
+                    allGroupedPeaks.append(window)
+                    window = []
+                    lastm = m
+                window.append((m, iso_mf, a))
+            if window:
                 allGroupedPeaks.append(window)
-                window = []
-                lastm = m
-            window.append((m, iso_mf, a))
-        if window:
-            allGroupedPeaks.append(window)
 
         allCentroids = []
         for groupedPeaks in allGroupedPeaks:
@@ -171,8 +175,9 @@ class IsotopeDistributionGenerator(object):
         import matplotlib
         matplotlib.use("Qt4Agg")
         import pylab as pl
-        minMass = self.centroids[0][0]
-        maxMass = self.centroids[-1][0]
+        masses =  [c[0] for c in self.centroids if c[0] is not None]
+        minMass = min(masses)
+        maxMass = max(masses)
         if plotGauss is None:
             plotGauss = self.R is not None
         if plotGauss:
@@ -184,7 +189,7 @@ class IsotopeDistributionGenerator(object):
             # draw axis
             pl.plot([minMass - 0.05, maxMass + 0.05], [0, 0])
             # draw sticks
-            for m, a in self.centroids:
+            for m, __, a in self.centroids:
                 pl.plot([m, m], [0, a], "b")
 
         # rescale y axis, looks better:

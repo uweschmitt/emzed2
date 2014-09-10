@@ -12,6 +12,9 @@
 # serve to show the default.
 
 import sys, os
+import sphinx_bootstrap_theme
+# import sphinx_rtd_theme
+# import alabaster
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -29,6 +32,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.viewcode',
               'pycon',
+              'sphinxcontrib.fancybox',
+              # 'alabaster',
               #'sphinxcontrib.googleanalytics',
               #'sphinxcontrib.spelling'
               ]
@@ -51,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'emzed'
-copyright = u'2013, Uwe Schmitt & Patrick Kiefer'
+copyright = u'2012-2014, Uwe Schmitt & Patrick Kiefer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -106,15 +111,22 @@ pygments_style = 'friendly'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'emzed'
+html_theme = 'bootstrap'
+
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+        'globaltoc_depth': 2,
+         'navbar_class': "navbar navbar-inverse",
+         'bootswatch_theme': "modified_simplex",    # modified simplex !
+
+        }
+html_theme_path = ["_themes"]
+
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ["_themes"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -146,7 +158,16 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+           '**': [
+                      # 'about.html', 'navigation.html', 'searchbox.html', 'donate.html',
+                       'navigation.html'
+                         ]
+           }
+
+html_sidebars = {'**': ['localtoc.html']} #, 'navigation.html' , 'sourcelink.html', 'searchbox.html']}
+html_sidebars = {}
+
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -220,6 +241,9 @@ latex_documents = [
 # If false, no module index is generated.
 #latex_domain_indices = True
 
+
+fancybox_thumbnail_width = "50%"
+fancybox_thumbnail_height = "50%"
 
 spelling_lang='en_US'
 spelling_show_suggestions=True

@@ -1,51 +1,53 @@
 def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
-    """ import runPeakPickerHiRes
-         runs peakPickerHiRes fron openMs in batch mode.
-         input files are map files (mzXML, mxML, mzData),
-         ouput files are mzML files, with extended file name.
+    """ import runPeakPickerHiRes.
+    runs peakPickerHiRes from openMs in batch mode.
+    - input files are map files (mzXML, mxML, mzData),
+    - ouput files are mzML files, with extended file name.
+    - *pattern* is
+    - *destination* is the path of the output file
+    - *configid* is
 
-         you can add modifications to the standard parameters, eg
-         signal_to_noise, as named arguments.
+    You can add modifications to the standard parameters, e. g.
+    *signal_to_noise*, as named arguments.
 
-         if you have multiple configs for the peakpicker, you can give an
-         configid as defined in algorithm_configs.py, or you are asked to choose
-         a config.
+    If you have multiple configs for the peakpicker, you can give an
+    configid as defined in algorithm_configs.py, or you are asked to choose
+    a config.
 
-         if you have a single config this one is used automatically
+    If you have a single config this one is used automatically.
 
-         examples:
+    Examples:
+    
+    - runPeakPickerHiRes()
+       asks for source files and target directory
+       asks for config if multiple algorithm_configs are defined
 
-              runPeakPickerHiRes():
-                     asks for source files and target directory
-                     asks for config if multiple algorithm_configs are defined
+    - runPeakPickerHiRes(configid="std", signal_to_noise = 2.0)
+       uses config with id "std", overwrites signal_to_noise
+       parameter with signal_to_noise=2.0.
 
-              runPeakPickerHiRes(configid="std", signal_to_noise = 2.0)
-                     uses config with id "std", overwrites signal_to_noise
-                     parameter with signal_to_noise=2.0.
+    - runPeakPickerHiRes(signal_to_noise = 2.0)
+       asks for source files and target directory
+       runs peak picking with modified parameter.
 
-              runPeakPickerHiRes(signal_to_noise = 2.0)
-                     asks for source files and target directory
-                     runs peak picking with modified parameter.
+    - runPeakPickerHiRes(pattern)
+       looks for map files matching pattern
+       resulting mzML files are stored next to input map file
 
-              runPeakPickerHiRes(pattern):
-                     looks for map files matching pattern
-                     resulting mzML files are stored next to input map file
+    - runPeakPickerHiRes(pattern, signal_to_noise = 2.0)
+       looks for map files matching pattern
+       resulting mzML files are stored next to input map file
+       runs peak picking with modified parameter
 
-              runPeakPickerHiRes(pattern, signal_to_noise = 2.0)
-                     looks for map files matching pattern
-                     resulting mzML files are stored next to input map file
-                     runs peak picking with modified parameter
+    - runPeakPickerHiRes(pattern, destination)
+       looks for map files matching pattern
+       resulting mzML files are stored at destination directory
 
-              runPeakPickerHiRes(pattern, destination):
-                     looks for map files matching pattern
-                     resulting mzML files are stored at destination directory
-
-              runPeakPickerHiRes(pattern, destination, signal_to_noise = 2.0)
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-                     runs peak picking with modified parameter
-
+    - runPeakPickerHiRes(pattern, destination, signal_to_noise = 2.0)
+       looks for map files matching pattern
+       resulting csv files are stored at destination directory
+       runs peak picking with modified parameter
     """
 
 

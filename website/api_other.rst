@@ -1,3 +1,5 @@
+.. _api_other:
+
 API helper modules
 ==================
 
@@ -22,7 +24,7 @@ Data of chemical elements are available from the *elements* module, e.g:
 
 .. automodule:: emzed.mass
 
-Masses and Masscalculation
+Masses and Mass Calculation
 --------------------------
 
 Masses can be queried like this:

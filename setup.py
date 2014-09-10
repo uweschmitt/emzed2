@@ -3,12 +3,12 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version_str = "2.2.4"
-
+version = (2, 3, 3)
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
-      version=version_str,
+      version="%d.%d.%d" % version,
+      description="Rewrite of emzed framework for LCMS data analysis",
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",
                           "emzed.inspect = emzed.cmdline:inspect",
@@ -22,11 +22,11 @@ setup(name="emzed",
                         "guidata>=1.6.0",
                         "guiqwt>=2.3.1",
                         "requests",
-                        "sphinx",
                         "spyder==2.1.13",
+                        # "sphinx",
                         "html2text",
                         "pandas",
-                        "pyopenms",
+                        # "pyopenms",
                         ]
 
       )

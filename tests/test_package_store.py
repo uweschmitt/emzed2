@@ -32,6 +32,7 @@ def setup_config():
     global_config.set_("emzed_store_url", "http://localhost:33336")
 
 
+@pytest.mark.xfail
 def test_basics(tmpdir):
     setup_config()
 
@@ -74,6 +75,7 @@ def test_project_scaffold(tmpdir):
         emzed.core.packages.create_package_scaffold(pkg_dir, "minimal_package2")
 
 
+@pytest.mark.xfail
 def test_minimal_package(tmpdir):
     setup_config()
 

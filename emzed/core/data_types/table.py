@@ -2,20 +2,23 @@ import copy
 import os
 import itertools
 import re
-import numpy
+import hashlib
 import cPickle
 import cStringIO
 import sys
 import inspect
-import numpy as np
 from collections import Counter, OrderedDict, defaultdict
 import warnings
 
-import emzed
-from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+import numpy as np
 import pyopenms
 
+from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+
 from . import tools
+
+from .ms_types import PeakMap
+from .col_types import Blob
 
 __doc__ = """
 
@@ -38,7 +41,7 @@ def guessFormatFor(name, type_):
             return "%.5f"
         if name.startswith("rt"):
             return fms
-    return standardFormats.get(type_, "%s")
+    return standardFormats.get(type_, "%r")
 
 
 def computekey(o):
@@ -140,10 +143,10 @@ class Table(object):
 
     format can be:
 
-         - a string interpolation string, e.g. "%.2f"
-         - ``None``, which suppresses rendering of this column
-         - python code which renders an object of name ``o``, e.g.
-           ``str(o)+"x"``
+    - a string interpolation string, e.g. "%.2f"
+    - ``None``, which suppresses rendering of this column
+    - python code which renders an object of name ``o``, e.g.
+      ``str(o)+"x"``
 
     """
 
@@ -354,6 +357,9 @@ class Table(object):
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
             setattr(self, name, col)
 
+    def numCols(self):
+        return len(self._colNames)
+
     def numRows(self):
         """
         returns the number of rows
@@ -531,35 +537,71 @@ class Table(object):
                          self.primaryIndex.get(n),
                          self.getColumn(n).type_)) for n in names)
 
-    def addEnumeration(self, colName="id"):
+    def enumerateBy(self, *column_names):
+        """returns a list of numbers for enumerating the rows grouped by the given column
+        names
+
+        For example: If we have a table `t` with entries::
+
+            v1    v2
+            str   int
+            ----- -----
+            a      3
+            a      3
+            b      3
+            b      7
+
+        Then the following statements are true::
+
+            t.enumerateBy("v1") == [0, 0, 1, 1]
+            t.enumerateBy("v2") == [0, 0, 0, 1]
+            t.enumerateBy("v1", "v2") == [0, 0, 1, 2]
+
+        This can be used as::
+
+            t.addColumn("v1_v2_id", t.enumerateBy("v1", "v2"), insertBefore=0)
+
+        which yields::
+
+            v1_v2_id  v1    v2
+            int       str   int
+            --------  ----- -----
+            0         a      3
+            0         a      3
+            1         b      3
+            2         b      7
+        """
+        if not column_names:
+            return range(len(self))
+
+        idxs = [self.colIndizes[name] for name in column_names]
+        enumeration = dict()
+        i = 0
+        for row in self.rows:
+            key = tuple(row[i] for i in idxs)
+            if key not in enumeration:
+                enumeration[key] = i
+                i += 1
+
+        values = []
+        for row in self.rows:
+            key = tuple(row[i] for i in idxs)
+            values.append(enumeration.get(key))
+        return values
+
+    def addEnumeration(self, colName="id", insertBefore=None, insertAfter=None):
         """ adds enumerated column as first column to table **in place**.
 
             if ``colName`` is not given the default name is *"id"*
 
             Enumeration starts with zero.
         """
-
         if colName in self._colNames:
             raise Exception("column with name %r already exists" % colName)
-        self._colNames.insert(0, colName)
-        self._colTypes.insert(0, int)
-        if len(self) > 99999:
-            fmt = "%6d"
-        elif len(self) > 9999:
-            fmt = "%5d"
-        elif len(self) > 999:
-            fmt = "%4d"
-        elif len(self) > 99:
-            fmt = "%3d"
-        elif len(self) > 9:
-            fmt = "%2d"
-        else:
-            fmt = "%d"
-        fmt = "%d"
-        self._colFormats.insert(0, fmt)
-        for i, r in enumerate(self.rows):
-            r.insert(0, i)
-        self.resetInternals()
+        col_idx = self._find_insert_column(insertBefore, insertAfter, 0)
+
+        values = self.enumerateBy()
+        self._addColumFromIterable(colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
     def sortBy(self, colNames, ascending=True):
         """
@@ -906,21 +948,21 @@ class Table(object):
         """
         replaces column ``name`` **in place**.
 
-          - ``name`` is name of the new column
-          - ``*type_`` is one of the valid types described above.
-            If ``type_ == None`` the method tries to guess the type from ``what``.
-          - ``format_`` is a format string as "%d" or ``None`` or an executable
-            string with python code.
-            If you use ``format_=""`` the method will try to determine a
-            default format for the type.
+        - ``name`` is name of the new column
+        - ``*type_`` is one of the valid types described above.
+          If ``type_ == None`` the method tries to guess the type from ``what``.
+        - ``format_`` is a format string as "%d" or ``None`` or an executable
+          string with python code.
+          If you use ``format_=""`` the method will try to determine a
+          default format for the type.
 
         For the values ``what`` you can use
 
-           - an expression (see :py:class:`~emzed.core.data_types.expressions.Expression`)
-             as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
-           - a callback with signature ``callback(table, row, name)``
-           - a constant value
-           - a list with the correct length.
+        - an expression (see :py:class:`~emzed.core.data_types.expressions.Expression`)
+          as ``table.addColumn("diffrt", table.rtmax-table.rtmin)``
+        - a callback with signature ``callback(table, row, name)``
+        - a constant value
+        - a list with the correct length.
 
         """
 
@@ -1020,6 +1062,32 @@ class Table(object):
         values = list(iterable)
         return self._addColumn(name, values, type_, format_, insertBefore, insertAfter)
 
+
+    def _find_insert_column(self, insertBefore, insertAfter, default=None):
+        if insertBefore is None and insertAfter is None:
+            if default is not None:
+                return default
+            return len(self._colNames)
+
+        if insertBefore is not None and insertAfter is not None:
+            raise Exception("can not handle insertBefore and insertAfter at the same time")
+
+        if insertBefore is not None:
+            # colname -> index
+            if isinstance(insertBefore, str):
+                if insertBefore not in self._colNames:
+                    raise Exception("column %r does not exist", insertBefore)
+                return self.getIndex(insertBefore)
+            return insertBefore
+
+        # colname -> index
+        if isinstance(insertAfter, str):
+            if insertAfter not in self._colNames:
+                raise Exception("column %r does not exist", insertAfter)
+            return self.getIndex(insertAfter) + 1
+        return insertAfter + 1
+
+
     def _addColumn(self, name, values, type_, format_, insertBefore, insertAfter):
         # works for lists, numbers, objects: converts inner numpy dtypes
         # to python types if present, else does nothing !!!!
@@ -1036,56 +1104,14 @@ class Table(object):
         if format_ == "":
             format_ = guessFormatFor(name, type_)
 
-        if insertBefore is None and insertAfter is None:
-            # list.insert(len(list), ..) is the same as append(..) !
-            insertBefore = len(self._colNames)
-
-        if insertBefore is not None and insertAfter is not None:
-            raise Exception("can not handle insertBefore and insertAfter at the same time")
-
-        if insertBefore is not None:
-            # colname -> index
-            if isinstance(insertBefore, str):
-                if insertBefore not in self._colNames:
-                    raise Exception("column %r does not exist", insertBefore)
-                insertBefore = self.getIndex(insertBefore)
-
-            # now insertBefore is an int, or something we can not handle
-            if isinstance(insertBefore, int):
-                if insertBefore < 0:  # indexing from back
-                    insertBefore += len(self._colNames)
-                self._colNames.insert(insertBefore, name)
-                self._colTypes.insert(insertBefore, type_)
-                self._colFormats.insert(insertBefore, format_)
-                for row, v in zip(self.rows, values):
-                    row.insert(insertBefore, v)
-
-            else:
-                raise Exception("can not handle insertBefore=%r" % insertBefore)
-
-        if insertAfter is not None:
-            # colname -> index
-            if isinstance(insertAfter, str):
-                if insertAfter not in self._colNames:
-                    raise Exception("column %r does not exist", insertAfter)
-                insertAfter = self.getIndex(insertAfter)
-
-            # now insertAfter is an int, or something we can not handle
-            if isinstance(insertAfter, int):
-                if insertAfter < 0:  # indexing from back
-                    insertAfter += len(self._colNames)
-                self._colNames.insert(insertAfter + 1, name)
-                self._colTypes.insert(insertAfter + 1, type_)
-                self._colFormats.insert(insertAfter + 1, format_)
-                if insertAfter == len(self._colNames) - 1:
-                    for row, v in zip(self.rows, values):
-                        row.append(v)
-                else:
-                    for row, v in zip(self.rows, values):
-                        row.insert(insertAfter + 1, v)
-
-            else:
-                raise Exception("can not handle insertAfter=%r" % insertAfter)
+        col_ = self._find_insert_column(insertBefore, insertAfter)
+        if col_ < 0:
+            col_ += len(self._colNames)
+        self._colNames.insert(col_, name)
+        self._colTypes.insert(col_, type_)
+        self._colFormats.insert(col_, format_)
+        for row, v in zip(self.rows, values):
+            row.insert(col_, v)
 
         self.resetInternals()
 
@@ -1116,18 +1142,19 @@ class Table(object):
     def resetInternals(self):
         """  **internal method**
 
-            must be called after manipulation  of
+        must be called after manipulation  of
 
-            - self._colNames
-            - self._colFormats
+        - self._colNames
+        - self._colFormats
 
         or
 
-            - self.rows
+        - self.rows
         """
         self._setupFormatters()
         self._updateIndices()
         self._setupColumnAttributes()
+        self._resetUniqueId()
 
     def uniqueRows(self):
         """
@@ -1351,7 +1378,7 @@ class Table(object):
                     rows.extend([r1[:] + row[:] for row in t.rows])
                 else:
                     rows.extend([r1[:] + filler[:]])
-            elif numpy.any(flags):
+            elif np.any(flags):
                 rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
             else:
                 rows.extend([r1[:] + filler[:]])
@@ -1514,7 +1541,7 @@ class Table(object):
         if type_ is None:
             type_ = common_type_for(values)
         if format_ == "":
-            format_ = guessFormatFor(colName, type_) or "%r"
+            format_ = guessFormatFor(colName, type_)
         if meta is None:
             meta = dict()
         else:
@@ -1650,6 +1677,32 @@ class Table(object):
         result.append(extended_tables[1:])
         return result
 
+    @staticmethod
+    def stackTables(tables):
+        """dumb and fast version of Table.mergeTables if all tables have common column
+        names, types and formats unless they are empty.
+        """
+        if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different number columns")
+        if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
+            raise Exception("tables have different column names")
+
+        # check types and formats for non emtpy tables
+        ne = [t for t in tables if len(t) > 0]
+        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(ne, ne[1:])):
+            raise Exception("tables have different column types")
+        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(ne, ne[1:])):
+            raise Exception("tables have different column formats")
+
+        all_rows = [row[:] for t in tables for row in t.rows]
+
+        for t0 in tables:    # look for first non emtpy table
+            if len(t0):
+                break
+        else:
+            return t0
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, dict())
+
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)
 
@@ -1666,13 +1719,35 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
+    def _resetUniqueId(self):
+        if "unique_id" in self.meta:
+            del self.meta["unique_id"]
+
+    def uniqueId(self):
+        if "unique_id" not in self.meta:
+            h = hashlib.sha256()
+            def update(what):
+                h.update(cPickle.dumps(what))
+
+            update(self._colNames)
+            update(self._colTypes)
+            update(self._colFormats)
+            for row in self.rows:
+                for val in row:
+                    if isinstance(val, (Table, PeakMap, Blob)):
+                        h.update(val.uniqueId())
+                    else:
+                        update(val)
+            self.meta["unique_id"] = h.hexdigest()
+        return self.meta["unique_id"]
+
+
     def compressPeakMaps(self):
         """
         sometimes duplicate peakmaps occur as different objects in a table, that is: different id()
         but same content.  this function removes duplicates and replaces different instances of the
         same data by one particular instance.
         """
-        from .ms_types import PeakMap
         # simulate set like behaviour. we do not use a Python set as we do not want to
         # overwrite PeakMap.__hash__
         #

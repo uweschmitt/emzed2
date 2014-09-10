@@ -1,5 +1,6 @@
 
-from emzed.core.data_types import Table
+from emzed.core.data_types import Table, PeakMap
+from emzed.core.data_types.col_types import Blob
 import emzed.utils
 import emzed.mass
 import numpy as np
@@ -509,6 +510,15 @@ def test_collapse():
     assert len(subs[2]) == 1
 
 
+def test_uniuqe_id():
+    ti = emzed.utils.toTable("id", [1, 1, 2])
+    t = emzed.utils.toTable("t", (ti, ti, None))
+    # peakmap unique id already tested by compression of peakmap:
+    t.addColumn("pm", PeakMap([]))
+    t.addColumn("blob", Blob("data"))
+    assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
+
+
 def test_missing_values_binary_expressions():
 
     # column x has type None, this is a special case which failed before
@@ -530,6 +540,20 @@ def test_missing_values_binary_expressions():
     assert (t.y / t.x).values == (None,)
 
 
+def test_enumeration():
+    t = emzed.utils.toTable("group_1", ["a", "a", "b", "b"])
+    t.addColumn("group_2", (3, 3, 3, 7))
+
+    t.addColumn("group_1_id", t.enumerateBy("group_1"), insertBefore="group_1")
+    t.addColumn("group_2_id", t.enumerateBy("group_2"), insertAfter="group_1_id")
+    t.addColumn("group_12_id", t.enumerateBy("group_1", "group_2"), insertAfter="group_2_id")
+
+    assert t.getColNames() == ["group_1_id", "group_2_id", "group_12_id", "group_1", "group_2"]
+    assert t.group_1_id.values == (0, 0, 1, 1)
+    assert t.group_2_id.values == (0, 0, 0, 1)
+    assert t.group_12_id.values == (0, 0, 1, 2)
+
+
 def test_grouped_aggregate_expressions():
 
     # without missing values #########################################
@@ -539,6 +563,14 @@ def test_grouped_aggregate_expressions():
     t.addColumn("values", [1, 2, 3])
     t.addColumn("grouped_min", t.values.min.group_by(t.group))
     assert t.grouped_min.values == (1, 1, 3,)
+    t.print_()
+
+    # int types aggregated by two columns
+    t = emzed.utils.toTable("group_1", [1, 1, 2, 2])
+    t.addColumn("group_2", (1, 1, 1, 2))
+    t.addColumn("values", [1, 2, 3, 4])
+    t.addColumn("grouped_min", t.values.min.group_by(t.group_1, t.group_2))
+    assert t.grouped_min.values == (1, 1, 3, 4,)
     t.print_()
 
     # float types aggregated

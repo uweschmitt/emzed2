@@ -23,60 +23,46 @@ class FD(batch_runner.BatchRunner):
     def write(self, result, destinationDir, path):
         import os.path
         basename, ext = os.path.splitext(os.path.basename(path))
-        savePath = os.path.join(destinationDir, basename+".csv")
+        savePath = os.path.join(destinationDir, basename + ".csv")
         print "save to ", savePath
         result.storeCSV(savePath)
 
 
-
 def runCentwave(pattern=None, destination=None, configid="std", **params):
+    """runs centwave algorithm from xcms in batch mode
 
-    """
-         runs centwave algorithm from xcms in batch mode.
-         input files are map files (mzXML, mxML, mzData),
-         ouput files are csv files
+    - *pattern* is used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
+      files of type *.mzML*, *.mzXML* and *.mzData*.
+    - *destination* is a target folder where the results are stored as *.csv* files
+    - *configid* is a preconfiugred setting id, but following key pairs as *ppm=20* override this.
 
-         you can add modifications to the standard parameters, eg ppm,
-         as named arguments.
+    Examples:
 
-         if you have multiple configs for centwave, you can give an
-         configid as defined in _algorithm_configs.py, or you are asked to choose
-         a config.
+    - runCentwave()
+        asks for source files and target directory
+        asks for config if multiple algorithm_configs are defined
 
-         if you have a single config this one is used automatically
+    - runCentwave(configid="std", ppm=17)
+        uses confi with id *"std"*, overwrites ppm parameter with *ppm=17*.
 
-         examples:
+    - runCentwave(ppm=13):
+        asks for source files and target directory runs centwave with modified *ppm=13* parameter.
 
-              runCentwave():
-                     asks for source files and target directory
-                     asks for config if multiple algorithm_configs are defined
+    - runCentwave(pattern):
+        looks for map files matching pattern resulting csv files are stored next to input map file
 
-              runCentwave(configid="std", ppm=17)
-                     uses config with id "std", overwrites ppm parameter
-                     with ppm=17.
+    - runCentwave(pattern, mzDiff=0.003):
+        looks for map files matching pattern resulting csv files are stored next to input map file
+        runs centwave with modified mzDiff parameter
 
-              runCentwave(ppm=13):
-                     asks for source files and target directory
-                     runs centwave with modified ppm=13 parameter.
+    - runCentwave(pattern, destination):
+        looks for map files matching pattern resulting csv files are stored at destination directory
 
-              runCentwave(pattern):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
+    - runCentwave(pattern, destination, ppm=17, peakwidth=(5,100) ):
+        looks for map files matching pattern resulting csv files are stored at destination directory
+        runs centwave with modified ppm and peakwidth parameters.
 
-              runCentwave(pattern, mzDiff=0.003):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
-                     runs centwave with modified mzDiff parameter
-
-              runCentwave(pattern, destination):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-
-              runCentwave(pattern, destination, ppm=17, peakwidth=(5,100) ):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-                     runs centwave with modified ppm and peakwidth parameters.
-
+    :download:`Docs from XCMS library <../emzed/core/r_connect/centwave.txt>`
     """
 
     from .. import _algorithm_configs
@@ -89,57 +75,48 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
 
     return P(_algorithm_configs.centwaveConfig, True).run(pattern, destination, configid, **params)
 
-from ..core import r_connect as __rconnect
-runCentwave.__doc__ += __rconnect.CentwaveFeatureDetector.__doc__
 
 def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
+    """runs matched filters algorithm from *XCMS* in batch mode
 
-    """
-         runs matched filters algorithm from xcms in batch mode.
-         input files are map files (mzXML, mzML, mzData),
-         output files are csv files
+    - *pattern* is a used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
+      files of type *.mzML*, *.mzXML* and *.mzData*.
+    - *destination* is a target folder where the results are stored as *.csv* files
+    - *configid* is a preconfiugred setting id, but following key pairs as *ppm=20* override this.
 
-         you can add modifications to the standard parameters, eg ppm,
-         as named arguments.
+    Examples:
 
-         if you have multiple configs for matched filter, you can give an
-         configid as defined in algorithm_configs.py, or you are asked to choose
-         a config.
+    - runMatchedFilter():
+        asks for source files and target directory
+        asks for config if multiple algorithm_configs are defined
 
-         if you have a single config this one is used automatically
+    - runMatchedFilter(configid="std", ppm=17)
+        uses config with id "std", overwrites ppm parameter
+        with ppm=17.
 
-         examples:
+    - runMatchedFilter(ppm=13):
+        asks for source files and target directory
+        runs matched filter with modified ppm=13 parameter.
 
-              runMatchedFilter():
-                     asks for source files and target directory
-                     asks for config if multiple algorithm_configs are defined
+    - runMatchedFilter(pattern):
+        looks for map files matching pattern
+        resulting csv files are stored next to input map file
 
-              runMatchedFilter(configid="std", ppm=17)
-                     uses config with id "std", overwrites ppm parameter
-                     with ppm=17.
+    - runMatchedFilter(pattern, mzDiff=0.003):
+        looks for map files matching pattern
+        resulting csv files are stored next to input map file
+        runs matched filter with modified mzDiff parameter
 
-              runMatchedFilter(ppm=13):
-                     asks for source files and target directory
-                     runs matched filter with modified ppm=13 parameter.
+    - runMatchedFilter(pattern, destination):
+        looks for map files matching pattern
+        resulting csv files are stored at destination directory
 
-              runMatchedFilter(pattern):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
+    - runMatchedFilter(pattern, destination, ppm=17, peakwidth=(5,100) ):
+        looks for map files matching pattern
+        resulting csv files are stored at destination directory
+        runs matched filter with modified ppm and peakwidth parameters.
 
-              runMatchedFilter(pattern, mzDiff=0.003):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
-                     runs matched filter with modified mzDiff parameter
-
-              runMatchedFilter(pattern, destination):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-
-              runMatchedFilter(pattern, destination, ppm=17, peakwidth=(5,100) ):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-                     runs matched filter with modified ppm and peakwidth parameters.
-
+    :download:`Docs from XCMS library <../emzed/core/r_connect/matched_filter.txt>`
     """
 
     from ..core.r_connect import MatchedFilterFeatureDetector
@@ -150,61 +127,53 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
         def setup(self, config):
             self.det = MatchedFilterFeatureDetector(**config)
 
-    return P(_algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid, **params)
-
-runMatchedFilter.__doc__ += __rconnect.MatchedFilterFeatureDetector.__doc__
-
+    return P(_algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid,
+                                                               **params)
 
 
 
 def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **params):
 
-    """
-         runs matched filters algorithm from xcms in batch mode.
-         input files are map files (mzXML, mzML, mzData),
-         output files are csv files
+    """runs *MetaboFeatureFinding* from *OpenMS* in batch mode.
 
-         you can add modifications to the standard parameters, eg ppm,
-         as named arguments.
+    - *pattern* is a used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
+      files of type *.mzML*, *.mzXML* and *.mzData*.
+    - *destination* is a target folder where the results are stored as *.csv* files
+    - *configid* is a preconfiugred setting id, but following key pairs as *ppm=20* override this.
 
-         if you have multiple configs for matched filter, you can give an
-         configid as defined in _algorithm_configs.py, or you are asked to choose
-         a config.
+    Examples:
 
-         if you have a single config this one is used automatically
+    - runMetaboFeatureFinder():
+        asks for source files and target directory
+        asks for config if multiple algorithm_configs are defined
 
-         examples:
+    - runMetaboFeatureFinder(configid="std", ffm_local_mz_range=0.01)
+        uses config with id "std", overwrites *ffm_local_mz_range* parameter
+        with value *0.01*
 
-              runMatchedFilter():
-                     asks for source files and target directory
-                     asks for config if multiple algorithm_configs are defined
+    - runMetaboFeatureFinder(ppm=13):
+        asks for source files and target directory
+        runs matched filter with modified ppm=13 parameter.
 
-              runMatchedFilter(configid="std", ppm=17)
-                     uses config with id "std", overwrites ppm parameter
-                     with ppm=17.
+    - runMetaboFeatureFinder(pattern):
+        looks for map files matching pattern
+        resulting csv files are stored next to input map file
 
-              runMatchedFilter(ppm=13):
-                     asks for source files and target directory
-                     runs matched filter with modified ppm=13 parameter.
+    - runMetaboFeatureFinder(pattern, mzDiff=0.003):
+        looks for map files matching pattern
+        resulting csv files are stored next to input map file
+        runs matched filter with modified mzDiff parameter
 
-              runMatchedFilter(pattern):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
+    - runMetaboFeatureFinder(pattern, destination):
+        looks for map files matching pattern
+        resulting csv files are stored at destination directory
 
-              runMatchedFilter(pattern, mzDiff=0.003):
-                     looks for map files matching pattern
-                     resulting csv files are stored next to input map file
-                     runs matched filter with modified mzDiff parameter
+    - runMetaboFeatureFinder(pattern, destination, ppm=17, peakwidth=(5,100) ):
+        looks for map files matching pattern
+        resulting csv files are stored at destination directory
+        runs matched filter with modified ppm and peakwidth parameters.
 
-              runMatchedFilter(pattern, destination):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-
-              runMatchedFilter(pattern, destination, ppm=17, peakwidth=(5,100) ):
-                     looks for map files matching pattern
-                     resulting csv files are stored at destination directory
-                     runs matched filter with modified ppm and peakwidth parameters.
-
+    For the available parameter settings see :py:func:`~emzed.ff.runMetaboFeatureFinder`.
     """
 
     from .. import _algorithm_configs
@@ -236,4 +205,3 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
             self._ff_config = config
 
     return P(_algorithm_configs.metaboFFConfigs, True).run(pattern, destination, configid, **params)
-

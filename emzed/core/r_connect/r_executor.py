@@ -188,10 +188,11 @@ class RInterpreter(object):
         # attribute 'execute("x <- data")', I think this is driven by the dot in "data.frame"
         if name.startswith("execute("):
             return []
-        value = getattr(self.session, name)
-        if convert_to_table and isinstance(value, pandas.DataFrame):
-            return Table.from_pandas(value)
-        return value
+        if hasattr(self, "session"):
+            value = getattr(self.session, name)
+            if convert_to_table and isinstance(value, pandas.DataFrame):
+                return Table.from_pandas(value)
+            return value
 
     def __setattr__(self, name, value):
         if isinstance(value, Table):

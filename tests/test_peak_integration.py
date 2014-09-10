@@ -1,20 +1,39 @@
-import pdb
-import emzed.utils as utils
-import emzed.io as io
-
-import emzed._algorithm_configs
-import numpy as np
-
-from   emzed.core.data_types import Spectrum, PeakMap
-from   emzed.core.peak_integration import *
-
 import os.path
 
+import numpy as np
+import cPickle
 
-def testInteegration(path):
-    _testIntegration(path, 1)
-    _testIntegration(path, 2)
-    _testIntegration(path, 4)
+import emzed.utils as utils
+import emzed.io as io
+import emzed._algorithm_configs
+from  emzed.core.data_types import Spectrum, PeakMap
+from  emzed.core.peak_integration import *
+
+
+def _compare_tables(t1, t2):
+    t1.sortBy("id")
+    t2.sortBy("id")
+
+    assert len(t1) == len(t2)
+    assert t1.getColNames() == t2.getColNames()
+    assert t1.getColTypes() == t2.getColTypes()
+    assert t1.getColFormats() == t2.getColFormats()
+    assert len(t1.rows) == len(t2.rows)
+    assert t1.area.values == t2.area.values
+    assert t1.method.values == t2.method.values
+    assert t1.rmse.values == t2.rmse.values
+    for v1, v2 in zip(t1.params.values, t2.params.values):
+        assert cPickle.dumps(v1) == cPickle.dumps(v2)
+
+
+def testIntegration(path):
+    t1 = _testIntegration(path, 1)
+    t2 = _testIntegration(path, 2)
+
+    _compare_tables(t1, t2)
+
+    t3 = _testIntegration(path, 4)
+    _compare_tables(t1, t3)
 
 
 def _testIntegration(path, n_cpus):
@@ -47,7 +66,6 @@ def _testIntegration(path, n_cpus):
     ft.addColumn("peakmapX", ft.peakmap)
 
     ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus,min_size_for_parallel_execution=1)
-    ftr.info()
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -85,6 +103,8 @@ def _testIntegration(path, n_cpus):
     assert ftr.methodX.values[1] is not None
     assert ftr.areaX.values[1] >= 0
     assert ftr.rmseX.values[1] >= 0
+
+    return ftr
 
 
 

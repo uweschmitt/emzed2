@@ -240,4 +240,6 @@ class PubChemDB(object):
         PubChemDB._instances[path] = self
 
     def __getattr__(self, colName):
-        return getattr(self.table, colName)
+        if hasattr(self, "table"):      # might be undefined eg during unpickling
+            return getattr(self.table, colName)
+        raise AttributeError("attribute table of %r not set" % self)

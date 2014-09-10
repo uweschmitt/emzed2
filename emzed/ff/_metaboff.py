@@ -87,10 +87,10 @@ class _ParamHandler(object):
                 else:
                     allowed = "unknown"
                 d = e.description
-                lla("    %s:" % k)
-                lla("         %s" % d)
-                lla("         default value : %s" % v)
-                lla("         allowed values: %s" % allowed)
+                lla("- **%s**:" % k)
+                lla("  %s" % d)
+                lla("  default value : %s" % v)
+                lla("  allowed values: %s" % allowed)
 
         lla("Common Parameters:")
         lla("")
@@ -113,7 +113,6 @@ class _ParamHandler(object):
 
 
 def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
-
     from .._algorithm_configs import metaboFFConfigs
 
     config_params = dict()
@@ -145,7 +144,7 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
         for k, v in sorted(sub_params.items()):
             print ("%s " % (k,)).ljust(35, "."), v
 
-    print "COMMON PARAMTERS"
+    print "COMMON PARAMETERS"
     print
     dump_param("common_")
     print

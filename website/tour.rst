@@ -1,10 +1,9 @@
 .. _getting_started_with_emzed_modules:
 
-==================================
 Getting started with emzed modules
 ==================================
 
-This is a short tour for getting a first impression about working with *emzed*
+This is a short tour which shall give you a first impression of working with *emzed*
 modules. We suppose that you followed the instructions at
 :ref:`installation` to get *emzed* installed and that you did the first
 steps as described in :ref:`getting_started`.
@@ -12,13 +11,13 @@ steps as described in :ref:`getting_started`.
 
 As *Python* is a programming language with a very clear syntax, even a novice
 Python programmer will very likely be able to grasp the examples below.
-However, Python is very easy to learn.  You find a comprehensive list of Python
+Indeed, Python is very easy to learn.  You find a comprehensive list of Python
 tutorials at http://wiki.python.org/moin/BeginnersGuide
 
 
 
-We mark the user input in the following examples with a leading ``>>>``
-as
+We mark the user input in the following examples with a leading ``>>>`` ,
+as in the following code example:
 
 .. pycon::
     import emzed
@@ -63,11 +62,11 @@ You can access the spectra in this peak map using Python:
    lastSpec = ds.spectra[-1]
    print lastSpec.rt
 
-Internally retention times are always stored as seconds.
+Internally, retention times are always stored as seconds.
 
 The variable ``ds`` will appear in the *variable explorer*. You see that we
-have 464 spectra in this dataset and you can visualize them simply by double
-clicking at ``ds``.
+have 2278 spectra in this dataset and you can visualize them simply by double
+clicking on ``ds``.
 
 .. image:: peakmap_variable_explorer.png
    :scale: 60 %
@@ -75,7 +74,7 @@ clicking at ``ds``.
 Alternatively use the command
 
 .. pycon::
-   ms.inspectPeakMap(pm) !noexec
+   emzed.gui.inspect(pm) !noexec
 
 .. image:: inspect_peakmap1.png
    :scale: 50 %
@@ -96,45 +95,45 @@ B. You can extract an ion chromatogram by entering data
    central ``m/z`` value and a half window width ``w/2`` and then pressing
    ``Select``.  If you press the right button during moving the mouse the plots
    will zoom in or out.  Pressing the ``backspace`` key will reset the active
-   plot.  Further you can measure peak relations by dragging the mouse in the
+   plot.  Furthermore, you can measure peak relations by dragging the mouse in the
    lower plot.
 
 
-.. _centwave_example:
+.. _metaboff_example:
 
 Extracting chromatographic peaks
 ---------------------------------
 
-Actually, *emzed* includes two peak detection algorithm of the *XCMS* [xcms]_
+*emzed* includes three peak detection algorithms: *MetaboFeatureFinder* from
+[openms]_ and two of the *XCMS* [xcms]_
 package: *centwave* [centwave]_ and *matched filters*. Accepted input file
-formats are *mzML*, *mzxml*, and *mzData*.  The output file format is
-*emzed*-specific and has the file extension ``.table``. In addition ``.csv``
-files are saved.
+formats are *mzML*, *mzXML*, and *mzData*.  The output file format is
+*emzed*-specific and has the file extension ``.table``.
 
-We continue with an example of *centWave* algorithm for high resolution LC-MS
+We continue with an example of *MetaboFeatureFinder* algorithm for high resolution LC-MS
 MS-1-data. Analysing MS-n for *n=2* data is possible too, please look at the
 SRM/MRM example workflow mentioned at :ref:`faq`:
 
-You can start the *centWave* feature detector by typing
+You can start the *MetaboFeatureFinder* feature detector by typing
 
 .. pycon::
-   tables = emzed.batches.runCentwave("*.mzXML", destination=".", configid="tour")!noexec
+   tables = emzed.batches.runMetaboFeatureFinder("*.mzXML", destination=".", configid="std")!noexec
 
 .. pycon::
    :invisible:
 
-   tables = emzed.batches.runCentwave("*.mzXML", destination=".", configid="tour") !noexec
+   tables = emzed.batches.runMetaboFeatureFinder("*.mzXML", destination=".", configid="std") !noexec
    for i, t in enumerate(tables): t.store("feat%d.table" % i) !noexec
    tables = [ emzed.io.loadTable("feat%d.table" % i) for i in range(3) ]
 
 The feature detector needs a few minutes depending on the power of your
-computer, we omitted the verbose output from *XCMS* [xcms]_ .  We predefined a
+computer, we omitted the verbose output.  We predefined a
 combination of parameters with the identifier ``tour`` in order to simplify the
 instructions. In general various parameters can be provided individually. For
 getting (a lot of) details use the *Python* help system
 
 .. pycon::
-   help(emzed.batches.runCentwave) !noexec
+   help(emzed.batches.runMetaboFeatureFinder) !noexec
 
 The return value ``tables`` is a  list containing three tables,
 you see them in the *variable explorer*.
@@ -169,14 +168,14 @@ Integrating Peaks
 -----------------
 
 To reduce the runtime in the following demonstration we will extract peaks with
-an signal to noise ratio above ``5e4``:
+a quality above ``1e-2``:
 
 .. pycon::
    tab1, tab2, tab3 = tables
    print len(tab1)
-   tab1 = tab1.filter(tab1.sn > 5e4)
+   tab1 = tab1.filter(tab1.quality > 1e-2)
    print len(tab1)
-   tab2 = tab2.filter(tab2.sn > 5e4)
+   tab2 = tab2.filter(tab2.quality > 1e-2)
 
 Detected Peaks can be integrated. To perform peak integration columns *rtmin*,
 *rtmax*, *mzmin*, and *mzmax* are mandatory. We use the *EMG* integrator:
@@ -184,7 +183,7 @@ Detected Peaks can be integrated. To perform peak integration columns *rtmin*,
 .. pycon::
    tabInt = emzed.utils.integrate(tab1, 'emg_exact')
 
-If you open the dialog for ``tabInt`` you see
+If you open the dialog for ``tabInt`` you can select a row, as is shown in Figure A.
 
 .. image:: table_integrate.png
    :scale: 60 %
@@ -231,8 +230,8 @@ alignment:
 
 .. pycon::
    tabA1, tabA2, tabA3 = tablesAligned
-   tabA1 = tabA1.filter(tabA1.sn>5e4)
-   tabA2 = tabA2.filter(tabA2.sn>5e4)
+   tabA1 = tabA1.filter(tabA1.quality>1e-2)
+   tabA2 = tabA2.filter(tabA2.quality>1e-2)
    after = tabA1.join(tabA2, tabA1.mz.approxEqual(tabA2.mz, 3*emzed.MMU) & tabA1.rt.approxEqual(tabA2.rt, 30*emzed.SECONDS))
 
 Open now the table ``after``, sort again and choose the same row as above.
@@ -314,7 +313,7 @@ information is stored in ``information.csv``:
     info = emzed.io.loadCSV("information.csv")
     info.print_()
 
-As you can see ``ms.loadCSV`` recognized that the column ``info.onEarth`` only
+As you can see ``emzed.io.loadCSV`` recognized that the column ``info.onEarth`` only
 contains integers.
 
 
@@ -383,7 +382,7 @@ and all all important elements
     print emzed.mass.C, emzed.mass.C12, emzed.mass.C13
 
 
-Further it helps to calculate masses of molecules from their sum
+Additionally, it provides functions to calculate masses of molecules from their sum
 formula
 
 .. pycon::
@@ -422,7 +421,7 @@ Generating isotope patterns
 
 As the ``Table`` objects provide powerful matchings, all we need to analyze
 isotope patterns occurring in feature tables is a way to generate tables
-containing these data. ``ms.isotopeDistributionTable`` does this
+containing these data. ``emzed.utils.isotopeDistributionTable`` does this
 
 
 .. pycon::
@@ -520,11 +519,13 @@ former examples and leave this paragraph empty.
     matched = emzed.utils.matchMetlin(t, "m0", ["M+H", "M+2H"], ppm=30)
     matched.print_()
 
+.. _dialogbuilder_example2:
+
 Building graphical interfaces
 -----------------------------
 
 Beyond the ``Table``-Explorer ``emzed.gui.inspect`` and the ``PeakMap``-Explorer
-``emzed.gui.inspectPeakMap`` assisted work-flows request certain parameters and
+``emzed.gui.inspect`` assisted work-flows request certain parameters and
 decisions at certain processing steps. To support this *emzed* has an builder
 for input forms.
 

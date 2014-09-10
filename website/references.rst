@@ -7,7 +7,8 @@ References
 .. [pubchem] http://pubchem.ncbi.nlm.nih.gov/
 .. [spyderlib]  http://code.google.com/spyderlib/
 .. [xcms] http://metlin.scripps.edu/xcms
-.. [ipython] http://ipython.org
+.. [IPython] http://ipython.org
+.. [Python] http://python.org
 .. [ipython_introduction] http://ipython.org/ipython-doc/dev/interactive/
 .. [guidata] http://code.google.com/p/guidata
 .. [guiqwt] http://code.google.com/p/guiqwt

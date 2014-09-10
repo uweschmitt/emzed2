@@ -1,9 +1,9 @@
 import emzed.core.data_types
 
 def toTable(colName, iterable,  format_="", type_=None, title="", meta=None):
-    return emzed.core.data_types.Table.toTable(colName, iterable, format_, type_, title, meta)
+    return emzed.core.Table.toTable(colName, iterable, format_, type_, title, meta)
 
-toTable.__doc__ = emzed.core.data_types.Table.toTable.__doc__
+toTable.__doc__ = emzed.core.Table.toTable.__doc__
 
 def formula(mf):
     """

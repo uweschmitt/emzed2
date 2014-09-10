@@ -1517,7 +1517,7 @@ class MainWindow(QMainWindow):
             <p>Copyright &copy; 2012-2013
      <br>- Institute of Microbiology, Department of Biology, ETH Zurich
      <br>- Patrick Kiefer
-     <br>- Uwe Schmitt, <a href="http://www.mineway.de">mineway GmbH</a>
+     <br>- Uwe Schmitt, Scientific IT Services, ETH Zurich
      <p>Lincensed under the terms of the GPL 3 License
      <br>
      More info about emzed at <a href="http://emzed.ethz.ch">the emzed website</a>
