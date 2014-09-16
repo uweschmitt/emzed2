@@ -1487,14 +1487,15 @@ class Table(object):
         print >> out
         fms = [self.colFormatters[i] for i in ix]
         if max_lines is not None and len(self) > max_lines:
-            to_print = max_lines // 2
-
-            for row in self.rows[:to_print]:
+            to_print_head = max_lines // 2
+            to_print_tail = max_lines - to_print_head
+            for row in self.rows[:to_print_head]:
                 ri = [row[i] for i in ix]
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
-            print >> out,  "..."
-            for row in self.rows[-to_print - 1:]:
+            leave_out = len(self) - to_print_head - to_print_tail
+            print >> out,  "... (%d rows) ..." % leave_out
+            for row in self.rows[-to_print_tail:]:
                 ri = [row[i] for i in ix]
                 _p(fmt(value) for (fmt, value) in zip(fms, ri))
                 print >> out
