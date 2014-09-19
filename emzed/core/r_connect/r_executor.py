@@ -195,6 +195,13 @@ class RInterpreter(object):
             return value
 
     def __setattr__(self, name, value):
+        if self.fh is not None:
+            if isinstance(value, (list, tuple)):
+                s_value = "c%r" % (tuple(value),)
+                s_value = s_value.replace(",)", ")")
+            else:
+                s_value = repr(value)
+            print >> self.fh, "%s <- %s" % (name, s_value)
         if isinstance(value, Table):
             value = value.to_pandas()
         setattr(self.session, name, value)
