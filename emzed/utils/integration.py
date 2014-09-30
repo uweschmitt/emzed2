@@ -126,7 +126,11 @@ def _integrate((ftable, integratorid, msLevel, showProgress,)):
                 cent = ((i + 1) * 20) / len(ftable) / len(supportedPostfixes)
                 if cent != lastcent:
                     print cent * 5,
-                    sys.stdout.flush()
+                    try:
+                        sys.stdout.flush()
+                    except IOError:
+                        # migh t happen on win cmd console
+                        pass
                     lastcent = cent
             rtmin = ftable.getValue(row, "rtmin" + postfix)
             rtmax = ftable.getValue(row, "rtmax" + postfix)
