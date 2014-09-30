@@ -589,7 +589,7 @@ class Table(object):
             values.append(enumeration.get(key))
         return values
 
-    def addEnumeration(self, colName="id", insertBefore=None, insertAfter=None):
+    def addEnumeration(self, colName="id", insertBefore=None, insertAfter=None, startWith=0):
         """ adds enumerated column as first column to table **in place**.
 
             if ``colName`` is not given the default name is *"id"*
@@ -600,7 +600,7 @@ class Table(object):
             raise Exception("column with name %r already exists" % colName)
         col_idx = self._find_insert_column(insertBefore, insertAfter, 0)
 
-        values = self.enumerateBy()
+        values = [v + startWith for v in self.enumerateBy()]
         self._addColumFromIterable(colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
     def sortBy(self, colNames, ascending=True):
