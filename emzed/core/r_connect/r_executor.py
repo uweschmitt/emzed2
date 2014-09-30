@@ -1,7 +1,7 @@
-import pdb
 import os
 import datetime
 import traceback
+import tempfile
 import glob
 import sys
 import pandas
@@ -106,19 +106,34 @@ class RInterpreter(object):
             else:
                 r_exe = "R"
 
-        fh = open("log_last_use_emzed_r_bridge.txt", "a") if do_log else None
-        self.__dict__["fh"] = fh
+        if do_log:
+            self._create_new_log()
 
         try:
             if do_log:
-                print >> fh, "\n# start subprocess %s at %s" % (r_exe, datetime.datetime.now())
+                print >> self._fh, "\n# start subprocess %s at %s" % (r_exe, datetime.datetime.now())
+                self._fh.flush()
             session = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
         except:
-            print >> fh, "\n# failure"
-            traceback.print_exc(file=fh)
-            fh.close()
+            print >> self._fh, "\n# failure"
+            traceback.print_exc(file=self._fh)
+            self._fh.flush()
+            self._fh.close()
+            del self._fh
             raise Exception("could not start R, is R installed ?")
         self.__dict__["session"] = session
+
+    def _create_new_log(self):
+        if "_fh" in self.__dict__:
+            self.__dict__["_fh"].flush()
+            self.__dict__["_fh"].close()
+        if sys.platform == "darwin":
+            tempfile.tempdir = "/tmp"   # else the path is very complicated.
+        path = os.path.join(tempfile.mkdtemp(), "log.txt")
+        print
+        print ">>>>>>>>>>> START TO LOG TO", path
+        print
+        self.__dict__["_fh"] = open(path, "w")
 
     def __dir__(self):
         """ avoid completion in IPython shell, as attributes are automatically looked up in
@@ -128,15 +143,18 @@ class RInterpreter(object):
 
     def execute(self, *cmds):
         """executes commands. Each command by be a multiline command. """
-        if self.fh is not None:
-            print >> self.fh, "#", datetime.datetime.now()
+        if self._fh is not None:
+            print >> self._fh, "#", datetime.datetime.now()
+            self._fh.flush()
         for cmd in cmds:
-            if self.fh is not None:
-                print >> self.fh, cmd
+            if self._fh is not None:
+                print >> self._fh, cmd
+                self._fh.flush()
             self.session(cmd)
 
-        if self.fh is not None:
-            print >> self.fh, "#", 60 * "="
+        if self._fh is not None:
+            print >> self._fh, "#", 60 * "="
+            self._fh.flush()
         return self
 
     def execute_file(self, path):
@@ -152,16 +170,19 @@ class RInterpreter(object):
             calling_file = inspect.stack()[1][0].f_globals.get("__file__")
             if calling_file is not None:
                 path = os.path.join(os.path.dirname(os.path.abspath(calling_file)), path)
-        if self.fh is not None:
-            print >> self.fh, "#", datetime.datetime.now()
-            print >> self.fh, "# execute", path
+        if self._fh is not None:
+            print >> self._fh, "#", datetime.datetime.now()
+            print >> self._fh, "# execute", path
+            self._fh.flush()
         with open(path, "r") as fp:
             cmd = fp.read()
-            if self.fh is not None:
-                print >> self.fh, cmd
+            if self._fh is not None:
+                print >> self._fh, cmd
+                self._fh.flush()
             self.session(cmd)
-        if self.fh is not None:
-            print >> self.fh, "#", 60 * "="
+        if self._fh is not None:
+            print >> self._fh, "#", 60 * "="
+            self._fh.flush()
         return self
 
     def get_df_as_table(self, name, title=None, meta=None, types=None, formats=None):
@@ -195,13 +216,14 @@ class RInterpreter(object):
             return value
 
     def __setattr__(self, name, value):
-        if self.fh is not None:
+        if self._fh is not None:
             if isinstance(value, (list, tuple)):
                 s_value = "c%r" % (tuple(value),)
                 s_value = s_value.replace(",)", ")")
             else:
                 s_value = repr(value)
-            print >> self.fh, "%s <- %s" % (name, s_value)
+            print >> self._fh, "%s <- %s" % (name, s_value)
+            self._fh.flush()
         if isinstance(value, Table):
             value = value.to_pandas()
         setattr(self.session, name, value)

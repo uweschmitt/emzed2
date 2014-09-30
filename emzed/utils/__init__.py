@@ -3,8 +3,6 @@ from utils import toTable, formula, addmf, openInBrowser, recalculateMzPeaks, st
 from isotope_calculator import isotopeDistributionTable, plotIsotopeDistribution
 from formula_generator  import formulaTable
 
-from metlin import matchMetlin
-
 from integration import integrate
 
 from ..core.data_types.table import Table
