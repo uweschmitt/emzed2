@@ -412,9 +412,11 @@ class PeakMap(object):
             spec.rt += delta
         return self
 
-    def mzRange(self):
+    def mzRange(self, msLevel=1):
         """returns mz-range *(mzmin, mzmax)* of current peakmap """
-        mzranges = [s.mzRange() for s in self.spectra]
+        mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
+        if len(mzranges) == 0:
+            return (None, None)
         mzmin = min(mzmin for (mzmin, mzmax) in mzranges if mzmin is not None)
         mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
         return (float(mzmin), float(mzmax))

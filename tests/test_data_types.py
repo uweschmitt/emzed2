@@ -86,10 +86,17 @@ class TestMSTypes(object):
         pm2 = pm2.extract(rtmax = rtmax-0.000001)
         assert len(pm2) == len(pm)-2
 
-        mzmin, mzmax = pm.mzRange()
+        mzmin, mzmax = pm.mzRange(2)
 
         assert mzmin < 250
-        assert mzmax > 1049
+        assert mzmax > 860
+
+
+        mzmin, mzmax = pm.mzRange(1)
+
+        assert mzmin >= 700
+        assert mzmax <= 1050
+
 
         pm2 = pm.extract(rtmin+0.00001, mzmin=300)
 
