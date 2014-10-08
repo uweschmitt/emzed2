@@ -68,7 +68,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
     if path is None:
         return None
 
-    with open(path, "r") as fp:
+    with open(path, "rU") as fp:
         # remove clutter at right margin
         reader = csv.reader(fp, delimiter=sep)
         # reduce multiple spaces to single underscore
