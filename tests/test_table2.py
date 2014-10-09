@@ -678,4 +678,23 @@ def test_any_all_agg_expressions():
     assert t.v.anyTrue() == True
     assert t.v.anyFalse() == False
 
+def test_getitem_variations():
+    t = emzed.utils.toTable("v", range(3))
+    t1 = t[0:2]
+    t2 = t[(0, 1)]
+    t3 = t[(True, True, False)]
+    t4 = t[[0, 1]]
+    t5 = t[[True, True, False]]
+    t6 = t[np.array((True, True, False), dtype=bool)]
+    t7 = t[np.array((0, 1), dtype=int)]
+
+
+    assert t1.rows == [[0], [1]]
+
+    for ti in (t1, t2, t3, t4, t5, t6, t7):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
 

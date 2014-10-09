@@ -382,11 +382,24 @@ class Table(object):
                 t[:] == t.copy()
 
         """
-        if not isinstance(ix, slice):
-            ix = slice(ix, ix + 1)
         prototype = self.buildEmptyClone()
-        for row in self.rows[ix]:
-            prototype.rows.append(row[:])
+        if isinstance(ix, np.ndarray):
+            ix = ix.tolist()
+        if isinstance(ix, (list, tuple)):
+            if all(isinstance(ixi, bool) for ixi in ix):
+                if len(ix) == len(self):
+                    for ixi, row in zip(ix, self.rows):
+                        if ixi:
+                            prototype.rows.append(row[:])
+                else:
+                    raise Exception("invalid access, len(ix) != len(table)")
+
+            elif all(isinstance(ixi, (long, int)) for ixi in ix):
+                prototype.rows = [self.rows[i][:] for i in ix]
+        else:
+            if not isinstance(ix, slice):
+                ix = slice(ix, ix + 1)
+            prototype.rows = [row[:] for row in self.rows[ix]]
         prototype.resetInternals()
         return prototype
 
