@@ -278,7 +278,7 @@ class BaseExpression(object):
         return BinaryExpression(self, other, lambda a, b: a / b, "/", None)
 
     def __rdiv__(self, other):
-        return BinaryExpression(self, other, lambda a, b: a / b, "/", None)
+        return BinaryExpression(other, self,  lambda a, b: a / b, "/", None)
 
     def __and__(self, other):
         return AndExpression(self, other)

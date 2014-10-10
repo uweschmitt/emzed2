@@ -697,4 +697,26 @@ def test_getitem_variations():
         assert ti.getColFormats() == t.getColFormats()
         assert ti.rows == t1.rows
 
+def test_t():
+    t = emzed.utils.toTable("v", range(1, 3))
+
+    t.addColumn("a", 12 / t.v)
+    assert t.a.values == (12, 6)
+    t.replaceColumn("a", 12 - t.v)
+    assert t.a.values == (11, 10)
+    t.replaceColumn("a", 12 * t.v)
+    assert t.a.values == (12, 24)
+    t.replaceColumn("a", 12 + t.v)
+    assert t.a.values == (13, 14)
+
+    t.replaceColumn("a", t.v / 12)
+    assert t.a.values == (0, 0)
+    t.replaceColumn("a", t.v - 12)
+    assert t.a.values == (-11, -10)
+    t.replaceColumn("a", t.v * 12)
+    assert t.a.values == (12, 24)
+    t.replaceColumn("a", t.v + 12)
+    assert t.a.values == (13, 14)
+
+
 
