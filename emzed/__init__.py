@@ -1,4 +1,5 @@
 # encoding:latin-1
+TIME_IN_SECONDS=True
 
 import traceback
 import os
@@ -42,6 +43,7 @@ MMU = 0.001
 SECONDS = 1
 MINUTES = 60 * SECONDS
 HOURS = 60 * MINUTES
+
 
 import align
 import batches

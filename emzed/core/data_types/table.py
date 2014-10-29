@@ -29,9 +29,16 @@ def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
-fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+
+import emzed
+
+if emzed.TIME_IN_SECONDS:
+    fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+else:
+    fms = "%.1fm"
 
 formatSeconds = fms
+
 formatHexId = "'%x' % id(o)"
 
 
