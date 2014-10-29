@@ -1691,11 +1691,19 @@ class Table(object):
         result.append(extended_tables[1:])
         return result
 
+    def __add__(self, other):
+        assert isinstance(other, Table)
+        return Table.stackTables((self, other))
+
+    def __iadd__(self, other):
+        assert isinstance(other, Table)
+        Table._check_if_compatible((self, other))
+        self.rows.extend(other.rows)
+        return self
+
     @staticmethod
-    def stackTables(tables):
-        """dumb and fast version of Table.mergeTables if all tables have common column
-        names, types and formats unless they are empty.
-        """
+    def _check_if_compatible(tables):
+        assert all(isinstance(o, Table) for o in tables), "only tables allowed"
         if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
             raise Exception("tables have different number columns")
         if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
@@ -1708,6 +1716,12 @@ class Table(object):
         if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(ne, ne[1:])):
             raise Exception("tables have different column formats")
 
+    @staticmethod
+    def stackTables(tables):
+        """dumb and fast version of Table.mergeTables if all tables have common column
+        names, types and formats unless they are empty.
+        """
+        Table._check_if_compatible(tables)
         all_rows = [row[:] for t in tables for row in t.rows]
 
         for t0 in tables:    # look for first non emtpy table
