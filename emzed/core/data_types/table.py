@@ -29,25 +29,24 @@ def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
-
-import emzed
-
-if emzed.TIME_IN_SECONDS:
-    fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
-else:
-    fms = "%.1fm"
-
-formatSeconds = fms
-
 formatHexId = "'%x' % id(o)"
 
 
-def guessFormatFor(name, type_):
+def timeFormatter(time_is_in_seconds):
+    if time_is_in_seconds:
+        fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+        return fms
+    else:
+        return "%.1fm"
+
+
+
+def guessFormatFor(name, type_, time_is_in_seconds):
     if type_ in (float, int):
         if name.startswith("m"):
             return "%.5f"
         if name.startswith("rt"):
-            return fms
+            return timeFormatter(time_is_in_seconds)
     return standardFormats.get(type_, "%r")
 
 
@@ -214,7 +213,7 @@ class Table(object):
 
         self.rows = rows
         self.title = title
-        self.meta = copy.copy(meta) if meta is not None else dict()
+        self.meta = copy.copy(meta) if meta is not None else dict(time_is_in_seconds=True)
 
         self.primaryIndex = {}
         self._name = repr(self)
@@ -1121,8 +1120,10 @@ class Table(object):
         # type_ may be None, so guess:
         type_ = type_ or common_type_for(values)
 
+        time_is_in_seconds = self.meta.get("time_is_in_seconds", True)
+
         if format_ == "":
-            format_ = guessFormatFor(name, type_)
+            format_ = guessFormatFor(name, type_, time_is_in_seconds)
 
         col_ = self._find_insert_column(insertBefore, insertAfter)
         if col_ < 0:
@@ -1558,11 +1559,15 @@ class Table(object):
             raise Exception("colName is not a string. The arguments of this "
                             "function changed in the past !")
 
+        if meta is not None:
+            time_is_in_seconds = meta.get("time_is_in_seconds", True)
+        else:
+            time_is_in_seconds = True
         values = convert_list_to_overall_type(list(iterable))
         if type_ is None:
             type_ = common_type_for(values)
         if format_ == "":
-            format_ = guessFormatFor(colName, type_)
+            format_ = guessFormatFor(colName, type_, time_is_in_seconds)
         if meta is None:
             meta = dict()
         else:
@@ -1571,7 +1576,7 @@ class Table(object):
         return Table([colName], [type_], [format_], rows, meta=meta)
 
     @staticmethod
-    def loadCSV(path, sep=";", keepNone=False, **specialFormats):
+    def loadCSV(path, sep=";", keepNone=False, timeIsInSeconds=True, **specialFormats):
         """
         loads csv file from path. column separator is given by *sep*.
         If *keepNone* is set to True, "None" strings in file are kept as a string.
@@ -1605,7 +1610,7 @@ class Table(object):
         columns = [[row[i] for row in rows] for i in range(len(colNames))]
         types = [common_type_for(col) for col in columns]
 
-        formats = dict([(name, guessFormatFor(name, type_)) for (name, type_)
+        formats = dict([(name, guessFormatFor(name, type_, timeIsInSeconds)) for (name, type_)
                         in zip(colNames, types)])
         formats.update(specialFormats)
 

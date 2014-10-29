@@ -56,7 +56,7 @@ def loadTable(path=None, compress_after_load=True):
     return result
 
 
-def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
+def loadCSV(path=None, sep=";", keepNone=False, timeIsInSeconds=True, **specialFormats):
     """local import in order to keep namespaces clean"""
     import csv
     import os.path
@@ -85,7 +85,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
     types = [common_type_for(col) for col in columns]
 
     # defaultFormats = {float: "%.2f", str: "%s", int: "%d"}
-    formats = dict([(name, guessFormatFor(name, type_)) for (name, type_) in zip(colNames, types)])
+    formats = dict([(name, guessFormatFor(name, type_, timeIsInSeconds)) for (name, type_) in zip(colNames, types)])
     formats.update(specialFormats)
 
     formats = [formats[n] for n in colNames]

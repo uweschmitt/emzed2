@@ -115,6 +115,9 @@ def _integrate((ftable, integratorid, msLevel, showProgress,)):
 
     resultTable = ftable.copy()
 
+    time_is_in_seconds = ftable.meta.get("time_is_in_seconds", True)
+    FAC = 1.0 if time_is_in_seconds else 60.0
+
     lastcent = -1
     for postfix in supportedPostfixes:
         areas = []
@@ -144,7 +147,7 @@ def _integrate((ftable, integratorid, msLevel, showProgress,)):
                 # this is a hack ! ms level n handling should first be
                 # improved and gerenalized in MSTypes.py
                 integrator.setPeakMap(peakmap)
-                result = integrator.integrate(mzmin, mzmax, rtmin, rtmax,
+                result = integrator.integrate(mzmin, mzmax, rtmin * FAC, rtmax * FAC,
                                               msLevel)
                 # take existing values which are not integration realated:
                 area, rmse, params = result["area"], result["rmse"],\

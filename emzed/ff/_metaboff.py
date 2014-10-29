@@ -2,7 +2,7 @@ import pyopenms
 import os
 import locale
 from ..core.data_types import PeakMap, Table
-from ..core.data_types.table import formatSeconds
+from ..core.data_types.table import timeFormatter
 
 
 class _ParamHandler(object):
@@ -226,12 +226,13 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
                        width, z]
                 rows.append(row)
 
+    time_format = timeFormatter(True)
     tab = Table(["feature_id", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax",
                     "intensity", "quality", "fwhm", "z"],
                 [int, float, float, float, float, float, float, float, float,
                     float, int],
-                ["%d", "%10.5f", "%10.5f", "%10.5f", formatSeconds, formatSeconds,
-                    formatSeconds, "%.2e", "%.2e", formatSeconds, "%d" ],
+                ["%d", "%10.5f", "%10.5f", "%10.5f", time_format, time_format,
+                    time_format, "%.2e", "%.2e", time_format, "%d" ],
                 rows)
 
     tab.addConstantColumn("peakmap", peak_map, PeakMap, None)
