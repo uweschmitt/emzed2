@@ -272,7 +272,7 @@ class TestTable(unittest.TestCase):
         ex = None
         try:
             colnames = ["col0", "col0", "col1", "col1", "col2"]
-            Table(colnames, []*5, []*5)
+            Table(colnames, [int]*5, [""]*5)
         except Exception, e:
             ex = e.message
         assert ex != None

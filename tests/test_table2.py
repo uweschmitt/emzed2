@@ -194,7 +194,7 @@ def testSupportedPostfixes():
     names = "mz mzmin mzmax mz0 mzmin0 mzmax0 mz1 mzmax1 mzmin__0 mzmax__0 mz__0 "\
             "mzmax3 mz4 mzmin4".split()
 
-    t = Table._create(names, [float] * len(names), [])
+    t = Table._create(names, [float] * len(names), [None] * len(names))
     assert len(t.supportedPostfixes(["mz"])) == len(names)
     assert t.supportedPostfixes(["mz", "mzmin"]) == ["", "0", "4", "__0"]
     assert t.supportedPostfixes(["mz", "mzmin", "mzmax"]) == ["", "0", "__0"]

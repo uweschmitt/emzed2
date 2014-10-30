@@ -189,7 +189,8 @@ class Table(object):
             message = "multiple columns: " + ", ".join(multiples)
             raise Exception(message)
 
-        assert len(colNames) == len(colTypes)
+        assert len(colNames) == len(colTypes), (colNames, colTypes)
+        assert len(colNames) == len(colFormats), (colNames, colFormats)
         if rows is not None:
             for row in rows:
                 assert len(row) == len(colNames)
@@ -200,7 +201,6 @@ class Table(object):
             raise Exception("not all rows are lists !")
 
         self._colNames = list(colNames)
-
         self._colTypes = list(colTypes)
 
         is_numpy_type = lambda t: np.number in t.__mro__
