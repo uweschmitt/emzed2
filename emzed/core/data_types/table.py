@@ -1739,17 +1739,38 @@ class Table(object):
     @staticmethod
     def _check_if_compatible(tables):
         assert all(isinstance(o, Table) for o in tables), "only tables allowed"
-        if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
-            raise Exception("tables have different number columns")
-        if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
-            raise Exception("tables have different column names")
+        for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
+            if t1.numCols() != t2.numCols():
+                raise Exception("tables %d and %d have different number columns (%d and %d)"
+                                % (i, i + 1, t1.numCols(), t2.numCols()))
 
-        # check types and formats for non emtpy tables
-        ne = [t for t in tables if len(t) > 0]
-        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(ne, ne[1:])):
-            raise Exception("tables have different column types")
-        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(ne, ne[1:])):
-            raise Exception("tables have different column formats")
+        for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
+            if t1._colNames != t2._colNames:
+                names1 = ", ".join(t1._colNames)
+                names2 = ", ".join(t2._colNames)
+                raise Exception("tables %d and %d have different column names (%s and %s)"
+                                % (i, i + 1, names1, names2))
+
+        for i, t1 in enumerate(tables):
+            if len(t1) == 0:
+                continue
+            for di, t2 in enumerate(tables[i + 1:]):
+                # look for next non empty table
+                if len(t2) == 0:
+                    continue
+                j = i + di + 1
+                if t1._colTypes != t2._colTypes:
+                    types1 = ", ".join(map(str, t1._colTypes))
+                    types2 = ", ".join(map(str, t2._colTypes))
+                    raise Exception("tables %d and %d have different column types (%s and %s)"
+                                    % (i, j, types1, types2))
+                if t1._colFormats != t2._colFormats:
+                    formats1 = ", ".join(map(str, t1._colFormats))
+                    formats2 = ", ".join(map(str, t2._colFormats))
+                    raise Exception("tables %d and %d have different column formats (%r and %r)"
+                                    % (i, j, formats1, formats2))
+                # we checked a pair of sequential tables (skipping empty ones), so:
+                break
 
     @staticmethod
     def stackTables(tables):
