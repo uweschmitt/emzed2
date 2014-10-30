@@ -36,6 +36,12 @@ def test_evalsize_of_grouped_aggregate_values():
     assert (t.v.count.group_by(t.v) == 1).values == (False, False, True)
 
 
+def test_grouped_aggregate_with_None_in_group():
+    import emzed
+    # tests a bug fixed in commit 843144a
+    t = emzed.utils.toTable("v", [1, 1, 2, None])
+    assert (t.v.count.group_by(t.v)).values == (2, 2 , 1, None)
+
 def test_apply_to_empty_col():
     import emzed
     t = emzed.utils.toTable("b", (1,))

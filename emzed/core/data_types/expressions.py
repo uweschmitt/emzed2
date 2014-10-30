@@ -948,7 +948,7 @@ class GroupedAggregateExpression(BaseExpression):
                 values = np.array(values)
                 aggregated_values[g] = self.efun(values)
 
-        result = [aggregated_values[g] for g in group_values]
+        result = [aggregated_values[g] if g != (None,) else None for g in group_values]
         type_ = common_type_for(result)
         result = container(type_)(result)
         type_ = cleanup(type_)
