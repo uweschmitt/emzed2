@@ -264,12 +264,16 @@ def testColumnAggFunctions():
 
 def testUniqeRows():
     t = emzed.utils.toTable("a", [1, 1, 2, 2, 3, 3])
-    t.addColumn("b", [1, 1, 1, 2, 3, 3])
+    t.addColumn("b",             [1, 1, 1, 2, 3, 3])
     u = t.uniqueRows()
     assert u.a.values == (1, 2, 2, 3,)
     assert u.b.values == (1, 1, 2, 3,)
     assert len(u.getColNames()) == 2
     u.info()
+
+    u = t.uniqueRows(byColumns=("a",))
+    assert u.a.values == (1, 2, 3)
+    assert u.b.values == (1, 1, 3)
 
 
 def testInplaceColumnmodification():

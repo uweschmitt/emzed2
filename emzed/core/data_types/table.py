@@ -1192,6 +1192,29 @@ class Table(object):
                 keysSeen.add(key)
         return result
 
+    def uniqueRows(self, byColumns=None):
+        """
+        extracts table with unique rows.
+        Two rows are equal if all fields, including **invisible**
+        columns (those with ``format_==None``) are equal.
+        """
+        result = self.buildEmptyClone()
+        if byColumns is not None:
+            assert isinstance(byColumns, (tuple, list))
+            ixi = [self.getIndex(name) for name in byColumns]
+        else:
+            ixi = None
+        keysSeen = set()
+        for row in self.rows:
+            if ixi is not None:
+                key = computekey([row[i] for i in ixi])
+            else:
+                key = computekey(row)
+            if key not in keysSeen:
+                result.rows.append(row[:])
+                keysSeen.add(key)
+        return result
+
     def filter(self, expr, debug=False):
         """builds a new table with columns selected according to ``expr``. E.g. ::
 
