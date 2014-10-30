@@ -42,6 +42,9 @@ def test_grouped_aggregate_with_None_in_group():
     t = emzed.utils.toTable("v", [1, 1, 2, None])
     assert (t.v.count.group_by(t.v)).values == (2, 2 , 1, None)
 
+    t.addColumn("u", (1, 1, None, None))
+    assert (t.v.count.group_by(t.v, t.u)).values == (2, 2 , None, None)
+
 def test_apply_to_empty_col():
     import emzed
     t = emzed.utils.toTable("b", (1,))
