@@ -1744,8 +1744,9 @@ class Table(object):
 
     def __iadd__(self, other):
         assert isinstance(other, Table)
-        Table._check_if_compatible((self, other))
+        meta = Table._check_if_compatible((self, other))
         self.rows.extend(other.rows)
+        self.meta = meta
         return self
 
     @staticmethod
@@ -1784,12 +1785,23 @@ class Table(object):
                 # we checked a pair of sequential tables (skipping empty ones), so:
                 break
 
+        tiis = set(t.meta.get("time_is_in_seconds") for t in tables)
+        if len(tiis) != 1:
+            raise Execption("tables have different time_is_in_seconds_settings %r" % tiis)
+
+        # merge metas backwards, so first table dominates
+        meta = tables[-1].meta.copy()
+        for t in tables[-1::-1]:
+            meta.update(t.meta)
+
+        return meta
+
     @staticmethod
     def stackTables(tables):
         """dumb and fast version of Table.mergeTables if all tables have common column
         names, types and formats unless they are empty.
         """
-        Table._check_if_compatible(tables)
+        meta = Table._check_if_compatible(tables)
         all_rows = [row[:] for t in tables for row in t.rows]
 
         for t0 in tables:    # look for first non emtpy table
@@ -1797,7 +1809,7 @@ class Table(object):
                 break
         else:
             return t0
-        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, dict())
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, meta)
 
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)
