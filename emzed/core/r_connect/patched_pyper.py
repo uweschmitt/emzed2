@@ -105,6 +105,7 @@ import sys
 import time
 import re
 import tempfile
+import traceback
 from types import *
 
 __version__ = '1.1.1'
@@ -816,7 +817,6 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
                 self.prog = None
                 print "R interpreter shut down"
         except:
-            import traceback
             traceback.print_exc()
             exit()
 
