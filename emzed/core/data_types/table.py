@@ -811,6 +811,7 @@ class Table(object):
         finally:
             del sys.modules["libms.DataStructures.Table"]
             del sys.modules["libms.DataStructures.MSTypes"]
+        tab.meta["time_is_in_seconds"] = True
         return tab
 
     @staticmethod
@@ -834,6 +835,9 @@ class Table(object):
                 tab = Table._load_strict(pickle_data)
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
+                # load table prior to emzed 2.5.0
+                if tab.meta.get("time_is_in_seconds") is None:
+                    tab.meta["time_is_in_seconds"] = True
                 return tab
             except:
                 return Table._try_to_load_old_version(pickle_data)
@@ -1468,6 +1472,10 @@ class Table(object):
         return newColNames
 
     def _buildJoinTable(self, t, title):
+        t1 = self.meta.get("time_is_in_seconds")
+        t2 = t.meta.get("time_is_in_seconds")
+        if t1 is not None and t2 is not None and t1 != t2:
+            raise Exception("both tables have different meta time unit settings !!!")
 
         incrementBy = self.maxPostfix() - t.minPostfix() + 1
 
@@ -1478,6 +1486,10 @@ class Table(object):
         if title is None:
             title = "%s vs %s" % (self.title, t.title)
         meta = {self: self.meta.copy(), t: t.meta.copy()}
+        if t1 is not None:
+            meta["time_is_in_seconds"] = t1
+        elif t2 is not None:
+            meta["time_is_in_seconds"] = t2
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
     def print_(self, w=8, out=None, title=None, max_lines=None):
@@ -1592,7 +1604,7 @@ class Table(object):
         if format_ == "":
             format_ = guessFormatFor(colName, type_, time_is_in_seconds)
         if meta is None:
-            meta = dict()
+            meta = dict(time_is_in_seconds=time_is_in_seconds)
         else:
             meta = meta.copy()
         rows = [[v] for v in values]
@@ -1640,7 +1652,7 @@ class Table(object):
         formats = [formats[n] for n in colNames]
 
         title = os.path.basename(path)
-        meta = dict(loaded_from=os.path.abspath(path))
+        meta = dict(loaded_from=os.path.abspath(path), time_is_in_seconds=timeIsInSeconds)
         return Table._create(colNames, types, formats, rows, title, meta)
 
     def toOpenMSFeatureMap(self):
