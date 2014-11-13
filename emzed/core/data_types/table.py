@@ -1809,7 +1809,9 @@ class Table(object):
                 break
         else:
             return t0
-        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, meta)
+        title = tables[0].title
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats,
+                             all_rows, title=title, meta=meta)
 
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)

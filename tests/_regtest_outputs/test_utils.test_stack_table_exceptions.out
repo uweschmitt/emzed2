@@ -1,5 +1,5 @@
 Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
+  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 94, in _exception_reg_test
     fun(*args)
   File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1804, in stackTables
     meta = Table._check_if_compatible(tables)
@@ -7,7 +7,7 @@ Traceback (most recent call last):
     % (i, j, types1, types2))
 Exception: tables 0 and 2 have different column types (<type 'int'> and <type 'str'>)
 Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
+  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 94, in _exception_reg_test
     fun(*args)
   File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1804, in stackTables
     meta = Table._check_if_compatible(tables)
@@ -15,7 +15,7 @@ Traceback (most recent call last):
     % (i, i + 1, t1.numCols(), t2.numCols()))
 Exception: tables 0 and 1 have different number columns (2 and 1)
 Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
+  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 94, in _exception_reg_test
     fun(*args)
   File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1804, in stackTables
     meta = Table._check_if_compatible(tables)
@@ -23,7 +23,7 @@ Traceback (most recent call last):
     % (i, i + 1, names1, names2))
 Exception: tables 1 and 2 have different column names (a and c)
 Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
+  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 94, in _exception_reg_test
     fun(*args)
   File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1804, in stackTables
     meta = Table._check_if_compatible(tables)
