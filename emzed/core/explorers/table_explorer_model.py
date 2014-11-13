@@ -195,7 +195,7 @@ class IntegrateAction(TableAction):
             # integrate
             mzmin = args["mzmin" + postfix]
             mzmax = args["mzmax" + postfix]
-            res = integrator.integrate(mzmin, mzmax, self.rtmin, self.rtmax)
+            res = integrator.integrate(mzmin, mzmax, self.rtmin, self.rtmax, msLevel=None)
 
             area = res["area"]
             rmse = res["rmse"]

@@ -294,9 +294,10 @@ class PeakMap(object):
 
     def getDominatingPeakmap(self):
         levels = self.getMsLevels()
-        if len(levels) > 1 or 1 in levels:
+        if levels == [1]:
             return self
-        spectra = copy.copy(self.spectra)
+        ms_level = min(levels)
+        spectra = [copy.copy(s) for s in self.spectra if s.msLevel == ms_level]
         for spec in spectra:
             spec.msLevel = 1
         return PeakMap(spectra, meta=self.meta.copy())
