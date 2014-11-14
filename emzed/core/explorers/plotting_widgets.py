@@ -23,8 +23,8 @@ def getColor(i):
     return colors[i % len(colors)]
 
 
-def format_time(t):
-    return "%.2fm" % (t / 60.0)
+def formatSeconds(seconds):
+    return "%.2fm" % (seconds / 60.0)
 
 
 class RtRangeSelectionInfo(ObjectInfo):
@@ -36,10 +36,10 @@ class RtRangeSelectionInfo(ObjectInfo):
     def get_text(self):
         rtmin, rtmax = sorted(self.range_.get_range())
         if rtmin != rtmax:
-            return u"RT: %s ... %s" % (format_time(rtmin),
-                                       format_time(rtmax))
+            return u"RT: %s ... %s" % (formatSeconds(rtmin),
+                                       formatSeconds(rtmax))
         else:
-            return u"RT: %s" % format_time(rtmin)
+            return u"RT: %s" % formatSeconds(rtmin)
 
 
 class PlotterBase(object):
@@ -99,7 +99,7 @@ class RtPlotter(PlotterBase):
         # todo: refactor as helper
         a = QwtScaleDraw()
         # render tic labels in modfied format:
-        label = lambda self, v: QwtText(format_time(v))
+        label = lambda self, v: QwtText(formatSeconds(v))
         a.label = new.instancemethod(label, widget.plot, QwtScaleDraw)
         widget.plot.setAxisScaleDraw(widget.plot.xBottom, a)
 

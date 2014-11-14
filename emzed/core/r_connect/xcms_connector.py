@@ -1,5 +1,5 @@
 # encoding: utf-8
-from ..data_types.table import timeFormatter
+from ..data_types.table import fms as formatSeconds
 from ..data_types import PeakMap
 
 from ..dialogs.r_output_dialog import ROutputDialog
@@ -274,16 +274,14 @@ class CentwaveFeatureDetector(object):
      del dd["temp_input"]
      del dd["temp_output"]
 
-     time_format = timeFormatter(True)
-
      table = execute(script).get_df_as_table("peaks",
                                types=dict(mz=float, mzmin=float, mzmax=float,
                                           rt=float, rtmin=float, ftmax=float,
                                           into=float, intb=float, maxo=float,
                                           sn=float, sample=int),
                                formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
-                                            rt=time_format, rtmin=time_format,
-                                            rtmax=time_format,
+                                            rt=formatSeconds, rtmin=formatSeconds,
+                                            rtmax=formatSeconds,
                                             into="%.2e", intb="%.2e", maxo="%.2e",
                                             sn="%.2e", peakmap="%s")
                                )
@@ -369,8 +367,6 @@ class MatchedFilterFeatureDetector(object):
      del dd["temp_input"]
      del dd["temp_output"]
 
-     time_format = timeFormatter(True)
-
      table = execute(script).get_df_as_table("peaks",
                                types=dict(mz=float, mzmin=float, mzmax=float,
                                           rt=float, rtmin=float, ftmax=float,
@@ -378,8 +374,8 @@ class MatchedFilterFeatureDetector(object):
                                           maxf=float, i=int,
                                           sn=float, sample=int),
                                formats=dict(mz="%10.5f", mzmin="%10.5f", mzmax="%10.5f",
-                                            rt=time_format, rtmin=time_format,
-                                            rtmax=time_format,
+                                            rt=formatSeconds, rtmin=formatSeconds,
+                                            rtmax=formatSeconds,
                                             into="%.2e", intf="%.2e", maxo="%.2e",
                                             maxf="%.2e", sn="%.2e")
                                )

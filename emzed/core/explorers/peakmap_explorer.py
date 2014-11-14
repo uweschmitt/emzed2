@@ -54,8 +54,8 @@ SIG_HISTORY_CHANGED = SIGNAL('plot_history_changed(PyQt_PyObject)')
 def set_x_axis_scale_draw(widget):
     """ formats ticks on time axis as minutes """
     drawer = QwtScaleDraw()
-    fs = lambda v: "%.2fm" % (v / 60.0)
-    format_label = lambda self, v: QwtText(fs(v))
+    formatSeconds = lambda v: "%.2fm" % (v / 60.0)
+    format_label = lambda self, v: QwtText(formatSeconds(v))
     drawer.label = types.MethodType(format_label, widget.plot, QwtScaleDraw)
     widget.plot.setAxisScaleDraw(widget.plot.xBottom, drawer)
 
@@ -297,7 +297,6 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
         RGBImageItem.draw_image(self, painter, canvasRect, srcRect, dstRect, xMap, yMap)
 
 
-
 class PeakmapCursorRangeInfo(ObjectInfo):
 
     def __init__(self, marker):
@@ -334,7 +333,7 @@ class RtCursorInfo(ObjectInfo):
     def get_text(self):
         if self.rt is None:
             return ""
-        return "<pre>rt: %.1f sec<br>  = %.2f min</pre>" % (self.rt, self.rt / 60.0)
+        return "<pre>rt: %.1f sec<br>  = %.2fm</pre>" % (self.rt, self.rt / 60.0)
 
 
 class PeakmapZoomTool(InteractiveTool):
@@ -1480,14 +1479,10 @@ class PeakMapExplorer(EmzedDialog):
     @protect_signal_handler
     def row_selected(self, row_idx):
         row = self.table.getValues(self.table.rows[row_idx])
-        fac = 1.0 if self.table.meta.get("time_is_in_seconds", True) else 60.0
         needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
         if all(n in row for n in needed):
             rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
-            if rtmin is not None and rtmax is not None and mzmin is not None and mzmax is not None:
-                rtmin *= fac
-                rtmax *= fac
-                self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+            self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
         else:
             needed = ["mzmin", "mzmax"]
             if all(n in row for n in needed):

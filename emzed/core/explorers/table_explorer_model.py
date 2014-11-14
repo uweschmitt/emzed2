@@ -212,11 +212,9 @@ class IntegrateAction(TableAction):
 
         # write values to table
         row = table.rows[self.idx]
-        time_is_in_seconds = table.meta.get("time_is_in_seconds", True)
-        fac = 1.0 if time_is_in_seconds else 60.0
         table.setValue(row, "method" + postfix, self.method)
-        table.setValue(row, "rtmin" + postfix, self.rtmin / fac)
-        table.setValue(row, "rtmax" + postfix, self.rtmax / fac)
+        table.setValue(row, "rtmin" + postfix, self.rtmin)
+        table.setValue(row, "rtmax" + postfix, self.rtmax)
         table.setValue(row, "area" + postfix, area)
         table.setValue(row, "rmse" + postfix, rmse)
         table.setValue(row, "params" + postfix, params)
@@ -353,10 +351,7 @@ class TableModel(QAbstractTableModel):
                 value = str(value.toString()).strip()
                 # minutes ?
                 if re.match("^((\d+m)|(\d*.\d+m))$", value):
-                    if self.table.meta.get("time_is_in_seconds", True):
-                        value = 60.0 * float(value[:-1])
-                    else:
-                        value = float(value[:-1])
+                    value = 60.0 * float(value[:-1])
                 try:
                     value = expectedType(value)
                 except Exception:
@@ -415,7 +410,6 @@ class TableModel(QAbstractTableModel):
             self.current_sort_idx = colIdx # dataColIdx
 
     def integrate(self, idx, postfix, method, rtmin, rtmax):
-        # times are here in seconds !
         self.runAction(IntegrateAction, postfix, idx, method, rtmin, rtmax)
 
     def eicColNames(self):
@@ -500,8 +494,6 @@ class TableModel(QAbstractTableModel):
     def getLevelNSpectra(self, rowIdx, minLevel=2, maxLevel=999):
         spectra = []
         postfixes = []
-        time_is_in_seconds = self.table.meta.get("time_is_in_seconds", True)
-        fac = 1.0 if time_is_in_seconds else 60.0
         for p in self.table.supportedPostfixes(self.eicColNames()):
             values = self.table.getValues(self.table.rows[rowIdx])
             pm = values["peakmap" + p]
@@ -509,7 +501,7 @@ class TableModel(QAbstractTableModel):
             rtmax = values["rtmax" + p]
             if pm is not None and rtmin is not None and rtmax is not None:
                 for spec in pm.levelNSpecs(minLevel, maxLevel):
-                    if rtmin * fac <= spec.rt <= rtmax * fac:
+                    if rtmin <= spec.rt <= rtmax:
                         spectra.append(spec)
                         postfixes.append(p)
         return postfixes, spectra
@@ -521,8 +513,6 @@ class TableModel(QAbstractTableModel):
         rtmins = []
         rtmaxs = []
         allrts = []
-        time_is_in_seconds = self.table.meta.get("time_is_in_seconds", True)
-        fac = 1.0 if time_is_in_seconds else 60.0
         for p in self.table.supportedPostfixes(self.eicColNames()):
             values = self.table.getValues(self.table.rows[rowIdx])
             pm = values["peakmap" + p]
@@ -536,8 +526,8 @@ class TableModel(QAbstractTableModel):
                 chromo = pm.chromatogram(mzmin, mzmax)
                 mzmins.append(mzmin)
                 mzmaxs.append(mzmax)
-                rtmins.append(rtmin * fac)
-                rtmaxs.append(rtmax * fac)
+                rtmins.append(rtmin)
+                rtmaxs.append(rtmax)
             eics.append(chromo)
             allrts.extend(chromo[0])
         if not mzmins:

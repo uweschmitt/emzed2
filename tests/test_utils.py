@@ -76,18 +76,6 @@ def test_stack_tables():
     assert t1.rows == t2.rows
     assert len(t2) == len(t1)
 
-    # merge metas
-    t1.meta = dict(a=3, time_is_in_seconds=True)
-    t2.meta = dict(b=4, time_is_in_seconds=True)
-    t3 = emzed.utils.stackTables((t1, t2))
-    assert t3.meta == dict(a=3, b=4, time_is_in_seconds=True)
-
-    # merge metas 2
-    t1.meta = dict(a=3, time_is_in_seconds=False)
-    t2.meta = dict(b=4, time_is_in_seconds=False)
-    t3 = emzed.utils.stackTables((t1, t2))
-    assert t3.meta == dict(a=3, b=4, time_is_in_seconds=False)
-
 
 def _exception_reg_test(regtest, fun, *args):
     try:
@@ -122,7 +110,4 @@ def test_stack_table_exceptions(regtest):
     t3 = emzed.utils.toTable("a", [1, 2])
     _exception_reg_test(regtest, emzed.utils.stackTables, (t1, t2, t3))
 
-    # diff time setting metas
-    t1 = emzed.utils.toTable("a", [], meta=dict(time_is_in_seconds=True))
-    t2 = emzed.utils.toTable("a", [1, 2], meta=dict(time_is_in_seconds=False))
 

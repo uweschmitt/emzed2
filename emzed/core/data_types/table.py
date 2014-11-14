@@ -29,24 +29,25 @@ def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
+
+import emzed
+
+if emzed.TIME_IN_SECONDS:
+    fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+else:
+    fms = "%.1fm"
+
+formatSeconds = fms
+
 formatHexId = "'%x' % id(o)"
 
 
-def timeFormatter(time_is_in_seconds):
-    if time_is_in_seconds:
-        fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
-        return fms
-    else:
-        return "%.1fm"
-
-
-
-def guessFormatFor(name, type_, time_is_in_seconds):
+def guessFormatFor(name, type_):
     if type_ in (float, int):
         if name.startswith("m"):
             return "%.5f"
         if name.startswith("rt"):
-            return timeFormatter(time_is_in_seconds)
+            return fms
     return standardFormats.get(type_, "%r")
 
 
@@ -213,7 +214,7 @@ class Table(object):
 
         self.rows = rows
         self.title = title
-        self.meta = copy.copy(meta) if meta is not None else dict(time_is_in_seconds=True)
+        self.meta = copy.copy(meta) if meta is not None else dict()
 
         self.primaryIndex = {}
         self._name = repr(self)
@@ -811,7 +812,6 @@ class Table(object):
         finally:
             del sys.modules["libms.DataStructures.Table"]
             del sys.modules["libms.DataStructures.MSTypes"]
-        tab.meta["time_is_in_seconds"] = True
         return tab
 
     @staticmethod
@@ -835,9 +835,6 @@ class Table(object):
                 tab = Table._load_strict(pickle_data)
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
-                # load table prior to emzed 2.5.0
-                if tab.meta.get("time_is_in_seconds") is None:
-                    tab.meta["time_is_in_seconds"] = True
                 return tab
             except:
                 return Table._try_to_load_old_version(pickle_data)
@@ -1124,10 +1121,8 @@ class Table(object):
         # type_ may be None, so guess:
         type_ = type_ or common_type_for(values)
 
-        time_is_in_seconds = self.meta.get("time_is_in_seconds", True)
-
         if format_ == "":
-            format_ = guessFormatFor(name, type_, time_is_in_seconds)
+            format_ = guessFormatFor(name, type_)
 
         col_ = self._find_insert_column(insertBefore, insertAfter)
         if col_ < 0:
@@ -1472,10 +1467,6 @@ class Table(object):
         return newColNames
 
     def _buildJoinTable(self, t, title):
-        t1 = self.meta.get("time_is_in_seconds")
-        t2 = t.meta.get("time_is_in_seconds")
-        if t1 is not None and t2 is not None and t1 != t2:
-            raise Exception("both tables have different meta time unit settings !!!")
 
         incrementBy = self.maxPostfix() - t.minPostfix() + 1
 
@@ -1486,10 +1477,6 @@ class Table(object):
         if title is None:
             title = "%s vs %s" % (self.title, t.title)
         meta = {self: self.meta.copy(), t: t.meta.copy()}
-        if t1 is not None:
-            meta["time_is_in_seconds"] = t1
-        elif t2 is not None:
-            meta["time_is_in_seconds"] = t2
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
     def print_(self, w=8, out=None, title=None, max_lines=None):
@@ -1594,24 +1581,20 @@ class Table(object):
             raise Exception("colName is not a string. The arguments of this "
                             "function changed in the past !")
 
-        if meta is not None:
-            time_is_in_seconds = meta.get("time_is_in_seconds", True)
-        else:
-            time_is_in_seconds = True
         values = convert_list_to_overall_type(list(iterable))
         if type_ is None:
             type_ = common_type_for(values)
         if format_ == "":
-            format_ = guessFormatFor(colName, type_, time_is_in_seconds)
+            format_ = guessFormatFor(colName, type_)
         if meta is None:
-            meta = dict(time_is_in_seconds=time_is_in_seconds)
+            meta = dict()
         else:
             meta = meta.copy()
         rows = [[v] for v in values]
         return Table([colName], [type_], [format_], rows, meta=meta)
 
     @staticmethod
-    def loadCSV(path, sep=";", keepNone=False, timeIsInSeconds=True, **specialFormats):
+    def loadCSV(path, sep=";", keepNone=False, **specialFormats):
         """
         loads csv file from path. column separator is given by *sep*.
         If *keepNone* is set to True, "None" strings in file are kept as a string.
@@ -1645,14 +1628,14 @@ class Table(object):
         columns = [[row[i] for row in rows] for i in range(len(colNames))]
         types = [common_type_for(col) for col in columns]
 
-        formats = dict([(name, guessFormatFor(name, type_, timeIsInSeconds)) for (name, type_)
+        formats = dict([(name, guessFormatFor(name, type_)) for (name, type_)
                         in zip(colNames, types)])
         formats.update(specialFormats)
 
         formats = [formats[n] for n in colNames]
 
         title = os.path.basename(path)
-        meta = dict(loaded_from=os.path.abspath(path), time_is_in_seconds=timeIsInSeconds)
+        meta = dict(loaded_from=os.path.abspath(path))
         return Table._create(colNames, types, formats, rows, title, meta)
 
     def toOpenMSFeatureMap(self):
@@ -1744,7 +1727,8 @@ class Table(object):
 
     def __iadd__(self, other):
         assert isinstance(other, Table)
-        meta = Table._check_if_compatible((self, other))
+        Table._check_if_compatible((self, other))
+        meta = Table._merge_metas((self, other))
         self.rows.extend(other.rows)
         self.meta = meta
         return self
@@ -1785,10 +1769,9 @@ class Table(object):
                 # we checked a pair of sequential tables (skipping empty ones), so:
                 break
 
-        tiis = set(t.meta.get("time_is_in_seconds") for t in tables)
-        if len(tiis) != 1:
-            raise Execption("tables have different time_is_in_seconds_settings %r" % tiis)
 
+    @staticmethod
+    def _merge_metas(tables):
         # merge metas backwards, so first table dominates
         meta = tables[-1].meta.copy()
         for t in tables[-1::-1]:
@@ -1801,7 +1784,10 @@ class Table(object):
         """dumb and fast version of Table.mergeTables if all tables have common column
         names, types and formats unless they are empty.
         """
-        meta = Table._check_if_compatible(tables)
+
+        Table._check_if_compatible(tables)
+        meta = Table._merge_metas(tables)
+
         all_rows = [row[:] for t in tables for row in t.rows]
 
         for t0 in tables:    # look for first non emtpy table
