@@ -98,18 +98,12 @@ def askYesNo(message, allow_cancel=False, title="Question"):
        returns True, False (or None).
     """
 
-    print 1
-    print 1
+    app = guidata.qapplication()
     flags = QMessageBox.Yes | QMessageBox.No
-    print 1
     if allow_cancel:
-        print 2
         flags |= QMessageBox.Cancel
 
-    print 1
-    app = guidata.qapplication()
     reply = QMessageBox.question(None, title, message, flags)
-    print 1
 
     if reply == QMessageBox.Cancel:
         return None
