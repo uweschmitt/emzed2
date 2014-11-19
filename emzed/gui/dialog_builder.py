@@ -1,34 +1,44 @@
-#encoding: latin-1
+# encoding: latin-1
+
+import sys
+import string
+import locale
+
 import guidata
 import guidata.dataset.datatypes as dt
 import guidata.dataset.dataitems as di
 
 from guidata.qt.QtGui import QMessageBox
-
-import string
-import locale
+from guidata.dataset.qtwidgets import DataSetEditDialog
 
 # monkey patch following Items, else dt.DataSet.check() raises
 # exceptions. They are assumed to be valid in any case:
-di.BoolItem.check_value = lambda *a, **kw: True
-di.ChoiceItem.check_value = lambda *a, **kw: True
-di.MultipleChoiceItem.check_value = lambda *a, **kw: True
-di.ButtonItem.check_value = lambda *a, **kw: True
+
+
+def _true(*a, **kw):
+    return True
+
+di.BoolItem.check_value = _true
+di.ChoiceItem.check_value = _true
+di.MultipleChoiceItem.check_value = _true
+di.ButtonItem.check_value = _true
+
+# patch ok / cancel: never check if needed fields are present ?!
+DataSetEditDialog.check = _true
+
 
 def _patched_get(self, instance, klass):
     if instance is not None:
-         value = getattr(instance, "_" + self._name, self._default)
-         if isinstance(value, unicode):
-             return value.encode(locale.getdefaultlocale()[1])
-         return value
+        value = getattr(instance, "_" + self._name, self._default)
+        if isinstance(value, unicode):
+            return value.encode(locale.getdefaultlocale()[1])
+        return value
     return self
 
 di.StringItem.__get__ = _patched_get
 di.TextItem.__get__ = _patched_get
 
-import sys
-
-if sys.platform=="win32":
+if sys.platform == "win32":
 
     def _patched_get_for_pathes(self, instance, klass):
         if instance is not None:
@@ -56,29 +66,56 @@ di.DirectoryItem.__get__ = _patched_get_for_pathes
 
 
 def _translateLabelToFieldname(label):
-    # translate label strings to python vairable names
+    # translate label strings to python variable names
     invalid = r"""^°!"\§$%&/()=?´``+*~#'-.:,;<>|@$"""
-    trtable = string.maketrans(invalid, " "*len(invalid))
+    trtable = string.maketrans(invalid, " " * len(invalid))
     return label.lower().translate(trtable)\
                 .replace("  ", " ")\
                 .replace("  ", " ")\
-                .replace(" ", "_")\
+                .replace(" ", "_")
 
-def showWarning(message):
+
+def showWarning(message, title="Warning"):
     """
     shows a warning dialog with given message
     """
 
     app = guidata.qapplication()
-    QMessageBox.warning(None, "Warning", message)
+    QMessageBox.warning(None, title, message)
 
-def showInformation(message):
+
+def showInformation(message, title="Information"):
     """
     shows a information dialog with given message
     """
 
     app = guidata.qapplication()
-    QMessageBox.information(None, "Information", message)
+    QMessageBox.information(None, title, message)
+
+
+def askYesNo(message, allow_cancel=False, title="Question"):
+    """shows message and asks for "yes" or "no" (or "cancel" if allow_cancel is True).
+       returns True, False (or None).
+    """
+
+    print 1
+    print 1
+    flags = QMessageBox.Yes | QMessageBox.No
+    print 1
+    if allow_cancel:
+        print 2
+        flags |= QMessageBox.Cancel
+
+    print 1
+    app = guidata.qapplication()
+    reply = QMessageBox.question(None, title, message, flags)
+    print 1
+
+    if reply == QMessageBox.Cancel:
+        return None
+    else:
+        return reply == QMessageBox.Yes
+
 
 class DialogBuilder(object):
 
@@ -89,8 +126,8 @@ class DialogBuilder(object):
             _docString = getattr(_item, "__doc__")
             if _docString is None:
                 _docString = ""
-            _dynamicMethodName = "        add"+_itemName[:-4]
-            _docStrings.append(_dynamicMethodName+"(...):\n"+_docString)
+            _dynamicMethodName = "        add" + _itemName[:-4]
+            _docStrings.append(_dynamicMethodName + "(...):\n" + _docString)
 
     __doc__ = "\n".join(_docStrings)
 
@@ -127,31 +164,30 @@ class DialogBuilder(object):
         """
         if name.startswith("add"):
             try:
-                item = getattr(di, name[3:]+"Item")
+                item = getattr(di, name[3:] + "Item")
             except:
-                raise AttributeError("%r has no attribute '%s'"\
-                                     % (self, name))
+                raise AttributeError("%r has no attribute '%s'" % (self, name))
 
             class Stub(object):
+
                 def __init__(self, item, outer):
-                    self.item=item
+                    self.item = item
                     self.outer = outer
 
                 def __call__(self, label, *a, **kw):
-                    #this function registers corresponding subclass of
+                    # this function registers corresponding subclass of
                     #    DataItem
                     fieldName = _translateLabelToFieldname(label)
                     # check if fieldName is valid in Python:
                     try:
                         exec("%s=0" % fieldName) in dict()
                     except:
-                        raise Exception("converted label %r to field name %r "\
-                                        "which is not allowed in python" \
+                        raise Exception("converted label %r to field name %r "
+                                        "which is not allowed in python"
                                         % (label, fieldName))
                     # get DataItem subclass
                     # construct item
-                    dd = dict ((n,v) for (n,v) in kw.items()
-                                     if n in ["col", "colspan"])
+                    dd = dict((n, v) for (n, v) in kw.items() if n in ["col", "colspan"])
                     horizontal = kw.get("horizontal")
                     if horizontal is not None:
                         del kw["horizontal"]
@@ -178,10 +214,10 @@ class DialogBuilder(object):
             stub = Stub(item, self)
 
             # add docstring dynamically
-            item = getattr(di, name[3:]+"Item")
+            item = getattr(di, name[3:] + "Item")
             docString = getattr(item, "__doc__")
-            docString = "" if  docString is None else docString
-            docString = "-\n\n"+name+"(...):\n"+docString
+            docString = "" if docString is None else docString
+            docString = "-\n\n" + name + "(...):\n" + docString
             stub.__doc__ = docString
             return stub
         raise AttributeError("%r has no attribute '%s'" % (self, name))
@@ -241,7 +277,7 @@ class DialogBuilder(object):
         # with the  given attributes:
         clz = type("Dialog", (dt.DataSet,), attributes)
         # as said: the docstring is rendered as the dialogues title:
-        clz.__doc__ = self.title+"\n"+"\n".join(self.instructions)
+        clz.__doc__ = self.title + "\n" + "\n".join(self.instructions)
         # open dialog now !!!
         instance = clz()
         if instance.edit() == 0:
@@ -259,16 +295,12 @@ for _itemName, _item in di.__dict__.items():
     if _itemName.endswith("Item"):
         exec ("%s = di.%s" % (_itemName, _itemName))
 
+
 def RunJobButton(label, method_name=None):
     item = di.ButtonItem(label, None)
     item._run_method = method_name
     return item
 
-
-# patch ok / cancel: never check if needed fields are present ?!
-
-from guidata.dataset.qtwidgets import DataSetEditDialog
-DataSetEditDialog.check = lambda self: True
 
 class WorkflowFrontend(dt.DataSet):
 
@@ -279,6 +311,7 @@ class WorkflowFrontend(dt.DataSet):
             if hasattr(item, "_run_method"):
                 name = item._run_method or "run_" + item._name
                 target = getattr(self, name)
+
                 def inner(ds, it, value, parent, target=target):
                     invalidFields = ds.check()
                     if len(invalidFields):
@@ -287,7 +320,7 @@ class WorkflowFrontend(dt.DataSet):
                         QMessageBox.warning(parent, "Error", msg)
                         return
                     target()
-                setattr(self, "_emzed_run_"+name, inner)
+                setattr(self, "_emzed_run_" + name, inner)
                 item.set_prop("display", callback=inner)
         dt.DataSet.__init__(self)
 
