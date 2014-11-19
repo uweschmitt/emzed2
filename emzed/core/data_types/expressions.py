@@ -400,9 +400,15 @@ class BaseExpression(object):
         return (self.isNotNone()).thenElse(self, other)
 
     def isNotNone(self):
+        """
+        This expression returns `False` for `None` values which indicate "missing value"
+        """
         return IsNotNoneExpression(self)
 
     def isNone(self):
+        """
+        This expression returns `True` for `None` values which indicate "missing value"
+        """
         return IsNoneExpression(self)
 
     def pow(self, exp):
