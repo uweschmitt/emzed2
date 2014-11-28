@@ -13,6 +13,14 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             n_cpus = 0 means "use all cpu cores"
             n_cpus = -1 means "use all but one cpu cores", etc
     """
+
+    assert isinstance(ftable, Table)
+
+    neededColumns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
+    supportedPostfixes = ftable.supportedPostfixes(neededColumns)
+    if not supportedPostfixes:
+        raise Exception("is no feature table")
+
     import sys
     import multiprocessing
     if sys.platform == "win32":
@@ -101,13 +109,6 @@ def _integrate((ftable, integratorid, msLevel, showProgress,)):
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
-
-    assert isinstance(ftable, Table)
-
-    neededColumns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
-    supportedPostfixes = ftable.supportedPostfixes(neededColumns)
-    if not supportedPostfixes:
-        raise Exception("is no feature table")
 
     integrator = dict(peakIntegrators).get(integratorid)
     if integrator is None:
