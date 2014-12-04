@@ -2,16 +2,23 @@
 
 platform=$(python -c "import sys; print sys.platform")
 
-cd _build/html
 
 if [ $platform = 'linux2' ]; then
-    if [ -d /mnt/mickey  ]; then
+    TARGET=/mnt/mickey
+    if [ -d $TARGET ]; then
         # on linux
-        cp -v -R . /mnt/mickey
+        echo "ok";
+        echo;
     else
         echo "/mnt/mickey does not exit";
         echo;
     fi;
 else
-    cp -v -R . //mickey.ethz.ch/mz$
+    TARGET=//mickey.ethz.ch/mz$
 fi;
+
+TARGET=/Volumes/mz\$
+cd _build/html
+cp -v -R . $TARGET
+cd ../..
+cp -v -R presentation $TARGET
