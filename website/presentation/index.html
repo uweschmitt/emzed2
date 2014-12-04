@@ -196,7 +196,7 @@ class: center, middle, inverse
 
 # Software
 
-- Hardware is progressing very fast
+- LCMS devices are progressing very fast
 
 - but vendor software is (always) behind or very simple
 
@@ -228,7 +228,7 @@ class: center, middle, inverse
 
 - Results are hardly to reproduce
 
-- Good ideas from users never got implemented
+- Good ideas from users never get implemented
 
 
 ---
@@ -267,7 +267,7 @@ class: center, middle, inverse
 
 - Since then incremental improvements
 
-- Now emzed 2.7.0
+- Today: emzed 2.7.0
 ---
 
 class: center, middle, inverse
@@ -289,11 +289,11 @@ This is the emzed workbench.
 
 # emzed functions overview
 
-- I/O: lcms data formats, csv
+- I/O: LCMS data formats, CSV
 
-- Cherry picked lcms algorithms
+- Cherry picked LCMS algorithms
 
-- Sql like relational tables
+- SQL like relational tables
 
 - Interactive data inspection
 
@@ -367,7 +367,7 @@ water      H2O      18.01057
 sodium     NaCl     57.95862
 fullerene  C60      720.00000
 
->>> hits = peaks.join(on_earth, peaks.mz.approxEqual(on_earth.mz, 1e-3)
+>>> hits = peaks.join(on_earth, peaks.mz.approxEqual(on_earth.m0, 1e-3)
 >>> print hits
 mz        rt        name__0    mf__0    m0__0
 float     float     str        str      float
@@ -389,11 +389,11 @@ class: center, middle
 
 # Impact
 
-- Users report more trust in analysis results
+- Increased trust of scientists in analysis results.
 
-- emzed as a playground for testing with new analysis strategies
+- emzed as a playground for testing new analysis strategies
 
-- Several publications from DBIOL related to emzed
+- Several publications from DBIOL using emzed
 
 ---
 class: center, middle, inverse
@@ -415,7 +415,7 @@ class: center, middle, inverse
 
 - Workbench is patched **Spyder**
 
-- R bridge uses **ruype** (stdio/stdout pipes to R subprocess)
+- R bridge uses **rpype** (stdio/stdout pipes to R subprocess)
 
 - Bridge to **OpenMS** uses Cython (pyOpenMS)
 
