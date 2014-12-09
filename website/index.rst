@@ -37,7 +37,11 @@ Fundamental principles of emzed
 Presentation
 ------------
 
-You find some slides about emzed and how it started at http://emzed.ethz.ch/presentation.
+You find some slides about emzed and how the story started at |presentation_link|.
+
+.. |presentation_link| raw:: html
+
+   <a href="http://emzed.ethz.ch/presentation" target="_blank">http://emzed.ethz.ch/presentation</a>
 
 
 Screenshots

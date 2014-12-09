@@ -121,6 +121,9 @@ class Spectrum(object):
         """Returns an iterator of the peaks of the Spectrum object"""
         return iter(self.peaks)
 
+    def __getitem__(self, idx):
+        return self.peaks[idx, :]
+
     def intensityInRange(self, mzmin, mzmax):
         """summed up intensities in given m/z range"""
         return self.peaksInRange(mzmin, mzmax)[:, 1].sum()
@@ -237,10 +240,39 @@ class PeakMap(object):
         else:
             self.polarity = None
 
+    def __iter__(self):
+        """Returns an iterator of the spectra of the PeakMap object"""
+        return iter(self.spectra)
+
+    def __getitem__(self, idx):
+        return self.spectra[idx]
+
     def all_peaks(self, msLevel=1):
         return np.vstack((s.peaks for s in self.spectra if s.msLevel == msLevel))
 
-    def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None,
+    def filterIntensity(self, msLevel=None, minInt=None, maxInt=None):
+        """creates new peakmap matching the given conditions. Using a single requirement
+        as::
+
+            pm.filterIntensity(
+        """
+        spectra = []
+        for spec in self.spectra:
+            if msLevel is not None and spec.msLevel != msLevel:
+                continue
+            peaks = spec.peaks
+            if minInt is not None:
+                peaks = peaks[peaks[:, 1] >= minInt]
+            if maxInt is not None:
+                peaks = peaks[peaks[:, 1] <= maxInt]
+            spec = copy.deepcopy(spec)
+            spec.peaks = peaks
+            spectra.append(spec)
+
+        return PeakMap(spectra, self.meta.copy())
+
+
+    def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None, imin=None, imax=None,
                 mslevelmin=None, mslevelmax=None):
         """ returns restricted Peakmap with given limits.
         Parameters with *None* value are not considered.
@@ -272,6 +304,13 @@ class PeakMap(object):
             for s in spectra:
                 s.peaks = s.peaksInRange(mzmin, mzmax)
 
+        if imin is not None or imax is not None:
+            for s in spectra:
+                if imin is not None:
+                    s.peaks = s.peaks[s.peaks[:, 1] >= imin]
+                if imax is not None:
+                    s.peaks = s.peaks[s.peaks[:, 1] <= imax]
+
         spectra = [s for s in spectra if len(s.peaks)]
 
         return PeakMap(spectra, self.meta.copy())
@@ -297,7 +336,7 @@ class PeakMap(object):
         if levels == [1]:
             return self
         ms_level = min(levels)
-        spectra = [copy.copy(s) for s in self.spectra if s.msLevel == ms_level]
+        spectra = [copy.deepcopy(s) for s in self.spectra if s.msLevel == ms_level]
         for spec in spectra:
             spec.msLevel = 1
         return PeakMap(spectra, meta=self.meta.copy())
@@ -306,7 +345,8 @@ class PeakMap(object):
         """ builds new peakmap where ``condition(s)`` is ``True`` for
             spectra ``s``
         """
-        return PeakMap([s for s in self.spectra if condition(s)], self.meta)
+        spectra = copy.deepcopy(self.spectra)
+        return PeakMap([s for s in spectra if condition(s)], self.meta.copy())
 
     def specsInRange(self, rtmin, rtmax):
         """
@@ -478,7 +518,7 @@ class PeakMap(object):
         msn_spectra = defaultdict(list)
         for spectrum in self.spectra:
             if spectrum.msLevel == msLevel:
-                spectrum = copy.copy(spectrum)
+                spectrum = copy.deepcopy(spectrum)
                 key = spectrum.precursors[0][0]
                 if significant_digits_precursor is not None:
                     key = round(key, significant_digits_precursor)
