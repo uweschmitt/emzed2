@@ -13,6 +13,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             n_cpus = 0 means "use all cpu cores"
             n_cpus = -1 means "use all but one cpu cores", etc
     """
+    from ..core.data_types.table import Table, PeakMap
 
     assert isinstance(ftable, Table)
 
@@ -32,7 +33,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
                                        "pythonw.exe")
                                        )
     import time
-    from ..core.data_types.table import Table, PeakMap
 
     started = time.time()
 
@@ -67,7 +67,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print
 
     if n_cpus == 1:
-        result = _integrate((ftable, integratorid, msLevel, showProgress))
+        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress))
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
@@ -75,7 +75,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         for i in range(n_cpus):
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
-            args.append((subt, integratorid, msLevel, show_progress))
+            args.append((subt, supportedPostfixes, integratorid, msLevel, show_progress))
             all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
@@ -105,7 +105,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     return result
 
 
-def _integrate((ftable, integratorid, msLevel, showProgress,)):
+def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,)):
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
