@@ -1,4 +1,5 @@
 import copy
+import csv
 import os
 import itertools
 import re
@@ -744,29 +745,21 @@ class Table(object):
         """writes the table in .csv format. The ``path`` has to end with
            '.csv'.
 
-           If the file already exists, the routine tries names
-           ``*.csv.1, *.csv.2, ...`` until a non-existing file name is found
-
            As .csv is a text format all binary information is lost !
         """
         if not os.path.splitext(path)[1].upper() == ".CSV":
             raise Exception("%s has wrong file type extension" % path)
-        it = itertools
-        for p in it.chain([path], ("%s.%d" % (path, i) for i in it.count(1))):
-            if os.path.exists(p):
-                print p, "exists"
+
+        with open(path, "w") as fp:
+            writer = csv.writer(fp, delimiter=";")
+            if onlyVisibleColumns:
+                colNames = self.getVisibleCols()
             else:
-                print "write ", p
-                with file(p, "w") as fp:
-                    if onlyVisibleColumns:
-                        colNames = self.getVisibleCols()
-                    else:
-                        colNames = self._colNames
-                    print >> fp, "; ".join(colNames)
-                    for row in self.rows:
-                        data = [self.getValue(row, v) for v in colNames]
-                        print >> fp, "; ".join(map(str, data))
-                break
+                colNames = self._colNames
+            writer.writerow(colNames)
+            for row in self.rows:
+                data = [self.getValue(row, v) for v in colNames]
+                writer.writerow(data)
 
     def store(self, path, forceOverwrite=False, compressed=True):
         """
@@ -1605,7 +1598,6 @@ class Table(object):
         Example: ``Table.loadCSV("abc.csv", mz="%.3f")``
 
         """
-        import csv
         import os.path
         import sys
         import re

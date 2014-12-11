@@ -118,18 +118,6 @@ class TestTable(unittest.TestCase):
             assert tnre.x.values == tn.x.values
 
 
-
-            tn.storeCSV(j("x.csv"), onlyVisibleColumns=False)
-            after = set(os.listdir(self.temp_output))
-            # file written twice !
-            assert len(after-before) == 2
-            for n in after-before:
-                # maybe we have some x.csv.? from previous run of this
-                #function so we can not assume that we find x.csv and
-                #x.csv.1
-                assert re.match("x.csv(.\d+)?", n)
-
-            ex = None
             with self.assertRaises(Exception):
                 # wrong file extension
                 tn.storeCSV(j("x.dat"))
