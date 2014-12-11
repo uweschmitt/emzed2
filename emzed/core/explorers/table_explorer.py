@@ -664,7 +664,9 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None):
     else:
         explorer.show()
     # partial cleanup
+    modified = len(explorer.models[0].actions) > 0
     del explorer.models
     if offerAbortOption:
         if explorer.result == 1:
             raise Exception("Dialog aborted by user")
+    return modified

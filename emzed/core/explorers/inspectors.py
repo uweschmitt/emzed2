@@ -38,7 +38,7 @@ def inspector(obj, *a, **kw):
 def inspect(*a, **kw):
     insp = inspector(*a, **kw)
     if insp is not None:
-        insp()
+        return insp()
     else:
         raise Exception("no inspector for %r" % obj)
 
