@@ -104,8 +104,12 @@ class Spectrum(object):
                pyopenms.IonSource.Polarity.POSITIVE: '+',
                pyopenms.IonSource.Polarity.NEGATIVE: '-'
                }.get(mspec.getInstrumentSettings().getPolarity())
-        res = clz(mspec.get_peaks(), mspec.getRT(),
-                  mspec.getMSLevel(), pol, pcs)
+        peaks = mspec.get_peaks()
+        if isinstance(peaks, tuple):
+            # signature changed in pyopenms
+            mzs, iis = peaks
+            peaks = np.vstack((mzs.flatten(), iis.flatten())).T
+        res = clz(peaks, mspec.getRT(), mspec.getMSLevel(), pol, pcs)
         return res
 
     def __str__(self):
@@ -202,6 +206,7 @@ class Spectrum(object):
 
 
 class PeakMap(object):
+
     """
         This is the container object for spectra of type :py:class:`~.Spectrum`.
         Peakmaps can be loaded from .mzML, .mxXML or .mzData files,
@@ -270,7 +275,6 @@ class PeakMap(object):
             spectra.append(spec)
 
         return PeakMap(spectra, self.meta.copy())
-
 
     def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None, imin=None, imax=None,
                 mslevelmin=None, mslevelmax=None):
@@ -384,7 +388,6 @@ class PeakMap(object):
                 s.peaks = peaks[~cut_out]
 
         self.spectra = [s for s in self.spectra if len(s.peaks)]
-
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """
