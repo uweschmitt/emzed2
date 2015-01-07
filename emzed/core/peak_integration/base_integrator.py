@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class BaseIntegrator(object):
 
     def __init__(self, config=None):
@@ -16,21 +17,19 @@ class BaseIntegrator(object):
         if msLevel is None:
             msLevels = self.peakMap.getMsLevels()
             if len(msLevels) > 1:
-                raise Exception("multiple ms levels, you must specify the "\
-                                "level")
+                raise Exception("multiple ms levels, you must specify the level")
             msLevel = msLevels[0]
 
         spectra = [s for s in self.peakMap.spectra if s.msLevel == msLevel]
-        self.allrts  = sorted([ spec.rt for spec in spectra])
+        self.allrts = sorted([spec.rt for spec in spectra])
 
         rts, chromatogram = self.peakMap.chromatogram(mzmin, mzmax, rtmin, rtmax, msLevel)
-        if len(rts)==0:
+        if len(rts) == 0:
             return dict(area=0.0, rmse=0.0, params=None)
 
         allrts, fullchrom = self.peakMap.chromatogram(mzmin, mzmax, None, None, msLevel)
 
-        area, rmse, params = self.integrator(allrts, fullchrom, rts,
-                                             chromatogram)
+        area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
 
         return dict(area=area, rmse=rmse, params=params)
 

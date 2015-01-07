@@ -453,7 +453,8 @@ class MzPlot(ModifiedCurvePlot):
         """ reset axes of plot """
         all_peaks = []
         for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.data):
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            ms_level = min(pm.getMsLevels())
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             curve = self.curves[i]
             curve.set_data(peaks[:, 0], peaks[:, 1])
             all_peaks.append(peaks)
@@ -548,7 +549,8 @@ class MzPlot(ModifiedCurvePlot):
         self.latest_mzmax = mzmax
         all_peaks = []
         for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.data):
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            ms_level = min(pm.getMsLevels())
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             curve = self.curves[i]
             curve.set_data(peaks[:, 0], peaks[:, 1])
             all_peaks.append(peaks)

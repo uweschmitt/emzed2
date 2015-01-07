@@ -320,8 +320,8 @@ class MzPlotter(PlotterBase):
             if npeaks is None:
                 npeaks = 3000
 
-
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            ms_level = min(pm.getMsLevels())
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             all_peaks.append(peaks)
             config = configs[i] if configs is not None else None
             if config is None:
