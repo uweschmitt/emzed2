@@ -15,8 +15,9 @@ install:
 - pip install sphinx
 - python setup.py develop
 - pip install sphinx
+- pip install -U pytest
 script:
-- py.test -v --debug tests/
+- py.test tests/
 - cat pytestdebug.log
 cache: apt
 virtualenv:
