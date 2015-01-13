@@ -1,16 +1,17 @@
-import copy
-import csv
-import os
-import itertools
-import re
-import hashlib
 import cPickle
 import cStringIO
-import sys
-import inspect
 from collections import Counter, OrderedDict, defaultdict
+import copy
+import csv
+import hashlib
+import inspect
+import itertools
+import os
+import re
+import sys
 import warnings
 
+import dill
 import numpy as np
 import pyopenms
 
@@ -158,7 +159,7 @@ class Table(object):
 
     """
 
-    _latest_internal_update_with_version = (2, 0, 2)
+    _latest_internal_update_with_version = (2, 7, 5)
 
     _to_pickle = ("_colNames",
                   "_colTypes",
@@ -776,12 +777,15 @@ class Table(object):
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
-            cPickle.dump(data, fp, protocol=2)
+            dill.dump(data, fp)
 
     @staticmethod
-    def _load_strict(pickle_data):
+    def _load_strict(pickle_data, v_number):
         try:
-            data = cPickle.loads(pickle_data)
+            if v_number >= (2, 7, 5):
+                data = dill.loads(pickle_data)
+            else:
+                data = cPickle.loads(pickle_data)
         except Exception, e:
             raise Exception("file has invalid format: %s" % e)
 
@@ -825,7 +829,7 @@ class Table(object):
             v_number_str = version_str[14:]
             v_number = tuple(map(int, v_number_str.split(".")))
             try:
-                tab = Table._load_strict(pickle_data)
+                tab = Table._load_strict(pickle_data, v_number)
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
                 return tab
