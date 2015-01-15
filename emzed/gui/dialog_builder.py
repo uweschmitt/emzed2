@@ -24,7 +24,7 @@ di.MultipleChoiceItem.check_value = _true
 di.ButtonItem.check_value = _true
 
 # patch ok / cancel: never check if needed fields are present ?!
-DataSetEditDialog.check = _true
+# DataSetEditDialog.check = _true
 
 
 def _patched_get(self, instance, klass):
