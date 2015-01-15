@@ -22,11 +22,13 @@ setup(name="emzed",
                         "guidata>=1.6.0",
                         "guiqwt>=2.3.1",
                         "requests",
+                        "ipython==0.10",
                         "spyder==2.1.13",
-                        # "sphinx",
+                        "dill",
+                        "sphinx",
                         "html2text",
                         "pandas",
-                        # "pyopenms",
+                        "pyopenms",
                         ]
 
       )

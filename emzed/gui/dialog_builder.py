@@ -1,8 +1,9 @@
 # encoding: latin-1
 
-import sys
-import string
 import locale
+import os
+import string
+import sys
 
 import guidata
 import guidata.dataset.datatypes as dt
@@ -35,28 +36,66 @@ def _patched_get(self, instance, klass):
         return value
     return self
 
+
 di.StringItem.__get__ = _patched_get
 di.TextItem.__get__ = _patched_get
 
 if sys.platform == "win32":
-
-    def _patched_get_for_pathes(self, instance, klass):
-        if instance is not None:
-            value = getattr(instance, "_" + self._name, self._default)
-            if isinstance(value, unicode):
-                # replace needed for network pathes like "//gram/omics/...."
-                return value.encode(sys.getfilesystemencoding()).replace("/", "\\")
-            return value
-        return self
-
+    # replace needed for network pathes like "//gram/omics/...."
+    def _conv(s):
+        return s.encode(sys.getfilesystemencoding()).replace("/", "\\")
 else:
-    def _patched_get_for_pathes(self, instance, klass):
-        if instance is not None:
-            value = getattr(instance, "_" + self._name, self._default)
-            if isinstance(value, unicode):
-                return value.encode(sys.getfilesystemencoding())
-            return value
-        return self
+    def _conv(s):
+        return s.encode(sys.getfilesystemencoding())
+
+
+def _patched_get_for_pathes(self, instance, klass, _conv=_conv):
+    if instance is not None:
+        value = getattr(instance, "_" + self._name, self._default)
+        if isinstance(value, unicode):
+            value = _conv(value)
+        elif isinstance(value, (list, tuple)):
+            for i, item in enumerate(value):
+                if isinstance(item, unicode):
+                    value[i] = _conv(item)
+        return value
+    return self
+
+
+def _patch_files_open():
+    """new for FilesOpenItem: notempty option"""
+
+    def _init(self, label, formats='*', default=None, basedir=None, all_files_first=False, help='',
+              notempty=True):
+        if isinstance(default, basestring):  # python 2 !
+            default = [default]
+        FileSaveItem.__init__(self, label, formats=formats,
+                              default=default, basedir=basedir, all_files_first=all_files_first,
+                              help=help)
+        self.set_prop("data", notempty=notempty)
+
+    def _check_value(self, value):
+        """Override DataItem method"""
+        allexist = True
+        value = value or []
+        for path in value:
+            allexist = allexist and os.path.exists(path) and os.path.isfile(path)
+        """
+        notetmpy  value   ok
+        T         []      F
+        T         [x]     T
+        F         []      T
+        F         [x]     T
+        """
+        notempty = self.get_prop("data", "notempty")
+        ok = allexist and (not notempty or len(value))
+        return ok
+
+    di.FilesOpenItem.__init__ = _init
+    di.FilesOpenItem.check_value = _check_value
+
+
+_patch_files_open()
 
 
 di.FilesOpenItem.__get__ = _patched_get_for_pathes
@@ -111,6 +150,50 @@ def askYesNo(message, allow_cancel=False, title="Question"):
         return reply == QMessageBox.Yes
 
 
+class _Stub(object):
+
+    def __init__(self, item, outer):
+        self.item = item
+        self.outer = outer
+
+    def __call__(self, label, *a, **kw):
+        # this function registers corresponding subclass of
+        #    DataItem
+        fieldName = _translateLabelToFieldname(label)
+        # check if fieldName is valid in Python:
+        try:
+            exec("%s=0" % fieldName) in dict()
+        except:
+            raise Exception("converted label %r to field name %r "
+                            "which is not allowed in python"
+                            % (label, fieldName))
+        # get DataItem subclass
+        # construct item
+        dd = dict((n, v) for (n, v) in kw.items() if n in ["col", "colspan"])
+        horizontal = kw.get("horizontal")
+        if horizontal is not None:
+            del kw["horizontal"]
+        vertical = kw.get("vertical")
+        if vertical is not None:
+            del kw["vertical"]
+        if "col" in kw:
+            del kw["col"]
+        if "colspan" in kw:
+            del kw["colspan"]
+        item = self.item(label, *a, **kw)
+        if dd:
+            item.set_pos(**dd)
+        if horizontal:
+            item.horizontal(horizontal)
+        if vertical:
+            item.vertical(vertical)
+
+        # regiter item and fieldname
+        self.outer.items.append(item)
+        self.outer.fieldNames.append(fieldName)
+        return self.outer
+
+
 class DialogBuilder(object):
 
     # dynamic creation of __doc__
@@ -162,50 +245,7 @@ class DialogBuilder(object):
             except:
                 raise AttributeError("%r has no attribute '%s'" % (self, name))
 
-            class Stub(object):
-
-                def __init__(self, item, outer):
-                    self.item = item
-                    self.outer = outer
-
-                def __call__(self, label, *a, **kw):
-                    # this function registers corresponding subclass of
-                    #    DataItem
-                    fieldName = _translateLabelToFieldname(label)
-                    # check if fieldName is valid in Python:
-                    try:
-                        exec("%s=0" % fieldName) in dict()
-                    except:
-                        raise Exception("converted label %r to field name %r "
-                                        "which is not allowed in python"
-                                        % (label, fieldName))
-                    # get DataItem subclass
-                    # construct item
-                    dd = dict((n, v) for (n, v) in kw.items() if n in ["col", "colspan"])
-                    horizontal = kw.get("horizontal")
-                    if horizontal is not None:
-                        del kw["horizontal"]
-                    vertical = kw.get("vertical")
-                    if vertical is not None:
-                        del kw["vertical"]
-                    if "col" in kw:
-                        del kw["col"]
-                    if "colspan" in kw:
-                        del kw["colspan"]
-                    item = self.item(label, *a, **kw)
-                    if dd:
-                        item.set_pos(**dd)
-                    if horizontal:
-                        item.horizontal(horizontal)
-                    if vertical:
-                        item.vertical(vertical)
-
-                    # regiter item and fieldname
-                    self.outer.items.append(item)
-                    self.outer.fieldNames.append(fieldName)
-                    return self.outer
-
-            stub = Stub(item, self)
+            stub = _Stub(item, self)
 
             # add docstring dynamically
             item = getattr(di, name[3:] + "Item")
@@ -218,6 +258,15 @@ class DialogBuilder(object):
 
     def addInstruction(self, what):
         self.instructions.append(what)
+        return self
+
+    def addFilesOpen(self, label, formats="*", default=None, basedir=None, all_files_first=False,
+                     help="", notempty=True):
+        item = di.FilesOpenItem(label, formats, default, basedir, all_files_first, help,
+                                notempty)
+        fieldName = _translateLabelToFieldname(label)
+        self.items.append(item)
+        self.fieldNames.append(fieldName)
         return self
 
     def addButton(self, label, callback, help=None):
