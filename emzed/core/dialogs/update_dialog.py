@@ -93,7 +93,7 @@ class UpdateDialog(QDialog):
         self.add_update_info("updater", "info")
 
     def _item(self, content, is_checkable):
-        item = QTableWidgetItem(content)
+        item = QTableWidgetItem(str(content))
         if is_checkable:
             item.setCheckState(Qt.Unchecked)
         item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
