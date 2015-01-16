@@ -108,6 +108,9 @@ class RInterpreter(object):
 
         if do_log:
             self._create_new_log()
+        else:
+            self.__dict__["_fh"] = None
+            
 
         try:
             if do_log:
@@ -115,11 +118,12 @@ class RInterpreter(object):
                 self._fh.flush()
             session = pyper.R(RCMD=r_exe, dump_stdout=dump_stdout, **kw)
         except:
-            print >> self._fh, "\n# failure"
-            traceback.print_exc(file=self._fh)
-            self._fh.flush()
-            self._fh.close()
-            del self._fh
+            if do_log:
+                print >> self._fh, "\n# failure"
+                traceback.print_exc(file=self._fh)
+                self._fh.flush()
+                self._fh.close()
+                del self._fh
             raise Exception("could not start R, is R installed ?")
         self.__dict__["session"] = session
 
