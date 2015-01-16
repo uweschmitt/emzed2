@@ -157,6 +157,7 @@ class TableExplorer(EmzedDialog):
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+        tableView.horizontalHeader().setMovable(1)
         pol = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         tableView.setSizePolicy(pol)
         tableView.setVisible(False)
@@ -424,7 +425,9 @@ class TableExplorer(EmzedDialog):
             self.choosePostfix.setVisible(False)
 
         self.chooseGroupColumn.clear()
-        self.chooseGroupColumn.addItems(["- manual multi select -"] + mod.table.getColNames())
+        t = mod.table
+        visible_names = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
+        self.chooseGroupColumn.addItems(["- manual multi select -"] + visible_names)
 
         self.connectModelSignals()
         self.updateMenubar()
