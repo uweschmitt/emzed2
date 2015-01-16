@@ -305,6 +305,7 @@ class MzPlotter(PlotterBase):
         self.widget.plot.data = []
         self.widget.plot.curves = []
         for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
+            ms_level = min(pm.getMsLevels())
             if rtmin is None and rtmax is None:
                 rtmin, rtmax = pm.rtRange()
             elif rtmin is None:
@@ -312,16 +313,15 @@ class MzPlotter(PlotterBase):
             elif rtmax is None:
                 __, rtmax = pm.rtRange()
             if mzmin is None and mzmax is None:
-                mzmin, mzmax = pm.mzRange()
+                mzmin, mzmax = pm.mzRange(ms_level)
             elif mzmin is None:
-                mzmin, __ = pm.mzRange()
+                mzmin, __ = pm.mzRange(ms_level)
             elif mzmax is None:
-                __, mzmax = pm.mzRange()
+                __, mzmax = pm.mzRange(ms_level)
             if npeaks is None:
                 npeaks = 3000
 
-
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks)
+            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             all_peaks.append(peaks)
             config = configs[i] if configs is not None else None
             if config is None:

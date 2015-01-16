@@ -104,8 +104,12 @@ class Spectrum(object):
                pyopenms.IonSource.Polarity.POSITIVE: '+',
                pyopenms.IonSource.Polarity.NEGATIVE: '-'
                }.get(mspec.getInstrumentSettings().getPolarity())
-        res = clz(mspec.get_peaks(), mspec.getRT(),
-                  mspec.getMSLevel(), pol, pcs)
+        peaks = mspec.get_peaks()
+        if isinstance(peaks, tuple):
+            # signature changed in pyopenms
+            mzs, iis = peaks
+            peaks = np.vstack((mzs.flatten(), iis.flatten())).T
+        res = clz(peaks, mspec.getRT(), mspec.getMSLevel(), pol, pcs)
         return res
 
     def __str__(self):
@@ -120,6 +124,9 @@ class Spectrum(object):
     def __iter__(self):
         """Returns an iterator of the peaks of the Spectrum object"""
         return iter(self.peaks)
+
+    def __getitem__(self, idx):
+        return self.peaks[idx, :]
 
     def intensityInRange(self, mzmin, mzmax):
         """summed up intensities in given m/z range"""
@@ -199,6 +206,7 @@ class Spectrum(object):
 
 
 class PeakMap(object):
+
     """
         This is the container object for spectra of type :py:class:`~.Spectrum`.
         Peakmaps can be loaded from .mzML, .mxXML or .mzData files,
@@ -237,10 +245,38 @@ class PeakMap(object):
         else:
             self.polarity = None
 
+    def __iter__(self):
+        """Returns an iterator of the spectra of the PeakMap object"""
+        return iter(self.spectra)
+
+    def __getitem__(self, idx):
+        return self.spectra[idx]
+
     def all_peaks(self, msLevel=1):
         return np.vstack((s.peaks for s in self.spectra if s.msLevel == msLevel))
 
-    def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None,
+    def filterIntensity(self, msLevel=None, minInt=None, maxInt=None):
+        """creates new peakmap matching the given conditions. Using a single requirement
+        as::
+
+            pm.filterIntensity(
+        """
+        spectra = []
+        for spec in self.spectra:
+            if msLevel is not None and spec.msLevel != msLevel:
+                continue
+            peaks = spec.peaks
+            if minInt is not None:
+                peaks = peaks[peaks[:, 1] >= minInt]
+            if maxInt is not None:
+                peaks = peaks[peaks[:, 1] <= maxInt]
+            spec = copy.deepcopy(spec)
+            spec.peaks = peaks
+            spectra.append(spec)
+
+        return PeakMap(spectra, self.meta.copy())
+
+    def extract(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None, imin=None, imax=None,
                 mslevelmin=None, mslevelmax=None):
         """ returns restricted Peakmap with given limits.
         Parameters with *None* value are not considered.
@@ -272,6 +308,13 @@ class PeakMap(object):
             for s in spectra:
                 s.peaks = s.peaksInRange(mzmin, mzmax)
 
+        if imin is not None or imax is not None:
+            for s in spectra:
+                if imin is not None:
+                    s.peaks = s.peaks[s.peaks[:, 1] >= imin]
+                if imax is not None:
+                    s.peaks = s.peaks[s.peaks[:, 1] <= imax]
+
         spectra = [s for s in spectra if len(s.peaks)]
 
         return PeakMap(spectra, self.meta.copy())
@@ -294,9 +337,10 @@ class PeakMap(object):
 
     def getDominatingPeakmap(self):
         levels = self.getMsLevels()
-        if len(levels) > 1 or 1 in levels:
+        if levels == [1]:
             return self
-        spectra = copy.copy(self.spectra)
+        ms_level = min(levels)
+        spectra = [copy.deepcopy(s) for s in self.spectra if s.msLevel == ms_level]
         for spec in spectra:
             spec.msLevel = 1
         return PeakMap(spectra, meta=self.meta.copy())
@@ -305,7 +349,8 @@ class PeakMap(object):
         """ builds new peakmap where ``condition(s)`` is ``True`` for
             spectra ``s``
         """
-        return PeakMap([s for s in self.spectra if condition(s)], self.meta)
+        spectra = copy.deepcopy(self.spectra)
+        return PeakMap([s for s in spectra if condition(s)], self.meta.copy())
 
     def specsInRange(self, rtmin, rtmax):
         """
@@ -343,7 +388,6 @@ class PeakMap(object):
                 s.peaks = peaks[~cut_out]
 
         self.spectra = [s for s in self.spectra if len(s.peaks)]
-
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """
@@ -412,9 +456,11 @@ class PeakMap(object):
             spec.rt += delta
         return self
 
-    def mzRange(self):
+    def mzRange(self, msLevel=1):
         """returns mz-range *(mzmin, mzmax)* of current peakmap """
-        mzranges = [s.mzRange() for s in self.spectra]
+        mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
+        if len(mzranges) == 0:
+            return (None, None)
         mzmin = min(mzmin for (mzmin, mzmax) in mzranges if mzmin is not None)
         mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
         return (float(mzmin), float(mzmax))
@@ -475,7 +521,7 @@ class PeakMap(object):
         msn_spectra = defaultdict(list)
         for spectrum in self.spectra:
             if spectrum.msLevel == msLevel:
-                spectrum = copy.copy(spectrum)
+                spectrum = copy.deepcopy(spectrum)
                 key = spectrum.precursors[0][0]
                 if significant_digits_precursor is not None:
                     key = round(key, significant_digits_precursor)

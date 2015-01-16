@@ -1,4 +1,3 @@
-import pdb
 from emzed.core.data_types import PeakMap, Spectrum
 from pyopenms import (FileHandler, Precursor, MSExperiment,
                       InstrumentSettings, IonSource)
@@ -36,7 +35,7 @@ class TestMSTypes(object):
         self.compare_specs(specneu, s0)
 
         pm = PeakMap.fromMSExperiment(exp)
-        assert os.path.basename(pm.meta["source"]) ==  basename
+        assert os.path.basename(pm.meta["source"]) == basename
 
         rtmin, rtmax = pm.rtRange()
         ms1s = pm.msNPeaks(1, rtmin, rtmax)
@@ -49,8 +48,7 @@ class TestMSTypes(object):
         assert np.all(ms1s == ms1s3)
 
         spec = pm.spectra[0]
-        assert len(list(spec)) == len(spec) # calls iter
-
+        assert len(list(spec)) == len(spec)  # calls iter
 
         allrts = pm.allRts()
         assert (allrts[0], allrts[-1]) == pm.rtRange()
@@ -81,15 +79,20 @@ class TestMSTypes(object):
         pm2 = PeakMap.fromMSExperiment(pm.toMSExperiment())
         self.compare_exp(pm2, exp, basename)
 
-        pm2 = pm.extract(rtmin = rtmin+.000001)
-        assert len(pm2) == len(pm)-1
-        pm2 = pm2.extract(rtmax = rtmax-0.000001)
-        assert len(pm2) == len(pm)-2
+        pm2 = pm.extract(rtmin=rtmin + .000001)
+        assert len(pm2) == len(pm) - 1
+        pm2 = pm2.extract(rtmax=rtmax - 0.000001)
+        assert len(pm2) == len(pm) - 2
 
-        mzmin, mzmax = pm.mzRange()
+        mzmin, mzmax = pm.mzRange(2)
 
         assert mzmin < 250
-        assert mzmax > 1049
+        assert mzmax > 860
+
+        mzmin, mzmax = pm.mzRange(1)
+
+        assert mzmin >= 700
+        assert mzmax <= 1050
 
         pm2 = pm.extract(rtmin+0.00001, mzmin=300)
 
@@ -174,6 +177,59 @@ class TestMSTypes(object):
         assert spec.intensityInRange(0.5, 4.5) == 4.0
         assert spec.intensityInRange(2.0, 2.0) == 1.0
         assert spec.intensityInRange(2.1, 2.0) == 0.0
+
+
+    def testFilterIntensity(self, regtest):
+        data = np.array([ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 ]).reshape(-1,1)
+        intensities = np.array([ 10.0, 11.0, 12.0, 13.0, 14.0, 15.0 ]).reshape(-1,1)
+        peaks = np.hstack((data, intensities))
+        assert peaks.shape == (6,2)
+        spec1 = Spectrum(peaks, 0.0, 1, "0")
+        spec2 = Spectrum(peaks, 0.0, 2, "0")
+        pm = PeakMap([spec1, spec2])
+
+        pm_x = pm.extract(mslevelmin=1)
+        assert len(pm_x) == 2
+        pm_x = pm.extract(mslevelmin=2)
+        assert len(pm_x) == 1
+        pm_x = pm.extract(mslevelmin=3)
+        assert len(pm_x) == 0
+
+        pm_x = pm.extract(mslevelmax=1, imin=10.0, imax=15.0)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (6, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
+
+        pm_x = pm.extract(mslevelmax=1, imin=10.0)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (6, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
+
+        pm_x = pm.extract(mslevelmax=1, imax=15.0)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (6, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
+
+        pm_x = pm.extract(mslevelmax=1, imin=10.0)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (6, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
+
+        pm_x = pm.extract(mslevelmax=1, imin=11.0)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (5, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
+
+        pm_x = pm.extract(mslevelmax=1, imin=11.0, imax = 13.5)
+        assert len(pm_x) == 1
+        assert pm_x[0].peaks.shape == (3, 2)
+        for spec in pm_x:
+            print >> regtest, spec.peaks
 
     def test_remove(self):
         mzs = np.array([ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 ]).reshape(-1,1)

@@ -4,7 +4,7 @@ from file_dialogs import (askForDirectory, askForSave, askForSingleFile, askForM
 
 # order of next two imports is important, as the first patches some items: ###################
 from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobButton,
-                            WorkflowFrontend,
+                            askYesNo, WorkflowFrontend,
                             )
 from dialog_builder_items import *
 # order of the previous two imports is importang, see remark above  ##########################

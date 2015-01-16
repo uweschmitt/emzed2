@@ -52,5 +52,62 @@ def test_merge_tables():
 
 def test_stack_tables():
     t1 = emzed.utils.toTable("a", [1,2])
+
     t2 = emzed.utils.stackTables([t1, t1])
+    assert t2.getColNames() == t1.getColNames()
+    assert t2.getColTypes() == t1.getColTypes()
+    assert t2.getColFormats() == t1.getColFormats()
+    assert t1.rows == t2.rows[:len(t1)]
+    assert t1.rows == t2.rows[len(t1):]
     assert len(t2) == 2*len(t1)
+
+    t2 = t1 + t1
+    assert t2.getColNames() == t1.getColNames()
+    assert t2.getColTypes() == t1.getColTypes()
+    assert t2.getColFormats() == t1.getColFormats()
+    assert t1.rows == t2.rows[:len(t1)]
+    assert t1.rows == t2.rows[len(t1):]
+    assert len(t2) == 2*len(t1)
+
+    t1 += t1
+    assert t2.getColNames() == t1.getColNames()
+    assert t2.getColTypes() == t1.getColTypes()
+    assert t2.getColFormats() == t1.getColFormats()
+    assert t1.rows == t2.rows
+    assert len(t2) == len(t1)
+
+
+def _exception_reg_test(regtest, fun, *args):
+    try:
+        fun(*args)
+    except:
+        import traceback
+        traceback.print_exc(file=regtest)
+
+def test_stack_table_exceptions(regtest):
+    # diff type
+    t1 = emzed.utils.toTable("a", [1,2])
+    t2 = emzed.utils.toTable("a", [])
+    t3 = emzed.utils.toTable("a", ["1", "2"])
+    _exception_reg_test(regtest, emzed.utils.stackTables, (t1, t2, t3))
+
+    # diff numcols
+    t1 = emzed.utils.toTable("a", [1,2])
+    t1.addColumn("b", 1.0)
+    t2 = emzed.utils.toTable("a", [])
+    t3 = emzed.utils.toTable("a", ["1", "2"])
+    _exception_reg_test(regtest, emzed.utils.stackTables, (t1, t2, t3))
+
+    # diff names
+    t1 = emzed.utils.toTable("a", [1,2])
+    t2 = emzed.utils.toTable("a", [])
+    t3 = emzed.utils.toTable("c", ["1", "2"])
+    _exception_reg_test(regtest, emzed.utils.stackTables, (t1, t2, t3))
+
+    # diff formats
+    t1 = emzed.utils.toTable("a", [1,2], format_="%4d")
+    t2 = emzed.utils.toTable("a", [])
+    t3 = emzed.utils.toTable("a", [1, 2])
+    _exception_reg_test(regtest, emzed.utils.stackTables, (t1, t2, t3))
+
+

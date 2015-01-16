@@ -196,7 +196,7 @@ def testMixedRows():
 
     names = [n.strip() for n in names]
 
-    tab = Table._create(names, [float]*len(names), "%f" * len(names))
+    tab = Table._create(names, [float]*len(names), ["%f"] * len(names))
 
     recorder = RecordingObject()
     model = TableModel(tab, recorder)

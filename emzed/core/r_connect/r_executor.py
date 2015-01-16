@@ -147,16 +147,17 @@ class RInterpreter(object):
 
     def execute(self, *cmds):
         """executes commands. Each command by be a multiline command. """
-        if self._fh is not None:
+        has_fh = self.__dict__.get("_fh") is not None
+        if has_fh:
             print >> self._fh, "#", datetime.datetime.now()
             self._fh.flush()
         for cmd in cmds:
-            if self._fh is not None:
+            if has_fh:
                 print >> self._fh, cmd
                 self._fh.flush()
             self.session(cmd)
 
-        if self._fh is not None:
+        if has_fh:
             print >> self._fh, "#", 60 * "="
             self._fh.flush()
         return self
@@ -174,17 +175,18 @@ class RInterpreter(object):
             calling_file = inspect.stack()[1][0].f_globals.get("__file__")
             if calling_file is not None:
                 path = os.path.join(os.path.dirname(os.path.abspath(calling_file)), path)
-        if self._fh is not None:
+        has_fh = self.__dict__.get("_fh") is not None
+        if has_fh:
             print >> self._fh, "#", datetime.datetime.now()
             print >> self._fh, "# execute", path
             self._fh.flush()
         with open(path, "r") as fp:
             cmd = fp.read()
-            if self._fh is not None:
+            if has_fh:
                 print >> self._fh, cmd
                 self._fh.flush()
             self.session(cmd)
-        if self._fh is not None:
+        if has_fh:
             print >> self._fh, "#", 60 * "="
             self._fh.flush()
         return self
@@ -220,7 +222,8 @@ class RInterpreter(object):
             return value
 
     def __setattr__(self, name, value):
-        if self._fh is not None:
+        has_fh = self.__dict__.get("_fh") is not None
+        if has_fh:
             if isinstance(value, (list, tuple)):
                 s_value = "c%r" % (tuple(value),)
                 s_value = s_value.replace(",)", ")")

@@ -278,7 +278,7 @@ class BaseExpression(object):
         return BinaryExpression(self, other, lambda a, b: a / b, "/", None)
 
     def __rdiv__(self, other):
-        return BinaryExpression(self, other, lambda a, b: a / b, "/", None)
+        return BinaryExpression(other, self,  lambda a, b: a / b, "/", None)
 
     def __and__(self, other):
         return AndExpression(self, other)
@@ -400,9 +400,15 @@ class BaseExpression(object):
         return (self.isNotNone()).thenElse(self, other)
 
     def isNotNone(self):
+        """
+        This expression returns `False` for `None` values which indicate "missing value"
+        """
         return IsNotNoneExpression(self)
 
     def isNone(self):
+        """
+        This expression returns `True` for `None` values which indicate "missing value"
+        """
         return IsNoneExpression(self)
 
     def pow(self, exp):
@@ -943,6 +949,8 @@ class GroupedAggregateExpression(BaseExpression):
                 values = [v for v in values if v is not None]
             if not len(values):
                 aggregated_values[g] = self.default_empty
+            elif any(gi is None for gi in g):
+                aggregated_values[g] = None
             else:
                 type_ = common_type_for(values)
                 values = np.array(values)

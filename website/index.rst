@@ -34,6 +34,16 @@ Fundamental principles of emzed
    support the use of *emzed modules* and the overall development process.
 
 
+Presentation
+------------
+
+You find some slides about emzed and how the story started at |presentation_link|.
+
+.. |presentation_link| raw:: html
+
+   <a href="http://emzed.ethz.ch/presentation" target="_blank">http://emzed.ethz.ch/presentation</a>
+
+
 Screenshots
 ---------------
 

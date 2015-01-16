@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 3, 3)
+version = (2, 7, 6)
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
@@ -22,12 +22,14 @@ setup(name="emzed",
                         "guidata>=1.6.0",
                         "guiqwt>=2.3.1",
                         "requests",
+                        "ipython==0.10",
                         "spyder==2.1.13",
-                        # "sphinx",
+                        "dill",
+                        "sphinx",
                         "html2text",
                         "pandas",
                         "dill",
-                        # "pyopenms",
+                        "pyopenms",
                         ]
 
       )

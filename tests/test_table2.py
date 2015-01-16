@@ -194,7 +194,7 @@ def testSupportedPostfixes():
     names = "mz mzmin mzmax mz0 mzmin0 mzmax0 mz1 mzmax1 mzmin__0 mzmax__0 mz__0 "\
             "mzmax3 mz4 mzmin4".split()
 
-    t = Table._create(names, [float] * len(names), [])
+    t = Table._create(names, [float] * len(names), [None] * len(names))
     assert len(t.supportedPostfixes(["mz"])) == len(names)
     assert t.supportedPostfixes(["mz", "mzmin"]) == ["", "0", "4", "__0"]
     assert t.supportedPostfixes(["mz", "mzmin", "mzmax"]) == ["", "0", "__0"]
@@ -264,12 +264,16 @@ def testColumnAggFunctions():
 
 def testUniqeRows():
     t = emzed.utils.toTable("a", [1, 1, 2, 2, 3, 3])
-    t.addColumn("b", [1, 1, 1, 2, 3, 3])
+    t.addColumn("b",             [1, 1, 1, 2, 3, 3])
     u = t.uniqueRows()
     assert u.a.values == (1, 2, 2, 3,)
     assert u.b.values == (1, 1, 2, 3,)
     assert len(u.getColNames()) == 2
     u.info()
+
+    u = t.uniqueRows(byColumns=("a",))
+    assert u.a.values == (1, 2, 3)
+    assert u.b.values == (1, 1, 3)
 
 
 def testInplaceColumnmodification():
@@ -677,5 +681,46 @@ def test_any_all_agg_expressions():
     assert t.v.allFalse() == False
     assert t.v.anyTrue() == True
     assert t.v.anyFalse() == False
+
+def test_getitem_variations():
+    t = emzed.utils.toTable("v", range(3))
+    t1 = t[0:2]
+    t2 = t[(0, 1)]
+    t3 = t[(True, True, False)]
+    t4 = t[[0, 1]]
+    t5 = t[[True, True, False]]
+    t6 = t[np.array((True, True, False), dtype=bool)]
+    t7 = t[np.array((0, 1), dtype=int)]
+
+
+    assert t1.rows == [[0], [1]]
+
+    for ti in (t1, t2, t3, t4, t5, t6, t7):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+def test_t():
+    t = emzed.utils.toTable("v", range(1, 3))
+
+    t.addColumn("a", 12 / t.v)
+    assert t.a.values == (12, 6)
+    t.replaceColumn("a", 12 - t.v)
+    assert t.a.values == (11, 10)
+    t.replaceColumn("a", 12 * t.v)
+    assert t.a.values == (12, 24)
+    t.replaceColumn("a", 12 + t.v)
+    assert t.a.values == (13, 14)
+
+    t.replaceColumn("a", t.v / 12)
+    assert t.a.values == (0, 0)
+    t.replaceColumn("a", t.v - 12)
+    assert t.a.values == (-11, -10)
+    t.replaceColumn("a", t.v * 12)
+    assert t.a.values == (12, 24)
+    t.replaceColumn("a", t.v + 12)
+    assert t.a.values == (13, 14)
+
 
 

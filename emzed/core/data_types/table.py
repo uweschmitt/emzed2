@@ -1,15 +1,17 @@
-import copy
-import os
-import itertools
-import re
-import hashlib
 import cPickle
 import cStringIO
-import sys
-import inspect
 from collections import Counter, OrderedDict, defaultdict
+import copy
+import csv
+import hashlib
+import inspect
+import itertools
+import os
+import re
+import sys
 import warnings
 
+import dill
 import numpy as np
 import pyopenms
 
@@ -29,9 +31,16 @@ def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
-fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+
+import emzed
+
+if emzed.TIME_IN_SECONDS:
+    fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
+else:
+    fms = "%.1fm"
 
 formatSeconds = fms
+
 formatHexId = "'%x' % id(o)"
 
 
@@ -150,7 +159,7 @@ class Table(object):
 
     """
 
-    _latest_internal_update_with_version = (2, 0, 2)
+    _latest_internal_update_with_version = (2, 7, 5)
 
     _to_pickle = ("_colNames",
                   "_colTypes",
@@ -183,7 +192,8 @@ class Table(object):
             message = "multiple columns: " + ", ".join(multiples)
             raise Exception(message)
 
-        assert len(colNames) == len(colTypes)
+        assert len(colNames) == len(colTypes), (colNames, colTypes)
+        assert len(colNames) == len(colFormats), (colNames, colFormats)
         if rows is not None:
             for row in rows:
                 assert len(row) == len(colNames)
@@ -194,7 +204,6 @@ class Table(object):
             raise Exception("not all rows are lists !")
 
         self._colNames = list(colNames)
-
         self._colTypes = list(colTypes)
 
         is_numpy_type = lambda t: np.number in t.__mro__
@@ -382,11 +391,24 @@ class Table(object):
                 t[:] == t.copy()
 
         """
-        if not isinstance(ix, slice):
-            ix = slice(ix, ix + 1)
         prototype = self.buildEmptyClone()
-        for row in self.rows[ix]:
-            prototype.rows.append(row[:])
+        if isinstance(ix, np.ndarray):
+            ix = ix.tolist()
+        if isinstance(ix, (list, tuple)):
+            if all(isinstance(ixi, bool) for ixi in ix):
+                if len(ix) == len(self):
+                    for ixi, row in zip(ix, self.rows):
+                        if ixi:
+                            prototype.rows.append(row[:])
+                else:
+                    raise Exception("invalid access, len(ix) != len(table)")
+
+            elif all(isinstance(ixi, (long, int)) for ixi in ix):
+                prototype.rows = [self.rows[i][:] for i in ix]
+        else:
+            if not isinstance(ix, slice):
+                ix = slice(ix, ix + 1)
+            prototype.rows = [row[:] for row in self.rows[ix]]
         prototype.resetInternals()
         return prototype
 
@@ -724,29 +746,21 @@ class Table(object):
         """writes the table in .csv format. The ``path`` has to end with
            '.csv'.
 
-           If the file already exists, the routine tries names
-           ``*.csv.1, *.csv.2, ...`` until a non-existing file name is found
-
            As .csv is a text format all binary information is lost !
         """
         if not os.path.splitext(path)[1].upper() == ".CSV":
             raise Exception("%s has wrong file type extension" % path)
-        it = itertools
-        for p in it.chain([path], ("%s.%d" % (path, i) for i in it.count(1))):
-            if os.path.exists(p):
-                print p, "exists"
+
+        with open(path, "w") as fp:
+            writer = csv.writer(fp, delimiter=";")
+            if onlyVisibleColumns:
+                colNames = self.getVisibleCols()
             else:
-                print "write ", p
-                with file(p, "w") as fp:
-                    if onlyVisibleColumns:
-                        colNames = self.getVisibleCols()
-                    else:
-                        colNames = self._colNames
-                    print >> fp, "; ".join(colNames)
-                    for row in self.rows:
-                        data = [self.getValue(row, v) for v in colNames]
-                        print >> fp, "; ".join(map(str, data))
-                break
+                colNames = self._colNames
+            writer.writerow(colNames)
+            for row in self.rows:
+                data = [self.getValue(row, v) for v in colNames]
+                writer.writerow(data)
 
     def store(self, path, forceOverwrite=False, compressed=True):
         """
@@ -763,12 +777,15 @@ class Table(object):
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
-            cPickle.dump(data, fp, protocol=2)
+            dill.dump(data, fp)
 
     @staticmethod
-    def _load_strict(pickle_data):
+    def _load_strict(pickle_data, v_number):
         try:
-            data = cPickle.loads(pickle_data)
+            if v_number >= (2, 7, 5):
+                data = dill.loads(pickle_data)
+            else:
+                data = cPickle.loads(pickle_data)
         except Exception, e:
             raise Exception("file has invalid format: %s" % e)
 
@@ -812,7 +829,7 @@ class Table(object):
             v_number_str = version_str[14:]
             v_number = tuple(map(int, v_number_str.split(".")))
             try:
-                tab = Table._load_strict(pickle_data)
+                tab = Table._load_strict(pickle_data, v_number)
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
                 return tab
@@ -1166,6 +1183,29 @@ class Table(object):
         keysSeen = set()
         for row in self.rows:
             key = computekey(row)
+            if key not in keysSeen:
+                result.rows.append(row[:])
+                keysSeen.add(key)
+        return result
+
+    def uniqueRows(self, byColumns=None):
+        """
+        extracts table with unique rows.
+        Two rows are equal if all fields, including **invisible**
+        columns (those with ``format_==None``) are equal.
+        """
+        result = self.buildEmptyClone()
+        if byColumns is not None:
+            assert isinstance(byColumns, (tuple, list))
+            ixi = [self.getIndex(name) for name in byColumns]
+        else:
+            ixi = None
+        keysSeen = set()
+        for row in self.rows:
+            if ixi is not None:
+                key = computekey([row[i] for i in ixi])
+            else:
+                key = computekey(row)
             if key not in keysSeen:
                 result.rows.append(row[:])
                 keysSeen.add(key)
@@ -1562,7 +1602,6 @@ class Table(object):
         Example: ``Table.loadCSV("abc.csv", mz="%.3f")``
 
         """
-        import csv
         import os.path
         import sys
         import re
@@ -1678,22 +1717,72 @@ class Table(object):
         result.append(extended_tables[1:])
         return result
 
+    def __add__(self, other):
+        assert isinstance(other, Table)
+        return Table.stackTables((self, other))
+
+    def __iadd__(self, other):
+        assert isinstance(other, Table)
+        Table._check_if_compatible((self, other))
+        meta = Table._merge_metas((self, other))
+        self.rows.extend(other.rows)
+        self.meta = meta
+        return self
+
+    @staticmethod
+    def _check_if_compatible(tables):
+        assert all(isinstance(o, Table) for o in tables), "only tables allowed"
+        for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
+            if t1.numCols() != t2.numCols():
+                raise Exception("tables %d and %d have different number columns (%d and %d)"
+                                % (i, i + 1, t1.numCols(), t2.numCols()))
+
+        for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
+            if t1._colNames != t2._colNames:
+                names1 = ", ".join(t1._colNames)
+                names2 = ", ".join(t2._colNames)
+                raise Exception("tables %d and %d have different column names (%s and %s)"
+                                % (i, i + 1, names1, names2))
+
+        for i, t1 in enumerate(tables):
+            if len(t1) == 0:
+                continue
+            for di, t2 in enumerate(tables[i + 1:]):
+                # look for next non empty table
+                if len(t2) == 0:
+                    continue
+                j = i + di + 1
+                if t1._colTypes != t2._colTypes:
+                    types1 = ", ".join(map(str, t1._colTypes))
+                    types2 = ", ".join(map(str, t2._colTypes))
+                    raise Exception("tables %d and %d have different column types (%s and %s)"
+                                    % (i, j, types1, types2))
+                if t1._colFormats != t2._colFormats:
+                    formats1 = ", ".join(map(str, t1._colFormats))
+                    formats2 = ", ".join(map(str, t2._colFormats))
+                    raise Exception("tables %d and %d have different column formats (%r and %r)"
+                                    % (i, j, formats1, formats2))
+                # we checked a pair of sequential tables (skipping empty ones), so:
+                break
+
+
+    @staticmethod
+    def _merge_metas(tables):
+        # merge metas backwards, so first table dominates
+        meta = tables[-1].meta.copy()
+        for t in tables[-1::-1]:
+            meta.update(t.meta)
+
+        return meta
+
     @staticmethod
     def stackTables(tables):
         """dumb and fast version of Table.mergeTables if all tables have common column
         names, types and formats unless they are empty.
         """
-        if not all(t1.numCols() == t2.numCols() for (t1, t2) in zip(tables, tables[1:])):
-            raise Exception("tables have different number columns")
-        if not all(t1._colNames == t2._colNames for (t1, t2) in zip(tables, tables[1:])):
-            raise Exception("tables have different column names")
 
-        # check types and formats for non emtpy tables
-        ne = [t for t in tables if len(t) > 0]
-        if not all(t1._colTypes == t2._colTypes for (t1, t2) in zip(ne, ne[1:])):
-            raise Exception("tables have different column types")
-        if not all(t1._colFormats == t2._colFormats for (t1, t2) in zip(ne, ne[1:])):
-            raise Exception("tables have different column formats")
+        Table._check_if_compatible(tables)
+        meta = Table._merge_metas(tables)
 
         all_rows = [row[:] for t in tables for row in t.rows]
 
@@ -1702,7 +1791,9 @@ class Table(object):
                 break
         else:
             return t0
-        return Table._create(t0._colNames, t0._colTypes, t0._colFormats, all_rows, dict())
+        title = tables[0].title
+        return Table._create(t0._colNames, t0._colTypes, t0._colFormats,
+                             all_rows, title=title, meta=meta)
 
     def collapse(self, *col_names):
         self.ensureColNames(*col_names)
