@@ -20,7 +20,7 @@ class MyHeader(QHeaderView):
     def _set_geom(self, i):
         x, y = self.sectionViewportPosition(i), 0
         w, h = self.sectionSize(i), self.boxes[i].height()
-        self.boxes[i].setGeometry(x + 10, y + 10, w - 20, h)
+        self.boxes[i].setGeometry(x, y, w, h)
 
     def showEvent(self, e):
         for i in range(self.count()):
@@ -33,9 +33,8 @@ class MyHeader(QHeaderView):
     def sectionSizeFromContents(self, *a):
         widget = Form(self)
         widget.setVisible(0)
-        h = widget.height() + 20
-        w = widget.width() + 20
-        print(h)
+        h = widget.height()
+        w = widget.width()
         return QSize(w, h)
 
     def handle_section_resized(self, i):

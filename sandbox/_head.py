@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'head.ui'
 #
-# Created: Fri Jan 16 17:13:20 2015
+# Created: Fri Jan 16 17:20:39 2015
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,8 +26,9 @@ except AttributeError:
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName(_fromUtf8("Form"))
-        Form.resize(200, 100)
+        Form.resize(123, 70)
         self.verticalLayout = QtGui.QVBoxLayout(Form)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setMargin(0)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.column_name = QtGui.QLabel(Form)
@@ -39,6 +40,7 @@ class Ui_Form(object):
         self.column_name.setObjectName(_fromUtf8("column_name"))
         self.verticalLayout.addWidget(self.column_name)
         self.gridLayout = QtGui.QGridLayout()
+        self.gridLayout.setVerticalSpacing(5)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.label_lower_bound = QtGui.QLabel(Form)
         self.label_lower_bound.setObjectName(_fromUtf8("label_lower_bound"))
