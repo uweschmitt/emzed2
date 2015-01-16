@@ -2,14 +2,12 @@
 
 # Form implementation generated from reading ui file 'table.ui'
 #
-# Created: Fri Jan 16 15:55:36 2015
+# Created: Fri Jan 16 18:58:21 2015
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt4 import QtCore, QtGui
-
-from tt import MyHeader
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -54,9 +52,9 @@ class Dialog(QtGui.QDialog, Ui_Dialog):
 if __name__ == "__main__":
     import sys
     app = QtGui.QApplication(sys.argv)
-    dlg = Dialog()
-    h = MyHeader()
-    dlg.tableWidget.setHorizontalHeader(h)
-    dlg.show()
+    Dialog = QtGui.QDialog()
+    ui = Ui_Dialog()
+    ui.setupUi(Dialog)
+    Dialog.show()
     sys.exit(app.exec_())
 

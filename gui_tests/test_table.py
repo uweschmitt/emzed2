@@ -6,7 +6,6 @@ import emzed
 
 
 t = emzed.utils.toTable("rt", (10.0, 20.0))
-print emzed.gui.inspect(t)
-
-t = emzed.utils.toTable("rt", (10.0, 20.0), meta=dict(time_is_in_seconds=False))
+t.addColumn("rtmax", t.rt + 1.0)
+t.addColumn("invisible", t.rt + 1.0, format_=None)
 print emzed.gui.inspect(t)
