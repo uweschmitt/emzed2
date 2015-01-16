@@ -26,6 +26,7 @@ setup(name="emzed",
                         # "sphinx",
                         "html2text",
                         "pandas",
+                        "dill",
                         # "pyopenms",
                         ]
 
