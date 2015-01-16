@@ -1,6 +1,8 @@
 # encoding: utf-8
 from __future__ import print_function
 
+from _head import Form
+
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import Qt, QSize
@@ -23,13 +25,13 @@ class MyHeader(QHeaderView):
     def showEvent(self, e):
         for i in range(self.count()):
             if i not in self.boxes:
-                self.boxes[i] = QComboBox(self)
+                self.boxes[i] = Form(self)
             self._set_geom(i)
             self.boxes[i].show()
         return super(MyHeader, self).showEvent(e)
 
     def sectionSizeFromContents(self, *a):
-        widget = QComboBox(self)
+        widget = Form(self)
         widget.setVisible(0)
         h = widget.height() + 20
         w = widget.width() + 20

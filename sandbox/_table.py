@@ -57,7 +57,6 @@ if __name__ == "__main__":
     dlg = Dialog()
     h = MyHeader()
     dlg.tableWidget.setHorizontalHeader(h)
-    h.setMovable(1)
     dlg.show()
     sys.exit(app.exec_())
 
