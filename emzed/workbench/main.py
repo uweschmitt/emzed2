@@ -21,6 +21,16 @@ original copyright:
     (see spyderlib/__init__.py for details)
 """
 
+import pkg_resources
+try:
+    import dill
+except:
+    from setuptools.command import easy_install
+    import pkg_resources
+    easy_install.main( ['dill'] )
+    pkg_resources.require('dill')
+    import dill
+
 
 import os
 import sys
@@ -31,7 +41,6 @@ import re
 # Keeping a reference to the original sys.exit before patching it
 ORIGINAL_SYS_EXIT = sys.exit
 
-import pkg_resources
 pkg_resources.require("spyder==2.1.13")
 
 if sys.platform == "win32":
