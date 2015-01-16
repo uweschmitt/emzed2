@@ -157,6 +157,7 @@ class TableExplorer(EmzedDialog):
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+        tableView.horizontalHeader().setMovable(1)
         pol = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         tableView.setSizePolicy(pol)
         tableView.setVisible(False)
