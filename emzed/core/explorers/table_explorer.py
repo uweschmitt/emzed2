@@ -17,6 +17,8 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
+from .widgets import FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue
+
 
 def getColors(i, light=False):
     colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
@@ -63,7 +65,7 @@ class EmzedTableView(QTableView):
             if self.selectedIndexes():
                 column = self.selectedIndexes()[0].column()
             else:
-                column = self.model().current_sort_idx
+                column = self.model().current_sort_col_idx
 
             # some columns are invisible, so we need a lookup:
             col_name = self.model().getShownColumnName(column)
@@ -97,7 +99,7 @@ class TableExplorer(EmzedDialog):
         self.model = None
         self.tableView = None
 
-        self.currentRowIndices = []
+        self.selected_data_rows = []
         self.hadFeatures = None
         self.wasIntegrated = None
 
@@ -146,11 +148,40 @@ class TableExplorer(EmzedDialog):
 
     def setupTableViews(self):
         self.tableViews = []
+        self.filterWidgets = []
         for i, model in enumerate(self.models):
             self.tableViews.append(self.setupTableViewFor(model))
+            self.filterWidgets.append(self.setupFilterWidgetFor(model))
+
+    def setupFilterWidgetFor(self, model):
+        t = model.table
+        w = FilterCriteria(self)
+        for i, (fmt, name, type_) in enumerate(zip(t.getColFormats(),
+                                                   t.getColNames(),
+                                                   t.getColTypes())):
+            if fmt is not None:
+                ch = None
+                col = t.getColumn(name)
+                if type_ == float:
+                    ch = ChooseFloatRange(name, t)
+                elif type_ in (bool, str, int):
+                    distinct_values = sorted(set(col.values))
+                    if len(distinct_values) <= 10:
+                        ch = ChooseValue(name, t)
+                    else:
+                        if type_ == int:
+                            ch = ChooseIntRange(name, t)
+                if ch is not None:
+                    w.addChooser(ch)
+        if w.number_of_choosers() > 0:
+            self.filters_enabled = False
+            w.setVisible(self.filters_enabled)
+            w.LIMITS_CHANGED.connect(model.limits_changed)
+            return w
+        else:
+            return None
 
     def setupTableViewFor(self, model):
-
 
         #tableView.showEvent = handler
         tableView = EmzedTableView(self)
@@ -199,9 +230,17 @@ class TableExplorer(EmzedDialog):
         self.reintegrateButton.setText("Integrate")
 
     def setupToolWidgets(self):
-        self.chooseGroubLabel = QLabel("Expand selection by:")
-        self.chooseGroupColumn = QComboBox()
+        self.chooseGroubLabel = QLabel("Expand selection by:", parent=self)
+        self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(300)
+
+        self.filter_on_button = QToolButton(parent=self)
+        self.filter_on_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.filter_on_button.setArrowType(Qt.RightArrow)
+        self.filter_on_button.setText("enable row filtering     ")
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.filter_on_button.setSizePolicy(sizePolicy)
+        self.filter_on_button.adjustSize()
 
     def setupAcceptButtons(self):
         self.okButton = QPushButton("Ok")
@@ -221,12 +260,21 @@ class TableExplorer(EmzedDialog):
         vsplitter.addWidget(self.layoutToolWidgets())
         vsplitter.addWidget(self.chooseSpectrum)
 
+        self.filter_widgets_container = QStackedWidget(self)
+        for w in self.filterWidgets:
+            self.filter_widgets_container.addWidget(w)
+        self.filter_widgets_container.setVisible(False)
+
+        vsplitter.addWidget(self.filter_widgets_container)
+
         for view in self.tableViews:
             vsplitter.addWidget(view)
+
         vlayout.addWidget(vsplitter)
 
         if self.offerAbortOption:
             vlayout.addLayout(self.layoutButtons())
+
 
     def layoutButtons(self):
         hbox = QHBoxLayout()
@@ -263,10 +311,9 @@ class TableExplorer(EmzedDialog):
     def layoutToolWidgets(self):
         frame = QFrame()
         layout = QHBoxLayout()
-        # layout.setSpacing(10)
-        # layout.setMargin(5)
         layout.addWidget(self.chooseGroubLabel, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.chooseGroupColumn, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.filter_on_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addStretch(10)
         frame.setLayout(layout)
         return frame
@@ -336,6 +383,23 @@ class TableExplorer(EmzedDialog):
             self.connect(self.okButton, SIGNAL("clicked()"), self.ok)
             self.connect(self.abortButton, SIGNAL("clicked()"), self.abort)
 
+        self.filter_on_button.clicked.connect(self.filter_toggle)
+
+    @protect_signal_handler
+    def filter_toggle(self, *a):
+        self.filters_enabled = not self.filters_enabled
+        for model in self.models:
+            model.setFiltersEnabled(self.filters_enabled)
+        self.filter_widgets_container.setVisible(self.filters_enabled)
+        if self.filters_enabled:
+            self.filter_on_button.setArrowType(Qt.DownArrow)
+            # we add spaces becaus on mac the text field cut when rendered
+            self.filter_on_button.setText("disable row filtering    ")
+        else:
+            self.filter_on_button.setArrowType(Qt.RightArrow)
+            # we add spaces becaus on mac the text field cut when rendered
+            self.filter_on_button.setText("enable row filtering     ")
+
     @protect_signal_handler
     def handle_double_click(self, idx):
         row, col = self.model.table_index(idx)
@@ -403,9 +467,12 @@ class TableExplorer(EmzedDialog):
         for j in range(len(self.models)):
             self.tableViews[j].setVisible(i == j)
 
+        self.filter_widgets_container.setCurrentIndex(i)
+
         if self.model is not None:
             self.disconnectModelSignals()
         self.model = self.models[i]
+        self.current_filter_widget = self.filterWidgets[i]
         self.tableView = self.tableViews[i]
         self.setupModelDependendLook()
         if self.isIntegrated:
@@ -441,9 +508,17 @@ class TableExplorer(EmzedDialog):
                 idx = self.model.createIndex(r, c)
                 self.tableView.update(idx)
 
+        minc = self.model.widgetColToDataCol[minc]
+        maxc = self.model.widgetColToDataCol[maxc]
+        minr = self.model.widgetRowToDataRow[minr]
+        maxr = self.model.widgetRowToDataRow[maxr]
+
+        for name in self.model.table.getColNames()[minc:maxc + 1]:
+            self.current_filter_widget.update(name)
+
         if self.hasFeatures:
-            minr, maxr = sorted((ix1.row(), ix2.row()))
-            if any(minr <= index <= maxr for index in self.currentRowIndices):
+            # minr, maxr = sorted((ix1.row(), ix2.row()))
+            if any(minr <= index <= maxr for index in self.selected_data_rows):
                 if isinstance(src, IntegrateAction):
                     self.updatePlots(reset=False)
                 else:
@@ -492,38 +567,44 @@ class TableExplorer(EmzedDialog):
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
         rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-        for idx in self.currentRowIndices:
-            self.model.integrate(postfix, idx, method, rtmin, rtmax)
+        for data_row_idx in self.selected_data_rows:
+            self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
 
     @protect_signal_handler
     def rowClicked(self, rowIdx):
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
+        # selected_data_rows. in table, not view
         if group_by_idx == 0:
-            selected_rows = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+            rows = self.tableView.selectionModel().selectedRows()
+            selected_data_rows = [self.model.widgetRowToDataRow[idx.row()] for idx in rows]
         else:
             # todo: 1) only offer visible columns for grouping
             # todo: 2) move parts of code below to model and/or view !
             table = self.model.table
+            ridx = table.widgetRowToDataRow[rowIdx]
             col_name = table.getColNames()[group_by_idx - 1]
-            selected_value = table.getValue(table.rows[rowIdx], col_name)
-            selected_rows = [i for i in range(len(table))
+            selected_value = table.getValue(table.rows[ridx], col_name)
+            selected_data_rows = [i for i in range(len(table))
                              if table.getValue(table.rows[i], col_name) == selected_value]
-            selected_rows = selected_rows[:40]  # avoid to many rows
+            selected_data_rows = selected_data_rows[:40]  # avoid to many rows
 
             mode_before = self.tableView.selectionMode()
             scrollbar_before = self.tableView.verticalScrollBar().value()
 
             self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
-            for i in selected_rows:
-                if i != rowIdx:      # avoid "double click !" wich de-selects current row
+            for i in selected_data_rows:
+                if i != ridx:      # avoid "double click !" wich de-selects current row
+                    # r_view = self.mode.DataRowToWidgetRow[i]
                     self.tableView.selectRow(i)
             self.tableView.setSelectionMode(mode_before)
             self.tableView.verticalScrollBar().setValue(scrollbar_before)
-        if not self.hasFeatures:
-            return
 
-        self.currentRowIndices = selected_rows
+        self.selected_data_rows = selected_data_rows
+
+        #if not self.hasFeatures:
+        #    return
+
         self.rt_plotter.setEnabled(True)
         self.updatePlots(reset=True)
         if self.hasFeatures:
@@ -535,7 +616,7 @@ class TableExplorer(EmzedDialog):
             self.chooseSpectrum.removeItem(0)
 
         postfixes, spectra = [], []
-        for idx in self.currentRowIndices:
+        for idx in self.selected_data_rows:
             pf, s = self.model.getLevelNSpectra(idx, minLevel=2)
             postfixes.extend(pf)
             spectra.extend(s)
@@ -569,7 +650,7 @@ class TableExplorer(EmzedDialog):
         curves = []
         smoothed_curves = []
         mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
-        for idx in self.currentRowIndices:
+        for idx in self.selected_data_rows:
             eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.getEics(idx)
             mzmins.append(mzmin)
             rtmins.append(rtmin)
@@ -581,10 +662,10 @@ class TableExplorer(EmzedDialog):
                 if smootheds is not None:
                     smoothed_curves.extend(smootheds)
 
-        rtmin = min(rtmins)
-        rtmax = max(rtmaxs)
-        mzmin = min(mzmins)
-        mzmax = max(mzmaxs)
+        rtmin = min(rtmins) if rtmins else None
+        rtmax = max(rtmaxs) if rtmaxs else None
+        mzmin = min(mzmins) if mzmins else None
+        mzmax = max(mzmaxs) if mzmaxs else None
 
         if not reset:
             rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
@@ -597,16 +678,18 @@ class TableExplorer(EmzedDialog):
         self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
 
         # allrts are sorted !
-        w = rtmax - rtmin
-        if w == 0:
-            w = 30.0  # seconds
-        self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-        self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
-        self.rt_plotter.replot()
-        if not reset:
-            self.rt_plotter.setXAxisLimits(xmin, xmax)
-            self.rt_plotter.setYAxisLimits(ymin, ymax)
-            self.rt_plotter.updateAxes()
+        if rtmin is not None and rtmax is not None:
+            w = rtmax - rtmin
+            if w == 0:
+                w = 30.0  # seconds
+            self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
+            self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
+            self.rt_plotter.replot()
+
+            if not reset:
+                self.rt_plotter.setXAxisLimits(xmin, xmax)
+                self.rt_plotter.setYAxisLimits(ymin, ymax)
+                self.rt_plotter.updateAxes()
 
         reset = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset else None
@@ -632,7 +715,7 @@ class TableExplorer(EmzedDialog):
             callback """
         rtmin = self.rt_plotter.minRTRangeSelected
         rtmax = self.rt_plotter.maxRTRangeSelected
-        peakmaps = [pm for idx in self.currentRowIndices for pm in self.model.getPeakmaps(idx)]
+        peakmaps = [pm for idx in self.selected_data_rows for pm in self.model.getPeakmaps(idx)]
         if resetLimits:
             mzmin, mzmax = resetLimits
             data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
