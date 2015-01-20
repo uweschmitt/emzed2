@@ -121,12 +121,15 @@ class TableExplorer(EmzedDialog):
     def setupWidgets(self):
         self.setupMenuBar()
         self.setupTableViews()
-        self.setupPlottingWidgets()
         self.chooseSpectrum = QComboBox()
-        self.setupIntegrationWidgets()
+        self.setupPlottingAndIntegrationWidgets()
         self.setupToolWidgets()
         if self.offerAbortOption:
             self.setupAcceptButtons()
+
+    def setupPlottingAndIntegrationWidgets(self):
+        self.setupPlottingWidgets()
+        self.setupIntegrationWidgets()
 
     def setupMenuBar(self):
         self.menubar = QMenuBar(self)
@@ -258,6 +261,10 @@ class TableExplorer(EmzedDialog):
         self.abortButton = QPushButton("Abort", parent=self)
         self.result = 1  # default for closing
 
+    def create_additional_widgets(self):
+        # so that derived classes can add widgets above table !
+        return None
+
     def setupLayout(self):
         vlayout = QVBoxLayout()
         self.setLayout(vlayout)
@@ -269,6 +276,10 @@ class TableExplorer(EmzedDialog):
         vsplitter.addWidget(self.menubar)  # 0
         vsplitter.addWidget(self.layoutPlottingAndIntegrationWidgets())   # 1
         vsplitter.addWidget(self.chooseSpectrum)  # 2
+
+        extra = self.create_additional_widgets()
+        if extra is not None:
+            vsplitter.addWidget(extra)
 
         self.table_view_container = QStackedWidget(self)
         for view in self.tableViews:
