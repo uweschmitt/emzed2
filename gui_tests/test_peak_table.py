@@ -10,19 +10,22 @@ pm = emzed.io.loadPeakMap(os.path.join(here, "..", "tests", "data", "test_mini.m
 
 print "TIME IS IN SECONDS"
 
-t = emzed.utils.toTable("mzmin", (0.0, 300.0, 400.0))
-t.addColumn("mzmax", (1000.0, 400.0, 500.0))
-t.addColumn("rtmin", (0.0, 24.0, 20.0))
-t.addColumn("rtmax", (1000.0, 36.0, 22.0))
-t.addColumn("peakmap", (pm, pm, pm))
-t.addColumn("class", (1, 1, 2))
+t = emzed.utils.toTable("mzmin", range(0, 2000, 100), type_=float)
+t.addColumn("mzmax", t.mzmin + 10.0)
+t.addColumn("rtmin", range(10, 30), type_=float)
+t.addColumn("rtmax", t.rtmin + 3)
+t.addColumn("peakmap", pm)
+t.addColumn("class", t.rtmin > 20)
 t = emzed.utils.integrate(t)
 
-t2 = emzed.utils.toTable("mzmin", (0.0, 300.0), meta=dict(time_is_in_seconds=False))
-t2.addColumn("mzmax", (1000.0, 400.0))
-t2.addColumn("rtmin", (0.0, 24.0 / 60.0))
-t2.addColumn("rtmax", (1000.0, 36.0 / 60.0))
-t2.addColumn("peakmap", (pm, pm))
+print t.getColFormats()
+
+
+t2 = emzed.utils.toTable("mzmin", range(0, 2000, 200), type_=float)
+t2.addColumn("mzmax", t2.mzmin + 10.0)
+t2.addColumn("rtmin", range(10, 30, 2), type_=float)
+t2.addColumn("rtmax", t2.rtmin + 3)
+t2.addColumn("peakmap", pm)
 
 t2 = emzed.utils.integrate(t2)
 

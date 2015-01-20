@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'choose_range.ui'
 #
-# Created: Fri Jan 16 18:59:00 2015
+# Created: Tue Jan 20 11:00:44 2015
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,12 +26,13 @@ except AttributeError:
 class Ui_ChooseRange(object):
     def setupUi(self, ChooseRange):
         ChooseRange.setObjectName(_fromUtf8("ChooseRange"))
-        ChooseRange.resize(181, 74)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        ChooseRange.resize(148, 74)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ChooseRange.sizePolicy().hasHeightForWidth())
         ChooseRange.setSizePolicy(sizePolicy)
+        ChooseRange.setMaximumSize(QtCore.QSize(200, 16777215))
         self.verticalLayout = QtGui.QVBoxLayout(ChooseRange)
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setMargin(3)
@@ -60,7 +61,7 @@ class Ui_ChooseRange(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.lower_bound.sizePolicy().hasHeightForWidth())
         self.lower_bound.setSizePolicy(sizePolicy)
-        self.lower_bound.setMinimumSize(QtCore.QSize(60, 0))
+        self.lower_bound.setMinimumSize(QtCore.QSize(100, 0))
         self.lower_bound.setObjectName(_fromUtf8("lower_bound"))
         self.gridLayout.addWidget(self.lower_bound, 0, 1, 1, 1)
         self.upper_bound = QtGui.QLineEdit(ChooseRange)
@@ -69,6 +70,7 @@ class Ui_ChooseRange(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.upper_bound.sizePolicy().hasHeightForWidth())
         self.upper_bound.setSizePolicy(sizePolicy)
+        self.upper_bound.setMinimumSize(QtCore.QSize(100, 0))
         self.upper_bound.setObjectName(_fromUtf8("upper_bound"))
         self.gridLayout.addWidget(self.upper_bound, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)

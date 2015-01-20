@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'filter_criteria.ui'
 #
-# Created: Fri Jan 16 18:59:01 2015
+# Created: Tue Jan 20 11:00:45 2015
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!

@@ -183,6 +183,7 @@ class TableExplorer(EmzedDialog):
                 if ch is not None:
                     w.addChooser(ch)
         if w.number_of_choosers() > 0:
+            w.add_stretch(1)
             self.filters_enabled = False
             w.setVisible(self.filters_enabled)
             w.LIMITS_CHANGED.connect(model.limits_changed)
@@ -264,20 +265,31 @@ class TableExplorer(EmzedDialog):
         vsplitter.setOrientation(Qt.Vertical)
         vsplitter.setOpaqueResize(False)
 
-        vsplitter.addWidget(self.menubar)
-        vsplitter.addWidget(self.layoutWidgetsAboveTable())
-        vsplitter.addWidget(self.layoutToolWidgets())
-        vsplitter.addWidget(self.chooseSpectrum)
+        vsplitter.addWidget(self.menubar)  # 0
+        vsplitter.addWidget(self.layoutWidgetsAboveTable())   # 1
+        vsplitter.addWidget(self.layoutToolWidgets())  # 2
+        vsplitter.addWidget(self.chooseSpectrum)  # 3
 
         self.filter_widgets_container = QStackedWidget(self)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
         self.filter_widgets_container.setVisible(False)
 
-        vsplitter.addWidget(self.filter_widgets_container)
+        vsplitter.addWidget(self.filter_widgets_container) # 4
 
+
+        self.table_view_container = QStackedWidget(self)
         for view in self.tableViews:
-            vsplitter.addWidget(view)
+            self.table_view_container.addWidget(view)
+
+        vsplitter.addWidget(self.table_view_container) # 5
+
+        vsplitter.setStretchFactor(0, 1.0)
+        vsplitter.setStretchFactor(1, 3.0)
+        vsplitter.setStretchFactor(2, 2.0)
+        vsplitter.setStretchFactor(3, 1.0)
+        vsplitter.setStretchFactor(4, 2.0)
+        vsplitter.setStretchFactor(5, 5.0)
 
         vlayout.addWidget(vsplitter)
 
@@ -473,9 +485,10 @@ class TableExplorer(EmzedDialog):
             if i == j:
                 action.setText("*" + txt[1:])
 
-        for j in range(len(self.models)):
-            self.tableViews[j].setVisible(i == j)
+        #for j in range(len(self.models)):
+            #self.tableViews[j].setVisible(i == j)
 
+        self.table_view_container.setCurrentIndex(i)
         self.filter_widgets_container.setCurrentIndex(i)
 
         if self.model is not None:

@@ -153,6 +153,9 @@ class FilterCriteria(_FilterCriteria):
     def number_of_choosers(self):
         return self.horizontalLayout.count()
 
+    def add_stretch(self, value):
+        self.horizontalLayout.addStretch(value)
+
 
 if __name__ == "__main__":
     import sys
