@@ -68,6 +68,28 @@ class ChooseIntRange(_ChooseNumberRange):
         return self.name, v1, v2
 
 
+class ChooseTimeRange(_ChooseNumberRange):
+
+    def __init__(self, name, table, min_=None, max_=None, parent=None):
+        super(ChooseTimeRange, self).__init__(name, table, min_, max_, parent)
+        self.column_name.setText("%s [m]" % self.name)
+
+    def get_limits(self):
+        v1 = str(self.lower_bound.text()).strip()
+        v2 = str(self.upper_bound.text()).strip()
+        v1 = v1.rstrip("m").rstrip()
+        v2 = v2.rstrip("m").rstrip()
+        try:
+            v1 = 60.0 * float(v1) if v1 else None
+        except Exception:
+            v1 = None
+        try:
+            v2 = 60.0 * float(v2) if v2 else None
+        except Exception:
+            v2 = None
+        return self.name, v1, v2
+
+
 class ChooseValue(_ChooseValue):
 
     INDICATE_CHANGE = QtCore.pyqtSignal(str)

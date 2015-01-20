@@ -17,7 +17,8 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
-from .widgets import FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue
+from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
+                      ChooseTimeRange)
 
 
 def getColors(i, light=False):
@@ -163,7 +164,15 @@ class TableExplorer(EmzedDialog):
                 ch = None
                 col = t.getColumn(name)
                 if type_ == float:
-                    ch = ChooseFloatRange(name, t)
+                    fmtter = t.colFormatters[i]
+                    try:
+                        txt = fmtter(0.0)
+                    except:
+                        txt = ""
+                    if txt.endswith("m"):
+                        ch = ChooseTimeRange(name, t)
+                    else:
+                        ch = ChooseFloatRange(name, t)
                 elif type_ in (bool, str, int):
                     distinct_values = sorted(set(col.values))
                     if len(distinct_values) <= 10:
