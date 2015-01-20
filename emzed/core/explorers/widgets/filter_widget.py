@@ -115,13 +115,20 @@ class ChooseValue(_ChooseValue):
     def update(self):
         before = self.values.currentText()
         values = sorted(set(self.table.getColumn(self.name).values))
-        print("update for values", self.name, values)
         self.pure_values = [None] + values
-        self.values.clear()
         new_items = [""] + map(str, values)
+
+        # block emiting signals, because the setup / update of the values below would
+        # trigger emitting a curretnIndexChanged signal !
+        old_state = self.values.blockSignals(True)
+
+        self.values.clear()
         self.values.addItems(new_items)
         if before in new_items:
             self.values.setCurrentIndex(new_items.index(before))
+
+        # unblock:
+        self.values.blockSignals(old_state)
 
 
 class FilterCriteria(_FilterCriteria):

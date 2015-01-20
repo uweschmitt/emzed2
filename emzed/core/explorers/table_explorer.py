@@ -244,17 +244,18 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(300)
 
-        self.filter_on_button = QToolButton(parent=self)
-        self.filter_on_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.filter_on_button.setArrowType(Qt.RightArrow)
-        self.filter_on_button.setText("enable row filtering     ")
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.filter_on_button.setSizePolicy(sizePolicy)
-        self.filter_on_button.adjustSize()
+        self.filter_on_button = QPushButton(parent=self)
+        self.filter_on_button.setText("Enable row filtering")
+
+        self.restrict_to_filtered_button = QPushButton("Restrict to filter result", parent=self)
+        self.remove_filtered_button = QPushButton("Remove filter result", parent=self)
+
+        self.restrict_to_filtered_button.setEnabled(False)
+        self.remove_filtered_button.setEnabled(False)
 
     def setupAcceptButtons(self):
-        self.okButton = QPushButton("Ok")
-        self.abortButton = QPushButton("Abort")
+        self.okButton = QPushButton("Ok", parent=self)
+        self.abortButton = QPushButton("Abort", parent=self)
         self.result = 1  # default for closing
 
     def setupLayout(self):
@@ -266,30 +267,31 @@ class TableExplorer(EmzedDialog):
         vsplitter.setOpaqueResize(False)
 
         vsplitter.addWidget(self.menubar)  # 0
-        vsplitter.addWidget(self.layoutWidgetsAboveTable())   # 1
-        vsplitter.addWidget(self.layoutToolWidgets())  # 2
-        vsplitter.addWidget(self.chooseSpectrum)  # 3
-
-        self.filter_widgets_container = QStackedWidget(self)
-        for w in self.filterWidgets:
-            self.filter_widgets_container.addWidget(w)
-        self.filter_widgets_container.setVisible(False)
-
-        vsplitter.addWidget(self.filter_widgets_container) # 4
-
+        vsplitter.addWidget(self.layoutPlottingAndIntegrationWidgets())   # 1
+        vsplitter.addWidget(self.chooseSpectrum)  # 2
 
         self.table_view_container = QStackedWidget(self)
         for view in self.tableViews:
             self.table_view_container.addWidget(view)
 
-        vsplitter.addWidget(self.table_view_container) # 5
 
-        vsplitter.setStretchFactor(0, 1.0)
-        vsplitter.setStretchFactor(1, 3.0)
-        vsplitter.setStretchFactor(2, 2.0)
-        vsplitter.setStretchFactor(3, 1.0)
-        vsplitter.setStretchFactor(4, 2.0)
-        vsplitter.setStretchFactor(5, 5.0)
+        vsplitter.addWidget(self.table_view_container) # 3
+
+        vsplitter.addWidget(self.layoutToolWidgets())  # 4
+
+        self.filter_widgets_container = QStackedWidget(self)
+        for w in self.filterWidgets:
+            self.filter_widgets_container.addWidget(w)
+
+        self.filter_widgets_container.setVisible(False)
+        vsplitter.addWidget(self.filter_widgets_container) #5
+
+        vsplitter.setStretchFactor(0, 1.0)   # menubar
+        vsplitter.setStretchFactor(1, 3.0)   # plots + integration
+        vsplitter.setStretchFactor(2, 1.0)   # ms2 spec chooser
+        vsplitter.setStretchFactor(3, 5.0)   # table
+        vsplitter.setStretchFactor(4, 1.0)   # tools
+        vsplitter.setStretchFactor(5, 3.0)   # filters
 
         vlayout.addWidget(vsplitter)
 
@@ -305,7 +307,7 @@ class TableExplorer(EmzedDialog):
         hbox.setAlignment(self.okButton, Qt.AlignVCenter)
         return hbox
 
-    def layoutWidgetsAboveTable(self):
+    def layoutPlottingAndIntegrationWidgets(self):
         hsplitter = QSplitter()
         hsplitter.setOpaqueResize(False)
         hsplitter.addWidget(self.rt_plotter.widget)
@@ -335,6 +337,8 @@ class TableExplorer(EmzedDialog):
         layout.addWidget(self.chooseGroubLabel, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.chooseGroupColumn, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.filter_on_button, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.restrict_to_filtered_button, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.remove_filtered_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addStretch(10)
         frame.setLayout(layout)
         return frame
@@ -405,6 +409,8 @@ class TableExplorer(EmzedDialog):
             self.connect(self.abortButton, SIGNAL("clicked()"), self.abort)
 
         self.filter_on_button.clicked.connect(self.filter_toggle)
+        self.remove_filtered_button.clicked.connect(self.remove_filtered)
+        self.restrict_to_filtered_button.clicked.connect(self.restrict_to_filtered)
 
     @protect_signal_handler
     def filter_toggle(self, *a):
@@ -412,14 +418,22 @@ class TableExplorer(EmzedDialog):
         for model in self.models:
             model.setFiltersEnabled(self.filters_enabled)
         self.filter_widgets_container.setVisible(self.filters_enabled)
+        self.restrict_to_filtered_button.setEnabled(self.filters_enabled)
+        self.remove_filtered_button.setEnabled(self.filters_enabled)
         if self.filters_enabled:
-            self.filter_on_button.setArrowType(Qt.DownArrow)
             # we add spaces becaus on mac the text field cut when rendered
-            self.filter_on_button.setText("disable row filtering    ")
+            self.filter_on_button.setText("Disable row filtering")
         else:
-            self.filter_on_button.setArrowType(Qt.RightArrow)
             # we add spaces becaus on mac the text field cut when rendered
-            self.filter_on_button.setText("enable row filtering     ")
+            self.filter_on_button.setText("Enable row filtering")
+
+    @protect_signal_handler
+    def remove_filtered(self, *a):
+        self.model.remove_filtered()
+
+    @protect_signal_handler
+    def restrict_to_filtered(self, *a):
+        self.model.restrict_to_filtered()
 
     @protect_signal_handler
     def handle_double_click(self, idx):
@@ -444,6 +458,7 @@ class TableExplorer(EmzedDialog):
     def disconnectModelSignals(self):
         self.disconnect(self.model, SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
                         self.dataChanged)
+        self.model.modelReset.disconnect(self.handle_model_reset)
         self.menubar.disconnect(self.undoAction, SIGNAL("triggered()"),
                                 protect_signal_handler(self.model.undoLastAction))
         self.menubar.disconnect(self.redoAction, SIGNAL("triggered()"),
@@ -452,12 +467,14 @@ class TableExplorer(EmzedDialog):
     def connectModelSignals(self):
         self.connect(self.model, SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
                      self.dataChanged)
+        self.model.modelReset.connect(self.handle_model_reset)
         self.menubar.connect(self.undoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.undoLastAction))
         self.menubar.connect(self.redoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.redoLastAction))
 
         self.connect(self.chooseGroupColumn, SIGNAL("activated(int)"), self.group_column_selected)
+
 
     def group_column_selected(self, idx):
         multi_select_available = (idx == 0)  # entry labeled "- manual multi select -"
@@ -522,6 +539,12 @@ class TableExplorer(EmzedDialog):
         self.updateMenubar()
 
     @protect_signal_handler
+    def handle_model_reset(self):
+        for name in self.model.table.getColNames():
+            self.current_filter_widget.update(name)
+        self.selected_data_rows = []
+
+    @protect_signal_handler
     def dataChanged(self, ix1, ix2, src):
         minr, maxr = sorted((ix1.row(), ix2.row()))
         minc, maxc = sorted((ix1.column(), ix2.column()))
@@ -572,7 +595,7 @@ class TableExplorer(EmzedDialog):
         appearAt = self.tableView.verticalHeader().mapToGlobal(point)
         choosenAction = menu.exec_(appearAt)
         if choosenAction == removeAction:
-            self.model.removeRow(idx)
+            self.model.removeRows([idx])
         elif choosenAction == cloneAction:
             self.model.cloneRow(idx)
         elif undoInfo is not None and choosenAction == undoAction:

@@ -55,27 +55,32 @@ class DeleteRowAction(TableAction):
 
     actionName = "delete row"
 
-    def __init__(self, model, widget_row_idx, data_row_idx):
-        super(DeleteRowAction, self).__init__(model, widget_row_idx=widget_row_idx,
-                                              data_row_idx=data_row_idx)
-        self.toview = dict(row=widget_row_idx)
+    def __init__(self, model, widget_row_indices, data_row_indices):
+        super(DeleteRowAction, self).__init__(model, widget_row_indices=widget_row_indices,
+                                              data_row_indices=data_row_indices)
+        self.toview = dict(rows=widget_row_indices)
 
     def do(self):
-        self.beginDelete(self.widget_row_idx)
+        indices = sorted(self.data_row_indices)
         table = self.model.table
-        self.memory = table.rows[self.data_row_idx][:]
-        del table.rows[self.data_row_idx]
+        self.memory = [(i, table.rows[i]) for i in indices]
+
+        self.model.beginResetModel()
+        for ix in reversed(indices):
+            del table.rows[ix]
+
         table.resetInternals()
-        self.endDelete()
+        self.model.endResetModel()
         return True
 
     def undo(self):
         super(DeleteRowAction, self).undo()
         table = self.model.table
-        self.beginInsert(self.widget_row_idx)
-        table.rows.insert(self.data_row_idx, self.memory)
+        self.model.beginResetModel()
+        for ix, row in self.memory:
+            table.rows.insert(ix, row[:])
         table.resetInternals()
-        self.endInsert()
+        self.model.endResetModel()
 
 
 class CloneRowAction(TableAction):
@@ -120,8 +125,9 @@ class SortTableAction(TableAction):
         colName = table._colNames[self.dataColIdx]
         # 'memory' is the permutation which sorted the table rows
         # sortBy returns this permutation:
+        self.model.beginResetModel()
         self.memory = table.sortBy(colName, ascending)
-        self.model.reset()
+        self.model.endResetModel()
         return True
 
     def undo(self):
@@ -131,8 +137,9 @@ class SortTableAction(TableAction):
         decorated = [(self.memory[i], i) for i in range(len(self.memory))]
         decorated.sort()
         invperm = [i for (_, i) in decorated]
+        self.model.beginResetModel()
         table._applyRowPermutation(invperm)
-        self.model.reset()
+        self.model.endResetModel()
 
 
 class ChangeValueAction(TableAction):
@@ -178,14 +185,14 @@ class IntegrateAction(TableAction):
 
     actionName = "integrate"
 
-    def __init__(self, model, data_row_idx, postfix, method, rtmin, rtmax, widget_row_to_data_row):
+    def __init__(self, model, data_row_idx, postfix, method, rtmin, rtmax, data_row_to_widget_row):
         super(IntegrateAction, self).__init__(model,
                                               data_row_idx=data_row_idx,
                                               postfix=postfix,
                                               method=method,
                                               rtmin=rtmin,
                                               rtmax=rtmax,
-                                              widget_row_to_data_row=widget_row_to_data_row)
+                                              data_row_to_widget_row=data_row_to_widget_row)
         self.toview = dict(rtmin=rtmin, rtmax=rtmax, method=method,
                            postfix=postfix)
 
@@ -243,18 +250,17 @@ class IntegrateAction(TableAction):
         self.notifyGUI()
 
     def notifyGUI(self):
-        for (idx_view, idx_table) in self.widget_row_to_data_row.items():
-            if idx_table == self.data_row_idx:
-                tl = self.model.createIndex(idx_view, 0)
-                tr = self.model.createIndex(idx_view, self.model.columnCount() - 1)
-                # this one updates plots
-                self.model.emit(
-                    SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
-                    tl,
-                    tr,
-                    self)
-                # this one updates cells in table
-                self.model.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), tl, tr)
+        idx_view = self.data_row_to_widget_row[self.data_row_idx]
+        tl = self.model.createIndex(idx_view, 0)
+        tr = self.model.createIndex(idx_view, self.model.columnCount() - 1)
+        # this one updates plots
+        self.model.emit(
+            SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
+            tl,
+            tr,
+            self)
+        # this one updates cells in table
+        self.model.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), tl, tr)
 
 
 class TableModel(QAbstractTableModel):
@@ -276,8 +282,8 @@ class TableModel(QAbstractTableModel):
 
         self.nonEditables = set()
 
-        self.filters_enabled = False
         self.last_limits = None
+        self.setFiltersEnabled(False)
 
     def setFiltersEnabled(self, flag):
         self.filters_enabled = flag
@@ -434,9 +440,9 @@ class TableModel(QAbstractTableModel):
         self.update_visible_rows_for_given_limits()
         return True
 
-    def removeRow(self, widget_row_idx):
-        data_row_idx = self.widgetRowToDataRow[widget_row_idx]
-        self.runAction(DeleteRowAction, widget_row_idx, data_row_idx)
+    def removeRows(self, widget_row_indices):
+        data_row_indices = [self.widgetRowToDataRow[ix] for ix in widget_row_indices]
+        self.runAction(DeleteRowAction, widget_row_indices, data_row_indices)
         self.update_visible_rows_for_given_limits()
         return True
 
@@ -444,12 +450,12 @@ class TableModel(QAbstractTableModel):
         if len(self.widgetColToDataCol):
             dataColIdx = self.widgetColToDataCol[colIdx]
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
-            self.current_sort_col_idx = colIdx # dataColIdx
+            self.current_sort_col_idx = colIdx
             self.update_visible_rows_for_given_limits()
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
-                       self.widgetRowToDataRow)
+                       self.dataRowtoWidgetRow)
         self.update_visible_rows_for_given_limits()
 
     def eicColNames(self):
@@ -574,46 +580,59 @@ class TableModel(QAbstractTableModel):
         return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
             sorted(allrts)
 
+    def remove_filtered(self):
+        to_delete = sorted(self.widgetRowToDataRow.keys())  # sort for nicer undo/redo description
+        self.removeRows(to_delete)
+
+    def restrict_to_filtered(self):
+        shown_data_rows = self.widgetRowToDataRow.values()
+        delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
+        self.runAction(DeleteRowAction, [], delete_data_rows)
+        self.update_visible_rows_for_given_limits()
+        return True
+
     def limits_changed(self, limits):
         self.last_limits = limits
         self.update_visible_rows_for_given_limits()
 
-
     def update_visible_rows_for_given_limits(self):
 
         if self.filters_enabled is False:
-           limits = {}
+            limits = {}
         else:
             if self.last_limits is None:
-                return
-            limits = self.last_limits
+                limits = {}
+            else:
+                limits = self.last_limits
 
         t = self.table
         all_rows_to_remain = set(range(len(t)))
 
         for name, (min_, max_) in limits.items():
-            type_ = t.getColFormat(name)
 
+            #print name, repr(min_), repr(max_)
             if min_ is None and max_ is None:
                 continue
 
             col_idx = t.getIndex(name)
             rows_to_remain = set()
-            for j in range(len(t)):
-                row = t.rows[j]
+            for j, row in enumerate(t):
+                #print j, repr(row[col_idx]),
                 if min_ is not None:
                     match = row[col_idx] >= min_
                 else:
                     match = True
                 if max_ is not None:
                     match = match and row[col_idx] <= max_
+                #print match
                 if match:
                     rows_to_remain.add(j)
             all_rows_to_remain = all_rows_to_remain.intersection(rows_to_remain)
 
-
+        self.beginResetModel()
         self.widgetRowToDataRow = dict()
+        self.dataRowtoWidgetRow = dict()
         for view_idx, row_idx in enumerate(sorted(all_rows_to_remain)):
             self.widgetRowToDataRow[view_idx] = row_idx
-        self.reset()
-
+            self.dataRowtoWidgetRow[row_idx] = view_idx
+        self.endResetModel()

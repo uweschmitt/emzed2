@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'choose_value.ui'
 #
-# Created: Tue Jan 20 11:00:45 2015
+# Created: Tue Jan 20 17:40:52 2015
 #      by: PyQt4 UI code generator 4.11.1
 #
 # WARNING! All changes made in this file will be lost!
