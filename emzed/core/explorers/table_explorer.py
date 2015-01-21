@@ -188,7 +188,7 @@ class TableExplorer(EmzedDialog):
         if w.number_of_choosers() > 0:
             w.add_stretch(1)
             self.filters_enabled = False
-            w.setVisible(self.filters_enabled)
+            w.setVisible(False)
             w.LIMITS_CHANGED.connect(model.limits_changed)
             return w
         else:
@@ -247,11 +247,15 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(300)
 
-        self.filter_on_button = QPushButton(parent=self)
+
+        self.dummy = QPushButton()
+        self.dummy.setVisible(False)
+
+        self.filter_on_button = QPushButton()
         self.filter_on_button.setText("Enable row filtering")
 
-        self.restrict_to_filtered_button = QPushButton("Restrict to filter result", parent=self)
-        self.remove_filtered_button = QPushButton("Remove filter result", parent=self)
+        self.restrict_to_filtered_button = QPushButton("Restrict to filter result")
+        self.remove_filtered_button = QPushButton("Remove filter result")
 
         self.restrict_to_filtered_button.setEnabled(False)
         self.remove_filtered_button.setEnabled(False)
@@ -302,7 +306,7 @@ class TableExplorer(EmzedDialog):
         vsplitter.setStretchFactor(2, 1.0)   # ms2 spec chooser
         vsplitter.setStretchFactor(3, 5.0)   # table
         vsplitter.setStretchFactor(4, 1.0)   # tools
-        vsplitter.setStretchFactor(5, 3.0)   # filters
+        vsplitter.setStretchFactor(5, 2.0)   # filters
 
         vlayout.addWidget(vsplitter)
 
@@ -343,11 +347,12 @@ class TableExplorer(EmzedDialog):
         return hsplitter
 
     def layoutToolWidgets(self):
-        frame = QFrame()
+        frame = QFrame(parent=self)
         layout = QHBoxLayout()
         layout.addWidget(self.chooseGroubLabel, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.chooseGroupColumn, stretch=1, alignment=Qt.AlignLeft)
-        layout.addWidget(self.filter_on_button, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.dummy, stretch=0, alignment=Qt.AlignLeft)
+        layout.addWidget(self.filter_on_button, alignment=Qt.AlignLeft)
         layout.addWidget(self.restrict_to_filtered_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.remove_filtered_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addStretch(10)
@@ -661,9 +666,9 @@ class TableExplorer(EmzedDialog):
         #if not self.hasFeatures:
         #    return
 
-        self.rt_plotter.setEnabled(True)
-        self.updatePlots(reset=True)
         if self.hasFeatures:
+            self.rt_plotter.setEnabled(True)
+            self.updatePlots(reset=True)
             self.setupSpectrumChooser()
 
     def setupSpectrumChooser(self):
@@ -803,12 +808,12 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None):
     if modal:
         explorer.raise_()
         explorer.exec_()
+        # partial cleanup
+        modified = len(explorer.models[0].actions) > 0
+        del explorer.models
+        if offerAbortOption:
+            if explorer.result == 1:
+                raise Exception("Dialog aborted by user")
+        return modified
     else:
         explorer.show()
-    # partial cleanup
-    modified = len(explorer.models[0].actions) > 0
-    del explorer.models
-    if offerAbortOption:
-        if explorer.result == 1:
-            raise Exception("Dialog aborted by user")
-    return modified
