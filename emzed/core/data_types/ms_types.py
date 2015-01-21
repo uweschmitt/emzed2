@@ -15,6 +15,9 @@ except:
     pass
 
 
+IS_PYOPENMS_2  = pyopenms.__version__.startswith("2.")
+
+
 def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=2)
 
@@ -105,7 +108,7 @@ class Spectrum(object):
                pyopenms.IonSource.Polarity.NEGATIVE: '-'
                }.get(mspec.getInstrumentSettings().getPolarity())
         peaks = mspec.get_peaks()
-        if isinstance(peaks, tuple):
+        if IS_PYOPENMS_2:
             # signature changed in pyopenms
             mzs, iis = peaks
             peaks = np.vstack((mzs.flatten(), iis.flatten())).T
@@ -195,7 +198,12 @@ class Spectrum(object):
             p.setIntensity(I)
             oms_pcs.append(p)
         spec.setPrecursors(oms_pcs)
-        spec.set_peaks(self.peaks)
+        if IS_PYOPENMS_2:
+            mz = self.peaks[:, 0]
+            I = self.peaks[:, 1]
+            spec.set_peaks((mz, I))
+        else:
+            spec.set_peaks(self.peaks)
         spec.updateRanges()
         return spec
 
