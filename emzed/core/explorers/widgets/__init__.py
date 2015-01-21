@@ -2,4 +2,4 @@
 from __future__ import print_function
 
 from filter_widget import (FilterCriteria, ChooseValue, ChooseFloatRange, ChooseIntRange,
-                           ChooseTimeRange)
+                           ChooseTimeRange, StringFilterPattern)
