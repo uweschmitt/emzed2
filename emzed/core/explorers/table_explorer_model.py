@@ -55,38 +55,48 @@ class DeleteRowAction(TableAction):
 
     actionName = "delete row"
 
-    def __init__(self, model, rowIdx):
-        super(DeleteRowAction, self).__init__(model, rowIdx=rowIdx)
-        self.toview = dict(row=rowIdx)
+    def __init__(self, model, widget_row_indices, data_row_indices):
+        super(DeleteRowAction, self).__init__(model, widget_row_indices=widget_row_indices,
+                                              data_row_indices=data_row_indices)
+        self.toview = dict(rows=widget_row_indices)
 
     def do(self):
-        self.beginDelete(self.rowIdx)
+        indices = sorted(self.data_row_indices)
         table = self.model.table
-        self.memory = table.rows[self.rowIdx][:]
-        del table.rows[self.rowIdx]
-        self.endDelete()
+        self.memory = [(i, table.rows[i]) for i in indices]
+
+        self.model.beginResetModel()
+        for ix in reversed(indices):
+            del table.rows[ix]
+
+        table.resetInternals()
+        self.model.endResetModel()
         return True
 
     def undo(self):
         super(DeleteRowAction, self).undo()
         table = self.model.table
-        self.beginInsert(self.rowIdx)
-        table.rows.insert(self.rowIdx, self.memory)
-        self.endInsert()
+        self.model.beginResetModel()
+        for ix, row in self.memory:
+            table.rows.insert(ix, row[:])
+        table.resetInternals()
+        self.model.endResetModel()
 
 
 class CloneRowAction(TableAction):
 
     actionName = "clone row"
 
-    def __init__(self, model, rowIdx):
-        super(CloneRowAction, self).__init__(model, rowIdx=rowIdx)
-        self.toview = dict(row=rowIdx)
+    def __init__(self, model, widget_row_idx, data_row_idx):
+        super(CloneRowAction, self).__init__(model, widget_row_idx=widget_row_idx,
+                                             data_row_idx=data_row_idx)
+        self.toview = dict(row=widget_row_idx)
 
     def do(self):
-        self.beginInsert(self.rowIdx + 1)
+        self.beginInsert(self.widget_row_idx + 1)
         table = self.model.table
-        table.rows.insert(self.rowIdx + 1, table.rows[self.rowIdx][:])
+        table.rows.insert(self.data_row_idx + 1, table.rows[self.data_row_idx][:])
+        table.resetInternals()
         self.memory = True
         self.endInsert()
         return True
@@ -94,8 +104,9 @@ class CloneRowAction(TableAction):
     def undo(self):
         super(CloneRowAction, self).undo()
         table = self.model.table
-        self.beginDelete(self.rowIdx + 1)
-        del table.rows[self.rowIdx + 1]
+        self.beginDelete(self.widget_row_idx + 1)
+        del table.rows[self.data_row_idx + 1]
+        table.resetInternals()
         self.endDelete()
 
 
@@ -114,8 +125,9 @@ class SortTableAction(TableAction):
         colName = table._colNames[self.dataColIdx]
         # 'memory' is the permutation which sorted the table rows
         # sortBy returns this permutation:
+        self.model.beginResetModel()
         self.memory = table.sortBy(colName, ascending)
-        self.model.reset()
+        self.model.endResetModel()
         return True
 
     def undo(self):
@@ -125,27 +137,31 @@ class SortTableAction(TableAction):
         decorated = [(self.memory[i], i) for i in range(len(self.memory))]
         decorated.sort()
         invperm = [i for (_, i) in decorated]
+        self.model.beginResetModel()
         table._applyRowPermutation(invperm)
-        self.model.reset()
+        self.model.endResetModel()
 
 
 class ChangeValueAction(TableAction):
 
     actionName = "change value"
 
-    def __init__(self, model, idx, dataColIdx, value):
-        super(ChangeValueAction, self).__init__(model, idx=idx,
-                                                dataColIdx=dataColIdx,
+    def __init__(self, model, idx, row_idx, col_idx, value):
+        super(ChangeValueAction, self).__init__(model,
+                                                idx=idx,
+                                                row_idx=row_idx,
+                                                col_idx=col_idx,
                                                 value=value)
         self.toview = dict(row=idx.row(), column=idx.column(), value=value)
 
     def do(self):
         table = self.model.table
-        row = table.rows[self.idx.row()]
-        self.memory = row[self.dataColIdx]
+        row = table.rows[self.row_idx]
+        self.memory = row[self.col_idx]
         if self.memory == self.value:
             return False
-        row[self.dataColIdx] = self.value
+        row[self.col_idx] = self.value
+        table.resetInternals()
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
             self.idx,
@@ -156,7 +172,8 @@ class ChangeValueAction(TableAction):
     def undo(self):
         super(ChangeValueAction, self).undo()
         table = self.model.table
-        table.rows[self.idx.row()][self.dataColIdx] = self.memory
+        table.rows[self.row_idx][self.col_idx] = self.memory
+        table.resetInternals()
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
             self.idx,
@@ -168,10 +185,14 @@ class IntegrateAction(TableAction):
 
     actionName = "integrate"
 
-    def __init__(self, model, idx, postfix, method, rtmin, rtmax):
-        super(IntegrateAction, self).__init__(model, idx=idx, postfix=postfix,
-                                              method=method, rtmin=rtmin,
-                                              rtmax=rtmax, )
+    def __init__(self, model, data_row_idx, postfix, method, rtmin, rtmax, data_row_to_widget_row):
+        super(IntegrateAction, self).__init__(model,
+                                              data_row_idx=data_row_idx,
+                                              postfix=postfix,
+                                              method=method,
+                                              rtmin=rtmin,
+                                              rtmax=rtmax,
+                                              data_row_to_widget_row=data_row_to_widget_row)
         self.toview = dict(rtmin=rtmin, rtmax=rtmax, method=method,
                            postfix=postfix)
 
@@ -180,7 +201,7 @@ class IntegrateAction(TableAction):
         integrator = dict(_algorithm_configs.peakIntegrators).get(self.method)
         table = self.model.table
         # returns Bunch which sublcasses dict
-        args = table.getValues(table.rows[self.idx])
+        args = table.getValues(table.rows[self.data_row_idx])
         postfix = self.postfix
 
         if integrator and all(args[f + postfix]
@@ -208,30 +229,30 @@ class IntegrateAction(TableAction):
 
         # var 'row' is a Bunch, so we have to get the row from direct access
         # to table.rows:
-        self.memory = table.rows[self.idx][:]
+        self.memory = table.rows[self.data_row_idx][:]
 
         # write values to table
-        row = table.rows[self.idx]
+        row = table.rows[self.data_row_idx]
         table.setValue(row, "method" + postfix, self.method)
         table.setValue(row, "rtmin" + postfix, self.rtmin)
         table.setValue(row, "rtmax" + postfix, self.rtmax)
         table.setValue(row, "area" + postfix, area)
         table.setValue(row, "rmse" + postfix, rmse)
         table.setValue(row, "params" + postfix, params)
-        # args = table.get(table.rows[self.idx], None)
         self.notifyGUI()
         return True
 
     def undo(self):
         super(IntegrateAction, self).undo()
         table = self.model.table
-        table.setRow(self.idx, self.memory)
+        table.setRow(self.data_row_idx, self.memory)
         table.resetInternals()
         self.notifyGUI()
 
     def notifyGUI(self):
-        tl = self.model.createIndex(self.idx, 0)
-        tr = self.model.createIndex(self.idx, self.model.columnCount() - 1)
+        idx_view = self.data_row_to_widget_row[self.data_row_idx]
+        tl = self.model.createIndex(idx_view, 0)
+        tr = self.model.createIndex(idx_view, self.model.columnCount() - 1)
         # this one updates plots
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
@@ -255,9 +276,18 @@ class TableModel(QAbstractTableModel):
         indizesOfVisibleCols = (j for j in range(nc)
                                 if self.table._colFormats[j] is not None)
         self.widgetColToDataCol = dict(enumerate(indizesOfVisibleCols))
+        nr = len(table)
+        self.widgetRowToDataRow = dict(zip(range(nr), range(nr)))
         self.emptyActionStack()
 
         self.nonEditables = set()
+
+        self.last_limits = None
+        self.setFiltersEnabled(False)
+
+    def setFiltersEnabled(self, flag):
+        self.filters_enabled = flag
+        self.update_visible_rows_for_given_limits()
 
     def addNonEditable(self, name):
         dataColIdx = self.table.getIndex(name)
@@ -268,10 +298,11 @@ class TableModel(QAbstractTableModel):
         self.redoActions = []
 
     def getRow(self, idx):
-        return self.table.getValues(self.table.rows[idx])
+        r = self.widgetRowToDataRow[idx]
+        return self.table.getValues(self.table.rows[r])
 
     def rowCount(self, index=QModelIndex()):
-        return len(self.table)
+        return len(self.widgetRowToDataRow)
 
     def columnCount(self, index=QModelIndex()):
         return len(self.widgetColToDataCol)
@@ -282,18 +313,21 @@ class TableModel(QAbstractTableModel):
 
     def table_index(self, index):
         cidx = self.widgetColToDataCol[index.column()]
-        return index.row(), cidx
+        ridx = self.widgetRowToDataRow[index.row()]
+        return ridx, cidx
 
     def cell_value(self, index):
-        __, cidx = self.table_index(index)
-        value = self.table.rows[index.row()][cidx]
+        ridx, cidx = self.table_index(index)
+        value = self.table.rows[ridx][cidx]
         return value
 
     def data(self, index, role=Qt.DisplayRole):
-        if not index.isValid() or not (0 <= index.row() < len(self.table)):
+        if not index.isValid():
             return QVariant()
-        cidx = self.widgetColToDataCol[index.column()]
-        value = self.table.rows[index.row()][cidx]
+        ridx, cidx = self.table_index(index)
+        if not (0 <= index.row() < self.rowCount()):
+            return QVariant()
+        value = self.table.rows[ridx][cidx]
         shown = self.table.colFormatters[cidx](value)
         if role == Qt.DisplayRole:
             return shown
@@ -341,9 +375,9 @@ class TableModel(QAbstractTableModel):
 
     def setData(self, index, value, role=Qt.EditRole):
         assert isinstance(value, QVariant)
-        if index.isValid() and 0 <= index.row() < len(self.table):
-            __, dataIdx = self.table_index(index)
-            expectedType = self.table._colTypes[dataIdx]
+        ridx, cidx = self.table_index(index)
+        if index.isValid() and 0 <= index.row() < self.rowCount():
+            expectedType = self.table._colTypes[cidx]
             if value.toString().trimmed() == "-":
                 value = None
             elif expectedType != object:
@@ -357,7 +391,10 @@ class TableModel(QAbstractTableModel):
                 except Exception:
                     guidata.qapplication().beep()
                     return False
-            return self.runAction(ChangeValueAction, index, dataIdx, value)
+            done = self.runAction(ChangeValueAction, index, ridx, cidx, value)
+            if done:
+                self.update_visible_rows_for_given_limits()
+            return done
         return False
 
     def runAction(self, clz, *a):
@@ -384,6 +421,7 @@ class TableModel(QAbstractTableModel):
         if len(self.actions):
             action = self.actions.pop()
             action.undo()
+            self.update_visible_rows_for_given_limits()
             self.redoActions.append(action)
             self.parent.updateMenubar()
 
@@ -391,26 +429,34 @@ class TableModel(QAbstractTableModel):
         if len(self.redoActions):
             action = self.redoActions.pop()
             action.do()
+            self.update_visible_rows_for_given_limits()
             self.actions.append(action)
             self.parent.updateMenubar()
             return
 
-    def cloneRow(self, position):
-        self.runAction(CloneRowAction, position)
+    def cloneRow(self, widget_row_idx):
+        data_row_idx = self.widgetRowToDataRow[widget_row_idx]
+        self.runAction(CloneRowAction, widget_row_idx, data_row_idx)
+        self.update_visible_rows_for_given_limits()
         return True
 
-    def removeRow(self, position):
-        self.runAction(DeleteRowAction, position)
+    def removeRows(self, widget_row_indices):
+        data_row_indices = [self.widgetRowToDataRow[ix] for ix in widget_row_indices]
+        self.runAction(DeleteRowAction, widget_row_indices, data_row_indices)
+        self.update_visible_rows_for_given_limits()
         return True
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
         if len(self.widgetColToDataCol):
             dataColIdx = self.widgetColToDataCol[colIdx]
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
-            self.current_sort_idx = colIdx # dataColIdx
+            self.current_sort_col_idx = colIdx
+            self.update_visible_rows_for_given_limits()
 
-    def integrate(self, idx, postfix, method, rtmin, rtmax):
-        self.runAction(IntegrateAction, postfix, idx, method, rtmin, rtmax)
+    def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
+        self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
+                       self.dataRowtoWidgetRow)
+        self.update_visible_rows_for_given_limits()
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -421,13 +467,12 @@ class TableModel(QAbstractTableModel):
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
 
-    def getIntegrationValues(self, rowIdx, p):
-        get = lambda nn: self.table.getValue(self.table.rows[rowIdx], nn + p)
+    def getIntegrationValues(self, data_row_idx, p):
+        get = lambda nn: self.table.getValue(self.table.rows[data_row_idx], nn + p)
         return dict((nn + p, get(nn)) for nn in self.integrationColNames())
 
     def isIntegrated(self):
-        return self.hasFeatures()\
-            and self.checkForAny(*self.integrationColNames())
+        return self.hasFeatures() and self.checkForAny(*self.integrationColNames())
 
     def checkForAny(self, *names):
         """
@@ -465,10 +510,10 @@ class TableModel(QAbstractTableModel):
                 return row
         return None
 
-    def getSmoothedEics(self, rowIdx, rts):
+    def getSmoothedEics(self, data_row_idx, rts):
         allsmoothed = []
         for p in self.table.supportedPostfixes(self.integrationColNames()):
-            values = self.getIntegrationValues(rowIdx, p)
+            values = self.getIntegrationValues(data_row_idx, p)
             method = values["method" + p]
             params = values["params" + p]
             integrator = dict(_algorithm_configs.peakIntegrators).get(method)
@@ -482,20 +527,20 @@ class TableModel(QAbstractTableModel):
             allsmoothed.append(data)
         return allsmoothed
 
-    def getPeakmaps(self, rowIdx):
+    def getPeakmaps(self, data_row_idx):
         peakMaps = []
         for p in self.table.supportedPostfixes(["peakmap"]):
-            pm = self.table.getValue(self.table.rows[rowIdx], "peakmap" + p)
+            pm = self.table.getValue(self.table.rows[data_row_idx], "peakmap" + p)
             if pm is None:
                 pm = PeakMap([])
             peakMaps.append(pm)
         return peakMaps
 
-    def getLevelNSpectra(self, rowIdx, minLevel=2, maxLevel=999):
+    def getLevelNSpectra(self, data_row_idx, minLevel=2, maxLevel=999):
         spectra = []
         postfixes = []
         for p in self.table.supportedPostfixes(self.eicColNames()):
-            values = self.table.getValues(self.table.rows[rowIdx])
+            values = self.table.getValues(self.table.rows[data_row_idx])
             pm = values["peakmap" + p]
             rtmin = values["rtmin" + p]
             rtmax = values["rtmax" + p]
@@ -506,7 +551,7 @@ class TableModel(QAbstractTableModel):
                         postfixes.append(p)
         return postfixes, spectra
 
-    def getEics(self, rowIdx):
+    def getEics(self, data_row_idx):
         eics = []
         mzmins = []
         mzmaxs = []
@@ -514,7 +559,7 @@ class TableModel(QAbstractTableModel):
         rtmaxs = []
         allrts = []
         for p in self.table.supportedPostfixes(self.eicColNames()):
-            values = self.table.getValues(self.table.rows[rowIdx])
+            values = self.table.getValues(self.table.rows[data_row_idx])
             pm = values["peakmap" + p]
             mzmin = values["mzmin" + p]
             mzmax = values["mzmax" + p]
@@ -534,3 +579,60 @@ class TableModel(QAbstractTableModel):
             return eics, 0, 0, 0, 0, sorted(allrts)
         return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
             sorted(allrts)
+
+    def remove_filtered(self):
+        to_delete = sorted(self.widgetRowToDataRow.keys())  # sort for nicer undo/redo description
+        self.removeRows(to_delete)
+
+    def restrict_to_filtered(self):
+        shown_data_rows = self.widgetRowToDataRow.values()
+        delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
+        self.runAction(DeleteRowAction, [], delete_data_rows)
+        self.update_visible_rows_for_given_limits()
+        return True
+
+    def limits_changed(self, limits):
+        self.last_limits = limits
+        self.update_visible_rows_for_given_limits()
+
+    def update_visible_rows_for_given_limits(self):
+
+        if self.filters_enabled is False:
+            limits = {}
+        else:
+            if self.last_limits is None:
+                limits = {}
+            else:
+                limits = self.last_limits
+
+        t = self.table
+        all_rows_to_remain = set(range(len(t)))
+
+        for name, (min_, max_) in limits.items():
+
+            #print name, repr(min_), repr(max_)
+            if min_ is None and max_ is None:
+                continue
+
+            col_idx = t.getIndex(name)
+            rows_to_remain = set()
+            for j, row in enumerate(t):
+                #print j, repr(row[col_idx]),
+                if min_ is not None:
+                    match = row[col_idx] >= min_
+                else:
+                    match = True
+                if max_ is not None:
+                    match = match and row[col_idx] <= max_
+                #print match
+                if match:
+                    rows_to_remain.add(j)
+            all_rows_to_remain = all_rows_to_remain.intersection(rows_to_remain)
+
+        self.beginResetModel()
+        self.widgetRowToDataRow = dict()
+        self.dataRowtoWidgetRow = dict()
+        for view_idx, row_idx in enumerate(sorted(all_rows_to_remain)):
+            self.widgetRowToDataRow[view_idx] = row_idx
+            self.dataRowtoWidgetRow[row_idx] = view_idx
+        self.endResetModel()
