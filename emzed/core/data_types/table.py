@@ -1624,6 +1624,11 @@ class Table(object):
         columns = [[row[i] for row in rows] for i in range(len(colNames))]
         types = [common_type_for(col) for col in columns]
 
+        # now convert columns to their common type:
+        for row in rows:
+            for i, (v, t) in enumerate(zip(row, types)):
+                row[i] = t(v)
+
         formats = dict([(name, guessFormatFor(name, type_)) for (name, type_)
                         in zip(colNames, types)])
         formats.update(specialFormats)
