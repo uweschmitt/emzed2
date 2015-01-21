@@ -18,7 +18,7 @@ from inspectors import has_inspector, inspector
 from emzed_dialog import EmzedDialog
 
 from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
-                      ChooseTimeRange)
+                      ChooseTimeRange, StringFilterPattern)
 
 
 def getColors(i, light=False):
@@ -176,13 +176,15 @@ class TableExplorer(EmzedDialog):
                         ch = ChooseTimeRange(name, t)
                     else:
                         ch = ChooseFloatRange(name, t)
-                elif type_ in (bool, str, int):
+                elif type_ in (bool, str, unicode, basestring, int):
                     distinct_values = sorted(set(col.values))
-                    if len(distinct_values) <= 10:
+                    if len(distinct_values) <= 1:
                         ch = ChooseValue(name, t)
                     else:
                         if type_ == int:
                             ch = ChooseIntRange(name, t)
+                        elif type_ in (str, unicode, basestring):
+                            ch = StringFilterPattern(name, t)
                 if ch is not None:
                     w.addChooser(ch)
         if w.number_of_choosers() > 0:
@@ -247,7 +249,10 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(300)
 
-
+        # we introduced this invisible button else qt makes the filter_on_button always
+        # active on mac osx, that means that as soon we press enter in one of the filter
+        # widgets the button is triggered !
+        # problem does not occur on windows.
         self.dummy = QPushButton()
         self.dummy.setVisible(False)
 

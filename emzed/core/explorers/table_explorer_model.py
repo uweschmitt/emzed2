@@ -608,23 +608,16 @@ class TableModel(QAbstractTableModel):
         t = self.table
         all_rows_to_remain = set(range(len(t)))
 
-        for name, (min_, max_) in limits.items():
+        for name, filter_function in limits.items():
 
-            #print name, repr(min_), repr(max_)
-            if min_ is None and max_ is None:
+            if filter_function is None:
                 continue
 
             col_idx = t.getIndex(name)
             rows_to_remain = set()
             for j, row in enumerate(t):
-                #print j, repr(row[col_idx]),
-                if min_ is not None:
-                    match = row[col_idx] >= min_
-                else:
-                    match = True
-                if max_ is not None:
-                    match = match and row[col_idx] <= max_
-                #print match
+                print row[col_idx], filter_function(row[col_idx])
+                match = filter_function(row[col_idx])
                 if match:
                     rows_to_remain.add(j)
             all_rows_to_remain = all_rows_to_remain.intersection(rows_to_remain)

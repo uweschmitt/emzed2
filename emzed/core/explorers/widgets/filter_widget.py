@@ -1,9 +1,13 @@
 # encoding: utf-8
 from __future__ import print_function
 
+
+from fnmatch import fnmatch
+
 from _filter_criteria import FilterCriteria as _FilterCriteria
 from _choose_range import ChooseRange as _ChooseRange
 from _choose_value import ChooseValue as _ChooseValue
+from _string_filter import StringFilter as _StringFilter
 
 from PyQt4 import QtCore, QtGui
 
@@ -36,9 +40,20 @@ class _ChooseNumberRange(_ChooseRange):
         pass
 
 
+def range_filter(v1, v2):
+    if v1 is not None and v2 is not None:
+        return lambda v, v1=v1, v2=v2: v1 <= v <= v2
+    elif v1 is not None:
+        return lambda v, v1=v1: v1 <= v
+    elif v2 is not None:
+        return lambda v, v2=v2: v <= v2
+    else:
+        return None
+
+
 class ChooseFloatRange(_ChooseNumberRange):
 
-    def get_limits(self):
+    def get_filter(self):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         try:
@@ -49,12 +64,12 @@ class ChooseFloatRange(_ChooseNumberRange):
             v2 = float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, v1, v2
+        return self.name, range_filter(v1, v2)
 
 
 class ChooseIntRange(_ChooseNumberRange):
 
-    def get_limits(self):
+    def get_filter(self):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         try:
@@ -65,7 +80,7 @@ class ChooseIntRange(_ChooseNumberRange):
             v2 = int(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, v1, v2
+        return self.name, range_filter(v1, v2)
 
 
 class ChooseTimeRange(_ChooseNumberRange):
@@ -74,7 +89,7 @@ class ChooseTimeRange(_ChooseNumberRange):
         super(ChooseTimeRange, self).__init__(name, table, min_, max_, parent)
         self.column_name.setText("%s [m]" % self.name)
 
-    def get_limits(self):
+    def get_filter(self):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         v1 = v1.rstrip("m").rstrip()
@@ -87,7 +102,7 @@ class ChooseTimeRange(_ChooseNumberRange):
             v2 = 60.0 * float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, v1, v2
+        return self.name, range_filter(v1, v2)
 
 
 class ChooseValue(_ChooseValue):
@@ -108,9 +123,11 @@ class ChooseValue(_ChooseValue):
     def choice_changed(self, *a):
         self.INDICATE_CHANGE.emit(self.name)
 
-    def get_limits(self, *a):
+    def get_filter(self, *a):
         t = self.pure_values[self.values.currentIndex()]
-        return self.name, t, t
+        if t is None:
+            return self.name, None
+        return self.name, lambda v: v == t
 
     def update(self):
         before = self.values.currentText()
@@ -129,6 +146,33 @@ class ChooseValue(_ChooseValue):
 
         # unblock:
         self.values.blockSignals(old_state)
+
+
+class StringFilterPattern(_StringFilter):
+
+    INDICATE_CHANGE = QtCore.pyqtSignal(str)
+
+    def __init__(self, name, table, pattern=None, parent=None):
+        super(StringFilterPattern, self).__init__(parent)
+        self.name = name
+        self.table = table
+        self.column_name.setText(self.name)
+        if pattern is not None:
+            self.pattern.setText(pattern)
+
+    def setupUi(self, parent):
+        super(StringFilterPattern, self).setupUi(self)
+        self.pattern.setMinimumWidth(40)
+        self.pattern.returnPressed.connect(self.return_pressed)
+
+    def return_pressed(self):
+        self.INDICATE_CHANGE.emit(self.name)
+
+    def get_filter(self, *a):
+        pattern = str(self.pattern.text())
+        if pattern == "":
+            return self.name, None
+        return self.name, lambda v, pattern=pattern: fnmatch(v, pattern)
 
 
 class FilterCriteria(_FilterCriteria):
@@ -153,8 +197,8 @@ class FilterCriteria(_FilterCriteria):
     def value_commited(self, name):
         limits = {}
         for chooser in self.choosers:
-            name, min_, max_ = chooser.get_limits()
-            limits[name] = (min_, max_)
+            name, filter_function = chooser.get_filter()
+            limits[name] = filter_function
         self.LIMITS_CHANGED.emit(limits)
 
     def number_of_choosers(self):
