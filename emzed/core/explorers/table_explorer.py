@@ -638,7 +638,7 @@ class TableExplorer(EmzedDialog):
             # todo: 1) only offer visible columns for grouping
             # todo: 2) move parts of code below to model and/or view !
             table = self.model.table
-            ridx = table.widgetRowToDataRow[rowIdx]
+            ridx = self.model.widgetRowToDataRow[rowIdx]
             col_name = table.getColNames()[group_by_idx - 1]
             selected_value = table.getValue(table.rows[ridx], col_name)
             selected_data_rows = [i for i in range(len(table))
