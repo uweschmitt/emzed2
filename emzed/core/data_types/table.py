@@ -328,6 +328,15 @@ class Table(object):
             self.rows.pop()
             raise
 
+    def addPostfix(self, postfix):
+        if "__" in postfix:
+            raise Exception("double score in postfix not allowed")
+        self._addPostfix(postfix)
+
+    def _addPostfix(self, postfix):
+        self._colNames = [c + postfix for c in self._colNames]
+        self.resetInternals()
+
     def isEditable(self, colName):
         return colName in self.editableColumns
 

@@ -4,6 +4,7 @@ from emzed.core.data_types.col_types import Blob
 import emzed.utils
 import emzed.mass
 import numpy as np
+import pytest
 
 
 def testBinary():
@@ -740,4 +741,15 @@ def test_reset_internals():
     assert "unique_id" not in t.meta
 
 
+def test_add_postfix():
+    t = emzed.utils.toTable("x", (1,))
+    t.addColumn("y", t.x + 1)
 
+    t.addPostfix("_1")
+    assert t.getColNames() == ["x_1", "y_1"]
+
+    with pytest.raises(Exception):
+        t.addPostfix("__2")
+
+    t._addPostfix("__2")
+    assert t.getColNames() == ["x_1__2", "y_1__2"]
