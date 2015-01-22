@@ -1,3 +1,4 @@
+import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -248,6 +249,7 @@ class TableExplorer(EmzedDialog):
         self.reintegrateButton.setText("Integrate")
 
     def setupToolWidgets(self):
+
         self.chooseGroubLabel = QLabel("Expand selection by:", parent=self)
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(200)
@@ -357,15 +359,45 @@ class TableExplorer(EmzedDialog):
 
     def layoutToolWidgets(self):
         frame = QFrame(parent=self)
-        layout = QHBoxLayout()
-        layout.addWidget(self.chooseGroubLabel, stretch=1, alignment=Qt.AlignLeft)
-        layout.addWidget(self.chooseGroupColumn, stretch=1, alignment=Qt.AlignLeft)
-        layout.addWidget(self.dummy, stretch=0, alignment=Qt.AlignLeft)
-        layout.addWidget(self.filter_on_button, alignment=Qt.AlignLeft)
-        layout.addWidget(self.restrict_to_filtered_button, stretch=1, alignment=Qt.AlignLeft)
-        layout.addWidget(self.remove_filtered_button, stretch=1, alignment=Qt.AlignLeft)
-        layout.addWidget(self.export_table_button, stretch=1, alignment=Qt.AlignLeft)
-        layout.addStretch(10)
+        layout = QGridLayout()
+        row = 0
+        column = 0
+        layout.addWidget(self.chooseGroubLabel, row, column,  alignment=Qt.AlignLeft)
+        column += 1
+        layout.addWidget(self.chooseGroupColumn, row, column, alignment=Qt.AlignLeft)
+        column += 1
+
+
+        self.toolmenu = QMenu(self)
+        for i in range(3):
+            action = self.toolmenu.addAction("Category " + str(i))
+            action.setCheckable(True)
+
+
+        self.button = QPushButton("visible columns")
+        self.button.setContextMenuPolicy(Qt.CustomContextMenu)
+
+        self.button.setMenu(self.toolmenu)
+
+
+
+
+        layout.addWidget(self.button, row, column, alignment=Qt.AlignLeft)
+
+        row = 1
+        column = 0
+        layout.addWidget(self.filter_on_button, row, column, alignment=Qt.AlignLeft)
+        column += 1
+        layout.addWidget(self.restrict_to_filtered_button, row, column, alignment=Qt.AlignLeft)
+        column += 1
+        layout.addWidget(self.remove_filtered_button, row, column, alignment=Qt.AlignLeft)
+        column += 1
+        layout.addWidget(self.export_table_button, row, column, alignment=Qt.AlignLeft)
+        column += 1
+
+        layout.addWidget(self.dummy, row, column, alignment=Qt.AlignLeft)
+        layout.setColumnStretch(column, 1)
+
         frame.setLayout(layout)
         return frame
 
