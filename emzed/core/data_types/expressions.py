@@ -83,6 +83,10 @@ def is_numpy_number(v):
     return is_numpy_number_type(type(v))
 
 
+def numpy_to_python_number(v):
+    return np.array((v,)).tolist()[0]
+
+
 def common_type_for(li):
 
     types = set(type(x) for x in li if x is not None)
@@ -983,7 +987,10 @@ class AggregateExpression(BaseExpression):
         values, _, type_ = self._eval()
         if len(values):
             rv = values[0]
-            return type_(rv)
+            result = type_(rv)
+            if is_numpy_number(result):
+                return numpy_to_python_number(result)
+            return result
         return self.default_empty
 
     def _eval(self, ctx=None):

@@ -15,7 +15,8 @@ import dill
 import numpy as np
 import pyopenms
 
-from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
+                          common_type_for, is_numpy_number_type)
 
 from . import tools
 
@@ -206,9 +207,7 @@ class Table(object):
         self._colNames = list(colNames)
         self._colTypes = list(colTypes)
 
-        is_numpy_type = lambda t: np.number in t.__mro__
-
-        if any(is_numpy_type(t) for t in colTypes if t is not None):
+        if any(is_numpy_number_type(t) for t in colTypes if t is not None):
             raise Exception("using numpy floats instead of python floats is not a good idea. "
                             "Table operations may crash")
 
