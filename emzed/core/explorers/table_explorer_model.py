@@ -599,7 +599,6 @@ class TableModel(QAbstractTableModel):
         self.update_visible_rows_for_given_limits()
 
     def update_visible_rows_for_given_limits(self):
-
         if self.filters_enabled is False:
             limits = {}
         else:
@@ -619,7 +618,6 @@ class TableModel(QAbstractTableModel):
             col_idx = t.getIndex(name)
             rows_to_remain = set()
             for j, row in enumerate(t):
-                print row[col_idx], filter_function(row[col_idx])
                 match = filter_function(row[col_idx])
                 if match:
                     rows_to_remain.add(j)
@@ -632,3 +630,8 @@ class TableModel(QAbstractTableModel):
             self.widgetRowToDataRow[view_idx] = row_idx
             self.dataRowtoWidgetRow[row_idx] = view_idx
         self.endResetModel()
+
+    def extract_visible_table(self):
+        row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
+        return self.table[row_idxs]
+

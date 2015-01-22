@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -19,6 +21,8 @@ from emzed_dialog import EmzedDialog
 
 from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
                       ChooseTimeRange, StringFilterPattern)
+
+from ...gui.file_dialogs import askForSave
 
 
 def getColors(i, light=False):
@@ -43,7 +47,6 @@ def configsForSmootheds(smootheds):
 
 def configsForSpectra(n):
     return [dict(color=getColors(i), linewidth=1) for i in range(n)]
-
 
 
 class EmzedTableView(QTableView):
@@ -247,7 +250,7 @@ class TableExplorer(EmzedDialog):
     def setupToolWidgets(self):
         self.chooseGroubLabel = QLabel("Expand selection by:", parent=self)
         self.chooseGroupColumn = QComboBox(parent=self)
-        self.chooseGroupColumn.setMinimumWidth(300)
+        self.chooseGroupColumn.setMinimumWidth(200)
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
@@ -261,6 +264,7 @@ class TableExplorer(EmzedDialog):
 
         self.restrict_to_filtered_button = QPushButton("Restrict to filter result")
         self.remove_filtered_button = QPushButton("Remove filter result")
+        self.export_table_button = QPushButton("Export table")
 
         self.restrict_to_filtered_button.setEnabled(False)
         self.remove_filtered_button.setEnabled(False)
@@ -360,6 +364,7 @@ class TableExplorer(EmzedDialog):
         layout.addWidget(self.filter_on_button, alignment=Qt.AlignLeft)
         layout.addWidget(self.restrict_to_filtered_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addWidget(self.remove_filtered_button, stretch=1, alignment=Qt.AlignLeft)
+        layout.addWidget(self.export_table_button, stretch=1, alignment=Qt.AlignLeft)
         layout.addStretch(10)
         frame.setLayout(layout)
         return frame
@@ -432,6 +437,7 @@ class TableExplorer(EmzedDialog):
         self.filter_on_button.clicked.connect(self.filter_toggle)
         self.remove_filtered_button.clicked.connect(self.remove_filtered)
         self.restrict_to_filtered_button.clicked.connect(self.restrict_to_filtered)
+        self.export_table_button.clicked.connect(self.export_table)
 
     @protect_signal_handler
     def filter_toggle(self, *a):
@@ -444,9 +450,11 @@ class TableExplorer(EmzedDialog):
         if self.filters_enabled:
             # we add spaces becaus on mac the text field cut when rendered
             self.filter_on_button.setText("Disable row filtering")
+            self.export_table_button.setText("Export filtered")
         else:
             # we add spaces becaus on mac the text field cut when rendered
             self.filter_on_button.setText("Enable row filtering")
+            self.export_table_button.setText("Export table")
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -455,6 +463,15 @@ class TableExplorer(EmzedDialog):
     @protect_signal_handler
     def restrict_to_filtered(self, *a):
         self.model.restrict_to_filtered()
+
+    @protect_signal_handler
+    def export_table(self, *a):
+        path = askForSave(extensions=["csv"])
+        if path is not None:
+            t = self.model.extract_visible_table()
+            if os.path.exists(path):
+                os.remove(path)
+            t.storeCSV(path, as_printed=True)
 
     @protect_signal_handler
     def handle_double_click(self, idx):
