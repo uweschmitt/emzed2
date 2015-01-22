@@ -722,5 +722,22 @@ def test_t():
     t.replaceColumn("a", t.v + 12)
     assert t.a.values == (13, 14)
 
+def test_reset_internals():
+    t = emzed.utils.toTable("x", (1,), format_="%d")
+    t.uniqueId()  # forces setting or unique_id in table meta dict
+    assert "unique_id" in t.meta
+
+    # brute force column rename:
+    t._colNames = ["y"]
+    t._colFormats = ["%2d"]
+    t.resetInternals()
+
+    # no chech if reset worked:
+    assert t.y.values == (1,)
+    assert not hasattr(t, "x")
+    assert t.colFormatters[0](1) == " 1"
+    assert t.colIndizes == {"y": 0}
+    assert "unique_id" not in t.meta
+
 
 

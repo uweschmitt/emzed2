@@ -361,6 +361,9 @@ class Table(object):
         return getattr(self, name)
 
     def _setupColumnAttributes(self):
+        for name in self.__dict__.keys():
+            if isinstance(getattr(self, name), ColumnExpression):
+                delattr(self, name)
         for name in self._colNames:
             ix = self.getIndex(name)
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
