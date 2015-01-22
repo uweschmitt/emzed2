@@ -4,6 +4,7 @@ from emzed.core.data_types.col_types import Blob
 import emzed.utils
 import emzed.mass
 import numpy as np
+import pytest
 
 
 def testBinary():
@@ -125,28 +126,19 @@ def testNumpyTypeCoercion():
 def testApplyUfun():
     t = emzed.utils.toTable("a", [None, 2.0, 3])
 
-    print np.log
     t.addColumn("log", t.a.apply(np.log))
     assert t.getColTypes() == [float, float], t.getColTypes()
 
 
 def testNonBoolean():
     t = emzed.utils.toTable("a", [])
-    try:
+    with pytest.raises(Exception):
         not t.a  # this was a common mistake: ~t.a is the correct way to express negation
-    except:
-        pass
-    else:
-        raise Exception()
 
 
 def testIllegalRows():
-    try:
+    with pytest.raises(Exception):
         Table(["a", "b"], [float, float], ["%f", "%f"], [(1, 2)])
-    except Exception, e:
-        assert "not all rows are lists" in str(e), str(e)
-    else:
-        pass
 
 
 def test_adduct_table():
@@ -260,8 +252,6 @@ def testColumnAggFunctions():
     assert t2.apc.values == (4,)
 
 
-
-
 def testUniqeRows():
     t = emzed.utils.toTable("a", [1, 1, 2, 2, 3, 3])
     t.addColumn("b",             [1, 1, 1, 2, 3, 3])
@@ -295,7 +285,6 @@ def testIndex():
     t = emzed.utils.toTable("a", [1, 2, 3, 4, 5])
     t.addColumn("b", [2, 0, 1, 5, 6])
     t.sortBy("a")
-    print t.primaryIndex
     a = t.a
 
     es = [a <= 2, a <= 0, a <= 5, a <= 6]
@@ -310,7 +299,6 @@ def testIndex():
     assert len(es) == len(vs)
 
     for e, v in zip(es, vs):
-        print e, v
         assert len(t.filter(e)) == v, len(t.filter(e))
 
     t2 = t.copy()
@@ -327,11 +315,8 @@ def testIndex():
 def testBools():
     t = emzed.utils.toTable("bool", [True, False, True, None])
     assert t.bool.sum() == 2
-    print repr(t.bool.max()), repr(True)
-    print type(t.bool.max()), type(True)
-    print id(t.bool.max()), id(True)
-    assert t.bool.max() == True, t.bool.max()
-    assert t.bool.min() == False, t.bool.min()
+    assert t.bool.max() is True, t.bool.max()
+    assert t.bool.min() is False, t.bool.min()
 
     t.addColumn("int", [1, 2, 3, 4])
     t.addColumn("float", [1.0, 2, 3, 4])
@@ -357,7 +342,7 @@ def testUniqueValue():
     b = dict(b=3)
 
     t = emzed.utils.toTable("a", [a, b])
-    print t.a.uniqueValue()
+    assert t.a.uniqueValue() is a
 
 
 def testSpecialFormats():
@@ -428,15 +413,9 @@ def test_removePostfixes():
     assert t.getColNames() == ["abb", "bcb"]
     t.removePostfixes("bb", "cb")
     assert t.getColNames() == ["a", "b"]
-    try:
-        t.print_()
-        t.removePostfixes("a", "b")
-        t.print_()
 
-    except:
-        pass
-    else:
-        assert False, "expected exception"
+    with pytest.raises(Exception):
+        t.removePostfixes("a", "b")
 
 
 def test_getters_and_setters():
@@ -661,26 +640,28 @@ def test_aggregate_types():
     t = emzed.utils.toTable("group", [1, 1, 2])
     assert type(t.group.max()) in (int, long)
 
+
 def test_any_all_agg_expressions():
     t = emzed.utils.toTable("v", [0, 0])
     # pep8 would recomment "is" instead of "==" below, but py.tests assert rewriting can not
     # handle this
-    assert t.v.allTrue() == False
-    assert t.v.allFalse() == True
-    assert t.v.anyTrue() == False
-    assert t.v.anyFalse() == True
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is True
+    assert t.v.anyTrue() is False
+    assert t.v.anyFalse() is True
 
     t = emzed.utils.toTable("v", [0, 1])
-    assert t.v.allTrue() == False
-    assert t.v.allFalse() == False
-    assert t.v.anyTrue() == True
-    assert t.v.anyFalse() == True
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is True
 
     t = emzed.utils.toTable("v", [1, 1])
-    assert t.v.allTrue() == True
-    assert t.v.allFalse() == False
-    assert t.v.anyTrue() == True
-    assert t.v.anyFalse() == False
+    assert t.v.allTrue() is True
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is False
+
 
 def test_getitem_variations():
     t = emzed.utils.toTable("v", range(3))
@@ -692,7 +673,6 @@ def test_getitem_variations():
     t6 = t[np.array((True, True, False), dtype=bool)]
     t7 = t[np.array((0, 1), dtype=int)]
 
-
     assert t1.rows == [[0], [1]]
 
     for ti in (t1, t2, t3, t4, t5, t6, t7):
@@ -700,6 +680,7 @@ def test_getitem_variations():
         assert ti.getColTypes() == t.getColTypes()
         assert ti.getColFormats() == t.getColFormats()
         assert ti.rows == t1.rows
+
 
 def test_t():
     t = emzed.utils.toTable("v", range(1, 3))
@@ -723,4 +704,33 @@ def test_t():
     assert t.a.values == (13, 14)
 
 
+def test_reset_internals():
+    t = emzed.utils.toTable("x", (1,), format_="%d")
+    t.uniqueId()  # forces setting or unique_id in table meta dict
+    assert "unique_id" in t.meta
 
+    # brute force column rename:
+    t._colNames = ["y"]
+    t._colFormats = ["%2d"]
+    t.resetInternals()
+
+    # no chech if reset worked:
+    assert t.y.values == (1,)
+    assert not hasattr(t, "x")
+    assert t.colFormatters[0](1) == " 1"
+    assert t.colIndizes == {"y": 0}
+    assert "unique_id" not in t.meta
+
+
+def test_add_postfix():
+    t = emzed.utils.toTable("x", (1,))
+    t.addColumn("y", t.x + 1)
+
+    t.addPostfix("_1")
+    assert t.getColNames() == ["x_1", "y_1"]
+
+    with pytest.raises(Exception):
+        t.addPostfix("__2")
+
+    t._addPostfix("__2")
+    assert t.getColNames() == ["x_1__2", "y_1__2"]

@@ -1,5 +1,6 @@
+import pdb
 from emzed.core.explorers.table_explorer_model import (TableModel,
-                                                       DeleteRowAction,
+                                                       DeleteRowsAction,
                                                        SortTableAction,
                                                        ChangeValueAction,
                                                        IntegrateAction,
@@ -163,7 +164,7 @@ def testSimpleTable():
     assert model.rowCount() == 3
 
     model.cloneRow(0)
-    model.removeRow(0)
+    model.removeRows([0])
     assert model.table.rows[0] != model.table.rows[1]
     assert model.rowCount() == 3
 
@@ -217,7 +218,7 @@ def testActions():
     t_orig = t.copy()
 
 
-    action = DeleteRowAction(model, 0)
+    action = DeleteRowsAction(model, [0], [0])
     action.do()
     assert len(model.table) == len(t_orig)-1
     assert model.table.rows[0] == t_orig.rows[1]
@@ -226,7 +227,7 @@ def testActions():
     assert model.table.rows[0] == t_orig.rows[0]
 
 
-    action = CloneRowAction(model, 0)
+    action = CloneRowAction(model, 0, 0)
     action.do()
     assert model.table.rows[0] == t_orig.rows[0]
     assert model.table.rows[1] == t_orig.rows[0]
@@ -257,7 +258,7 @@ def testActions():
         def column(self):
             return 0
 
-    action = ChangeValueAction(model, Index(), 0, 3.0)
+    action = ChangeValueAction(model, Index(), 0, 0, 3.0)
     action.do()
     assert model.table.rows[0][0] == 3.0
     action.undo()
@@ -274,7 +275,7 @@ def testActions():
 
     model.table = emzed.utils.integrate(t, "no_integration")
 
-    action = IntegrateAction(model, 0, "", "trapez", 0, 100)
+    action = IntegrateAction(model, 0, "", "trapez", 0, 100, {0: 0})
     action.do()
     assert model.table.area.values[0] == 500.0
     action.undo()

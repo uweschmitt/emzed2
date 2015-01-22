@@ -57,42 +57,25 @@ def loadTable(path=None, compress_after_load=True):
 
 
 def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
-    """local import in order to keep namespaces clean"""
-    import csv
-    import os.path
-    import re
+    """
+    loads csv file from path. column separator is given by *sep*.
+    If *keepNone* is set to True, "None" strings in file are kept as a string.
+    Else this string is converted to Python None values.
+    *specialFormats* collects positional arguments for setting formats
+    of columns.
 
-    from ..core.data_types.table import (Table, common_type_for, bestConvert, guessFormatFor)
+    Example: ``emzed.io.loadCSV("abc.csv", mz="%.3f")``
 
-    path = _prepare_path(path, extensions=["csv"])
+    """
+
+    from ..core.data_types import Table
+
+    path = _prepare_path(path, extensions=["table"])
     if path is None:
         return None
 
-    with open(path, "rU") as fp:
-        # remove clutter at right margin
-        reader = csv.reader(fp, delimiter=sep)
-        # reduce multiple spaces to single underscore
-        colNames = [re.sub(" +", "_", n.strip()) for n in reader.next()]
-
-        if keepNone:
-            conv = bestConvert
-        else:
-            conv = lambda v: None if v == "None" else bestConvert(v)
-
-        rows = [[conv(c.strip()) for c in row] for row in reader]
-
-    columns = [[row[i] for row in rows] for i in range(len(colNames))]
-    types = [common_type_for(col) for col in columns]
-
-    # defaultFormats = {float: "%.2f", str: "%s", int: "%d"}
-    formats = dict([(name, guessFormatFor(name, type_)) for (name, type_) in zip(colNames, types)])
-    formats.update(specialFormats)
-
-    formats = [formats[n] for n in colNames]
-
-    title = os.path.basename(path)
-    meta = dict(loaded_from=os.path.abspath(path))
-    return Table._create(colNames, types, formats, rows, title, meta)
+    result = Table.loadCSV(path)
+    return result
 
 
 def loadBlob(path=None):

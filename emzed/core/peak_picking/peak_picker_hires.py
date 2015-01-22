@@ -3,7 +3,10 @@ from ..data_types import PeakMap
 
 class PeakPickerHiRes(object):
 
-    standardConfig = dict(ms1_only="false", signal_to_noise = 1.0)
+    if pyopenms.__version__.startswith("2."):
+        standardConfig = dict(ms_levels=[1, 2], signal_to_noise = 1.0)
+    else:
+        standardConfig = dict(ms1_only="false", signal_to_noise = 1.0)
 
     def __init__(self, **modified_config):
         self.pp = pyopenms.PeakPickerHiRes()

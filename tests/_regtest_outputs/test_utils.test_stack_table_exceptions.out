@@ -1,32 +1,4 @@
-Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
-    fun(*args)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1788, in stackTables
-    Table._check_if_compatible(tables)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1763, in _check_if_compatible
-    % (i, j, types1, types2))
-Exception: tables 0 and 2 have different column types (<type 'int'> and <type 'str'>)
-Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
-    fun(*args)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1788, in stackTables
-    Table._check_if_compatible(tables)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1742, in _check_if_compatible
-    % (i, i + 1, t1.numCols(), t2.numCols()))
-Exception: tables 0 and 1 have different number columns (2 and 1)
-Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
-    fun(*args)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1788, in stackTables
-    Table._check_if_compatible(tables)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1749, in _check_if_compatible
-    % (i, i + 1, names1, names2))
-Exception: tables 1 and 2 have different column names (a and c)
-Traceback (most recent call last):
-  File "/Users/uweschmitt/Projects/emzed2/src/tests/test_utils.py", line 82, in _exception_reg_test
-    fun(*args)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1788, in stackTables
-    Table._check_if_compatible(tables)
-  File "/Users/uweschmitt/Projects/emzed2/src/emzed/core/data_types/table.py", line 1768, in _check_if_compatible
-    % (i, j, formats1, formats2))
-Exception: tables 0 and 2 have different column formats ('%4d' and '%d')
+tables 0 and 2 have different column types (<type 'int'> and <type 'str'>)
+tables 0 and 1 have different number columns (2 and 1)
+tables 1 and 2 have different column names (a and c)
+tables 0 and 2 have different column formats ('%4d' and '%d')

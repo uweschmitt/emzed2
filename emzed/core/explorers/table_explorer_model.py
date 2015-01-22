@@ -51,12 +51,12 @@ class TableAction(object):
         return "%s(%s)" % (self.actionName, args)
 
 
-class DeleteRowAction(TableAction):
+class DeleteRowsAction(TableAction):
 
     actionName = "delete row"
 
     def __init__(self, model, widget_row_indices, data_row_indices):
-        super(DeleteRowAction, self).__init__(model, widget_row_indices=widget_row_indices,
+        super(DeleteRowsAction, self).__init__(model, widget_row_indices=widget_row_indices,
                                               data_row_indices=data_row_indices)
         self.toview = dict(rows=widget_row_indices)
 
@@ -74,7 +74,7 @@ class DeleteRowAction(TableAction):
         return True
 
     def undo(self):
-        super(DeleteRowAction, self).undo()
+        super(DeleteRowsAction, self).undo()
         table = self.model.table
         self.model.beginResetModel()
         for ix, row in self.memory:
@@ -442,9 +442,12 @@ class TableModel(QAbstractTableModel):
 
     def removeRows(self, widget_row_indices):
         data_row_indices = [self.widgetRowToDataRow[ix] for ix in widget_row_indices]
-        self.runAction(DeleteRowAction, widget_row_indices, data_row_indices)
+        self.runAction(DeleteRowsAction, widget_row_indices, data_row_indices)
         self.update_visible_rows_for_given_limits()
         return True
+
+    def removeRow(self, *a):
+        raise RuntimeError("obsolte method, use removeRows instead")
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
         if len(self.widgetColToDataCol):
@@ -587,7 +590,7 @@ class TableModel(QAbstractTableModel):
     def restrict_to_filtered(self):
         shown_data_rows = self.widgetRowToDataRow.values()
         delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
-        self.runAction(DeleteRowAction, [], delete_data_rows)
+        self.runAction(DeleteRowsAction, [], delete_data_rows)
         self.update_visible_rows_for_given_limits()
         return True
 

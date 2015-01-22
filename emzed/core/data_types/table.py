@@ -15,7 +15,8 @@ import dill
 import numpy as np
 import pyopenms
 
-from .expressions import BaseExpression, ColumnExpression, Value, _basic_num_types, common_type_for
+from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
+                          common_type_for, is_numpy_number_type)
 
 from . import tools
 
@@ -206,9 +207,7 @@ class Table(object):
         self._colNames = list(colNames)
         self._colTypes = list(colTypes)
 
-        is_numpy_type = lambda t: np.number in t.__mro__
-
-        if any(is_numpy_type(t) for t in colTypes if t is not None):
+        if any(is_numpy_number_type(t) for t in colTypes if t is not None):
             raise Exception("using numpy floats instead of python floats is not a good idea. "
                             "Table operations may crash")
 
@@ -328,6 +327,15 @@ class Table(object):
             self.rows.pop()
             raise
 
+    def addPostfix(self, postfix):
+        if "__" in postfix:
+            raise Exception("double score in postfix not allowed")
+        self._addPostfix(postfix)
+
+    def _addPostfix(self, postfix):
+        self._colNames = [c + postfix for c in self._colNames]
+        self.resetInternals()
+
     def isEditable(self, colName):
         return colName in self.editableColumns
 
@@ -361,6 +369,9 @@ class Table(object):
         return getattr(self, name)
 
     def _setupColumnAttributes(self):
+        for name in self.__dict__.keys():
+            if isinstance(getattr(self, name), ColumnExpression):
+                delattr(self, name)
         for name in self._colNames:
             ix = self.getIndex(name)
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
@@ -1623,6 +1634,11 @@ class Table(object):
 
         columns = [[row[i] for row in rows] for i in range(len(colNames))]
         types = [common_type_for(col) for col in columns]
+
+        # now convert columns to their common type:
+        for row in rows:
+            for i, (v, t) in enumerate(zip(row, types)):
+                row[i] = t(v)
 
         formats = dict([(name, guessFormatFor(name, type_)) for (name, type_)
                         in zip(colNames, types)])

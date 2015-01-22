@@ -1,6 +1,10 @@
 from emzed.core.chemistry import Elements, MonoIsotopicElements
 from emzed.core.chemistry import monoisotopicMass
 
+
+import pyopenms
+IS_PYOPENMS_2  = pyopenms.__version__.startswith("2.")
+
 def test_elements():
     el = MonoIsotopicElements()
     el2 = MonoIsotopicElements()
@@ -19,7 +23,7 @@ def test_elements():
     assert abs(monoisotopicMass("NaCl")-57.9586219609)<1e-7, monoisotopicMass("NaCl")
 
     el3 = Elements()
-    assert len(el3) == 102
+    assert len(el3) == 108 if IS_PYOPENMS_2 else 102
 
     assert len(el3.getColNames()) == 6
     assert len(el3.number.values)
