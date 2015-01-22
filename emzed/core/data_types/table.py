@@ -388,8 +388,7 @@ class Table(object):
 
     def __getitem__(self, ix):
         """
-        supports creating a new table from a subset of current rows
-        using brackets notation.
+        supports creating a new table from a subset of current rows using brackets notation.
 
         Example::
 
@@ -399,7 +398,13 @@ class Table(object):
                 t[1:].a.values == [2, 3]
                 t[:].a.values == [1, 2, 3]
 
+                # now:
                 t[:] == t.copy()
+
+        For selection rows *ix* max be a list/tuple of booleans or integers:
+
+                t[(True, False, False)] == t[0]
+                t[(0, 1)] == t[:2]
 
         """
         prototype = self.buildEmptyClone()
