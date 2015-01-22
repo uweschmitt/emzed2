@@ -758,7 +758,7 @@ class Table(object):
     def __len__(self):
         return len(self.rows)
 
-    def storeCSV(self, path, onlyVisibleColumns=True):
+    def storeCSV(self, path, as_printed=True):
         """writes the table in .csv format. The ``path`` has to end with
            '.csv'.
 
@@ -769,13 +769,16 @@ class Table(object):
 
         with open(path, "w") as fp:
             writer = csv.writer(fp, delimiter=";")
-            if onlyVisibleColumns:
+            if as_printed:
                 colNames = self.getVisibleCols()
+                formatters = [_formatter(self.getColFormat(n)) for n in colNames]
             else:
                 colNames = self._colNames
+                noop = lambda x: x
+                formatters = [noop for n in colNames]
             writer.writerow(colNames)
             for row in self.rows:
-                data = [self.getValue(row, v) for v in colNames]
+                data = [f(self.getValue(row, v)) for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)
 
     def store(self, path, forceOverwrite=False, compressed=True):

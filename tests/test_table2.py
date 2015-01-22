@@ -734,3 +734,18 @@ def test_add_postfix():
 
     t._addPostfix("__2")
     assert t.getColNames() == ["x_1__2", "y_1__2"]
+
+
+def test_write_csv(tmpdir, regtest):
+    t = emzed.utils.toTable("a", (1, 2), format_ = "%03d")
+    t.addColumn("b", (2, 3), format_=None)
+
+    path = tmpdir.join("1.csv").strpath
+    t.storeCSV(path, as_printed=True)
+    regtest.write(open(path).read())
+
+    path = tmpdir.join("1.csv").strpath
+    t.storeCSV(path, as_printed=False)
+    regtest.write(open(path).read())
+
+
