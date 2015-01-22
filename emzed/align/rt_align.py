@@ -40,21 +40,24 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
     assert refTable is None or isinstance(refTable, Table)
     assert destination is None or isinstance(destination, basestring)
 
-    if any(t.hasColumn("method") and t.hasColumn("area") and t.hasColumn("params") for t in tables):
-        has_values_not_none = lambda col: set(col.values) != set([None])
-        integrated = lambda t: (has_values_not_none(t.method) or has_values_not_none(t.area) or
-                                has_values_not_none(t.params))
-        if any(integrated(t) for t in tables):
-            if resetIntegration:
-                for t in tables:
-                    if t.hasColumn("method") and t.hasColumn("area") and t.hasColumn("params"):
-                        t.replaceColumn("method", None)
-                        t.replaceColumn("area", None)
-                        t.replaceColumn("params", None)
-            else:
-                raise Exception("one ot the tables to align is integrated which will turn invalid "
-                                "after alignment. Either remove the integration columns, or set\n"
-                                "parameter resetIntegration to True")
+    integration_columns = ("method", "area", "params", "rmse")
+
+    found_integrated = False
+    for t in tables:
+        if all(t.hasColumn(n) for n in integration_columns):
+            found_integrated = True
+            break
+
+    if found_integrated and not resetIntegration:
+        raise Exception("one ot the tables to align is integrated which will turn invalid "
+                        "after alignment. Either remove the integration columns, or set\n"
+                        "parameter resetIntegration to True")
+
+    if found_integrated and resetIntegration:
+        for t in tables:
+            if all(t.hasColumn(n) for n in integration_columns):
+                for n in integration_columns:
+                    t.replaceColumn(n, None)
 
     for table in tables:
         # collect all maps
@@ -173,7 +176,6 @@ def _computeTransformation(algo, refMap, fm, numBreakpoints):
 
         model_params.setValue("num_breakpoints", numBreakpoints, "", [])
         trafo.fitModel("b_spline", model_params)
-        # trafo.getModelParameters(model_params)
 
         # from here on used:
         # trafo.getDataPoints
