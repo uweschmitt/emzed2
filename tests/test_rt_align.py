@@ -1,6 +1,9 @@
 import os
 import numpy as np
 
+import pyopenms
+
+IS_PYOPENMS_2 = pyopenms.__version__.startswith("2.")
 
 import emzed
 
@@ -58,7 +61,7 @@ def test_one(input_tables, regtest, tmpdir):
     ft, ft2 = input_tables
 
     ftneu, ft2neu = rtAlign([ft, ft2], refTable=ft, destination=tmpdir, nPeaks=9999,
-                            numBreakpoints=5)
+                            numBreakpoints=3)
 
     check(ft, ft2, ftneu, ft2neu, tmpdir, regtest)
 
@@ -68,7 +71,7 @@ def test_two(input_tables, regtest, tmpdir):
     tmpdir = tmpdir.strpath
     ft, ft2 = input_tables
     ft2neu, ftneu = rtAlign([ft2, ft], refTable=ft, destination=tmpdir, nPeaks=9999,
-                            numBreakpoints=5)
+                            numBreakpoints=3)
 
     check(ft, ft2, ftneu, ft2neu, tmpdir, regtest)
 
@@ -78,7 +81,7 @@ def test_three(input_tables, regtest, tmpdir):
     tmpdir = tmpdir.strpath
     ft, ft2 = input_tables
     ftneu, ft2neu = rtAlign([ft, ft2], destination=tmpdir, nPeaks=9999,
-                            numBreakpoints=5)
+                            numBreakpoints=3)
 
     check(ft, ft2, ftneu, ft2neu, tmpdir, regtest)
 
@@ -92,7 +95,7 @@ def test_four(input_tables, regtest, tmpdir):
     # fails becaus one is integrated, after alignment the integration would be infeasible:
     with pytest.raises(Exception):
         ftneu, ft2neu = rtAlign([ft, ft2], destination=tmpdir, nPeaks=9999,
-                                numBreakpoints=5)
+                                numBreakpoints=3)
 
     assert ft.method.countNotNone() > 0
     assert ft.area.countNotNone() > 0
@@ -106,6 +109,22 @@ def test_four(input_tables, regtest, tmpdir):
     assert ftneu.method.countNotNone() == 0
     assert ftneu.area.countNotNone() == 0
     assert ftneu.params.countNotNone() == 0
+
+
+# as we have regression tests where the output changes from pyopenms to pyopenms2
+# we have to distinguish both cases. the name of the file recording the output
+# of the tests depend on the functions names, so we use different function names
+# in order to force recording results in different files:
+
+if IS_PYOPENMS_2:
+    pf = "_2"
+else:
+    pf = "_1"
+
+test_one.__name__ = "test_one_for_pyopenms" + pf
+test_two.__name__ = "test_two_for_pyopenms" + pf
+test_three.__name__ = "test_three_for_pyopenms" + pf
+test_four.__name__ = "test_four_for_pyopenms" + pf
 
 
 def getrtsfrompeakmap(table):
