@@ -35,10 +35,6 @@ standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
 
 import emzed
 
-if emzed.TIME_IN_SECONDS:
-    fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
-else:
-    fms = "%.1fm"
 
 formatSeconds = fms
 

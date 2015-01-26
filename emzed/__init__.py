@@ -1,5 +1,4 @@
 # encoding:latin-1
-TIME_IN_SECONDS=True
 
 import traceback
 import os
