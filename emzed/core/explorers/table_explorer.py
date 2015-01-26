@@ -231,15 +231,22 @@ class TableExplorer(EmzedDialog):
         else:
             return None
 
+    def set_delegates(self):
+        bd = ButtonDelegate(self.tableView, self)
+        types = self.model.table.getColTypes()
+        for i, j in self.model.widgetColToDataCol.items():
+            if types[j] == CallBack:
+                self.tableView.setItemDelegateForColumn(i, bd)
+
+    def remove_delegates(self):
+        types = self.model.table.getColTypes()
+        for i, j in self.model.widgetColToDataCol.items():
+            if types[j] == CallBack:
+                self.tableView.setItemDelegateForColumn(i, None)
+
     def setupTableViewFor(self, model):
 
         tableView = EmzedTableView(self)
-
-        table = model.table
-        for i, t in enumerate(table.getColTypes()):
-            if t == CallBack:
-                bd = ButtonDelegate(tableView, self)
-                tableView.setItemDelegateForColumn(i, bd)
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)
@@ -517,6 +524,7 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def choose_visible_columns(self, *a):
+        self.remove_delegates()
         col_names, is_currently_visible = self.model.columnames_with_visibility()
         dlg = ColumnMultiSelectDialog(col_names, is_currently_visible)
         dlg.exec_()
@@ -524,6 +532,7 @@ class TableExplorer(EmzedDialog):
             return
         visible_cols = [col_idx for (n, col_idx, visible) in dlg.result if visible]
         self.model.set_visilbe_cols(visible_cols)
+        self.set_delegates()
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -616,6 +625,7 @@ class TableExplorer(EmzedDialog):
         self.model = self.models[i]
         self.current_filter_widget = self.filterWidgets[i]
         self.tableView = self.tableViews[i]
+        self.set_delegates()
         self.setupModelDependendLook()
         if self.isIntegrated:
             self.model.setNonEditable("method", ["area", "rmse", "method", "params"])

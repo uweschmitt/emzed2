@@ -640,7 +640,6 @@ class TableModel(QAbstractTableModel):
         self.endResetModel()
         self.emit_data_change()
 
-
     def emit_data_change(self):
         visible_table = self.table[self.widgetRowToDataRow.values()]
         self.DATA_CHANGE.emit(self.table, visible_table)
