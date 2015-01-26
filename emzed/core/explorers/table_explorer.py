@@ -280,6 +280,9 @@ class TableExplorer(EmzedDialog):
         # so that derived classes can add widgets above table !
         return None
 
+    def connect_additional_widgets(self, model):
+        pass
+
     def setupLayout(self):
         vlayout = QVBoxLayout()
         self.setLayout(vlayout)
@@ -440,6 +443,8 @@ class TableExplorer(EmzedDialog):
             handler = protect_signal_handler(handler)
             self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
             self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
+
+            self.connect_additional_widgets(model)
 
         self.connect(self.reintegrateButton, SIGNAL("clicked()"), self.doIntegrate)
         self.connect(self.chooseSpectrum, SIGNAL("activated(int)"), self.spectrumChosen)
@@ -628,6 +633,7 @@ class TableExplorer(EmzedDialog):
                     self.updatePlots(reset=False)
                 else:
                     self.updatePlots(reset=True)
+
 
     @protect_signal_handler
     def abort(self):

@@ -263,15 +263,19 @@ class IntegrateAction(TableAction):
         self.model.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), tl, tr)
 
 
+
 class TableModel(QAbstractTableModel):
 
     LIGHT_BLUE = QColor(200, 200, 255)
     WHITE = QColor(255, 255, 255)
 
-    def __init__(self, table, parent):
+    DATA_CHANGE = pyqtSignal(object, object)
+
+    def __init__(self, table, view):
+        parent = view
         super(TableModel, self).__init__(parent)
         self.table = table
-        self.parent = parent
+        self.view = view
         nc = len(self.table._colNames)
         self.indizesOfVisibleCols = [j for j in range(nc)
                                      if self.table._colFormats[j] is not None]
@@ -404,7 +408,7 @@ class TableModel(QAbstractTableModel):
             return done
         self.actions.append(action)
         self.redoActions = []
-        self.parent.updateMenubar()
+        self.view.updateMenubar()
         return done
 
     def infoLastAction(self):
@@ -423,7 +427,7 @@ class TableModel(QAbstractTableModel):
             action.undo()
             self.update_visible_rows_for_given_limits()
             self.redoActions.append(action)
-            self.parent.updateMenubar()
+            self.view.updateMenubar()
 
     def redoLastAction(self):
         if len(self.redoActions):
@@ -431,7 +435,7 @@ class TableModel(QAbstractTableModel):
             action.do()
             self.update_visible_rows_for_given_limits()
             self.actions.append(action)
-            self.parent.updateMenubar()
+            self.view.updateMenubar()
             return
 
     def cloneRow(self, widget_row_idx):
@@ -630,6 +634,12 @@ class TableModel(QAbstractTableModel):
             self.widgetRowToDataRow[view_idx] = row_idx
             self.dataRowtoWidgetRow[row_idx] = view_idx
         self.endResetModel()
+        self.emit_data_change()
+
+
+    def emit_data_change(self):
+        visible_table = self.table[self.widgetRowToDataRow.values()]
+        self.DATA_CHANGE.emit(self.table, visible_table)
 
     def extract_visible_table(self):
         row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
