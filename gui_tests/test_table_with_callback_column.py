@@ -5,17 +5,32 @@ import emzed
 CallBack = emzed.core.CallBack
 
 
+subtable = emzed.utils.toTable("t", (2, 3, 4, 6))
+
+t = emzed.utils.toTable("number", (1, 2, 3))
+t.addColumn("table", subtable)
+
+
 def show(row, parent):
-    expl = emzed.core.explorers.TableExplorer([row.table], False, parent=parent)
-    expl.raise_()
-    expl.show()
+    emzed.gui.inspect(row.table)
 
-t = emzed.utils.toTable("a", (1, 2, 3))
-t2 = emzed.utils.toTable("t", (2, 3, 4, 6))
+# all cells in column are the same:
+t.addColumn("button_1", CallBack("press me", show))
 
-t.addColumn("table", t2)
+# create three cells of type CallBack manually:
 
-t.addColumn("job", t.a.apply(lambda v: CallBack("press me %d" % v, show)))
+cb1 = CallBack("hi", show)
+cb2 = CallBack("yo", show)
+cb3 = CallBack("whats up", show)
 
-print(t)
+t.addColumn("button_2", [cb1, cb2, cb3])
+
+# create three cells of type CallBack by computation using t.number.apply:
+
+
+def create_call_back(i):
+    return CallBack("press me %d" % i, show)
+
+t.addColumn("button_3", t.number.apply(create_call_back))
+
 emzed.gui.inspect(t)
