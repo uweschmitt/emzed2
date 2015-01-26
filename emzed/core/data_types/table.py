@@ -31,14 +31,27 @@ __doc__ = """
 def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
-standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s"}
 
-import emzed
 
+class CallBack(object):
+
+    def __init__(self, label, callback):
+        self.label = label
+        self.callback = callback
+
+    def __str__(self):
+        return self.label
+
+
+standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s", CallBack: "%s"}
+
+fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
 
 formatSeconds = fms
 
 formatHexId = "'%x' % id(o)"
+
+
 
 
 def guessFormatFor(name, type_):

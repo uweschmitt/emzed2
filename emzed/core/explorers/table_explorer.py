@@ -9,7 +9,7 @@ import guidata
 
 from plotting_widgets import RtPlotter, MzPlotter
 
-from ..data_types import Table, PeakMap
+from ..data_types import Table, PeakMap, CallBack
 
 from table_explorer_model import *
 
@@ -47,6 +47,38 @@ def configsForSmootheds(smootheds):
 
 def configsForSpectra(n):
     return [dict(color=getColors(i), linewidth=1) for i in range(n)]
+
+
+class ButtonDelegate(QItemDelegate):
+
+    """
+    A delegate that places a fully functioning QPushButton in every
+    cell of the column to which it's applied
+
+    we have to distinguis view and parent here: using the view as parent does not work
+    in connection with modal dialogs opened in the click handler !
+    """
+
+    def __init__(self, view, parent):
+        QItemDelegate.__init__(self, parent)
+        self.view = view
+
+    def paint(self, painter, option, index):
+        if not self.view.indexWidget(index):
+            # we find the mode using the view, as the current model might change if one explores
+            # more than one table wit the table explorer:
+            model = self.view.model()
+            cell = model.cell_value(index)
+            label = model.data(index)
+            row = model.row(index)
+
+            parent = self.parent()   # this is the table explorer
+
+            def clicked(__):
+                cell.callback(row, parent)
+
+            button = QPushButton(label, self.parent(), clicked=clicked)
+            self.view.setIndexWidget(index, button)
 
 
 class EmzedTableView(QTableView):
@@ -202,6 +234,12 @@ class TableExplorer(EmzedDialog):
     def setupTableViewFor(self, model):
 
         tableView = EmzedTableView(self)
+
+        table = model.table
+        for i, t in enumerate(table.getColTypes()):
+            if t == CallBack:
+                bd = ButtonDelegate(tableView, self)
+                tableView.setItemDelegateForColumn(i, bd)
 
         tableView.setModel(model)
         tableView.horizontalHeader().setResizeMode(QHeaderView.Interactive)

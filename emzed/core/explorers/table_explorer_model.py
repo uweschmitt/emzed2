@@ -325,6 +325,10 @@ class TableModel(QAbstractTableModel):
         value = self.table.rows[ridx][cidx]
         return value
 
+    def row(self, index):
+        ridx, cidx = self.table_index(index)
+        return self.table.getValues(self.table.rows[ridx])
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()

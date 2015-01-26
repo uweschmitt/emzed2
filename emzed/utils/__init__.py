@@ -5,7 +5,7 @@ from formula_generator  import formulaTable
 
 from integration import integrate
 
-from ..core.data_types.table import Table
+from ..core.data_types.table import Table, CallBack
 
 mergeTables = Table.mergeTables
 stackTables = Table.stackTables
