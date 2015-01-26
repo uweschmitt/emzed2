@@ -407,7 +407,9 @@ class Table(object):
         if isinstance(ix, np.ndarray):
             ix = ix.tolist()
         if isinstance(ix, (list, tuple)):
-            if all(isinstance(ixi, bool) for ixi in ix):
+            if not len(ix):
+                prototype.rows = []
+            elif all(isinstance(ixi, bool) for ixi in ix):
                 if len(ix) == len(self):
                     for ixi, row in zip(ix, self.rows):
                         if ixi:
