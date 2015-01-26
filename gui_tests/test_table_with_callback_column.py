@@ -12,7 +12,7 @@ t.addColumn("table", subtable)
 
 
 def show(row, parent):
-    emzed.gui.inspect(row.table)
+    emzed.gui.inspect(row.table, modal=False, parent=parent)
 
 # all cells in column are the same:
 t.addColumn("button_1", CallBack("press me", show))
