@@ -298,13 +298,15 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn.setMinimumWidth(200)
 
         self.choose_visible_columns_button = QPushButton("Choose visible columns")
+        self.choose_visible_columns_button.setDefault(False)
+        self.choose_visible_columns_button.setAutoDefault(False)
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
         # widgets the button is triggered !
         # problem does not occur on windows.
-        self.dummy = QPushButton()
-        self.dummy.setVisible(False)
+        # self.dummy = QPushButton()
+        # self.dummy.setVisible(False)
 
         self.filter_on_button = QPushButton()
         self.filter_on_button.setText("Enable row filtering")
@@ -425,7 +427,7 @@ class TableExplorer(EmzedDialog):
         layout.addWidget(self.export_table_button, row, column, alignment=Qt.AlignLeft)
         column += 1
 
-        layout.addWidget(self.dummy, row, column, alignment=Qt.AlignLeft)
+        # layout.addWidget(self.dummy, row, column, alignment=Qt.AlignLeft)
         layout.setColumnStretch(column, 1)
 
         frame.setLayout(layout)
