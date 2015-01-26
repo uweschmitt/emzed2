@@ -57,7 +57,7 @@ class DeleteRowsAction(TableAction):
 
     def __init__(self, model, widget_row_indices, data_row_indices):
         super(DeleteRowsAction, self).__init__(model, widget_row_indices=widget_row_indices,
-                                              data_row_indices=data_row_indices)
+                                               data_row_indices=data_row_indices)
         self.toview = dict(rows=widget_row_indices)
 
     def do(self):
@@ -273,9 +273,9 @@ class TableModel(QAbstractTableModel):
         self.table = table
         self.parent = parent
         nc = len(self.table._colNames)
-        indizesOfVisibleCols = (j for j in range(nc)
-                                if self.table._colFormats[j] is not None)
-        self.widgetColToDataCol = dict(enumerate(indizesOfVisibleCols))
+        self.indizesOfVisibleCols = [j for j in range(nc)
+                                     if self.table._colFormats[j] is not None]
+        self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
         nr = len(table)
         self.widgetRowToDataRow = dict(zip(range(nr), range(nr)))
         self.emptyActionStack()
@@ -634,4 +634,16 @@ class TableModel(QAbstractTableModel):
     def extract_visible_table(self):
         row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
         return self.table[row_idxs]
+
+    def columnames_with_visibility(self):
+        avail = self.indizesOfVisibleCols
+        names = [self.table.getColNames()[i] for i in avail]
+        visible = [i in self.widgetColToDataCol.values() for i in avail]
+        return names, visible
+
+    def set_visilbe_cols(self, col_indices):
+        self.beginResetModel()
+        self.widgetColToDataCol = dict(enumerate(col_indices))
+        self.endResetModel()
+
 

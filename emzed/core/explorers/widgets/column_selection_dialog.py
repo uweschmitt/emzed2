@@ -11,13 +11,16 @@ class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
     def __init__(self, names, states, n_shown=20, parent=None):
         super(ColumnMultiSelectDialog, self).__init__(parent)
         assert len(names) == len(states)
+        self.setup(names, states, n_shown)
+
+    def setup(self, names, states, n_shown):
 
         n = len(names)
+        n_shown = min(n_shown, n)
         oversize = n > n_shown
-        self.model = model = QtGui.QStandardItemModel()
+        self.model = model = QtGui.QStandardItemModel(self)
 
         for i, (name, state) in enumerate(zip(names, states)):
-            print(i, name, state)
             item = QtGui.QStandardItem(name)
             check = QtCore.Qt.Checked if state else QtCore.Qt.Unchecked
             item.setCheckState(check)
@@ -32,35 +35,37 @@ class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
         else:
             extra_w = 0
 
-        w = list_.sizeHintForColumn(0) + 2 * list_.frameWidth() + extra_w
+
+        w_buttons = self.apply_button.sizeHint().width() + self.cancel_button.sizeHint().width()
+        w_list = list_.sizeHintForColumn(0) + 2 * list_.frameWidth() + extra_w
+        w = max(w_list, w_buttons)
         h = list_.sizeHintForRow(0) * n_shown + 2 * list_.frameWidth()
         list_.setFixedSize(w, h)
 
         self.setFixedSize(w, h + self.apply_button.height())
 
+        self.apply_button.clicked.connect(self.apply_button_clicked)
+        self.cancel_button.clicked.connect(self.cancel_button_clicked)
 
+    def cancel_button_clicked(self, __):
+        self.result = None
+        self.done(1)
 
+    def apply_button_clicked(self, __):
+        self.result = []
+        for row_idx in range(self.model.rowCount()):
+            item = self.model.item(row_idx, 0)
+            self.result.append((str(item.text()), row_idx, item.checkState() == QtCore.Qt.Checked))
+        self.done(0)
 
 
 if __name__ == "__main__":
     import sys
     app = QtGui.QApplication(sys.argv)
 
-
-    names = ["abc" * i for i in range(10)]
+    names = ["abc" * 1 for i in range(10)]
     states = [len(n) % 2 == 0 for n in names]
 
     dlg = ColumnMultiSelectDialog(names, states, n_shown=5)
     dlg.exec_()
-
-
-
-    """
-    w = list.verticalScrollBar().sizeHint().width()
-    list.setFixedSize(list.sizeHintForColumn(0) + 2 * list.frameWidth() + w, list.sizeHintForRow(0) * 6 + 2 * list.frameWidth())
-    # layout.addWidget(list)
-    dlg.setFixedSize(dlg.column_names.size())
-
-    dlg.show()
-    app.exec_()
-    """
+    print(dlg.result)

@@ -1,4 +1,3 @@
-import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -21,7 +20,7 @@ from inspectors import has_inspector, inspector
 from emzed_dialog import EmzedDialog
 
 from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
-                      ChooseTimeRange, StringFilterPattern)
+                      ChooseTimeRange, StringFilterPattern, ColumnMultiSelectDialog)
 
 from ...gui.file_dialogs import askForSave
 
@@ -202,7 +201,6 @@ class TableExplorer(EmzedDialog):
 
     def setupTableViewFor(self, model):
 
-        #tableView.showEvent = handler
         tableView = EmzedTableView(self)
 
         tableView.setModel(model)
@@ -254,6 +252,8 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(200)
 
+        self.choose_visible_columns_button = QPushButton("Choose visible columns")
+
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
         # widgets the button is triggered !
@@ -300,8 +300,7 @@ class TableExplorer(EmzedDialog):
         for view in self.tableViews:
             self.table_view_container.addWidget(view)
 
-
-        vsplitter.addWidget(self.table_view_container) # 3
+        vsplitter.addWidget(self.table_view_container)  # 3
 
         vsplitter.addWidget(self.layoutToolWidgets())  # 4
 
@@ -310,7 +309,7 @@ class TableExplorer(EmzedDialog):
             self.filter_widgets_container.addWidget(w)
 
         self.filter_widgets_container.setVisible(False)
-        vsplitter.addWidget(self.filter_widgets_container) #5
+        vsplitter.addWidget(self.filter_widgets_container)  # 5
 
         vsplitter.setStretchFactor(0, 1.0)   # menubar
         vsplitter.setStretchFactor(1, 3.0)   # plots + integration
@@ -323,7 +322,6 @@ class TableExplorer(EmzedDialog):
 
         if self.offerAbortOption:
             vlayout.addLayout(self.layoutButtons())
-
 
     def layoutButtons(self):
         hbox = QHBoxLayout()
@@ -366,23 +364,7 @@ class TableExplorer(EmzedDialog):
         column += 1
         layout.addWidget(self.chooseGroupColumn, row, column, alignment=Qt.AlignLeft)
         column += 1
-
-
-        self.toolmenu = QMenu(self)
-        for i in range(3):
-            action = self.toolmenu.addAction("Category " + str(i))
-            action.setCheckable(True)
-
-
-        self.button = QPushButton("visible columns")
-        self.button.setContextMenuPolicy(Qt.CustomContextMenu)
-
-        self.button.setMenu(self.toolmenu)
-
-
-
-
-        layout.addWidget(self.button, row, column, alignment=Qt.AlignLeft)
+        layout.addWidget(self.choose_visible_columns_button, row, column, alignment=Qt.AlignLeft)
 
         row = 1
         column = 0
@@ -466,6 +448,8 @@ class TableExplorer(EmzedDialog):
             self.connect(self.okButton, SIGNAL("clicked()"), self.ok)
             self.connect(self.abortButton, SIGNAL("clicked()"), self.abort)
 
+        self.choose_visible_columns_button.clicked.connect(self.choose_visible_columns)
+
         self.filter_on_button.clicked.connect(self.filter_toggle)
         self.remove_filtered_button.clicked.connect(self.remove_filtered)
         self.restrict_to_filtered_button.clicked.connect(self.restrict_to_filtered)
@@ -487,6 +471,16 @@ class TableExplorer(EmzedDialog):
             # we add spaces becaus on mac the text field cut when rendered
             self.filter_on_button.setText("Enable row filtering")
             self.export_table_button.setText("Export table")
+
+    @protect_signal_handler
+    def choose_visible_columns(self, *a):
+        col_names, is_currently_visible = self.model.columnames_with_visibility()
+        dlg = ColumnMultiSelectDialog(col_names, is_currently_visible)
+        dlg.exec_()
+        if dlg.result is None:
+            return
+        visible_cols = [col_idx for (n, col_idx, visible) in dlg.result if visible]
+        self.model.set_visilbe_cols(visible_cols)
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -545,7 +539,6 @@ class TableExplorer(EmzedDialog):
 
         self.connect(self.chooseGroupColumn, SIGNAL("activated(int)"), self.group_column_selected)
 
-
     def group_column_selected(self, idx):
         multi_select_available = (idx == 0)  # entry labeled "- manual multi select -"
         if multi_select_available:
@@ -571,9 +564,6 @@ class TableExplorer(EmzedDialog):
                 action.setText(txt)
             if i == j:
                 action.setText("*" + txt[1:])
-
-        #for j in range(len(self.models)):
-            #self.tableViews[j].setVisible(i == j)
 
         self.table_view_container.setCurrentIndex(i)
         self.filter_widgets_container.setCurrentIndex(i)
@@ -701,7 +691,7 @@ class TableExplorer(EmzedDialog):
             col_name = table.getColNames()[group_by_idx - 1]
             selected_value = table.getValue(table.rows[ridx], col_name)
             selected_data_rows = [i for i in range(len(table))
-                             if table.getValue(table.rows[i], col_name) == selected_value]
+                                  if table.getValue(table.rows[i], col_name) == selected_value]
             selected_data_rows = selected_data_rows[:40]  # avoid to many rows
 
             mode_before = self.tableView.selectionMode()
@@ -717,7 +707,7 @@ class TableExplorer(EmzedDialog):
 
         self.selected_data_rows = selected_data_rows
 
-        #if not self.hasFeatures:
+        # if not self.hasFeatures:
         #    return
 
         if self.hasFeatures:
@@ -871,3 +861,4 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None):
         return modified
     else:
         explorer.show()
+    del app
