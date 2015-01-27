@@ -17,12 +17,13 @@ def run_background_server(dir_, port):
         srv.stop()
 
 
+@pytest.mark.skipif(True, reason="obsolete")
 def test_start_stop(tmpdir):
     with run_background_server(tmpdir, 55555) as srv:
         assert srv.is_alive()
 
 
-@pytest.mark.xfail()
+@pytest.mark.skipif(True, reason="obsolete")
 def test_store_upload(tmpdir):
     with run_background_server(tmpdir, 55556) as srv:
 
@@ -66,7 +67,7 @@ def test_store_upload(tmpdir):
         assert client.list_files(base_url, "test_account", "/hidden") == dict()
 
 
-@pytest.mark.xfail()
+@pytest.mark.skipif(True, reason="obsolete")
 def test_errors(tmpdir):
 
     @contextmanager

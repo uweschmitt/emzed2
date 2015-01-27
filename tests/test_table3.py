@@ -1,11 +1,13 @@
 import emzed
 
+
 def test_apply_with_nones():
     t = emzed.utils.toTable("a", [1, None])
     t.addColumn("b", t.a.apply(lambda v: 0 if v is None else v))
     assert t.b.values == (1, None)
     t.addColumn("c", t.a.apply(lambda v: 0 if v is None else v, filter_nones=False))
     assert t.c.values == (1, 0)
+
 
 def test_insert_before_and_after():
     t = emzed.utils.toTable("b", [1])
@@ -17,14 +19,9 @@ def test_insert_before_and_after():
     assert (a, b, c, d) == (0, 1, 2, 3)
 
 
-def test_col_with_tuples():
+def test_col_with_tuples(regtest):
     t = emzed.utils.toTable("b", [(1, 2)])
-    import cStringIO
-    fp = cStringIO.StringIO()
-    t.print_(out=fp)
-    out = fp.getvalue()
-    lines = [l.strip() for l in out.split("\n")]
-    assert lines[3] == "(1, 2)"
+    t.print_(out=regtest)
 
 
 def test_evalsize_of_grouped_aggregate_values():
@@ -37,10 +34,11 @@ def test_grouped_aggregate_with_None_in_group():
     import emzed
     # tests a bug fixed in commit 843144a
     t = emzed.utils.toTable("v", [1, 1, 2, None])
-    assert (t.v.count.group_by(t.v)).values == (2, 2 , 1, None)
+    assert (t.v.count.group_by(t.v)).values == (2, 2, 1, None)
 
     t.addColumn("u", (1, 1, None, None))
-    assert (t.v.count.group_by(t.v, t.u)).values == (2, 2 , None, None)
+    assert (t.v.count.group_by(t.v, t.u)).values == (2, 2, None, None)
+
 
 def test_apply_to_empty_col():
     t = emzed.utils.toTable("b", (1,))
