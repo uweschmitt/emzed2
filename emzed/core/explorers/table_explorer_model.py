@@ -189,30 +189,34 @@ class TableModel(QAbstractTableModel):
     def undoLastAction(self):
         if len(self.actions):
             action = self.actions.pop()
+            self.beginResetModel()
             action.undo()
-            self.update_visible_rows_for_given_limits()
+            self.update_visible_rows_for_given_limits()  # does endResetModel
             self.redoActions.append(action)
             self.view.updateMenubar()
 
     def redoLastAction(self):
         if len(self.redoActions):
             action = self.redoActions.pop()
+            self.beginResetModel()
             action.do()
-            self.update_visible_rows_for_given_limits()
+            self.update_visible_rows_for_given_limits()  # does endResetModel
             self.actions.append(action)
             self.view.updateMenubar()
             return
 
     def cloneRow(self, widget_row_idx):
         data_row_idx = self.widgetRowToDataRow[widget_row_idx]
+        self.beginResetModel()
         self.runAction(CloneRowAction, widget_row_idx, data_row_idx)
-        self.update_visible_rows_for_given_limits()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
         return True
 
     def removeRows(self, widget_row_indices):
         data_row_indices = [self.widgetRowToDataRow[ix] for ix in widget_row_indices]
+        self.beginResetModel()
         self.runAction(DeleteRowsAction, widget_row_indices, data_row_indices)
-        self.update_visible_rows_for_given_limits()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
         return True
 
     def removeRow(self, *a):
@@ -221,14 +225,16 @@ class TableModel(QAbstractTableModel):
     def sort(self, colIdx, order=Qt.AscendingOrder):
         if len(self.widgetColToDataCol):
             dataColIdx = self.widgetColToDataCol[colIdx]
+            self.beginResetModel()
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
             self.current_sort_col_idx = colIdx
-            self.update_visible_rows_for_given_limits()
+            self.update_visible_rows_for_given_limits()  # does endResetModel
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
+        self.beginResetModel()
         self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
                        self.dataRowtoWidgetRow)
-        self.update_visible_rows_for_given_limits()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -359,8 +365,9 @@ class TableModel(QAbstractTableModel):
     def restrict_to_filtered(self):
         shown_data_rows = self.widgetRowToDataRow.values()
         delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
+        self.beginResetModel()
         self.runAction(DeleteRowsAction, [], delete_data_rows)
-        self.update_visible_rows_for_given_limits()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
         return True
 
     def limits_changed(self, limits):

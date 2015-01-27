@@ -53,22 +53,18 @@ class DeleteRowsAction(TableAction):
         table = self.model.table
         self.memory = [(i, table.rows[i]) for i in indices]
 
-        self.model.beginResetModel()
         for ix in reversed(indices):
             del table.rows[ix]
 
         table.resetInternals()
-        self.model.endResetModel()
         return True
 
     def undo(self):
         super(DeleteRowsAction, self).undo()
         table = self.model.table
-        self.model.beginResetModel()
         for ix, row in self.memory:
             table.rows.insert(ix, row[:])
         table.resetInternals()
-        self.model.endResetModel()
 
 
 class CloneRowAction(TableAction):
@@ -81,21 +77,17 @@ class CloneRowAction(TableAction):
         self.toview = dict(row=widget_row_idx)
 
     def do(self):
-        self.beginInsert(self.widget_row_idx + 1)
         table = self.model.table
         table.rows.insert(self.data_row_idx + 1, table.rows[self.data_row_idx][:])
         table.resetInternals()
         self.memory = True
-        self.endInsert()
         return True
 
     def undo(self):
         super(CloneRowAction, self).undo()
         table = self.model.table
-        self.beginDelete(self.widget_row_idx + 1)
         del table.rows[self.data_row_idx + 1]
         table.resetInternals()
-        self.endDelete()
 
 
 class SortTableAction(TableAction):
@@ -113,9 +105,7 @@ class SortTableAction(TableAction):
         colName = table._colNames[self.dataColIdx]
         # 'memory' is the permutation which sorted the table rows
         # sortBy returns this permutation:
-        self.model.beginResetModel()
         self.memory = table.sortBy(colName, ascending)
-        self.model.endResetModel()
         return True
 
     def undo(self):
@@ -125,9 +115,7 @@ class SortTableAction(TableAction):
         decorated = [(self.memory[i], i) for i in range(len(self.memory))]
         decorated.sort()
         invperm = [i for (_, i) in decorated]
-        self.model.beginResetModel()
         table._applyRowPermutation(invperm)
-        self.model.endResetModel()
 
 
 class ChangeValueAction(TableAction):
@@ -185,15 +173,13 @@ class IntegrateAction(TableAction):
                            postfix=postfix)
 
     def do(self):
-        # pyqtRemoveInputHook()
         integrator = dict(_algorithm_configs.peakIntegrators).get(self.method)
         table = self.model.table
         # returns Bunch which sublcasses dict
         args = table.getValues(table.rows[self.data_row_idx])
         postfix = self.postfix
 
-        if integrator and all(args[f + postfix]
-                              is not None
+        if integrator and all(args[f + postfix] is not None
                               for f in ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]):
 
             # TODO: restructure datatypes to avoid this dirty workaround
