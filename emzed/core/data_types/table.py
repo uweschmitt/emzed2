@@ -43,7 +43,7 @@ class CallBack(object):
         return self.label
 
 
-standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s", CallBack: "%s"}
+standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s", unicode: "%s", CallBack: "%s"}
 
 fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
 
@@ -1516,6 +1516,8 @@ class Table(object):
         """
         if out is None:
             out = sys.stdout
+        import codecs, locale
+        out = codecs.getwriter(locale.getpreferredencoding())(out)
 
         ix = [i for i, f in enumerate(self._colFormats) if f is not None]
 

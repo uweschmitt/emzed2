@@ -108,7 +108,7 @@ class EmzedTableView(QTableView):
             look_for, ok = QInputDialog.getText(self, "Search Column %s" % col_name,
                                                 "Lookup Column %s for :" % col_name)
             if ok:
-                look_for = str(look_for).strip()
+                look_for = unicode(look_for).strip()
                 if look_for:
                     row = self.model().lookup(look_for, col_name)
                     if row is not None:
@@ -612,7 +612,7 @@ class TableExplorer(EmzedDialog):
 
     def setupViewForTable(self, i):
         for j, action in enumerate(self.chooseTableActions):
-            txt = str(action.text())  # QString -> Python str
+            txt = unicode(action.text())  # QString -> Python unicode
             if txt.startswith("*"):
                 txt = " " + txt[1:]
                 action.setText(txt)

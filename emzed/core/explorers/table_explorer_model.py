@@ -341,7 +341,7 @@ class TableModel(QAbstractTableModel):
             return shown
         if role == Qt.EditRole:
             colType = self.table._colTypes[cidx]
-            if colType in [int, float, str]:
+            if colType in (int, float, str, unicode):
                 if shown.strip().endswith("m"):
                     return shown
                 try:
@@ -350,8 +350,8 @@ class TableModel(QAbstractTableModel):
                 except:
                     if colType == float:
                         return "-" if value is None else "%.4f" % value
-                    return str(value)
-            return str(value)
+                    return unicode(value)
+            return unicode(value)
         if role == Qt.FontRole:
             content = self.data(index)
             if isUrl(content):
@@ -375,7 +375,7 @@ class TableModel(QAbstractTableModel):
             return Qt.ItemIsEnabled
         default = super(TableModel, self).flags(index)
         # urls are not editable
-        if isUrl(str(self.data(index))):
+        if isUrl(self.data(index)):
             return default
         if self.widgetColToDataCol[index.column()] in self.nonEditables:
             return default
@@ -389,11 +389,15 @@ class TableModel(QAbstractTableModel):
             if value.toString().trimmed() == "-":
                 value = None
             elif expectedType != object:
-                # QVariant -> QString -> str + strip:
-                value = str(value.toString()).strip()
-                # minutes ?
+                # QVariant -> QString -> unicode + strip:
+                value = unicode(value.toString()).strip()
+                # floating point number + "m for minutes ?
                 if re.match("^((\d+m)|(\d*.\d+m))$", value):
-                    value = 60.0 * float(value[:-1])
+                    try:
+                        value = 60.0 * float(value[:-1])
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
                 try:
                     value = expectedType(value)
                 except Exception:
@@ -417,12 +421,12 @@ class TableModel(QAbstractTableModel):
 
     def infoLastAction(self):
         if len(self.actions):
-            return str(self.actions[-1])
+            return unicode(self.actions[-1])
         return None
 
     def infoRedoAction(self):
         if len(self.redoActions):
-            return str(self.redoActions[-1])
+            return unicode(self.redoActions[-1])
         return None
 
     def undoLastAction(self):
@@ -513,7 +517,7 @@ class TableModel(QAbstractTableModel):
         return self.table.getColNames()[data_col_idx]
 
     def lookup(self, look_for, col_name):
-        look_for = str(look_for).strip()
+        look_for = unicode(look_for).strip()
         ix = self.table.getIndex(col_name)
         formatter = self.table.colFormatters[ix]
         for row, value in enumerate(getattr(self.table, col_name)):

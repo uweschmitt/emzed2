@@ -133,7 +133,7 @@ class ChooseValue(_ChooseValue):
         before = self.values.currentText()
         values = sorted(set(self.table.getColumn(self.name).values))
         self.pure_values = [None] + values
-        new_items = [""] + map(str, values)
+        new_items = [u""] + map(unicode, values)
 
         # block emiting signals, because the setup / update of the values below would
         # trigger emitting a curretnIndexChanged signal !
@@ -169,8 +169,8 @@ class StringFilterPattern(_StringFilter):
         self.INDICATE_CHANGE.emit(self.name)
 
     def get_filter(self, *a):
-        pattern = str(self.pattern.text())
-        if pattern == "":
+        pattern = unicode(self.pattern.text())
+        if pattern == u"":
             return self.name, None
         return self.name, lambda v, pattern=pattern: fnmatch(v, pattern)
 
