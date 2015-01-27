@@ -207,6 +207,10 @@ class FilterCriteria(_FilterCriteria):
     def add_stretch(self, value):
         self.horizontalLayout.addStretch(value)
 
+    def hide_filters(self, names):
+        for c in self.choosers:
+            c.setVisible(c.name not in names)
+
 
 if __name__ == "__main__":
     import sys

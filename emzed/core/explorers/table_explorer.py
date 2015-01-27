@@ -537,9 +537,15 @@ class TableExplorer(EmzedDialog):
         dlg.exec_()
         if dlg.result is None:
             return
-        visible_cols = [col_idx for (n, col_idx, visible) in dlg.result if visible]
-        self.model.set_visible_cols(visible_cols)
+
+        hide_names = [n for (n, col_idx, visible) in dlg.result if not visible]
+        self.update_hidden_columns(hide_names)
+
+    def update_hidden_columns(self, hide_names):
+        self.model.hide_columns(hide_names)
         self.set_delegates()
+        self.current_filter_widget.hide_filters(hide_names)
+        self.model.table.meta["hide_in_explorer"] = hide_names
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -632,7 +638,10 @@ class TableExplorer(EmzedDialog):
         self.model = self.models[i]
         self.current_filter_widget = self.filterWidgets[i]
         self.tableView = self.tableViews[i]
-        self.set_delegates()
+
+        hidden = self.model.table.meta.get("hide_in_explorer", ())
+        self.update_hidden_columns(hidden)
+
         self.setupModelDependendLook()
         if self.isIntegrated:
             self.model.setNonEditable("method", ["area", "rmse", "method", "params"])
@@ -688,7 +697,6 @@ class TableExplorer(EmzedDialog):
                     self.updatePlots(reset=False)
                 else:
                     self.updatePlots(reset=True)
-
 
     @protect_signal_handler
     def abort(self):
