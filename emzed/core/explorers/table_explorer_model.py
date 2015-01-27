@@ -17,8 +17,7 @@ from .table_explorer_model_actions import *
 
 
 def isUrl(what):
-    return what.startswith("http://")
-
+    return what.startswith("http://") or what.startswith("https://")
 
 
 class TableModel(QAbstractTableModel):
@@ -34,8 +33,7 @@ class TableModel(QAbstractTableModel):
         self.table = table
         self.view = view
         nc = len(self.table._colNames)
-        self.indizesOfVisibleCols = [j for j in range(nc)
-                                     if self.table._colFormats[j] is not None]
+        self.indizesOfVisibleCols = [j for j in range(nc) if self.table._colFormats[j] is not None]
         self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
         nr = len(table)
         self.widgetRowToDataRow = dict(zip(range(nr), range(nr)))
