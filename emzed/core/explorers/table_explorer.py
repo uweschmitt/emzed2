@@ -25,6 +25,15 @@ from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseVa
 from ...gui.file_dialogs import askForSave
 
 
+def button(txt=None, parent=None):
+    btn = QPushButton(parent=parent)
+    if txt is not None:
+        btn.setText(txt)
+    btn.setAutoDefault(False)
+    btn.setDefault(False)
+    return btn
+
+
 def getColors(i, light=False):
     colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
     c = colors[i % len(colors)]
@@ -288,8 +297,7 @@ class TableExplorer(EmzedDialog):
 
         self.choosePostfix = QComboBox()
 
-        self.reintegrateButton = QPushButton()
-        self.reintegrateButton.setText("Integrate")
+        self.reintegrateButton = button("Integrate")
 
     def setupToolWidgets(self):
 
@@ -297,9 +305,7 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(200)
 
-        self.choose_visible_columns_button = QPushButton("Choose visible columns")
-        self.choose_visible_columns_button.setDefault(False)
-        self.choose_visible_columns_button.setAutoDefault(False)
+        self.choose_visible_columns_button = button("Choose visible columns")
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
@@ -308,19 +314,18 @@ class TableExplorer(EmzedDialog):
         # self.dummy = QPushButton()
         # self.dummy.setVisible(False)
 
-        self.filter_on_button = QPushButton()
-        self.filter_on_button.setText("Enable row filtering")
+        self.filter_on_button = button("Enable row filtering")
 
-        self.restrict_to_filtered_button = QPushButton("Restrict to filter result")
-        self.remove_filtered_button = QPushButton("Remove filter result")
-        self.export_table_button = QPushButton("Export table")
+        self.restrict_to_filtered_button = button("Restrict to filter result")
+        self.remove_filtered_button = button("Remove filter result")
+        self.export_table_button = button("Export table")
 
         self.restrict_to_filtered_button.setEnabled(False)
         self.remove_filtered_button.setEnabled(False)
 
     def setupAcceptButtons(self):
-        self.okButton = QPushButton("Ok", parent=self)
-        self.abortButton = QPushButton("Abort", parent=self)
+        self.okButton = button("Ok", parent=self)
+        self.abortButton = button("Abort", parent=self)
         self.result = 1  # default for closing
 
     def create_additional_widgets(self):
