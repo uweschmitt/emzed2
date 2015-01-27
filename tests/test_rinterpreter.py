@@ -1,4 +1,4 @@
-from emzed.r import RInterpreter
+from emzed.r import RInterpreter, RError
 from emzed.utils import toTable
 
 
@@ -32,3 +32,11 @@ def test_tables():
     # fetch pandas.DataFrame from R
     df = ip.get_raw("s")
     assert df.as_matrix().tolist() == [[1], [2]]
+
+
+def test_r_error_pickling():
+    import dill
+
+    # loads failed because the old constructor or RError had no "default constructor"
+    err = dill.loads(dill.dumps(RError("test")))
+    assert err.value == "test"

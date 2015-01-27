@@ -110,7 +110,6 @@ class RInterpreter(object):
             self._create_new_log()
         else:
             self.__dict__["_fh"] = None
-            
 
         try:
             if do_log:
