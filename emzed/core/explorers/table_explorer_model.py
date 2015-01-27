@@ -420,13 +420,13 @@ class TableModel(QAbstractTableModel):
         visible = [i in self.widgetColToDataCol.values() for i in avail]
         return names, visible
 
-    def set_visilbe_cols(self, col_indices):
+    def set_visible_cols(self, col_indices):
         self.beginResetModel()
         self.widgetColToDataCol = dict(enumerate(col_indices))
         self.endResetModel()
 
-    def set_visilbe_cols_by_names(self, col_names):
+    def set_visible_cols_by_names(self, col_names):
         indices = [self.table.getIndex(name) for name in col_names]
-        self.set_visilbe_cols(indices)
+        self.set_visible_cols(indices)
 
 

@@ -538,7 +538,7 @@ class TableExplorer(EmzedDialog):
         if dlg.result is None:
             return
         visible_cols = [col_idx for (n, col_idx, visible) in dlg.result if visible]
-        self.model.set_visilbe_cols(visible_cols)
+        self.model.set_visible_cols(visible_cols)
         self.set_delegates()
 
     @protect_signal_handler
