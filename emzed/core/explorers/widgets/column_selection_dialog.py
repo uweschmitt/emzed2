@@ -48,14 +48,14 @@ class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
         self.cancel_button.clicked.connect(self.cancel_button_clicked)
 
     def cancel_button_clicked(self, __):
-        self.result = None
+        self.column_settings = None
         self.done(1)
 
     def apply_button_clicked(self, __):
-        self.result = []
+        self.column_settings = []
         for row_idx in range(self.model.rowCount()):
             item = self.model.item(row_idx, 0)
-            self.result.append((str(item.text()), row_idx, item.checkState() == QtCore.Qt.Checked))
+            self.column_settings.append((str(item.text()), row_idx, item.checkState() == QtCore.Qt.Checked))
         self.done(0)
 
 

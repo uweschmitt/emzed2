@@ -535,10 +535,10 @@ class TableExplorer(EmzedDialog):
         col_names, is_currently_visible = self.model.columnames_with_visibility()
         dlg = ColumnMultiSelectDialog(col_names, is_currently_visible)
         dlg.exec_()
-        if dlg.result is None:
+        if dlg.column_settings is None:
             return
 
-        hide_names = [n for (n, col_idx, visible) in dlg.result if not visible]
+        hide_names = [n for (n, col_idx, visible) in dlg.column_settings if not visible]
         self.update_hidden_columns(hide_names)
 
     def update_hidden_columns(self, hide_names):
