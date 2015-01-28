@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_ColumnMultiSelectDialog(object):
     def setupUi(self, ColumnMultiSelectDialog):
         ColumnMultiSelectDialog.setObjectName(_fromUtf8("ColumnMultiSelectDialog"))
-        ColumnMultiSelectDialog.resize(150, 110)
+        ColumnMultiSelectDialog.resize(266, 193)
         ColumnMultiSelectDialog.setSizeGripEnabled(False)
         self.verticalLayout = QtGui.QVBoxLayout(ColumnMultiSelectDialog)
         self.verticalLayout.setSpacing(0)
@@ -33,7 +33,6 @@ class Ui_ColumnMultiSelectDialog(object):
         self.verticalLayout.setMargin(0)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.column_names = QtGui.QListView(ColumnMultiSelectDialog)
-        self.column_names.setMinimumSize(QtCore.QSize(150, 0))
         self.column_names.setFocusPolicy(QtCore.Qt.NoFocus)
         self.column_names.setViewMode(QtGui.QListView.ListMode)
         self.column_names.setObjectName(_fromUtf8("column_names"))

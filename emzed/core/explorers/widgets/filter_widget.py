@@ -3,7 +3,7 @@ from __future__ import print_function
 
 
 from fnmatch import fnmatch
-w0
+
 from _filter_criteria import FilterCriteria as _FilterCriteria
 from _choose_range import ChooseRange as _ChooseRange
 from _choose_value import ChooseValue as _ChooseValue
@@ -184,8 +184,8 @@ class FilterCriteria(_FilterCriteria):
         self.choosers = []
 
     def addChooser(self, chooser):
-        self.groupBox.addWidget(chooser)
-        #self.horizontalLayout.setAlignment(chooser, QtCore.Qt.AlignTop)
+        self.horizontalLayout.addWidget(chooser)
+        self.horizontalLayout.setAlignment(chooser, QtCore.Qt.AlignTop)
         chooser.INDICATE_CHANGE.connect(self.value_commited)
         self.choosers.append(chooser)
 

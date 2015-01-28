@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_ChooseRange(object):
     def setupUi(self, ChooseRange):
         ChooseRange.setObjectName(_fromUtf8("ChooseRange"))
-        ChooseRange.resize(175, 79)
+        ChooseRange.resize(143, 70)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
@@ -63,14 +63,12 @@ class Ui_ChooseRange(object):
         self.lower_bound.setObjectName(_fromUtf8("lower_bound"))
         self.gridLayout.addWidget(self.lower_bound, 1, 2, 1, 3)
         self.column_name = QtGui.QLabel(ChooseRange)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.column_name.sizePolicy().hasHeightForWidth())
         self.column_name.setSizePolicy(sizePolicy)
-        self.column_name.setScaledContents(True)
-        self.column_name.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-        self.column_name.setWordWrap(True)
+        self.column_name.setAlignment(QtCore.Qt.AlignCenter)
         self.column_name.setObjectName(_fromUtf8("column_name"))
         self.gridLayout.addWidget(self.column_name, 0, 2, 1, 1)
 
