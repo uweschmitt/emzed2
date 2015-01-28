@@ -12,6 +12,7 @@ class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
         super(ColumnMultiSelectDialog, self).__init__(parent)
         assert len(names) == len(states)
         self.setup(names, states, n_shown)
+        self.column_settings = None
 
     def setup(self, names, states, n_shown):
 
@@ -48,7 +49,6 @@ class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
         self.cancel_button.clicked.connect(self.cancel_button_clicked)
 
     def cancel_button_clicked(self, __):
-        self.column_settings = None
         self.done(1)
 
     def apply_button_clicked(self, __):
