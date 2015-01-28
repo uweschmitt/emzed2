@@ -12,6 +12,9 @@ t.replaceColumn("id", t.id.apply(str))
 t.meta["hide_in_explorer"] = ("t", "isotope_id", "a")
 ti = [t.copy() for _ in t]
 t.addColumn("t", ti)
+
+for k in range(10):
+    t.addColumn("long_name_%d" % k, k)
 t.info()
 
 t2 = t.copy()
