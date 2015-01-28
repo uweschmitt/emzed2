@@ -43,3 +43,9 @@ def test_grouped_aggregate_with_None_in_group():
 def test_apply_to_empty_col():
     t = emzed.utils.toTable("b", (1,))
     t.addColumn("a", t.b.apply(lambda x: None))
+
+
+def test_stack_tables_with_empty_list():
+    t = emzed.utils.stackTables([])
+    assert len(t) == 0
+    assert len(t.getColNames()) == 0

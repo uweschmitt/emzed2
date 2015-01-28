@@ -1806,6 +1806,8 @@ class Table(object):
     @staticmethod
     def _merge_metas(tables):
         # merge metas backwards, so first table dominates
+        if len(tables) == 0:
+            return {}
         meta = tables[-1].meta.copy()
         for t in tables[-1::-1]:
             meta.update(t.meta)
@@ -1817,6 +1819,9 @@ class Table(object):
         """dumb and fast version of Table.mergeTables if all tables have common column
         names, types and formats unless they are empty.
         """
+
+        if len(tables) == 0:
+            return Table._create([], [], [], [], None, {})
 
         Table._check_if_compatible(tables)
         meta = Table._merge_metas(tables)
