@@ -15,7 +15,7 @@ class ModExplorer(TableExplorer):
     def __init__(self, table):
         super(ModExplorer, self).__init__([table], False)
 
-    def create_additional_widgets(self):
+    def create_additional_widgets(self, vsplitter):
         self.status = widget = QLineEdit("HI PRESS ME", parent=self)
         return widget
 

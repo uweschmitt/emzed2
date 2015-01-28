@@ -328,7 +328,7 @@ class TableExplorer(EmzedDialog):
         self.abortButton = button("Abort", parent=self)
         self.result = 1  # default for closing
 
-    def create_additional_widgets(self):
+    def create_additional_widgets(self, vsplitter):
         # so that derived classes can add widgets above table !
         return None
 
@@ -347,7 +347,7 @@ class TableExplorer(EmzedDialog):
         vsplitter.addWidget(self.layoutPlottingAndIntegrationWidgets())   # 1
         vsplitter.addWidget(self.chooseSpectrum)  # 2
 
-        extra = self.create_additional_widgets()
+        extra = self.create_additional_widgets(vsplitter)
         if extra is not None:
             vsplitter.addWidget(extra)
 
@@ -366,12 +366,14 @@ class TableExplorer(EmzedDialog):
         self.filter_widgets_container.setVisible(False)
         vsplitter.addWidget(self.filter_widgets_container)  # 5
 
+        di = 1 if extra is not None else 0
+
         vsplitter.setStretchFactor(0, 1.0)   # menubar
         vsplitter.setStretchFactor(1, 3.0)   # plots + integration
         vsplitter.setStretchFactor(2, 1.0)   # ms2 spec chooser
-        vsplitter.setStretchFactor(3, 5.0)   # table
-        vsplitter.setStretchFactor(4, 1.0)   # tools
-        vsplitter.setStretchFactor(5, 2.0)   # filters
+        vsplitter.setStretchFactor(3 + di, 5.0)   # table
+        vsplitter.setStretchFactor(4 + di, 1.0)   # tools
+        vsplitter.setStretchFactor(5 + di, 2.0)   # filters
 
         vlayout.addWidget(vsplitter)
 
