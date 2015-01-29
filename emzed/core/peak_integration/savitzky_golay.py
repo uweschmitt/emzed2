@@ -21,7 +21,7 @@ class SmoothedIntegrator(BaseIntegrator):
 
         return area, rmse, (usedrts, smoothed)
 
-    def _getSmoothed(self, rtvalues, params):
+    def getSmoothed(self, rtvalues, params):
         return params
 
 

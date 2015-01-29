@@ -9,7 +9,12 @@ class NoIntegration(base_integrator.BaseIntegrator):
         pass
 
     def integrate(self, *a, **kw):
-        return dict(area=None, rmse=None, params=None)
+        return dict(area=None, rmse=None, params=None, eic=None)
 
-    def _getSmoothed(self, *a, **kw):
+    def getSmoothed(self, *a, **kw):
+        """has to be implemented"""
         return [], []
+
+    def integrator(self, *a):
+        """has to be implemented"""
+        pass

@@ -2,7 +2,7 @@
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
-        min_size_for_parallel_execution=500):
+        min_size_for_parallel_execution=500, eic_widening=30):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -12,6 +12,9 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         n_cpus <= 0 has special meaning:
             n_cpus = 0 means "use all cpu cores"
             n_cpus = -1 means "use all but one cpu cores", etc
+
+        eic_widinening uses rt limits rtmin - eic_widening .. rtmax + eic_widening
+        for extracting an EIC (which is useful for plotting)
     """
     from ..core.data_types.table import Table, PeakMap
 
@@ -67,7 +70,8 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print
 
     if n_cpus == 1:
-        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress))
+        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
+                             eic_widening))
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
@@ -75,7 +79,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         for i in range(n_cpus):
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
-            args.append((subt, supportedPostfixes, integratorid, msLevel, show_progress))
+            args.append((subt, supportedPostfixes, integratorid, msLevel, show_progress, eic_widening))
             all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
@@ -105,7 +109,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     return result
 
 
-def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,)):
+def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress, eic_widening)):
     from .._algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
@@ -121,6 +125,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
         areas = []
         rmses = []
         paramss = []
+        eics = []
         for i, row in enumerate(ftable.rows):
             if showProgress:
                 # integer div here !
@@ -140,19 +145,22 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
             peakmap = ftable.getValue(row, "peakmap" + postfix)
             if rtmin is None or rtmax is None or mzmin is None or mzmax is None\
                     or peakmap is None:
-                area, rmse, params = (None, ) * 3
+                area = rmse = params = eic = None
             else:
                 # this is a hack ! ms level n handling should first be
                 # improved and gerenalized in MSTypes.py
                 integrator.setPeakMap(peakmap)
-                result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel)
+                result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel, eic_widening)
                 # take existing values which are not integration realated:
-                area, rmse, params = result["area"], result["rmse"],\
-                    result["params"]
+                area = result["area"]
+                rmse = result["rmse"]
+                params = result["params"]
+                eic = result["eic"]
 
             areas.append(area)
             rmses.append(rmse)
             paramss.append(params)
+            eics.append(eic)
 
         resultTable._updateColumnWithoutNameCheck("method" + postfix,
                                                   integratorid, str, "%s",
@@ -165,6 +173,9 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
                                                   "%.2e", insertBefore="peakmap" + postfix)
 
         resultTable._updateColumnWithoutNameCheck("params" + postfix, paramss,
+                                                  object, None, insertBefore="peakmap" + postfix)
+
+        resultTable._updateColumnWithoutNameCheck("eic" + postfix, eics,
                                                   object, None, insertBefore="peakmap" + postfix)
 
     resultTable.meta["integrated"] = True, "\n"

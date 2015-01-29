@@ -1,7 +1,10 @@
 import numpy as np
+import abc
 
 
 class BaseIntegrator(object):
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, config=None):
         self.config = config
@@ -10,7 +13,7 @@ class BaseIntegrator(object):
     def setPeakMap(self, peakMap):
         self.peakMap = peakMap
 
-    def integrate(self, mzmin, mzmax, rtmin, rtmax, msLevel=None):
+    def integrate(self, mzmin, mzmax, rtmin, rtmax, msLevel=None, eic_widening=30):
 
         assert self.peakMap is not None, "call setPeakMap() before integrate()"
 
@@ -28,36 +31,21 @@ class BaseIntegrator(object):
             return dict(area=0.0, rmse=0.0, params=None)
 
         allrts, fullchrom = self.peakMap.chromatogram(mzmin, mzmax, None, None, msLevel)
+        eic = self.peakMap.chromatogram(mzmin, mzmax, rtmin - eic_widening, rtmax + eic_widening)
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
 
-        return dict(area=area, rmse=rmse, params=params)
+        return dict(area=area, rmse=rmse, params=params, eic=eic)
 
+    @abc.abstractmethod
+    def integrator(self, allrts, fullchrom, rts, chrom):
+        pass
+
+    @abc.abstractmethod
     def getSmoothed(self, *a):
-        if hasattr(self, "_getSmoothed"):
-            try:
-                return self._getSmoothed(*a)
-            except:
-                # maybe overflow or something similar
-                return None
-
-        raise Exception("not implemented")
+        pass
 
     def trapez(self, x, y):
-        assert len(x)==len(y), "x, y have different length"
-
-        x = np.array(x)
-        y = np.array(y)
-
-        dx = x[1:] - x[:-1]
-        sy = 0.5*(y[1:] + y[:-1])
-        return np.dot(dx, sy)
-
-
-if __name__ == "__main__":
-
-        pi = PeakIntegrator(None)
-        x = [1,2,5,6,9]
-        y = [1,2,1,4,-7]
-
-        pi.trapez(x,y)
+        """ needed by some sub classes """
+        area = 0.5 * (np.dot(y[:-1], x[1:]) - np.dot(y[1:], x[:-1]) + x[-1] * y[-1] - x[0] * y[0])
+        return area

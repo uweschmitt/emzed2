@@ -10,5 +10,5 @@ class MaxIntegrator(base_integrator.BaseIntegrator):
             return None, None, (rts, chromatogram)
         return max(chromatogram), 0.0, (rts, chromatogram)
 
-    def _getSmoothed(self, *a, **kw):
+    def getSmoothed(self, *a, **kw):
         return [], []

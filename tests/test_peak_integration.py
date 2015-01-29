@@ -65,50 +65,60 @@ def _testIntegration(path, n_cpus):
     ft.addColumn("rtmaxX", ft.rtmax)
     ft.addColumn("peakmapX", ft.peakmap)
 
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus,min_size_for_parallel_execution=1)
+    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus, min_size_for_parallel_execution=1)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
+    assert "eic" in ftr.getColNames()
     assert "area__0" in ftr.getColNames()
     assert "rmse__0" in ftr.getColNames()
+    assert "eic__0" in ftr.getColNames()
     assert "areaX" in ftr.getColNames()
     assert "rmseX" in ftr.getColNames()
+    assert "rmseX" in ftr.getColNames()
+    assert "eicX" in ftr.getColNames()
 
     assert ftr.area.values[0] is None
     assert ftr.rmse.values[0] is None
     assert ftr.params.values[0] is None
     assert ftr.method.values[0] is not None
+    assert ftr.eic.values[0] is None
 
     assert ftr.area.values[1] >= 0
     assert ftr.rmse.values[1] >= 0
     assert ftr.params.values[1] is not None
     assert ftr.method.values[1] is not  None
+    assert len(ftr.eic.values[1]) == 2
 
     assert ftr.area__0.values[0] is None
     assert ftr.rmse__0.values[0] is None
     assert ftr.params__0.values[0] is None
     assert ftr.method__0.values[0] is not None
+    assert ftr.eic__0.values[0] is None
 
-    assert ftr.params__0.values[1] is not None
-    assert ftr.method__0.values[1] is not None
     assert ftr.area__0.values[1] >= 0
     assert ftr.rmse__0.values[1] >= 0
+    assert ftr.params__0.values[1] is not None
+    assert ftr.method__0.values[1] is not None
+    assert len(ftr.eic__0.values[1]) == 2
 
     assert ftr.areaX.values[0] is None
     assert ftr.rmseX.values[0] is None
     assert ftr.paramsX.values[0] is None
     assert ftr.methodX.values[0] is not None
+    assert ftr.eicX.values[0] is None
 
-    assert ftr.paramsX.values[1] is not None
-    assert ftr.methodX.values[1] is not None
     assert ftr.areaX.values[1] >= 0
     assert ftr.rmseX.values[1] >= 0
+    assert ftr.paramsX.values[1] is not None
+    assert ftr.methodX.values[1] is not None
+    assert len(ftr.eicX.values[1]) == 2
 
     return ftr
 
 
 
-def run(integrator, areatobe, rmsetobe):
+def run(integrator, areatobe, rmsetobe, eicareatobe):
     assert len(str(integrator))>0
 
     try:
@@ -144,20 +154,24 @@ def run(integrator, areatobe, rmsetobe):
 
     params = result.get("params")
 
-    rts = [ spec.rt for spec in ds.spectra ]
+    x, y = result.get("eic")
+    eicarea = 0.5 * np.dot(x[1:] - x[:-1], y[1:] + y[:-1])
 
-    x, y = integrator.getSmoothed(rts, params)
+    if eicarea > 0:
+        assert abs(eicarea - eicareatobe)/ eicareatobe < 0.01, eicarea
+    else:
+        assert eicarea == 0.0, eicarea
 
-    return x,y, params
 
 def testNoIntegration():
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["no_integration"]
     integrator.setPeakMap(PeakMap([]))
     result = integrator.integrate(0.0, 100.0, 0, 300, 1)
-    assert result.get("area") == None
-    assert result.get("rmse") == None
-    assert result.get("params") == None
+    assert result.get("area") is None
+    assert result.get("rmse") is None
+    assert result.get("params") is None
+    assert result.get("eic") is None
 
     rts = range(0, 600)
     x,y = integrator.getSmoothed(rts, result.get("params"))
@@ -168,21 +182,21 @@ def testNoIntegration():
 def testPeakIntegration():
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["asym_gauss"]
-    _, _, params = run(integrator, 1.19e5, 7.2891e3)
+    run(integrator, 1.19e5, 7.2891e3, 139984.31911294549)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_exact"]
 
-    run(integrator,  154542.79, 7.43274e3)
+    run(integrator,  154542.79, 7.43274e3, 139984.31911294549)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
 
-    run(integrator,  120481.9, 0.0)
+    run(integrator,  120481.9, 0.0, 139984.31911294549)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["std"]
-    run(integrator,  119149.7, 6854.8)
+    run(integrator,  119149.7, 6854.8, 139984.31911294549)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["max"]
-    run(integrator,  37620.81, 0.0)
+    run(integrator,  37620.81, 0.0, 139984.31911294549)
 
 
 def testTrapezIntegrationSimple():

@@ -1,4 +1,6 @@
 from base_integrator import BaseIntegrator
+import numpy as np
+
 
 class TrapezIntegrator(BaseIntegrator):
 
@@ -8,7 +10,7 @@ class TrapezIntegrator(BaseIntegrator):
     def integrator(self, allrts, fullchromatogram, rts, chromatogram):
 
         if len(rts) == 2:
-            area = 0.5 * (chromatogram[0]+chromatogram[1])*(rts[1]-rts[0])
+            area = 0.5 * (chromatogram[0] + chromatogram[1]) * (rts[1] - rts[0])
             return area, 0.0, (rts, chromatogram)
 
         if len(rts) == 1:
@@ -17,5 +19,6 @@ class TrapezIntegrator(BaseIntegrator):
         area = self.trapez(rts, chromatogram)
         return area, 0.0, (rts, chromatogram)
 
-    def _getSmoothed(self, rtvalues, params):
+    def getSmoothed(self, rtvalues, params):
         return params
+
