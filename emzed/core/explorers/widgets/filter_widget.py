@@ -41,14 +41,14 @@ class _ChooseNumberRange(_ChooseRange):
 
 
 def range_filter(v1, v2):
-    if v1 is not None and v2 is not None:
-        return lambda v, v1=v1, v2=v2: v1 <= v <= v2
-    elif v1 is not None:
-        return lambda v, v1=v1: v1 <= v
-    elif v2 is not None:
-        return lambda v, v2=v2: v <= v2
-    else:
+    if v1 is None and v2 is None:
         return None
+
+    def filter(v, v1=v1, v2=v2):
+        if v is None:
+            return False
+        return (v1 is None or v1 <= v) and (v2 is None or v <= v2)
+    return filter
 
 
 class ChooseFloatRange(_ChooseNumberRange):
@@ -123,15 +123,18 @@ class ChooseValue(_ChooseValue):
     def choice_changed(self, *a):
         self.INDICATE_CHANGE.emit(self.name)
 
-    def get_filter(self, *a):
+    def get_filter(self):
         t = self.pure_values[self.values.currentIndex()]
         if t is None:
             return self.name, None
+        if t == "-":
+            t = None
         return self.name, lambda v: v == t
 
     def update(self):
         before = self.values.currentText()
-        values = sorted(set(self.table.getColumn(self.name).values))
+        values = set(self.table.getColumn(self.name).values)
+        values = sorted("-" if v is None else v for v in values)
         self.pure_values = [None] + values
         new_items = [u""] + map(unicode, values)
 
@@ -172,7 +175,7 @@ class StringFilterPattern(_StringFilter):
         pattern = unicode(self.pattern.text())
         if pattern == u"":
             return self.name, None
-        return self.name, lambda v, pattern=pattern: fnmatch(v, pattern)
+        return self.name, lambda v, pattern=pattern: v is not None and fnmatch(v, pattern)
 
 
 class FilterCriteria(_FilterCriteria):
