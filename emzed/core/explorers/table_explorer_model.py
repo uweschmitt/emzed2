@@ -105,8 +105,8 @@ class TableModel(QAbstractTableModel):
                 except:
                     if colType == float:
                         return "-" if value is None else "%.4f" % value
-                    return unicode(value)
-            return unicode(value)
+                    return unicode(value) if value is not None else "-"
+            return unicode(value) if value is not None else "-"
         if role == Qt.FontRole:
             content = self.data(index)
             if isUrl(content):
