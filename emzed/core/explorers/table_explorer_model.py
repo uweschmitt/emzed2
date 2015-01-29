@@ -240,6 +240,9 @@ class TableModel(QAbstractTableModel):
     def hasFeatures(self):
         return self.checkForAny(*self.eicColNames())
 
+    def hasEIC(self):
+        return self.checkForAny("rtmin", "rtmax", "eic")
+
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
 
@@ -327,7 +330,7 @@ class TableModel(QAbstractTableModel):
                         postfixes.append(p)
         return postfixes, spectra
 
-    def getEics(self, data_row_idx):
+    def extractEICs(self, data_row_idx):
         eics = []
         mzmins = []
         mzmaxs = []
@@ -355,6 +358,27 @@ class TableModel(QAbstractTableModel):
             return eics, 0, 0, 0, 0, sorted(allrts)
         return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
             sorted(allrts)
+
+    def getEICs(self, data_row_idx):
+        eics = []
+        rtmins = []
+        rtmaxs = []
+        allrts = []
+        for p in self.table.supportedPostfixes(["rtmin", "rtmax", "eic"]):
+            values = self.table.getValues(self.table.rows[data_row_idx])
+            rtmin = values["rtmin" + p]
+            rtmax = values["rtmax" + p]
+            eic = values["eic" + p]
+            if eic is None:
+                eic = [], []
+            eics.append(eic)
+            if rtmin is not None:
+                rtmins.append(rtmin)
+            if rtmax is not None:
+                rtmaxs.append(rtmax)
+            allrts.extend(eic[0])
+        return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else rtmax, sorted(allrts)
+
 
     def remove_filtered(self):
         to_delete = sorted(self.widgetRowToDataRow.keys())  # sort for nicer undo/redo description

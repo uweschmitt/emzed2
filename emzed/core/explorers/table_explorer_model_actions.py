@@ -197,11 +197,13 @@ class IntegrateAction(TableAction):
             area = res["area"]
             rmse = res["rmse"]
             params = res["params"]
+            eic = res["eic"]
 
         else:
             area = None
             rmse = None
             params = None
+            eic = None
 
         # var 'row' is a Bunch, so we have to get the row from direct access
         # to table.rows:
@@ -215,6 +217,7 @@ class IntegrateAction(TableAction):
         table.setValue(row, "area" + postfix, area)
         table.setValue(row, "rmse" + postfix, rmse)
         table.setValue(row, "params" + postfix, params)
+        table.setValue(row, "eic" + postfix, eic)
         self.notifyGUI()
         return True
 
