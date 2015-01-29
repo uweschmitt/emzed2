@@ -4,6 +4,8 @@ from __future__ import print_function
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
+from ... import _algorithm_configs
+
 
 class TableAction(object):
 
