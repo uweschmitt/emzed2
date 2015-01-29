@@ -241,7 +241,7 @@ class TableModel(QAbstractTableModel):
         return self.checkForAny(*self.eicColNames())
 
     def hasEIC(self):
-        return self.checkForAny("rtmin", "rtmax", "eic")
+        return self.checkForAny("eic")
 
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
@@ -364,18 +364,22 @@ class TableModel(QAbstractTableModel):
         rtmins = []
         rtmaxs = []
         allrts = []
-        for p in self.table.supportedPostfixes(["rtmin", "rtmax", "eic"]):
+        for p in self.table.supportedPostfixes(["eic"]):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            rtmin = values["rtmin" + p]
-            rtmax = values["rtmax" + p]
+            rtmin = values.get("rtmin" + p)
+            rtmax = values.get("rtmax" + p)
             eic = values["eic" + p]
             if eic is None:
                 eic = [], []
             eics.append(eic)
             if rtmin is not None:
                 rtmins.append(rtmin)
+            else:
+                rtmins.append(min(eic[0]))
             if rtmax is not None:
                 rtmaxs.append(rtmax)
+            else:
+                rtmaxs.append(max(eic[0]))
             allrts.extend(eic[0])
         return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else rtmax, sorted(allrts)
 

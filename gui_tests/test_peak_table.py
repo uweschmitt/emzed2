@@ -17,7 +17,7 @@ t.addColumn("rtmax", t.rtmin + 3)
 t.addColumn("peakmap", pm)
 t.addColumn("class", t.rtmin > 20)
 t = emzed.utils.integrate(t)
-t.dropColumns("peakmap")
+t.dropColumns("peakmap", "rtmin")
 
 print t.getColFormats()
 
