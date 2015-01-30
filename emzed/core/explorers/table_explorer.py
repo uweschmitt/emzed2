@@ -470,11 +470,14 @@ class TableExplorer(EmzedDialog):
         if hasFeatures:
             self.rt_plotter.setEnabled(True)
             self.resetPlots()
-        if self.hasEIConly:
+        elif self.hasEIConly:
             self.rt_plotter.setEnabled(True)
             self.rt_plotter.widget.setVisible(True)
             self.mz_plotter.widget.setVisible(False)
             self.resetPlots()
+        else:
+            self.rt_plotter.widget.setVisible(False)
+            self.mz_plotter.widget.setVisible(False)
 
     def setPlotVisibility(self, doShow):
         self.rt_plotter.widget.setVisible(doShow)
