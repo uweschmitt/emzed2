@@ -390,9 +390,9 @@ class TableExplorer(EmzedDialog):
         return hbox
 
     def layoutPlottingAndIntegrationWidgets(self):
+
         hsplitter = QSplitter()
         hsplitter.setOpaqueResize(False)
-        hsplitter.addWidget(self.rt_plotter.widget)
 
         integrationLayout = QVBoxLayout()
         integrationLayout.setSpacing(10)
@@ -409,9 +409,15 @@ class TableExplorer(EmzedDialog):
         self.integrationFrame = QFrame()
         self.integrationFrame.setLayout(integrationLayout)
 
-        hsplitter.addWidget(self.integrationFrame)
-        hsplitter.addWidget(self.mz_plotter.widget)
+        plot_widgets = self.setup_plot_widgets([self.rt_plotter.widget, self.integrationFrame,
+                                                self.mz_plotter.widget])
+
+        for widget in plot_widgets:
+            hsplitter.addWidget(widget)
         return hsplitter
+
+    def setup_plot_widgets(self, widgets):
+        return widgets
 
     def layoutToolWidgets(self):
         frame = QFrame(parent=self)
