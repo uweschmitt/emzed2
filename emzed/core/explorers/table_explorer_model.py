@@ -366,23 +366,22 @@ class TableModel(QAbstractTableModel):
         allrts = []
         for p in self.table.supportedPostfixes(["eic"]):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            rtmin = values.get("rtmin" + p)
-            rtmax = values.get("rtmax" + p)
-            eic = values["eic" + p]
-            if eic is None:
-                eic = [], []
-            eics.append(eic)
-            if rtmin is not None:
-                rtmins.append(rtmin)
-            else:
-                rtmins.append(min(eic[0]))
-            if rtmax is not None:
-                rtmaxs.append(rtmax)
-            else:
-                rtmaxs.append(max(eic[0]))
-            allrts.extend(eic[0])
+            rtmin = values.get("rtmin" + p)   # might be missing in table
+            rtmax = values.get("rtmax" + p)   # might be missing in table
+            eic = values["eic" + p]           # must be there !
+            if eic is not None:
+                eics.append(eic)
+                rts, iis = eic
+                if rtmin is not None:
+                    rtmins.append(rtmin)
+                else:
+                    rtmins.append(min(rts))
+                if rtmax is not None:
+                    rtmaxs.append(rtmax)
+                else:
+                    rtmaxs.append(max(rts))
+                allrts.extend(rts)
         return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else rtmax, sorted(allrts)
-
 
     def remove_filtered(self):
         to_delete = sorted(self.widgetRowToDataRow.keys())  # sort for nicer undo/redo description
