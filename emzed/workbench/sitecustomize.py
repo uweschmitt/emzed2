@@ -13,6 +13,8 @@ import __builtin__
 
 import os
 
+os.environ["QT_API"] = "pyqt"
+
 print "run patched sitecustomize"
 try:
     import external_shell_patches

@@ -33,6 +33,9 @@ except:
 
 
 import os
+
+os.environ["QT_API"] = "pyqt"
+
 import sys
 import os.path as osp
 import platform
