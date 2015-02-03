@@ -13,6 +13,8 @@ import os.path as osp
 
 print "run patched startup"
 
+os.environ["QT_API"] = "pyqt"
+
 
 ###########################################################################
 #
