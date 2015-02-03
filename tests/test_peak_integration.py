@@ -27,29 +27,41 @@ def _compare_tables(t1, t2):
 
 
 def testIntegration(path):
-    t1 = _testIntegration(path, 1)
-    t2 = _testIntegration(path, 2)
+
+    for integrator_id in ("trapez", "max", "emg_exact"):
+        t1 = _testIntegration(path, 1, integrator_id, check_values=True)
+        t2 = _testIntegration(path, 2, integrator_id, check_values=True)
+
+        _compare_tables(t1, t2)
+
+        t3 = _testIntegration(path, 4, integrator_id, check_values=True)
+        _compare_tables(t1, t3)
+
+    t1 = _testIntegration(path, 1, "no_integration", check_values=False)
+    t2 = _testIntegration(path, 2, "no_integration", check_values=False)
 
     _compare_tables(t1, t2)
 
-    t3 = _testIntegration(path, 4)
+    t3 = _testIntegration(path, 4, "no_integration", check_values=False)
     _compare_tables(t1, t3)
 
 
-def _testIntegration(path, n_cpus):
+def _testIntegration(path, n_cpus, integrator_id, check_values=True):
 
     # test with and without unicode:
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus, min_size_for_parallel_execution=1)
+    ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
-    assert ftr.area.values[0] > 0, ftr.area.values[0]
-    assert ftr.rmse.values[0] >= 0, ftr.rmse.values[0]
-    assert ftr.params.values[0] is not None
-    assert ftr.method.values[0] is not None
+
+    if check_values:
+        assert ftr.area.values[0] >= 0, ftr.area.values[0]
+        assert ftr.rmse.values[0] >= 0, ftr.rmse.values[0]
+        assert ftr.params.values[0] is not None
+        assert ftr.method.values[0] is not None
 
     ft.setValue(ft.rows[0], "mzmin", None)
 
@@ -65,7 +77,7 @@ def _testIntegration(path, n_cpus):
     ft.addColumn("rtmaxX", ft.rtmax)
     ft.addColumn("peakmapX", ft.peakmap)
 
-    ftr = utils.integrate(ft, "trapez", n_cpus=n_cpus, min_size_for_parallel_execution=1)
+    ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -78,41 +90,42 @@ def _testIntegration(path, n_cpus):
     assert "rmseX" in ftr.getColNames()
     assert "eicX" in ftr.getColNames()
 
-    assert ftr.area.values[0] is None
-    assert ftr.rmse.values[0] is None
-    assert ftr.params.values[0] is None
-    assert ftr.method.values[0] is not None
-    assert ftr.eic.values[0] is None
+    if check_values:
+        assert ftr.area.values[0] is None
+        assert ftr.rmse.values[0] is None
+        assert ftr.params.values[0] is None
+        assert ftr.method.values[0] is not None
+        assert ftr.eic.values[0] is None
 
-    assert ftr.area.values[1] >= 0
-    assert ftr.rmse.values[1] >= 0
-    assert ftr.params.values[1] is not None
-    assert ftr.method.values[1] is not  None
-    assert len(ftr.eic.values[1]) == 2
+        assert ftr.area.values[1] >= 0
+        assert ftr.rmse.values[1] >= 0
+        assert ftr.params.values[1] is not None
+        assert ftr.method.values[1] is not None
+        assert len(ftr.eic.values[1]) == 2
 
-    assert ftr.area__0.values[0] is None
-    assert ftr.rmse__0.values[0] is None
-    assert ftr.params__0.values[0] is None
-    assert ftr.method__0.values[0] is not None
-    assert ftr.eic__0.values[0] is None
+        assert ftr.area__0.values[0] is None
+        assert ftr.rmse__0.values[0] is None
+        assert ftr.params__0.values[0] is None
+        assert ftr.method__0.values[0] is not None
+        assert ftr.eic__0.values[0] is None
 
-    assert ftr.area__0.values[1] >= 0
-    assert ftr.rmse__0.values[1] >= 0
-    assert ftr.params__0.values[1] is not None
-    assert ftr.method__0.values[1] is not None
-    assert len(ftr.eic__0.values[1]) == 2
+        assert ftr.area__0.values[1] >= 0
+        assert ftr.rmse__0.values[1] >= 0
+        assert ftr.params__0.values[1] is not None
+        assert ftr.method__0.values[1] is not None
+        assert len(ftr.eic__0.values[1]) == 2
 
-    assert ftr.areaX.values[0] is None
-    assert ftr.rmseX.values[0] is None
-    assert ftr.paramsX.values[0] is None
-    assert ftr.methodX.values[0] is not None
-    assert ftr.eicX.values[0] is None
+        assert ftr.areaX.values[0] is None
+        assert ftr.rmseX.values[0] is None
+        assert ftr.paramsX.values[0] is None
+        assert ftr.methodX.values[0] is not None
+        assert ftr.eicX.values[0] is None
 
-    assert ftr.areaX.values[1] >= 0
-    assert ftr.rmseX.values[1] >= 0
-    assert ftr.paramsX.values[1] is not None
-    assert ftr.methodX.values[1] is not None
-    assert len(ftr.eicX.values[1]) == 2
+        assert ftr.areaX.values[1] >= 0
+        assert ftr.rmseX.values[1] >= 0
+        assert ftr.paramsX.values[1] is not None
+        assert ftr.methodX.values[1] is not None
+        assert len(ftr.eicX.values[1]) == 2
 
     return ftr
 
