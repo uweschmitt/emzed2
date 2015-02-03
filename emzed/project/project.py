@@ -242,7 +242,7 @@ def install_wheel(wheel_file=None, _flags=[]):
 
 
 def update_wheel(wheel_file=None):
-    install_wheel(wheel_file, _flags=["-u"])
+    install_wheel(wheel_file, _flags=["-U"])
 
 
 def remove_wheel(package_name):
