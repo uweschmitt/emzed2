@@ -749,3 +749,22 @@ def test_write_csv(tmpdir, regtest):
     regtest.write(open(path).read())
 
 
+def test_div_by_zeros():
+    t = emzed.utils.toTable("x", (1, 0,))
+    assert (t.x / t.x).values == (1, None)
+    assert (t.x / 0).values == (None, None)
+    assert (0 / t.x).values == (0, None)
+    assert (t.x / 0.0).values == (None, None)
+    assert (0.0 / t.x).values == (0, None)
+
+    t = emzed.utils.toTable("x", (1.0, 0.0,))
+    assert (t.x / t.x).values == (1, None)
+    assert (t.x / 0).values == (None, None)
+    assert (0 / t.x).values == (0, None)
+    assert (t.x / 0.0).values == (None, None)
+    assert (0.0 / t.x).values == (0, None)
+
+
+def test_empty_median():
+    t = emzed.utils.toTable("x", ())
+    assert t.x.median() is None

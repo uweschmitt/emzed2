@@ -890,6 +890,17 @@ class BinaryExpression(BaseExpression):
                 elif self.symbol in "*/" and rvals[0] > 0:
                     idx = idxl
 
+            # problem is that numpy int division 0 / 0 is 0 not nan or inf as for floats
+            # so just checking the result for nans or infs and converting them to None
+            # does not work in general. so we have a particular check here:
+            by_zero = None
+            if self.symbol == "/":
+                if lr > 1:
+                    by_zero = np.where(rvals == 0)
+                else:
+                    if rvals[0] == 0:
+                        by_zero = np.arange(ll)
+
             if none_in_array(lvals) or none_in_array(rvals):
                 nones = find_nones(lvals) | find_nones(rvals)
                 lfiltered = np.where(nones, 1, lvals)
@@ -898,10 +909,17 @@ class BinaryExpression(BaseExpression):
             else:
                 nones = None
                 res = self.efun(lvals, rvals)
+
             res = res.astype(ct)  # downcast: 2/3 -> 0 for int
+
             if nones is not None:
                 res = res.astype(object)  # allows None values
                 res[nones] = None
+
+            if by_zero is not None:
+                res = res.astype(object)  # allows None values
+                res[by_zero] = None
+
             return res, idx, ct
 
         if ll == 1:
