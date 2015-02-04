@@ -28,7 +28,7 @@ class BaseIntegrator(object):
 
         rts, chromatogram = self.peakMap.chromatogram(mzmin, mzmax, rtmin, rtmax, msLevel)
         if len(rts) == 0:
-            return dict(area=0.0, rmse=0.0, params=None)
+            return dict(area=0.0, rmse=0.0, params=None, eic=None)
 
         allrts, fullchrom = self.peakMap.chromatogram(mzmin, mzmax, None, None, msLevel)
         eic = self.peakMap.chromatogram(mzmin, mzmax, rtmin - eic_widening, rtmax + eic_widening)

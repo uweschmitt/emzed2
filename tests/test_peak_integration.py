@@ -1,3 +1,4 @@
+import pdb
 import os.path
 
 import numpy as np
@@ -126,6 +127,20 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
         assert ftr.paramsX.values[1] is not None
         assert ftr.methodX.values[1] is not None
         assert len(ftr.eicX.values[1]) == 2
+
+    # test with empty chromatograms
+    s0 = ft.peakmap.values[0].spectra[0]
+    rt0 = s0.rt
+    pm = PeakMap([s0])
+    rts, iis = pm.chromatogram(0, 10000, rt0 + 20, rt0 + 30)
+    assert len(rts) == 0
+    assert len(iis) == 0
+    ft.replaceColumn("peakmap", pm)
+    ft.replaceColumn("rtmin", rt0 + 10)
+    ft.replaceColumn("rtmax", rt0 + 20)
+    ftr2 = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
+
+    assert  set(ftr2.eic.values) == {None}
 
     return ftr
 

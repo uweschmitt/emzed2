@@ -416,7 +416,11 @@ class PeakMap(object):
             msLevel = min(self.getMsLevels())
 
         if OPTIMIZATIONS_INSTALLED:
-            return emzed_optimizations.chromatogram(self, mzmin, mzmax, rtmin, rtmax, msLevel)
+            rts, iis = emzed_optimizations.chromatogram(self, mzmin, mzmax, rtmin, rtmax, msLevel)
+            # fix bug in implementation of emzed_optimizations:
+            # fails if rtmin and rtmax are beyond max rt in peakmap !
+            f = (rts >= rtmin) * (rts <= rtmax)
+            return rts[f], iis[f]
 
         specs = self.levelNSpecsInRange(msLevel, rtmin, rtmax)
 

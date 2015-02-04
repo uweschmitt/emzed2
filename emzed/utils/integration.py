@@ -147,8 +147,6 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
                     or peakmap is None:
                 area = rmse = params = eic = None
             else:
-                # this is a hack ! ms level n handling should first be
-                # improved and gerenalized in MSTypes.py
                 integrator.setPeakMap(peakmap)
                 result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel, eic_widening)
                 # take existing values which are not integration realated:
