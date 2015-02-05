@@ -195,7 +195,7 @@ class TableModel(QAbstractTableModel):
             action = self.actions.pop()
             self.beginResetModel()
             action.undo()
-            self.update_visible_rows_for_given_limits()  # does endResetModel
+            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
             self.redoActions.append(action)
             self.view.updateMenubar()
 
@@ -204,7 +204,7 @@ class TableModel(QAbstractTableModel):
             action = self.redoActions.pop()
             self.beginResetModel()
             action.do()
-            self.update_visible_rows_for_given_limits()  # does endResetModel
+            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
             self.actions.append(action)
             self.view.updateMenubar()
             return
@@ -232,13 +232,15 @@ class TableModel(QAbstractTableModel):
             self.beginResetModel()
             self.runAction(SortTableAction, dataColIdx, colIdx, order)
             self.current_sort_col_idx = colIdx
-            self.update_visible_rows_for_given_limits()  # does endResetModel
+            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
+            #self.endResetModel()
+            #self.emit_data_change()
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.beginResetModel()
         self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
                        self.dataRowToWidgetRow)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
+        self.update_visible_rows_for_given_limits(force_reset=False)  # does endResetModel
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -419,7 +421,7 @@ class TableModel(QAbstractTableModel):
         self.last_limits = limits
         self.update_visible_rows_for_given_limits()
 
-    def update_visible_rows_for_given_limits(self):
+    def update_visible_rows_for_given_limits(self, force_reset=False):
         if self.filters_enabled is False:
             limits = {}
         else:
@@ -450,7 +452,7 @@ class TableModel(QAbstractTableModel):
             widget_row_to_data_row[view_idx] = row_idx
             data_row_to_widget_row[row_idx] = view_idx
 
-        if widget_row_to_data_row != self.widgetRowToDataRow:
+        if force_reset or widget_row_to_data_row != self.widgetRowToDataRow:
             # only reset view if something changed
 
             self.beginResetModel()
