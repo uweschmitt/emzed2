@@ -1,4 +1,3 @@
-import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -564,6 +563,7 @@ class TableExplorer(EmzedDialog):
     def update_hidden_columns(self, hide_names):
         self.model.hide_columns(hide_names)
         self.set_delegates()
+        self.setup_choose_group_column_widget(hide_names)
         self.current_filter_widget.hide_filters(hide_names)
         self.model.table.meta["hide_in_explorer"] = hide_names
 
@@ -679,13 +679,23 @@ class TableExplorer(EmzedDialog):
         if len(self.choosePostfix) == 1:
             self.choosePostfix.setVisible(False)
 
-        self.chooseGroupColumn.clear()
-        t = mod.table
-        visible_names = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
-        self.chooseGroupColumn.addItems(["- manual multi select -"] + visible_names)
-
+        self.setup_choose_group_column_widget([])
         self.connectModelSignals()
         self.updateMenubar()
+
+    def setup_choose_group_column_widget(self, hidden_names):
+        before = None
+        if self.chooseGroupColumn.currentIndex() >= 0:
+            before = str(self.chooseGroupColumn.currentText())
+        self.chooseGroupColumn.clear()
+        t = self.model.table
+        candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
+        visible_names = [n for n in candidates if n not in hidden_names]
+        all_choices = ["- manual multi select -"] + visible_names
+        self.chooseGroupColumn.addItems(all_choices)
+        if before is not None and before in all_choices:
+            idx = all_choices.index(before)
+            self.chooseGroupColumn.setCurrentIndex(idx)
 
     @protect_signal_handler
     def handle_model_reset(self):
@@ -765,39 +775,30 @@ class TableExplorer(EmzedDialog):
             self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
 
     @protect_signal_handler
-    def rowClicked(self, rowIdx):
+    def rowClicked(self, widget_row_idx):
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
-        # selected_data_rows. in table, not view
-        if group_by_idx == 0:
-            rows = self.tableView.selectionModel().selectedRows()
-            selected_data_rows = [self.model.widgetRowToDataRow[idx.row()] for idx in rows]
-        else:
-            # todo: 1) only offer visible columns for grouping
-            # todo: 2) move parts of code below to model and/or view !
-            table = self.model.table
-            ridx = self.model.widgetRowToDataRow[rowIdx]
-            col_name = table.getColNames()[group_by_idx - 1]
-            selected_value = table.getValue(table.rows[ridx], col_name)
-            selected_data_rows = [i for i in range(len(table))
-                                  if table.getValue(table.rows[i], col_name) == selected_value]
-            selected_data_rows = selected_data_rows[:40]  # avoid to many rows
 
+        # first entry is approx "manual selection"
+        if group_by_idx == 0:
+            to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+        else:
+            col_name = str(self.chooseGroupColumn.currentText())
+            widget_rows = self.model.rows_with_same_value(col_name, widget_row_idx)
+            to_select = widget_rows[:40]  # avoid to many rows
+
+            # expand selection 
             mode_before = self.tableView.selectionMode()
             scrollbar_before = self.tableView.verticalScrollBar().value()
 
             self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
-            for i in selected_data_rows:
-                if i != ridx:      # avoid "double click !" wich de-selects current row
-                    # r_view = self.mode.DataRowToWidgetRow[i]
+            for i in to_select:
+                if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
                     self.tableView.selectRow(i)
             self.tableView.setSelectionMode(mode_before)
             self.tableView.verticalScrollBar().setValue(scrollbar_before)
 
-        self.selected_data_rows = selected_data_rows
-
-        # if not self.hasFeatures:
-        #    return
+        self.selected_data_rows = self.model.transform_row_idx_widget_to_model(to_select)
 
         if self.hasFeatures:
             self.rt_plotter.setEnabled(True)
@@ -819,9 +820,6 @@ class TableExplorer(EmzedDialog):
             postfixes.extend(pf)
             spectra.extend(s)
 
-        # get current spectra
-        # jjrowidx = self.currentRowIdx
-        # postfixes, spectra = self.model.getLevelNSpectra(rowidx, minLevel=2)
         self.currentLevelNSpecs = []
 
         if not len(spectra):

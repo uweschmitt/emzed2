@@ -211,7 +211,7 @@ class TableModel(QAbstractTableModel):
         return True
 
     def removeRows(self, widget_row_indices):
-        data_row_indices = [self.widgetRowToDataRow[ix] for ix in widget_row_indices]
+        data_row_indices = self.transform_row_idx_widget_to_model(widget_row_indices)
         self.beginResetModel()
         self.runAction(DeleteRowsAction, widget_row_indices, data_row_indices)
         self.update_visible_rows_for_given_limits()  # does endResetModel
@@ -231,7 +231,7 @@ class TableModel(QAbstractTableModel):
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.beginResetModel()
         self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
-                       self.dataRowtoWidgetRow)
+                       self.dataRowToWidgetRow)
         self.update_visible_rows_for_given_limits()  # does endResetModel
 
     def eicColNames(self):
@@ -359,6 +359,20 @@ class TableModel(QAbstractTableModel):
         return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
             sorted(allrts)
 
+    def rows_with_same_value(self, col_name, widget_row_idx):
+        t = self.table
+        data_row_idx = self.widgetRowToDataRow[widget_row_idx]
+        selected_value = t.getValue(t.rows[data_row_idx], col_name)
+        selected_data_rows = [i for i, row in enumerate(t.rows)
+                              if t.getValue(row, col_name) == selected_value]
+        return self.transform_row_idx_model_to_widget(selected_data_rows)
+
+    def transform_row_idx_widget_to_model(self, row_idxs):
+        return [self.widgetRowToDataRow[i] for i in row_idxs]
+
+    def transform_row_idx_model_to_widget(self, row_idxs):
+        return [self.dataRowToWidgetRow[i] for i in row_idxs]
+
     def getEICs(self, data_row_idx):
         eics = []
         rtmins = []
@@ -426,10 +440,10 @@ class TableModel(QAbstractTableModel):
 
         self.beginResetModel()
         self.widgetRowToDataRow = dict()
-        self.dataRowtoWidgetRow = dict()
+        self.dataRowToWidgetRow = dict()
         for view_idx, row_idx in enumerate(sorted(all_rows_to_remain)):
             self.widgetRowToDataRow[view_idx] = row_idx
-            self.dataRowtoWidgetRow[row_idx] = view_idx
+            self.dataRowToWidgetRow[row_idx] = view_idx
         self.endResetModel()
         self.emit_data_change()
 

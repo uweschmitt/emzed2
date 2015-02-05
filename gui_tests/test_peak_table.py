@@ -18,6 +18,8 @@ t.addColumn("peakmap", pm)
 t.addColumn("class", t.rtmin > 20)
 t = emzed.utils.integrate(t)
 t.dropColumns("peakmap", "rtmin")
+t.addEnumeration()
+t.addColumn("f", t.id / 3)
 
 print t.getColFormats()
 
