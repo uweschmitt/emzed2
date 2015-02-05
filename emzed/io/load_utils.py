@@ -70,7 +70,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
 
     from ..core.data_types import Table
 
-    path = _prepare_path(path, extensions=["table"])
+    path = _prepare_path(path, extensions=["csv"])
     if path is None:
         return None
 
