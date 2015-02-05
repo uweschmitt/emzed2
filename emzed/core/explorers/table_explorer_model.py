@@ -37,12 +37,18 @@ class TableModel(QAbstractTableModel):
         self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
         nr = len(table)
         self.widgetRowToDataRow = dict(zip(range(nr), range(nr)))
+        self.dataRowToWidgetRow = dict(zip(range(nr), range(nr)))
         self.emptyActionStack()
 
         self.nonEditables = set()
 
         self.last_limits = None
         self.setFiltersEnabled(False)
+
+        self.selected_data_rows = []
+
+    def set_selected_data_rows(self, widget_rows):
+        self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
 
     def setFiltersEnabled(self, flag):
         self.filters_enabled = flag
@@ -438,14 +444,22 @@ class TableModel(QAbstractTableModel):
                     rows_to_remain.add(j)
             all_rows_to_remain = all_rows_to_remain.intersection(rows_to_remain)
 
-        self.beginResetModel()
-        self.widgetRowToDataRow = dict()
-        self.dataRowToWidgetRow = dict()
+        widget_row_to_data_row = {}
+        data_row_to_widget_row = {}
         for view_idx, row_idx in enumerate(sorted(all_rows_to_remain)):
-            self.widgetRowToDataRow[view_idx] = row_idx
-            self.dataRowToWidgetRow[row_idx] = view_idx
-        self.endResetModel()
-        self.emit_data_change()
+            widget_row_to_data_row[view_idx] = row_idx
+            data_row_to_widget_row[row_idx] = view_idx
+
+        if widget_row_to_data_row != self.widgetRowToDataRow:
+            # only reset view if something changed
+
+            self.beginResetModel()
+            self.widgetRowToDataRow = dict()
+            self.dataRowToWidgetRow = dict()
+            self.widgetRowToDataRow = widget_row_to_data_row
+            self.dataRowToWidgetRow = data_row_to_widget_row
+            self.endResetModel()
+            self.emit_data_change()
 
     def emit_data_change(self):
         visible_table = self.table[self.widgetRowToDataRow.values()]

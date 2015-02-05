@@ -107,8 +107,8 @@ class EmzedTableView(QTableView):
     @protect_signal_handler
     def keyPressEvent(self, evt):
         if (evt.modifiers(), evt.key()) == (Qt.ControlModifier, Qt.Key_F):
-            if self.selectedIndexes():
-                column = self.selectedIndexes()[0].column()
+            if self.model.selectedIndexes():
+                column = self.model.selectedIndexes()[0].column()
             else:
                 column = self.model().current_sort_col_idx
 
@@ -144,7 +144,6 @@ class TableExplorer(EmzedDialog):
         self.model = None
         self.tableView = None
 
-        self.selected_data_rows = []
         self.hadFeatures = None
         self.wasIntegrated = None
 
@@ -701,7 +700,6 @@ class TableExplorer(EmzedDialog):
     def handle_model_reset(self):
         for name in self.model.table.getColNames():
             self.current_filter_widget.update(name)
-        self.selected_data_rows = []
 
     @protect_signal_handler
     def dataChanged(self, ix1, ix2, src):
@@ -722,7 +720,7 @@ class TableExplorer(EmzedDialog):
 
         if self.hasFeatures:
             # minr, maxr = sorted((ix1.row(), ix2.row()))
-            if any(minr <= index <= maxr for index in self.selected_data_rows):
+            if any(minr <= index <= maxr for index in self.model.selected_data_rows):
                 if isinstance(src, IntegrateAction):
                     self.updatePlots(reset=False)
                 else:
@@ -771,7 +769,7 @@ class TableExplorer(EmzedDialog):
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
         rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-        for data_row_idx in self.selected_data_rows:
+        for data_row_idx in self.model.selected_data_rows:
             self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
 
     @protect_signal_handler
@@ -798,7 +796,7 @@ class TableExplorer(EmzedDialog):
             self.tableView.setSelectionMode(mode_before)
             self.tableView.verticalScrollBar().setValue(scrollbar_before)
 
-        self.selected_data_rows = self.model.transform_row_idx_widget_to_model(to_select)
+        self.model.set_selected_data_rows(to_select)
 
         if self.hasFeatures:
             self.rt_plotter.setEnabled(True)
@@ -815,7 +813,7 @@ class TableExplorer(EmzedDialog):
             self.chooseSpectrum.removeItem(0)
 
         postfixes, spectra = [], []
-        for idx in self.selected_data_rows:
+        for idx in self.model.selected_data_rows:
             pf, s = self.model.getLevelNSpectra(idx, minLevel=2)
             postfixes.extend(pf)
             spectra.extend(s)
@@ -848,7 +846,7 @@ class TableExplorer(EmzedDialog):
         mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
 
         if self.hasEIConly:
-            for idx in self.selected_data_rows:
+            for idx in self.model.selected_data_rows:
                 eics, rtmin, rtmax, allrts = self.model.getEICs(idx)
                 if rtmin is not None:
                     rtmins.append(rtmin)
@@ -857,7 +855,7 @@ class TableExplorer(EmzedDialog):
                 curves.extend(eics)
 
         else:
-            for idx in self.selected_data_rows:
+            for idx in self.model.selected_data_rows:
                 eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.extractEICs(idx)
                 if mzmin is not None:
                     mzmins.append(mzmin)
@@ -928,7 +926,7 @@ class TableExplorer(EmzedDialog):
             callback """
         rtmin = self.rt_plotter.minRTRangeSelected
         rtmax = self.rt_plotter.maxRTRangeSelected
-        peakmaps = [pm for idx in self.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
         mzmin = mzmax = None
         if resetLimits:
             mzmin, mzmax = resetLimits
