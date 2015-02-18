@@ -1,11 +1,14 @@
 import cPickle
 import cStringIO
-from collections import Counter, OrderedDict, defaultdict
+import codecs
+import collections
 import copy
 import csv
+import fnmatch
 import hashlib
 import inspect
 import itertools
+import locale
 import os
 import re
 import sys
@@ -14,6 +17,7 @@ import warnings
 import dill
 import numpy as np
 import pyopenms
+
 
 from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
                           common_type_for, is_numpy_number_type)
@@ -30,7 +34,6 @@ __doc__ = """
 
 def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=3)
-
 
 
 class CallBack(object):
@@ -50,8 +53,6 @@ fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
 formatSeconds = fms
 
 formatHexId = "'%x' % id(o)"
-
-
 
 
 def guessFormatFor(name, type_):
@@ -197,7 +198,7 @@ class Table(object):
                                  rows=None, title=None, meta=None):
 
         if len(colNames) != len(set(colNames)):
-            counts = Counter(colNames)
+            counts = collections.Counter(colNames)
             multiples = [name for (name, count) in counts.items() if count > 1]
             message = "multiple columns: " + ", ".join(multiples)
             raise Exception(message)
@@ -949,7 +950,7 @@ class Table(object):
             groups.add(key)
 
         # preserve order of rows
-        subTables = OrderedDict()
+        subTables = collections.OrderedDict()
         for row in self.rows:
             key = computekey([self.getValue(row, n) for n in colNames])
             if key not in subTables:
@@ -1109,7 +1110,6 @@ class Table(object):
         values = list(iterable)
         return self._addColumn(name, values, type_, format_, insertBefore, insertAfter)
 
-
     def _find_insert_column(self, insertBefore, insertAfter, default=None):
         if insertBefore is None and insertAfter is None:
             if default is not None:
@@ -1133,7 +1133,6 @@ class Table(object):
                 raise Exception("column %r does not exist", insertAfter)
             return self.getIndex(insertAfter) + 1
         return insertAfter + 1
-
 
     def _addColumn(self, name, values, type_, format_, insertBefore, insertAfter):
         # works for lists, numbers, objects: converts inner numpy dtypes
@@ -1310,13 +1309,13 @@ class Table(object):
 
         """
 
-        collected = defaultdict(list)
+        collected = collections.defaultdict(list)
         for name in self._colNames:
             for prefix in colNamesToSupport:
                 if name.startswith(prefix):
                     collected[prefix].append(name[len(prefix):])
 
-        counter = defaultdict(int)
+        counter = collections.defaultdict(int)
         for postfixes in collected.values():
             for postfix in postfixes:
                 counter[postfix] += 1
@@ -1516,7 +1515,6 @@ class Table(object):
         """
         if out is None:
             out = sys.stdout
-        import codecs, locale
         out = codecs.getwriter(locale.getpreferredencoding())(out)
 
         ix = [i for i, f in enumerate(self._colFormats) if f is not None]
@@ -1802,7 +1800,6 @@ class Table(object):
                 # we checked a pair of sequential tables (skipping empty ones), so:
                 break
 
-
     @staticmethod
     def _merge_metas(tables):
         # merge metas backwards, so first table dominates
@@ -1860,6 +1857,7 @@ class Table(object):
     def uniqueId(self):
         if "unique_id" not in self.meta:
             h = hashlib.sha256()
+
             def update(what):
                 h.update(cPickle.dumps(what))
 
@@ -1874,7 +1872,6 @@ class Table(object):
                         update(val)
             self.meta["unique_id"] = h.hexdigest()
         return self.meta["unique_id"]
-
 
     def compressPeakMaps(self):
         """
