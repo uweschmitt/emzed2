@@ -875,6 +875,8 @@ class Table(object):
 
     def dropColumns(self, *patterns):
         """ removes columns where name matches on of given ``patterns`` from the table.
+            wildcards as "?" and "*" are allowed.
+
             Works **in place**
 
             Example: ``tab.dropColumns("mz", "rt", "rmse", "*__0")``
