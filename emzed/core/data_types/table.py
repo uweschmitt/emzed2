@@ -484,7 +484,7 @@ class Table(object):
         def flatten(args):
             result = list()
             for arg in args:
-                if isinstance(arg, (tuple, list)):
+                if isinstance(arg, (tuple, list, set)):
                     result.extend(arg)
                 else:
                     result.append(arg)
@@ -873,14 +873,26 @@ class Table(object):
         return Table._create(self._colNames, self._colTypes, self._colFormats,
                              [], self.title, self.meta.copy())
 
-    def dropColumns(self, *names):
-        """ removes columns with given ``names`` from the table.
+    def dropColumns(self, *patterns):
+        """ removes columns where name matches on of given ``patterns`` from the table.
             Works **in place**
 
-            Example: ``tab.dropColumns("mz", "rt", "rmse")``
+            Example: ``tab.dropColumns("mz", "rt", "rmse", "*__0")``
         """
         # check all names before manipulating the table,
         # so this operation is atomic
+        names = set()
+        for pattern in patterns:
+            # is pattern realy a pattern ?
+            # if it is a pattern set of matching column names maybe empty:
+            if "*" in pattern or "?" in pattern or ("[" in pattern and "]" in pattern):
+                for name in self._colNames:
+                    if fnmatch.fnmatch(name, pattern):
+                        names.add(name)
+            else:
+                # else: pattern is a name and MUST match what we check below
+                names.add(pattern)
+
         self.ensureColNames(*names)
         for name in names:
             delattr(self, name)

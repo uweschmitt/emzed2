@@ -768,3 +768,25 @@ def test_div_by_zeros():
 def test_empty_median():
     t = emzed.utils.toTable("x", ())
     assert t.x.median() is None
+
+
+def test_enhanced_dropcolumns():
+    t = emzed.utils.toTable("x", ())
+    t.addColumn("y", None)
+    t.addColumn("x2", None)
+    assert t.getColNames() == ["x", "y", "x2"]
+
+    t.dropColumns("z*")
+    assert t.getColNames() == ["x", "y", "x2"]
+
+    t.dropColumns("z*", "x*")
+    assert t.getColNames() == ["y"]
+
+    t.dropColumns("z*", "x*")
+    assert t.getColNames() == ["y"]
+
+    with pytest.raises(Exception):
+        t.dropColumns("x")
+
+    with pytest.raises(Exception):
+        t.dropColumns("x", "x*")
