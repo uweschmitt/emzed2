@@ -65,6 +65,7 @@ def test_nested(regtest):
         df <- data.frame(a=c(1,2,3))
         li <- list(df=df, x=3)
         li2 <- list(a=li)
+        cc <- c(1,2,3)
     """)
 
     assert isinstance(ip.df, Table)
@@ -77,6 +78,14 @@ def test_nested(regtest):
     assert isinstance(ip.li2.a.df, Table)
     print >> regtest, ip.li2.a.df
     print >> regtest, ip.li2.a.x
+
+    print >> regtest, ip.cc
+
+    ip.abc = ip.cc
+    print >> regtest, ip.abc
+
+    ip.abc = (1, 2, "3")
+    print >> regtest, ip.abc
 
 
 def test_r_error_pickling():

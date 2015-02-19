@@ -1,3 +1,4 @@
+import pdb
 # encoding: utf-8
 
 import datetime
@@ -446,6 +447,9 @@ class RInterpreterFast(object):
             return
         elif isinstance(value, pandas.DataFrame):
             value = self._pandas_to_tagged_list(value)
+        elif isinstance(value, tuple):
+            self.execute("""%s <- c%r""" % (name, value))
+            return
         setattr(self.conn.r, name, value)
 
     @shutdown_on_error
