@@ -1,10 +1,19 @@
-from emzed.r import RInterpreter, RError
+from emzed.r import RInterpreter, RError, RInterpreterFast
 from emzed.utils import toTable
 
 
 def test_native_types():
 
     ip = RInterpreter()
+    _test_native_types(ip)
+
+def test_native_types_fast():
+
+    ip = RInterpreterFast()
+    _test_native_types(ip)
+
+def _test_native_types(ip):
+
     assert ip.execute("x <-3").x == 3
     assert ip.execute("x <-1.0").x == 1.0
     assert ip.execute("x <-'abc'").x == 'abc'
@@ -19,8 +28,15 @@ def test_native_types():
     assert ip.execute("x <- y").x == "abc"
 
 
-def test_tables():
+def test_tables(regtest):
     ip = RInterpreter()
+    _test_tables(ip, regtest)
+
+def test_tables_fast(regtest):
+    ip = RInterpreterFast()
+    _test_tables(ip, regtest)
+
+def _test_tables(ip, regtest):
     t = toTable("a", [1, 2])
 
     # transfer Table tor R:
@@ -32,6 +48,14 @@ def test_tables():
     # fetch pandas.DataFrame from R
     df = ip.get_raw("s")
     assert df.as_matrix().tolist() == [[1], [2]]
+
+    df = ip.get_raw("mtcars")
+    print >> regtest, df
+
+    ip.ddf = df
+
+    print >> regtest, ip.ddf
+    print >> regtest, ip.mtcars
 
 
 def test_r_error_pickling():

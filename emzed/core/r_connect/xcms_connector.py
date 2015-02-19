@@ -17,7 +17,7 @@ from pkg_resources import resource_string
 
 from .. import update_handling, config
 
-from r_executor import RInterpreter
+from r_executor import RInterpreterFast as RInterpreter
 
 
 def _get_r_version():

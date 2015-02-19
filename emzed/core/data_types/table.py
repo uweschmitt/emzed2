@@ -184,8 +184,7 @@ class Table(object):
 
         assert all("__" not in name for name in colNames),\
             "illegal column name(s), double underscores not allowed"
-        self._setup_without_namecheck(colNames, colTypes, colFormats,
-                                      rows, title, meta)
+        self._setup_without_namecheck(colNames, colTypes, colFormats, rows, title, meta)
 
     @classmethod
     def _create(clz, colNames, colTypes, colFormats, rows=None, title=None, meta=None):

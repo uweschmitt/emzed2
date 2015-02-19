@@ -1,12 +1,22 @@
-import os
-import datetime
-import traceback
-import tempfile
-import glob
-import sys
-import pandas
-from ..data_types import Table
+# encoding: utf-8
 
+import datetime
+import functools
+import glob
+import os
+import socket
+import sys
+import tempfile
+import thread
+import time
+import traceback
+import weakref
+
+import pyRserve
+import pandas
+import numpy as np
+
+from ..data_types.table import guessFormatFor, Table
 
 import patched_pyper as pyper
 
@@ -237,3 +247,210 @@ class RInterpreter(object):
         if isinstance(value, Table):
             value = value.to_pandas()
         setattr(self.session, name, value)
+
+
+def shutdown_on_error(fun):
+    @functools.wraps(fun)
+    def wrapped(self, *a, **kw):
+        try:
+            return fun(self, *a, **kw)
+        except:
+            self.shutdown()
+            raise
+    return wrapped
+
+
+class RInterpreterFast(object):
+
+    def __init__(self, dump_stdout=True, r_exe=None, do_log=False, port=None, **kw):
+
+        if port is None:
+            s = socket.socket()
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+            s.close()
+        rip = RInterpreter(r_exe=r_exe, **kw)
+        cmd = "library(Rserve); Rserve::run.Rserve(port=%d);" % port
+        thread.start_new_thread(rip.execute, (cmd,))
+        self.__dict__["dump_stdout"] = dump_stdout
+
+        for _ in range(10):
+            try:
+                self.__dict__["conn"] = pyRserve.connect(host="127.0.0.1", port=port)
+            except pyRserve.rexceptions.RConnectionRefused:
+                time.sleep(0.1)
+            else:
+                break
+        else:
+            raise Exception("connection failed after 10 trials over one second in total")
+
+        def on_die(killed_ref, conn=self.conn):
+            # we pass conn here because access to self ist not allowed in this handler.
+            # further we import socket inside because this function maybe called when the Python
+            # interpreter is shut down and a globally imported module socket might not be available
+            # any more
+            import socket
+            try:
+                conn.shutdown()
+            except socket.error:
+                pass
+
+        self.__dict__["_del_ref"] = weakref.ref(self, on_die)
+
+    @shutdown_on_error
+    def execute(self, r_code):
+        # we put our (potentially multiline) r code into a function so that we can use
+        # capture.output to pass output to python back.
+        # the eval.parent(substitute(..))) injects all variables in this function
+        # to the global R environment. so code as "x <- 3" is executed inside the .__run
+        # function but then x is globally set:
+        self.conn.eval(""".__run <- function() eval.parent(substitute({%s})); """ % r_code)
+        if self.dump_stdout:
+            self.conn.eval("""capture.output(.__run(), file=pipe("cat"))""")
+        else:
+            self.conn.eval("""__run();""")
+        return self
+
+    @shutdown_on_error
+    def execute_file(self, path):
+        """execute r scripts described by path
+
+           if path is only a file name the directory of the calling functions __file__ is used
+           for looking up the r script.
+           use "./abc.r" notation if you want to get script from the current working directory.
+        """
+
+        if os.path.dirname(path) == "":   # only file name
+            import inspect
+            calling_file = inspect.stack()[1][0].f_globals.get("__file__")
+            if calling_file is not None:
+                path = os.path.join(os.path.dirname(os.path.abspath(calling_file)), path)
+        self.conn.eval("""capture.output(source("%s"), file=pipe("cat"))""" % path)
+        return self
+
+    def shutdown(self):
+        self.conn.shutdown()
+
+    @shutdown_on_error
+    def _fetch(self, name):
+        self.execute("""
+            .__value <- %s;
+            if (typeof(.__value) == "list") {
+                .__ii = sapply(.__value, is.factor);
+                .__value[.__ii] <- lapply(.__value[.__ii], as.character);
+            }
+        """ % name)
+        value = getattr(self.conn.r, ".__value")
+        return value
+
+    def _tagged_list_to_emzed(self, value, name, title=None, meta=None, types=None, formats=None):
+        self.execute(""".__is_df <- class(%s) == "data.frame"; """ % name)
+        is_df = getattr(self.conn.r, ".__is_df")
+        if not is_df:
+            assert title is None
+            assert meta is None
+            assert types is None
+            assert formats is None
+            return dict(value.astuples())
+
+        return self._tagged_list_to_table(value, name, title, meta, types, formats)
+
+    def _tagged_list_to_table(self, value, name, title, meta, types, formats):
+        self.execute(""".__types <- sapply(%s, typeof); """ % name)
+        type_strings = getattr(self.conn.r, ".__types").tolist()
+
+        if types is None:
+            types = {}
+        if formats is None:
+            formats = {}
+
+        col_names = value.keys
+        col_values = value.values
+
+        type_map = {"logical": bool, "integer": int, "double": float, "complex": complex,
+                    "character": str}
+        py_types = [type_map.get(type_string, object) for type_string in type_strings]
+        col_types = [types.get(n, t) for n, t in zip(col_names, py_types)]
+
+        guessed_formats = [guessFormatFor(n, t) for (n, t) in zip(col_names, col_types)]
+        col_formats = []
+        for n, t, f in zip(col_names, col_types, guessed_formats):
+            f0 = formats.get(n, 0)   # 0 instead of None, because None might be set intentionally
+            if f0 == 0:
+                f0 == formats.get(t, 0)
+                if f0 == 0:
+                    f0 = f
+            col_formats.append(f0)
+
+        if not all(isinstance(v, np.ndarray) for v in col_values):
+            # one column data frames come as tagged list with float, etc values, not with arrays
+            rows = [list(col_values)]
+        else:
+            # transpose column matrix and convert tuples to lists
+            rows = map(list, zip(*col_values))
+
+        return Table(col_names, col_types, col_formats, rows, title, meta)
+
+    def _tagged_list_to_pandas(self, tagged_list):
+        as_dict = dict(tagged_list.astuples())
+        return pandas.DataFrame(as_dict)
+
+    def _table_to_tagged_list(self, t):
+        names = t.getColNames()
+        cols = map(np.array, zip(*t.rows))
+        return pyRserve.TaggedList(zip(names, cols))
+
+    def _pandas_to_tagged_list(self, df):
+        names = df.columns.tolist()
+        cols = map(np.array, zip(*df.as_matrix()))
+        return pyRserve.TaggedList(zip(names, cols))
+
+    @shutdown_on_error
+    def __getattr__(self, name):
+        # IPython 0.10 does strange things for completion, so we circument them:
+        if name == "trait_names" or name == "_getAttributeNames":
+            return []
+        # IPython 0.10 has an error for ip.execute("x <- data.frame()") as it tries to lookup
+        # attribute 'execute("x <- data")', I think this is driven by the dot in "data.frame"
+        if name.startswith("execute("):
+            return []
+
+        value = self._fetch(name)
+        if isinstance(value, pyRserve.TaggedList):
+            return self._tagged_list_to_emzed(value, name)
+        return value
+
+    @shutdown_on_error
+    def __setattr__(self, name, value):
+        if isinstance(value, Table):
+            tl = self._table_to_tagged_list(value)
+            setattr(self.conn.r, name, tl)
+            if len(value.getColNames()) == 1:
+                # if table has one column the R value is a list, not a data frame, so:
+                self.execute("""%s <- data.frame(%s)""" % (name, name))
+            return
+        elif isinstance(value, pandas.DataFrame):
+            value = self._pandas_to_tagged_list(value)
+        setattr(self.conn.r, name, value)
+
+    @shutdown_on_error
+    def get_df_as_table(self, name, title=None, meta=None, types=None, formats=None):
+        """
+        Transfers R data.frame object with name ``name`` to emzed Table object.
+        For the remaining paramters see :py:meth:`~emzed.core.data_types.table.Table.from_pandas`
+        """
+        value = self._fetch(name)
+        if isinstance(value, pyRserve.TaggedList):
+            return self._tagged_list_to_table(value, name, title, meta, types, formats)
+
+    def get_raw(self, name):
+        value = self._fetch(name)
+        if isinstance(value, pyRserve.TaggedList):
+            return self._tagged_list_to_pandas(value)
+        return value
+
+    def __dir__(self):
+        """ avoid completion in IPython shell, as attributes are automatically looked up in
+        overriden __getattr__ method
+        """
+        return ["execute", "shutdown", "get_df_as_table", "get_raw"]
