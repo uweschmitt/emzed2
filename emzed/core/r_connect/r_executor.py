@@ -274,9 +274,9 @@ class RInterpreterFast(object):
             port = s.getsockname()[1]
             s.close()
         rip = RInterpreter(r_exe=r_exe, **kw)
-        rip.execute("""if("Rserve" %in% rownames(installed.packages) == FALSE)
+        rip.execute("""if("Rserve" %in% rownames(installed.packages()) == FALSE)
                         {
-                          install.packages(Rserve);
+                          install.packages("Rserve", repos="http://cran.rstudio.com");
                         }
                     """)
         cmd = """library(Rserve);
