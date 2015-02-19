@@ -30,6 +30,7 @@ setup(name="emzed",
                         "pandas",
                         "dill",
                         "pyopenms",
+                        "pyRserve",
                         ]
 
       )

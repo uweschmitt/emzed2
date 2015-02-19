@@ -270,7 +270,14 @@ class RInterpreterFast(object):
             port = s.getsockname()[1]
             s.close()
         rip = RInterpreter(r_exe=r_exe, **kw)
-        cmd = "library(Rserve); Rserve::run.Rserve(port=%d);" % port
+        rip.execute("""if("Rserve" %in% rownames(installed.packages) == FALSE)
+                        {
+                          install.packages(Rserve);
+                        }
+                    """)
+        cmd = """library(Rserve);
+                 Rserve::run.Rserve(port=%d);
+              """ % port
         thread.start_new_thread(rip.execute, (cmd,))
         self.__dict__["dump_stdout"] = dump_stdout
 
