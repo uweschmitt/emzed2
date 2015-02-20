@@ -306,6 +306,8 @@ class RInterpreterFast(object):
             except socket.error:
                 pass
 
+        # instead of implementing __del__ to force shutdown if the object dies, we use the
+        # weakref trick to trigger shutdown at the end of self's life:
         self.__dict__["_del_ref"] = weakref.ref(self, on_die)
 
     @shutdown_on_error
