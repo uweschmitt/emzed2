@@ -574,9 +574,22 @@ class BaseExpression(object):
         This is an **aggregation expression** which evaluates an
         column expression to the number of values in the column.
 
-        Example:: ``tab.id.len``
+        Example: ``tab.id.len``
+
+        replaces  ``len` experession
         """
         return AggregateExpression(self, lambda v: len(v), "count(%s)",
+                                   int, ignore_none=False, default_empty=0)
+
+    @property
+    def count_different(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        column expression to the number of different values in the column.
+
+        Example:: ``tab.id.len``
+        """
+        return AggregateExpression(self, lambda v: len(set(v)), "count_different(%s)",
                                    int, ignore_none=False, default_empty=0)
 
     @property

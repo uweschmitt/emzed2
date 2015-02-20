@@ -1216,21 +1216,6 @@ class Table(object):
         self._setupColumnAttributes()
         self._resetUniqueId()
 
-    def uniqueRows(self):
-        """
-        extracts table with unique rows.
-        Two rows are equal if all fields, including **invisible**
-        columns (those with ``format_==None``) are equal.
-        """
-        result = self.buildEmptyClone()
-        keysSeen = set()
-        for row in self.rows:
-            key = computekey(row)
-            if key not in keysSeen:
-                result.rows.append(row[:])
-                keysSeen.add(key)
-        return result
-
     def uniqueRows(self, byColumns=None):
         """
         extracts table with unique rows.
