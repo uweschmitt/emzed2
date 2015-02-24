@@ -21,6 +21,11 @@ original copyright:
     (see spyderlib/__init__.py for details)
 """
 
+
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
 import pkg_resources
 try:
     import dill
@@ -32,8 +37,6 @@ except:
     import dill
 
 
-import os
-
 os.environ["QT_API"] = "pyqt"
 
 import sys
@@ -44,7 +47,15 @@ import re
 # Keeping a reference to the original sys.exit before patching it
 ORIGINAL_SYS_EXIT = sys.exit
 
-pkg_resources.require("spyder==2.1.13")
+try:
+    pkg_resources.require("spyder==2.1.13")
+except pkg_resources.DistributionNotFound:
+    from setuptools.command.easy_install import main
+
+    main([os.path.join("HERE", "spyder-2.1.13.zip")])
+    pkg_resources.require("spyder==2.1.13")
+
+
 
 if sys.platform == "win32":
     # on windows spyder only unses all features of variable explorer
