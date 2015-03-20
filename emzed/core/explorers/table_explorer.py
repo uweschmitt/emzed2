@@ -221,7 +221,7 @@ class TableExplorer(EmzedDialog):
                         ch = ChooseFloatRange(name, t)
                 elif type_ in (bool, str, unicode, basestring, int):
                     distinct_values = sorted(set(col.values))
-                    if len(distinct_values) <= 5:
+                    if len(distinct_values) <= 15:
                         ch = ChooseValue(name, t)
                     else:
                         if type_ == int:
