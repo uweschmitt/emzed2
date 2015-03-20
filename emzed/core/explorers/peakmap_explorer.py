@@ -548,8 +548,11 @@ class ModifiedImagePlot(ImagePlot):
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
         self.rtmin = rtmin = max(rtmin, self.peakmap_range[0])
         self.rtmax = rtmax = min(rtmax, self.peakmap_range[1])
-        self.mzmin = mzmin = max(mzmin, self.peakmap_range[2])
-        self.mzmax = mzmax = min(mzmax, self.peakmap_range[3])
+        self.mzmin = mzmin = min(max(mzmin, self.peakmap_range[2]), self.peakmap_range[3])
+        self.mzmax = mzmax = max(min(mzmax, self.peakmap_range[3]), self.peakmap_range[2])
+        if mzmin == mzmax:
+            mzmin *= (1.0 - 1e-5)  # - 10 ppm
+            mzmax *= (1.0 + 1e-5)  # + 10 ppm
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
 

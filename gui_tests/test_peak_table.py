@@ -28,7 +28,9 @@ t2 = emzed.utils.toTable("mzmin", range(0, 2000, 200), type_=float)
 t2.addColumn("mzmax", t2.mzmin + 10.0)
 t2.addColumn("rtmin", range(10, 30, 2), type_=float)
 t2.addColumn("rtmax", t2.rtmin + 3)
-#t2.addColumn("peakmap", pm)
+t2.addColumn("mz", 0.5 * (t2.mzmin + t2.mzmax))
+t2.dropColumns("mzmin", "mzmax")
+t2.addColumn("peakmap", pm)
 
 # t2 = emzed.utils.integrate(t2)
 

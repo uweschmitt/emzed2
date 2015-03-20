@@ -595,10 +595,20 @@ class TableExplorer(EmzedDialog):
                 full_prefix = prefix + "__"
             else:
                 full_prefix = ""
-            for n in "rtmin", "rtmax", "mzmin", "mzmax":
+            for n in "rtmin", "rtmax", "mzmin", "mzmax", "mz":
                 full_n = full_prefix + n
                 value = self.model.table.getValue(self.model.table.rows[row], full_n, None)
                 extra_args[n] = value
+            if extra_args["mzmin"] is None and extra_args["mzmax"] is None:
+                mz = extra_args["mz"]
+                if mz is not None:
+                    mzmin = mz - 10 * 1e-6 * mz   # -10 ppm
+                    mzmax = mz + 10 * 1e-6 * mz   # +19 ppm
+                    extra_args["mzmin"] = mzmin
+                    extra_args["mzmax"] = mzmax
+            del extra_args["mz"]
+            print(extra_args)
+
         insp = inspector(cell_value, modal=False, parent=self, **extra_args)
         if insp is not None:
             insp()
