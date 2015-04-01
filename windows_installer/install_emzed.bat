@@ -24,8 +24,6 @@ easy_install emzed_optimizations
 @echo.
 easy_install -U ipython==0.10
 @echo.
-easy_install -U spyder==2.1.13
-@echo.
 easy_install -U dill 
 @echo.
 set MPLCONFIGDIR=.
