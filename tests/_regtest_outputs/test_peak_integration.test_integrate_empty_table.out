@@ -1,0 +1,14 @@
+
+id       mz       mzmin    mzmax    rt       rtmin    rtmax    maxf     i        sn      
+int      float    float    float    float    float    float    float    int      float   
+------   ------   ------   ------   ------   ------   ------   ------   ------   ------  
+
+id       mz       mzmin    mzmax    rt       rtmin    rtmax    maxf     i        sn       method   area     rmse    
+int      float    float    float    float    float    float    float    int      float    str      float    float   
+------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------  
+
+
+id       mz       mzmin    mzmax    rt       rtmin    rtmax    maxf     i        sn       method   area     rmse    
+int      float    float    float    float    float    float    float    int      float    str      float    float   
+------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------   ------  
+

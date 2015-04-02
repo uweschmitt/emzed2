@@ -1,4 +1,5 @@
-import pdb
+from __future__ import print_function
+
 import os.path
 
 import numpy as np
@@ -167,8 +168,8 @@ def run(integrator, areatobe, rmsetobe, eicareatobe):
     area=result.get("area")
     rmse=result.get("rmse")
 
-    print "area: is=%e  tobe=%e" % (area, areatobe)
-    print "rmse: is=%e  tobe=%e" % (rmse, rmsetobe)
+    print("area: is=%e  tobe=%e" % (area, areatobe))
+    print("rmse: is=%e  tobe=%e" % (rmse, rmsetobe))
 
 
     if area > 0:
@@ -287,3 +288,22 @@ def testSg():
     ex(lambda: SGIntegrator(order=1, window_size=4).smooth(allrts, rts, chromo))
     ex(lambda: SGIntegrator(order=1, window_size=-1).smooth(allrts, rts, chromo))
     ex(lambda: SGIntegrator(order=4, window_size=5).smooth(allrts, rts, chromo))
+
+
+def test_integrate_empty_table(path, regtest):
+
+    # test with and without unicode:
+    ft = io.loadTable(path("data/features.table"))
+    ft = ft[:0]
+    print(file=regtest)
+    # an invalid row should not stop integration, but result
+    # in None values for emzed.utils.integrate generated columns
+    print(ft, file=regtest)
+    ftr = utils.integrate(ft, "trapez",  n_cpus=1)
+    print(ftr, file=regtest)
+    assert len(ftr) == len(ft)
+    print(file=regtest)
+
+    ftr = utils.integrate(ft, "trapez",  n_cpus=2)
+    print(ftr, file=regtest)
+    assert len(ftr) == len(ft)
