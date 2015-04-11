@@ -13,7 +13,7 @@ class BaseIntegrator(object):
     def setPeakMap(self, peakMap):
         self.peakMap = peakMap
 
-    def integrate(self, mzmin, mzmax, rtmin, rtmax, msLevel=None, eic_widening=30):
+    def integrate(self, mzmin, mzmax, rtmin, rtmax, msLevel=None, eic_widening=200):
 
         assert self.peakMap is not None, "call setPeakMap() before integrate()"
 
@@ -30,8 +30,8 @@ class BaseIntegrator(object):
         if len(rts) == 0:
             return dict(area=0.0, rmse=0.0, params=None, eic=None)
 
-        allrts, fullchrom = self.peakMap.chromatogram(mzmin, mzmax, None, None, msLevel)
         eic = self.peakMap.chromatogram(mzmin, mzmax, rtmin - eic_widening, rtmax + eic_widening)
+        allrts, fullchrom = eic
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
 

@@ -14,7 +14,7 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         return "SimplifiedEMGIntegrator, xtol=%s" %  info
 
     @staticmethod
-    def __fun_eval(param, rts):
+    def __fun_eval(param, rts, sqrt_two_pi=math.sqrt(math.pi), sqrt_2=math.sqrt(2.0), exp=np.exp):
         h, z, w, s = param
         # avoid zero division
         if s*s==0.0: s=1e-6
@@ -26,8 +26,8 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         # avoid zero division
         if w==0:
             w=1e-6
-        denominator = 1 + np.exp(-2.4055/math.sqrt(2.0) * ((rts-z)/w - w/s))
-        return h*w/s * math.sqrt(2*math.pi) * nominator / denominator
+        denominator = 1 + exp(-2.4055/sqrt_2 * ((rts-z)/w - w/s))
+        return h*w/s * sqrt_two_pi * nominator / denominator
 
     @staticmethod
     def __err(param, rts, values):
@@ -51,11 +51,11 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
 
         param = (h, z, w, s)
         if self.xtol is None:
-            param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param,
-                                    args=(rts, chromatogram))
+            param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param, args=(rts, chromatogram),
+                                    ftol=0.05)
         else:
-            param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param,
-                                  args=(rts, chromatogram), xtol=self.xtol)
+            param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param, args=(rts, chromatogram),
+                                    xtol=self.xtol)
         h, z, w, s = param
 
         if ok not in [1,2,3,4] or w<=0: # failed
