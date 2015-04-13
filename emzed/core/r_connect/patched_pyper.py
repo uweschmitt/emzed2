@@ -106,6 +106,8 @@ import time
 import re
 import tempfile
 import traceback
+import weakref 
+
 from types import *
 
 __version__ = '1.1.1'
@@ -688,11 +690,13 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
                 childstderr = file('nul', 'a')
 
         # as __setattr__ iso verriden, we have to set members like this:
-        self.__dict__['prog'] = None
         self.__dict__['has_numpy'] = use_numpy and has_numpy
         self.__dict__['has_pandas'] = use_pandas and has_pandas
         self.__dict__['Rfun'] = self.__Rfun
         self.__dict__['prog'] = Popen(RCMD, stdin=PIPE, stdout=PIPE, stderr=return_err and _STDOUT or childstderr, startupinfo=info)
+
+        self.install_del_callaback()
+
         self.__call__(self.Rfun)
 
     def __runOnce(self, CMD, use_try=None):
@@ -811,7 +815,18 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
             raise RError('Leading underscore ("_") is not permitted in R variable names!')
         self.__call__('rm(%s)' % obj)
 
-    def __del__(self):  # to model "del r"
+    def install_del_callaback(self):
+        def on_die(killed_ref, prog=self.prog, newline=self.newline):
+            try:
+                if prog:
+                    sendAll(prog, 'q("no")' + newline)
+                    print "R interpreter shut down"
+            except:
+                traceback.print_exc()
+        self.__dict__["_del_ref"] = weakref.ref(self, on_die)
+
+
+    def _x__del__(self):  # to model "del r"
         try:
             if self.prog:
                 sendAll(self.prog, 'q("no")' + self.newline)
