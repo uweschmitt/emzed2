@@ -11,14 +11,14 @@ from ..data_types import Table
 import patched_pyper as pyper
 
 
-def find_r_exe_on_windows():
+def find_r_exe_on_windows(required_version=""):
 
     assert sys.platform == "win32"
     import _winreg
     pathToR = None
     for finder in [
-        lambda: _path_from(_winreg.HKEY_CURRENT_USER),
-        lambda: _path_from(_winreg.HKEY_LOCAL_MACHINE),
+        lambda: _path_from(_winreg.HKEY_CURRENT_USER, required_version),
+        lambda: _path_from(_winreg.HKEY_LOCAL_MACHINE, required_version),
         lambda: os.environ.get("R_HOME"),
         _parse_path_variable,
     ]:
@@ -52,10 +52,11 @@ def _parse_path_variable():
     return None
 
 
-def _path_from(regsection):
+def _path_from(regsection, required_version=""):
     assert sys.platform == "win32"
     import _winreg
-    key = _winreg.OpenKey(regsection, "Software\\R-core\\R")
+    key = _winreg.OpenKey(regsection, "Software\\R-core\\R\\%s" % required_version)
+    pathes = _winreg.QueryValueEx(key, "InstallPath")
     return _winreg.QueryValueEx(key, "InstallPath")[0]
 
 
@@ -92,7 +93,7 @@ class RInterpreter(object):
 
     """
 
-    def __init__(self, dump_stdout=True, r_exe=None, do_log=False, **kw):
+    def __init__(self, dump_stdout=True, r_exe=None, do_log=False, required_version="", **kw):
         """Starts a R process.
 
            In case of ``dump_stdout`` being ``True``, console output from R is imediatly
@@ -100,9 +101,12 @@ class RInterpreter(object):
            their progress by printing status information, but may clutter the console,
            as lots of internal conversion operations are printed too.
         """
+        if sys.platform != "win32" and required_version != "":
+            import warnings
+            warnings.warn("parameter 'required_version' ignored, works only on windows !")
         if r_exe is None:
             if sys.platform == "win32":
-                r_exe = find_r_exe_on_windows()
+                r_exe = find_r_exe_on_windows(required_version)
             else:
                 r_exe = "R"
 
