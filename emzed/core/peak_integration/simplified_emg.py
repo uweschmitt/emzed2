@@ -52,7 +52,7 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         param = (h, z, w, s)
         if self.xtol is None:
             param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param, args=(rts, chromatogram),
-                                    ftol=0.05)
+                                    ftol=0.005)
         else:
             param, ok = opt.leastsq(SimplifiedEMGIntegrator.__err, param, args=(rts, chromatogram),
                                     xtol=self.xtol)

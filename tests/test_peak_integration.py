@@ -99,8 +99,8 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
         assert ftr.method.values[0] is not None
         assert ftr.eic.values[0] is None
 
-        assert ftr.area.values[1] >= 0
-        assert ftr.rmse.values[1] >= 0
+        assert ftr.area.values[1] is not None
+        assert ftr.rmse.values[1] is not None
         assert ftr.params.values[1] is not None
         assert ftr.method.values[1] is not None
         assert len(ftr.eic.values[1]) == 2
@@ -111,8 +111,8 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
         assert ftr.method__0.values[0] is not None
         assert ftr.eic__0.values[0] is None
 
-        assert ftr.area__0.values[1] >= 0
-        assert ftr.rmse__0.values[1] >= 0
+        assert ftr.area__0.values[1] is not None
+        assert ftr.rmse__0.values[1] is not None
         assert ftr.params__0.values[1] is not None
         assert ftr.method__0.values[1] is not None
         assert len(ftr.eic__0.values[1]) == 2
@@ -123,8 +123,8 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
         assert ftr.methodX.values[0] is not None
         assert ftr.eicX.values[0] is None
 
-        assert ftr.areaX.values[1] >= 0
-        assert ftr.rmseX.values[1] >= 0
+        assert ftr.areaX.values[1] is not None
+        assert ftr.rmseX.values[1] is not None
         assert ftr.paramsX.values[1] is not None
         assert ftr.methodX.values[1] is not None
         assert len(ftr.eicX.values[1]) == 2
@@ -147,7 +147,7 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
 
 
 
-def run(integrator, areatobe, rmsetobe, eicareatobe):
+def run(integrator, regtest):
     assert len(str(integrator))>0
 
     try:
@@ -161,35 +161,23 @@ def run(integrator, areatobe, rmsetobe, eicareatobe):
     rtmin = ds.spectra[0].rt
     rtmax = ds.spectra[30].rt
 
-    mzmin = ds.spectra[0].peaks[10,0]
-    mzmax = ds.spectra[0].peaks[-10,0]
+    mzmin = ds.spectra[0].peaks[10, 0]
+    mzmax = ds.spectra[0].peaks[-10, 0]
 
     result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, 1)
-    area=result.get("area")
-    rmse=result.get("rmse")
+    area = result.get("area")
+    rmse = result.get("rmse")
 
-    print("area: is=%e  tobe=%e" % (area, areatobe))
-    print("rmse: is=%e  tobe=%e" % (rmse, rmsetobe))
-
-
-    if area > 0:
-        assert abs(area-areatobe)/areatobe < .01,  area
-    else:
-        assert area == 0.0, area
-    if rmsetobe > 0:
-        assert abs(rmse-rmsetobe)/rmsetobe < .01,  rmse
-    else:
-        assert rmse == 0.0, rmse
+    print("integrator : %s" % integrator)
+    print("area: is=%e" % area, file=regtest)
+    print("rmse: is=%e" % rmse, file=regtest)
 
     params = result.get("params")
+    print("params = %s" % (params,), file=regtest)
 
     x, y = result.get("eic")
     eicarea = 0.5 * np.dot(x[1:] - x[:-1], y[1:] + y[:-1])
-
-    if eicarea > 0:
-        assert abs(eicarea - eicareatobe)/ eicareatobe < 0.01, eicarea
-    else:
-        assert eicarea == 0.0, eicarea
+    print("eic area: is=%e" % eicarea, file=regtest)
 
 
 def testNoIntegration():
@@ -208,24 +196,22 @@ def testNoIntegration():
     assert y==[]
 
 
-def testPeakIntegration():
+def testPeakIntegration(regtest):
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["asym_gauss"]
-    run(integrator, 1.19e5, 7.2891e3, 139984.31911294549)
+    run(integrator, regtest)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_exact"]
-
-    run(integrator,  154542.79, 7.43274e3, 139984.31911294549)
+    run(integrator, regtest)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
-
-    run(integrator,  120481.9, 0.0, 139984.31911294549)
+    run(integrator, regtest)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["std"]
-    run(integrator,  119149.7, 6854.8, 139984.31911294549)
+    run(integrator, regtest)
 
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["max"]
-    run(integrator,  37620.81, 0.0, 139984.31911294549)
+    run(integrator, regtest)
 
 
 def testTrapezIntegrationSimple():
