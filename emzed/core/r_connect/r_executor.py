@@ -21,6 +21,9 @@ from ..data_types.table import guessFormatFor, Table
 import patched_pyper as pyper
 
 
+class Bunch(dict):
+    __getattr__ = dict.__getitem__
+
 def find_r_exe_on_windows(required_version=""):
 
     assert sys.platform == "win32"
@@ -358,7 +361,12 @@ class RInterpreterFast(object):
             assert meta is None
             assert types is None
             assert formats is None
-            return dict(value.astuples())
+            items = []
+            for sub_name, value in value.astuples():
+                if isinstance(value, pyRserve.TaggedList):
+                    value = self._tagged_list_to_emzed(value, "%s$%s" % (name, sub_name))
+                items.append((sub_name, value))
+            return Bunch(items)
 
         return self._tagged_list_to_table(value, name, title, meta, types, formats)
 
