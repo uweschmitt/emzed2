@@ -31,6 +31,7 @@ setup(name="emzed",
                         "dill",
                         "pyopenms",
                         "pyRserve",
+                        "pytest",
                         ]
 
       )
