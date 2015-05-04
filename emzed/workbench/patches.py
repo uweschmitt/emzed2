@@ -118,18 +118,13 @@ def patch_baseshell():
 
     @replace(baseshell.add_pathlist_to_PYTHONPATH, verbose=True)
     def patched(env, pathlist, _here=_here):
-        # fp = open("/tmp/logx", "w")
-        # print >> fp, "patched", _here
         for i, p in enumerate(pathlist):
             # replace path to ../externalshell/ (which contains
             # sitecustomize.py) with path to patched_modules/
             # print >> fp, i, p
             if p.rstrip("/").endswith("externalshell"):
                 pathlist[i] = _here
-        # print >> fp, env
         baseshell._orig_add_pathlist_to_PYTHONPATH(env, pathlist)
-        # print >> fp, env
-        # fp.close()
 
 
 def patch_userconfig():

@@ -14,6 +14,7 @@ setup(name="emzed",
                           "emzed.inspect = emzed.cmdline:inspect",
                           ],
           "console_scripts": ["emzed.console = emzed.console:main",
+                              "emzed.workbench.debug = emzed.workbench.main:main",
               ]
       },
       include_package_data=True,
@@ -31,6 +32,7 @@ setup(name="emzed",
                         "dill",
                         "pyopenms",
                         "pyRserve",
+			"pyreadline",
                         ]
 
       )
