@@ -32,7 +32,7 @@ setup(name="emzed",
                         "dill",
                         "pyopenms",
                         "pyRserve",
-			"pyreadline",
+                        "pytest",
+                        "pyreadline",
                         ]
-
       )
