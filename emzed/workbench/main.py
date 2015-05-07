@@ -36,6 +36,13 @@ except:
     pkg_resources.require('dill')
     import dill
 
+try:
+    import pyreadline
+except:
+    from setuptools.command import easy_install
+    import pkg_resources
+    easy_install.main( ['pyreadline'] )
+    pkg_resources.require('pyreadline')
 
 os.environ["QT_API"] = "pyqt"
 
@@ -48,14 +55,19 @@ import re
 ORIGINAL_SYS_EXIT = sys.exit
 
 try:
-    pkg_resources.require("spyder==2.1.13")
-except pkg_resources.DistributionNotFound:
+    pkg_resources.require("spyder")
+    import spyderlib
+    print(spyderlib.__version__)
+except: 
     from setuptools.command.easy_install import main
 
-    main([os.path.join("HERE", "spyder-2.1.13.zip")])
-    pkg_resources.require("spyder==2.1.13")
+    main([os.path.join(HERE, "spyder-2.1.13.zip")])
+    pkg_resources.require("spyder")
 
 
+import spyderlib
+os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
+print os.environ["SPYDER_PARENT_DIR"]
 
 if sys.platform == "win32":
     # on windows spyder only unses all features of variable explorer
@@ -86,13 +98,6 @@ if is_module_installed('IPython.frontend.qt', '>=0.12'):
 
 
 #EMZEDADDON
-here = os.path.dirname(os.path.abspath(__file__))
-
-import spyderlib
-os.environ["SPYDER_PARENT_DIR"] = os.path.abspath(os.path.join(spyderlib.__file__, "../.."))
-print os.environ["SPYDER_PARENT_DIR"]
-
-
 try:
     import emzed.core
     from emzed.version import version as emzed_version

@@ -1,5 +1,7 @@
 # encoding:latin-1
 
+import PyQt4.QtWebKit
+
 import traceback
 import os
 

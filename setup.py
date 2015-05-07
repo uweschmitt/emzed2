@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 11, 0)
+version = (2, 11, 1)
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
@@ -14,6 +14,7 @@ setup(name="emzed",
                           "emzed.inspect = emzed.cmdline:inspect",
                           ],
           "console_scripts": ["emzed.console = emzed.console:main",
+                              "emzed.workbench.debug = emzed.workbench.main:main",
               ]
       },
       include_package_data=True,
@@ -32,6 +33,6 @@ setup(name="emzed",
                         "pyopenms",
                         "pyRserve",
                         "pytest",
+                        "pyreadline",
                         ]
-
       )
