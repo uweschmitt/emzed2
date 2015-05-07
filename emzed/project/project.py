@@ -202,10 +202,17 @@ def run_tests(filter_=None):
                     stdout=sys.__stdout__)
 
 
+def _clean_build_folder(ap):
+    build_folder = os.path.join(ap, "build")
+    shutil.rmtree(build_folder, ignore_errors=True)
+
 def build_wheel():
     """ creates a wheel for distributing current package """
     ap = _get_active_project()
     now = os.getcwd()
+
+    _clean_build_folder(ap)
+
     os.chdir(ap)
     try:
         rv = subprocess.call("python setup.py bdist_wheel", shell=True, stderr=sys.__stdout__, stdout=sys.__stdout__)
