@@ -36,8 +36,8 @@ def formulaTable(min_mass, max_mass, C=(0, None),
     For each element one can provide an given count or an inclusive range of
     atom counts considered in this process.
 
-    If **prune** is *True*, mass ratio rules and valence bond checks are used
-    to avoid unrealistic compounds in the table, else all formulas explaining
+    If **prune** is *True*, mass ratio rules (from "seven golden rules") and valence
+    bond checks are used to avoid unrealistic compounds in the table, else all formulas explaining
     the given mass range are generated.
 
     Putting some restrictions on atomcounts, eg **C=(0, 100)**, can speed up
@@ -110,31 +110,31 @@ def formulaTable(min_mass, max_mass, C=(0, None),
 
         resmc_max = max_mass - c*mass.C
         s1 = min(smax, math.floor(resmc_max/mass.S))
-        if prune:
+        if prune and c > 0:
             s1 = min(s1, scmax * c)
 
         for s in int_range(smin, s1+1):
             resms_max = resmc_max - s*mass.S
             p1 = min(pmax, math.floor(resms_max/mass.P))
-            if prune:
+            if prune and c > 0:
                 p1 = min(p1, pcmax * c)
 
             for p in int_range(pmin, p1+1):
                 resmp_max = resms_max - p*mass.P
                 o1 = min(omax, math.floor(resmp_max/mass.O))
-                if prune:
+                if prune and c > 0:
                     o1 = min(o1, ocmax * c)
 
                 for o in int_range(omin,o1+1):
                     resmo_max = resmp_max - o*mass.O
                     n1 = min(nmax, math.floor(resmo_max/mass.N))
-                    if prune:
+                    if prune and c > 0:
                         n1 = min(n1, ncmax * c)
 
                     for n in int_range(nmin, n1+1):
                         resmn_max = resmo_max - n*mass.N
                         h1 = min(hmax, math.floor(resmn_max/mass.H))
-                        if prune:
+                        if prune and c > 0:
                             h1 = min(h1, hcmax * c)
 
                         for h in int_range(hmin, h1+1):

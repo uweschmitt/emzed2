@@ -16,6 +16,13 @@ def testFormGen():
     assert "C2H8N6O" in t.mf.values
     assert "C5H13N2P" in t.mf.values
 
+def test_from_gen_2():
+
+    mf = "H2O"
+    m0 = emzed.mass.of(mf)
+
+    t = emzed.utils.formulaTable(m0-0.001, m0+0.001, prune=True)
+    assert len(t) == 1
 
 
 # vim: ts=4 et sw=4 sts=4
