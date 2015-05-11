@@ -352,7 +352,7 @@ def start_work(name=None, project_home=None):
 
 
 def activate_last_project():
-    """ checks emezd config for current project and activates this """
+    """ checks emzed config for current project and activates this """
 
     last_project = global_config.get("last_active_project")
     project_home = global_config.get("project_home")
@@ -364,5 +364,9 @@ def activate_last_project():
         path_in_project_home = os.path.join(project_home, last_project)
         _set_active_project(path_in_project_home)
         print "CWD TO", path_in_project_home
-        os.chdir(path_in_project_home)
-        _install_builtins_after_workon()
+        try:
+            os.chdir(path_in_project_home)
+        except:
+            print "could not find project", last_active_project
+        else:
+            _install_builtins_after_workon()
