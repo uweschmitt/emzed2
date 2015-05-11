@@ -7,6 +7,12 @@ p = 1.007276466812
 n = 1.00866491600
 
 def of(mf, **specialisations):
+    """computes mass of given molecular formla "mf".
+    some examples for using isotopes::
+
+        print emzed.mass.of("[13]C3")
+        print emzed.mass.of("C3", C=emzed.mass.C13)
+    """
     return _MolecularFormula(mf).mass(**specialisations)
 
 _elements = _Elements()
