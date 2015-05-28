@@ -14,6 +14,11 @@ ti = [t.copy() for _ in t]
 t.addColumn("t", ti)
 t.info()
 
+import datetime
+
+t.addColumn("now", datetime.datetime.today(), insertBefore="id")
+t.info()
+
 t.title ="asdfads asldkfjaldsfjadlf dfadlskfdasfd" * 10
 
 t2 = t.copy()

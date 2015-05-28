@@ -9,6 +9,7 @@ import guidata
 
 import os
 import re
+from datetime import datetime
 
 from ... import _algorithm_configs
 
@@ -90,6 +91,8 @@ class TableModel(QAbstractTableModel):
         ridx, cidx = self.table_index(index)
         return self.table.getValues(self.table.rows[ridx])
 
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()
@@ -97,7 +100,22 @@ class TableModel(QAbstractTableModel):
         if not (0 <= index.row() < self.rowCount()):
             return QVariant()
         value = self.table.rows[ridx][cidx]
-        shown = self.table.colFormatters[cidx](value)
+        fmter = self.table.colFormatters[cidx]
+
+        if isinstance(value, datetime):
+            fmt = self.table.getColFormats()[cidx]
+            if fmt in ("%r", "%s"):
+                shown = value.strftime(self.DATE_FORMAT)
+            else:
+                try:
+                    shown = fmter(value)
+                except:
+                    shown = value.strftime(self.DATE_FORMAT)
+            if role in (Qt.DisplayRole, Qt.EditRole):
+                return shown
+        else:
+            shown = fmter(value)
+
         if role == Qt.DisplayRole:
             return shown
         if role == Qt.EditRole:
@@ -159,11 +177,18 @@ class TableModel(QAbstractTableModel):
                     except Exception:
                         guidata.qapplication().beep()
                         return False
-                try:
-                    value = expectedType(value)
-                except Exception:
-                    guidata.qapplication().beep()
-                    return False
+                if expectedType == datetime:
+                    try:
+                        value = datetime.strptime(value, self.DATE_FORMAT)
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
+                else:
+                    try:
+                        value = expectedType(value)
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
             done = self.runAction(ChangeValueAction, index, ridx, cidx, value)
             if done:
                 self.update_visible_rows_for_given_limits()
