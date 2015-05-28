@@ -14,6 +14,8 @@ ti = [t.copy() for _ in t]
 t.addColumn("t", ti)
 t.info()
 
+t.title ="asdfads asldkfjaldsfjadlf dfadlskfdasfd" * 10
+
 t2 = t.copy()
 emzed.gui.inspect([t, t2])
 

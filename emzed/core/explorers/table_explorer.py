@@ -445,6 +445,11 @@ class TableExplorer(EmzedDialog):
         frame.setLayout(layout)
         return frame
 
+    def set_window_title(self, table, visible):
+        model_title = self.model.getTitle()
+        title = "%d out of %d rows from %s" % (len(visible), len(table), model_title)
+        self.setWindowTitle(title)
+
     def setupModelDependendLook(self):
         hasFeatures = self.model.hasFeatures()
         isIntegrated = self.model.isIntegrated()
@@ -454,7 +459,6 @@ class TableExplorer(EmzedDialog):
         if not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
             self.hasEIConly = True
 
-        self.setWindowTitle(self.model.getTitle())
 
         self.chooseSpectrum.setVisible(False)
         if hasFeatures != self.hadFeatures:
@@ -632,6 +636,8 @@ class TableExplorer(EmzedDialog):
                              protect_signal_handler(self.model.redoLastAction))
 
         self.connect(self.chooseGroupColumn, SIGNAL("activated(int)"), self.group_column_selected)
+
+        self.model.DATA_CHANGE.connect(self.set_window_title)
 
     def group_column_selected(self, idx):
         multi_select_available = (idx == 0)  # entry labeled "- manual multi select -"
