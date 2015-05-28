@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 from emzed.core.data_types import Table, PeakMap
 from emzed.core.data_types.col_types import Blob
@@ -790,3 +791,17 @@ def test_enhanced_dropcolumns():
 
     with pytest.raises(Exception):
         t.dropColumns("x", "x*")
+
+
+def test_col_name_trans(regtest):
+    t = emzed.utils.toTable("x", ())
+    t.addColumn("y", ())
+    import string
+
+    t.transformColumnNames(string.upper)
+    assert t.getColNames() == ["X", "Y"]
+
+    with pytest.raises(Exception) as e:
+        t.transformColumnNames(lambda s: "xx")
+
+    print(e.value, file=regtest)

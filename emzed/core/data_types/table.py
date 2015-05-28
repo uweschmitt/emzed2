@@ -841,6 +841,23 @@ class Table(object):
             del sys.modules["libms.DataStructures.MSTypes"]
         return tab
 
+    def transformColumnNames(self, transformation):
+        """transformation is a function mapping a string to a string.
+        this is used to modify the column names of the given table in-place.
+        """
+        new_names = [transformation(name) for name in self._colNames]
+        count_names = collections.Counter(new_names)
+        conflicts = []
+        for name, count in count_names.items():
+            if count > 1:
+                conflicts.append(name)
+        if conflicts:
+            conflicts = ", ".join(conflicts)
+            msg = "this renaming would produce conflicts as it generates new names %s" % conflicts
+            raise Exception(msg)
+        self._colNames = new_names
+        self.resetInternals()
+
     @staticmethod
     def load(path):
         """loads a table stored with :py:meth:`~.store`
