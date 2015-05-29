@@ -407,7 +407,7 @@ def testToOpenMSFeatureMap():
     assert f.getRT() == 2.0  # dito
 
 
-def test_removePostfixes():
+def test_removePostfixes(regtest):
     t = Table._create(["abb__0", "bcb__0"], [str] * 2, ["%s"] * 2)
     assert t.getColNames() == ["abb__0", "bcb__0"]
     t.removePostfixes()
@@ -415,8 +415,11 @@ def test_removePostfixes():
     t.removePostfixes("bb", "cb")
     assert t.getColNames() == ["a", "b"]
 
-    with pytest.raises(Exception):
-        t.removePostfixes("a", "b")
+    t = Table._create(["abb__0", "bcb__0", "abb"], [str] * 3, ["%s"] * 3)
+    with pytest.raises(Exception) as e:
+        t.removePostfixes()
+
+    print(e.value, file=regtest)
 
 
 def test_getters_and_setters():

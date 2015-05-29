@@ -1304,9 +1304,12 @@ class Table(object):
                     new_column_name = column_name
             new_column_names.append(new_column_name)
 
+        name_counter = collections.Counter(new_column_names)
+
         if len(set(new_column_names)) != len(new_column_names):
-            raise Exception("removing postfix(es) %r results in ambiguous"
-                            "column_names %s" % (postfixes, new_column_names))
+            duplicates = [n for (n, c) in name_counter.items() if c > 1]
+            raise Exception("removing postfix(es) %r results in duplicate"
+                            " column_name(s) '%s'" % (postfixes, ", ".join(duplicates)))
 
         self._colNames = new_column_names
         self.resetInternals()
