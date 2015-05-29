@@ -653,6 +653,9 @@ class BaseExpression(object):
             return tuple(values.tolist())
         return tuple(values)
 
+    def __iter__(self):
+        return iter(self.values)
+
     def uniqueValue(self, up_to_digits=None):
 
         values = self.values

@@ -805,3 +805,9 @@ def test_col_name_trans(regtest):
         t.transformColumnNames(lambda s: "xx")
 
     print(e.value, file=regtest)
+
+def test_expr_to_iter():
+    t = emzed.utils.toTable("x", (1, 2, 3.0))
+
+    assert tuple(t.x + 1) == (2, 3, 4.0)
+
