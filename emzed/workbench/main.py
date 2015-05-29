@@ -55,14 +55,18 @@ import re
 ORIGINAL_SYS_EXIT = sys.exit
 
 try:
-    pkg_resources.require("spyder")
+    # following line works on current win bubble at eth:
+    pkg_resources.require("spyder==2.1.13")
     import spyderlib
     print(spyderlib.__version__)
 except: 
+    import emzed.gui
     from setuptools.command.easy_install import main
 
     main([os.path.join(HERE, "spyder-2.1.13.zip")])
-    pkg_resources.require("spyder")
+    emzed.gui.showInformation("updates finished. please start again.")
+    import sys
+    sys.exit(0)
 
 
 import spyderlib
