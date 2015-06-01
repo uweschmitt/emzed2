@@ -1,3 +1,4 @@
+import pdb
 import cPickle
 import cStringIO
 import codecs
@@ -92,6 +93,32 @@ def convert_list_to_overall_type(li):
     if ct in (int, float, long, bool, str):
         return [None if x is None else ct(x) for x in li]
     return li
+
+
+def is_minute_value(s):
+    if isinstance(s, basestring) and s.endswith("m"):
+        try:
+            float(s[:-1])
+        except:
+            return False
+        else:
+            return True
+    return False
+
+
+def convert_minute_value(s):
+    return float(s[:-1]) * 60.0
+
+
+def cleanup_values(rows):
+    for row in rows:
+        for i, value in enumerate(row):
+            if isinstance(value, basestring):
+                #if value == "-":
+                    #row[i] = None
+                if is_minute_value(value):
+                    value = convert_minute_value(value)
+                    row[i] = value
 
 
 class Bunch(dict):
@@ -1669,16 +1696,20 @@ class Table(object):
 
             rows = [[conv(c.strip()) for c in row] for row in reader]
 
+        cleanup_values(rows)
+
         columns = [[row[i] for row in rows] for i in range(len(colNames))]
         types = [common_type_for(col) for col in columns]
 
         # now convert columns to their common type:
         for row in rows:
             for i, (v, t) in enumerate(zip(row, types)):
-                row[i] = t(v)
+                if v is not None:
+                    row[i] = t(v)
 
         formats = dict([(name, guessFormatFor(name, type_)) for (name, type_)
                         in zip(colNames, types)])
+
         formats.update(specialFormats)
 
         formats = [formats[n] for n in colNames]

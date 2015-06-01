@@ -1,6 +1,8 @@
-import pdb
+from __future__ import print_function
+
 import emzed
 import os.path
+
 
 def test_csv_parsing():
     here = os.path.dirname(os.path.abspath(__file__))
@@ -14,14 +16,23 @@ def test_type_converion(tmpdir):
     # test conversion
     assert t.id.values == ("1", "1A")
 
-    # dirty addition
+    # dirty addition
     t.rows.append([2])
     t.resetInternals()
     assert t.id.values == ("1", "1A", 2)
 
     path = tmpdir.join("1.csv").strpath
-    
+
     emzed.io.storeCSV(t, path)
     t = emzed.io.loadCSV(path)
     assert t.id.values == ("1", "1A", "2")
     assert t.getColTypes() == [str]
+
+def test_minute_handling(tmpdir, regtest):
+    t = emzed.utils.toTable("rt", (30.0, 180.0), format_=emzed.core.data_types.table.formatSeconds)
+    path = tmpdir.join("1.csv").strpath
+    emzed.io.storeCSV(t, path)
+    print(t, file=regtest)
+    print(open(path, "r").read(), file=regtest)
+    t = emzed.io.loadCSV(path)
+    assert t.rt.values == (30.0, 180.0)
