@@ -3,9 +3,11 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 12, 1)
+version = (2, 12, 4)
 
 setup(name="emzed",
+      # keywords=["stable"],
+      keywords=["alpha"],
       packages=find_packages(exclude=["tests", "sandbox"]),
       version="%d.%d.%d" % version,
       description="Rewrite of emzed framework for LCMS data analysis",
