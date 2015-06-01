@@ -354,14 +354,14 @@ def start_work(name=None, project_home=None):
 def activate_last_project():
     """ checks emzed config for current project and activates this """
 
-    last_project = global_config.get("last_active_project")
+    last_active_project = global_config.get("last_active_project")
     project_home = global_config.get("project_home")
 
-    if last_project:
-        # start_work(last_project) # does not work, crashes on win maybe bcause
+    if last_active_project:
+        # start_work(last_active_project) # does not work, crashes on win maybe bcause
         # starting pythonin subprocess
         import os
-        path_in_project_home = os.path.join(project_home, last_project)
+        path_in_project_home = os.path.join(project_home, last_active_project)
         _set_active_project(path_in_project_home)
         print "CWD TO", path_in_project_home
         try:
