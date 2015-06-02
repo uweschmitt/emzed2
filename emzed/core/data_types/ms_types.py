@@ -240,13 +240,7 @@ class PeakMap(object):
         self.meta = meta
         polarities = set(spec.polarity for spec in spectra)
         if len(polarities) > 1:
-            print
-            print "INCONSISTENT POLARITIES"
-            for i, s in enumerate(spectra):
-                print "%7.2fm : %s" % (s.rt / 60.0, s.polarity),
-                if i % 5 == 4:
-                    print
-            print
+            self.polarity = list(polarities)
         elif len(polarities) == 1:
             self.polarity = polarities.pop()
         else:
