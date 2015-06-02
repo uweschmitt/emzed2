@@ -114,8 +114,6 @@ def cleanup_values(rows):
     for row in rows:
         for i, value in enumerate(row):
             if isinstance(value, basestring):
-                #if value == "-":
-                    #row[i] = None
                 if is_minute_value(value):
                     value = convert_minute_value(value)
                     row[i] = value
