@@ -814,3 +814,8 @@ def test_expr_to_iter():
 
     assert tuple(t.x + 1) == (2, 3, 4.0)
 
+
+def test_slicing():
+    t = emzed.utils.toTable("x", (1, 2, 3.0))
+    assert t.x[:] == t.x.values
+    assert t.x[:0] == ()

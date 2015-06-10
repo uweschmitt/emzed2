@@ -656,6 +656,10 @@ class BaseExpression(object):
     def __iter__(self):
         return iter(self.values)
 
+    def __getitem__(self, what):
+        """delegate index access and slicing"""
+        return self.values[what]
+
     def uniqueValue(self, up_to_digits=None):
 
         values = self.values
