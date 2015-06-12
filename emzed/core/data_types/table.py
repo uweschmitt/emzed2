@@ -1814,6 +1814,16 @@ class Table(object):
     @staticmethod
     def _check_if_compatible(tables):
         assert all(isinstance(o, Table) for o in tables), "only tables allowed"
+
+        def diff_message(l1, l2, txt, names=None):
+            msgs = []
+            if names is None:
+                names = [""] * len(l1)
+            for i, (name, v1, v2) in enumerate(zip(names, l1, l2)):
+                if v1 != v2:
+                    msgs.append("%10s col(number=%d, name=%s): %s vs %s" % (txt, i, name, v1, v2))
+            return "\n".join(msgs)
+
         for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
             if t1.numCols() != t2.numCols():
                 raise Exception("tables %d and %d have different number columns (%d and %d)"
@@ -1821,11 +1831,14 @@ class Table(object):
 
         for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
             if t1._colNames != t2._colNames:
-                names1 = ", ".join(t1._colNames)
-                names2 = ", ".join(t2._colNames)
-                raise Exception("tables %d and %d have different column names (%s and %s)"
-                                % (i, i + 1, names1, names2))
+                msgs = []
+                for i, (n1, n2) in enumerate(zip(t1._colNames, t2._colNames)):
+                    if n1 != n2:
+                        msgs.append("  column %2d: %s vs %s" % (i, n1, n2))
+                msg = "\n".join(msgs)
+                raise Exception("column names do not fit: \n%s" % msg)
 
+        msgs = []
         for i, t1 in enumerate(tables):
             if len(t1) == 0:
                 continue
@@ -1835,17 +1848,16 @@ class Table(object):
                     continue
                 j = i + di + 1
                 if t1._colTypes != t2._colTypes:
-                    types1 = ", ".join(map(str, t1._colTypes))
-                    types2 = ", ".join(map(str, t2._colTypes))
-                    raise Exception("tables %d and %d have different column types (%s and %s)"
-                                    % (i, j, types1, types2))
+                    msg = diff_message(t1._colTypes, t2._colTypes, "%d/%d" % (i, j), t1._colNames)
+                    msgs.append(msg)
                 if t1._colFormats != t2._colFormats:
-                    formats1 = ", ".join(map(str, t1._colFormats))
-                    formats2 = ", ".join(map(str, t2._colFormats))
-                    raise Exception("tables %d and %d have different column formats (%r and %r)"
-                                    % (i, j, formats1, formats2))
+                    msg = diff_message(t1._colFormats, t2._colFormats, "%d/%d" % (i, j), t1._colNames)
+                    msgs.append(msg)
                 # we checked a pair of sequential tables (skipping empty ones), so:
                 break
+        if msgs:
+            full_msg = "\n".join(msgs)
+            raise Exception("detected incompatibilities: \n%s" % full_msg)
 
     @staticmethod
     def _merge_metas(tables):

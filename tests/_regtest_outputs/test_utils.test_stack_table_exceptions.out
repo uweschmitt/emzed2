@@ -1,4 +1,8 @@
-tables 0 and 2 have different column types (<type 'int'> and <type 'str'>)
+detected incompatibilities: 
+       0/2 col(number=0, name=a): <type 'int'> vs <type 'str'>
+       0/2 col(number=0, name=a): %d vs %s
 tables 0 and 1 have different number columns (2 and 1)
-tables 1 and 2 have different column names (a and c)
-tables 0 and 2 have different column formats ('%4d' and '%d')
+column names do not fit: 
+  column  0: a vs c
+detected incompatibilities: 
+       0/2 col(number=0, name=a): %4d vs %d
