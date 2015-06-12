@@ -33,7 +33,7 @@ __doc__ = """
 """
 
 
-def deprecation(message):
+def warn(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 
@@ -1069,6 +1069,9 @@ class Table(object):
 
         """
 
+        if type_ is None:
+            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
+
         self.ensureColNames(name)
         # we do:
         #      add tempcol, then delete oldcol, then rename tempcol -> oldcol
@@ -1115,6 +1118,9 @@ class Table(object):
         if "__" in name:
             raise Exception("double underscore in %r not allowed" % name)
 
+        if type_ is None:
+            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
+
         self._addColumnWithoutNameCheck(name, what, type_, format_, insertBefore, insertAfter)
 
     def _addColumnWithoutNameCheck(self, name, what, type_=None, format_="",
@@ -1144,7 +1150,7 @@ class Table(object):
                 return self._addColumFromIterable(name, what, type_, format_,
                                                   insertBefore, insertAfter)
             else:
-                warnings.warn("you added %d numpy array as colum", what.ndim)
+                warn("you added %d numpy array as colum", what.ndim)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
                                                        format_, insertBefore, insertAfter)
@@ -1653,6 +1659,7 @@ class Table(object):
 
         values = convert_list_to_overall_type(list(iterable))
         if type_ is None:
+            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
             type_ = common_type_for(values)
         if format_ == "":
             format_ = guessFormatFor(colName, type_)
