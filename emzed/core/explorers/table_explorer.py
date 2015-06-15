@@ -1,3 +1,4 @@
+import pdb
 # -*- coding: utf-8 -*-
 
 import os
@@ -44,9 +45,10 @@ def getColors(i, light=False):
     return "#" + "".join("%02x" % v for v in c)
 
 
-def configsForEics(eics):
+def configsForEics(eics, is_time_series):
     n = len(eics)
-    return [dict(linewidth=1.5, color=getColors(i)) for i in range(n)]
+    w = 1.5 if is_time_series else 1.5
+    return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
 
 
 def configsForSmootheds(smootheds):
@@ -456,9 +458,14 @@ class TableExplorer(EmzedDialog):
         self.hasFeatures = hasFeatures
         self.isIntegrated = isIntegrated
         self.hasEIConly = False
-        if not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
+        self.hasTimeSeries = False
+        if self.model.hasTimeSeries():
+            # overrides everything !
+            self.hasTimeSeries = True
+            isIntegrated = self.isIntegrated = False
+            self.hasFeatures = hasFeatures = True
+        elif not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
             self.hasEIConly = True
-
 
         self.chooseSpectrum.setVisible(False)
         if hasFeatures != self.hadFeatures:
@@ -611,7 +618,6 @@ class TableExplorer(EmzedDialog):
                     extra_args["mzmin"] = mzmin
                     extra_args["mzmax"] = mzmax
             del extra_args["mz"]
-            print(extra_args)
 
         insp = inspector(cell_value, modal=False, parent=self, **extra_args)
         if insp is not None:
@@ -822,6 +828,10 @@ class TableExplorer(EmzedDialog):
             self.rt_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
+        elif self.hasTimeSeries:
+            self.rt_plotter.setEnabled(True)
+            self.updatePlots(reset=True)
+            self.setupSpectrumChooser()
 
     def setupSpectrumChooser(self):
         # delete QComboBox:
@@ -870,6 +880,15 @@ class TableExplorer(EmzedDialog):
                     rtmaxs.append(rtmax)
                 curves.extend(eics)
 
+        elif self.hasTimeSeries:
+            for idx in self.model.selected_data_rows:
+                tsi = [tsi for tsi in self.model.getTimeSeries(idx) if tsi is not None]
+                xi = [xi for ts in tsi for xi in ts.x if xi is not None]
+                if xi:
+                    rtmins.append(min(xi))
+                    rtmaxs.append(max(xi))
+                    curves.extend(tsi)
+            self.plotMz(limits_from_rows=True)
         else:
             for idx in self.model.selected_data_rows:
                 eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.extractEICs(idx)
@@ -893,23 +912,25 @@ class TableExplorer(EmzedDialog):
         mzmax = max(mzmaxs) if mzmaxs else None
 
         if not reset:
-            rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
+            if not self.hasTimeSeries:
+                rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
             xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
 
-        configs = configsForEics(curves)
+        configs = configsForEics(curves, self.hasTimeSeries)
 
         curves += smoothed_curves
         configs += configsForSmootheds(smoothed_curves)
 
-        self.rt_plotter.plot(curves, configs=configs, titles=None, withmarker=True)
+        self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
 
         # allrts are sorted !
         if rtmin is not None and rtmax is not None:
             w = rtmax - rtmin
             if w == 0:
                 w = 30.0  # seconds
-            self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-            self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
+            if not self.hasTimeSeries:
+                self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
+                self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
             self.rt_plotter.replot()
 
             if not reset:
@@ -919,7 +940,7 @@ class TableExplorer(EmzedDialog):
 
         reset = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset else None
-        if not self.hasEIConly:
+        if not self.hasEIConly and not self.hasTimeSeries:
             self.plotMz(resetLimits=limits)
 
     @protect_signal_handler
@@ -937,21 +958,28 @@ class TableExplorer(EmzedDialog):
             self.mz_plotter.resetAxes()
             self.mz_plotter.replot()
 
-    def plotMz(self, resetLimits=None):
+    def plotMz(self, resetLimits=None, limits_from_rows=False):
         """ this one is used from updatePlots and the rangeselectors
             callback """
-        rtmin = self.rt_plotter.minRTRangeSelected
-        rtmax = self.rt_plotter.maxRTRangeSelected
         peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
         mzmin = mzmax = None
-        if resetLimits:
-            mzmin, mzmax = resetLimits
-            data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
+        if not limits_from_rows:
+            rtmin = self.rt_plotter.minRTRangeSelected
+            rtmax = self.rt_plotter.maxRTRangeSelected
+            if resetLimits:
+                mzmin, mzmax = resetLimits
+                data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
+            else:
+                data = []
+                for pm in peakmaps:
+                    mzmin, mzmax = pm.mzRange()
+                    data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
         else:
-            data = []
-            for pm in peakmaps:
-                mzmin, mzmax = pm.mzRange()
-                data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+            windows = [wi for idx in self.model.selected_data_rows for wi in self.model.getEICWindows(idx)]
+            data = [(pm,) + tuple(w) + (3000,) for (pm, w) in zip(peakmaps, windows)]
+            if data:
+                mzmin = min(wi[2] for wi in windows)
+                mzmax = max(wi[3] for wi in windows)
 
         configs = configsForSpectra(len(peakmaps))
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())

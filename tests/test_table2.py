@@ -1,8 +1,6 @@
 from __future__ import print_function
-import pdb
 
-from emzed.core.data_types import Table, PeakMap
-from emzed.core.data_types.col_types import Blob
+from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
 import emzed.utils
 import emzed.mass
 import numpy as np
@@ -505,6 +503,23 @@ def test_uniuqe_id():
     t.addColumn("pm", PeakMap([]))
     t.addColumn("blob", Blob("data"))
     assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
+
+
+def test_ts(regtest_redirect):
+    t = emzed.utils.toTable("id", [1, 1, 2])
+    # peakmap unique id already tested by compression of peakmap:
+    x = [None, 1, 2, 3, 4, None, None, 4, None]
+    y = [None, 11, 12, 14, 13, None, None, 100, None]
+    ts = TimeSeries(x, y)
+    t.addColumn("ts", ts, format_="%s")
+
+    with regtest_redirect():
+        for xi, yi in ts.segments():
+            print(xi, yi)
+        print(TimeSeries([], []))
+        print(t)
+        print(t.ts[0].uniqueId())
+        print(t.uniqueId())
 
 
 def test_missing_values_binary_expressions():
