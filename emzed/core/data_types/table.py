@@ -47,7 +47,8 @@ class CallBack(object):
         return self.label
 
 
-standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s", unicode: "%s", CallBack: "%s"}
+standardFormats = {int: "%d", long: "%d", float: "%.2f",
+                   str: "%s", unicode: "%s", CallBack: "%s"}
 
 fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
 
@@ -209,7 +210,8 @@ class Table(object):
 
         assert all("__" not in name for name in colNames),\
             "illegal column name(s), double underscores not allowed"
-        self._setup_without_namecheck(colNames, colTypes, colFormats, rows, title, meta)
+        self._setup_without_namecheck(
+            colNames, colTypes, colFormats, rows, title, meta)
 
     @classmethod
     def _create(clz, colNames, colTypes, colFormats, rows=None, title=None, meta=None):
@@ -527,7 +529,8 @@ class Table(object):
             found = ", ".join(sorted(found))
             missing = ", ".join(sorted(missing))
             if tobe != missing:
-                msg = "expected names %s, found %s but %s where missing" % (tobe, found, missing)
+                msg = "expected names %s, found %s but %s where missing" % (
+                    tobe, found, missing)
             else:
                 msg = "expected names %s but found %s" % (tobe, found)
 
@@ -594,7 +597,8 @@ class Table(object):
             be carefull we only check the length not the types !
         """
         assert 0 <= idx < len(self)
-        assert len(row) == len(self._colNames), "row as wrong length %d" % len(row)
+        assert len(row) == len(
+            self._colNames), "row as wrong length %d" % len(row)
 
         # check for conversion !
         for i, (v, t) in enumerate(zip(row, self._colTypes)):
@@ -675,7 +679,8 @@ class Table(object):
         col_idx = self._find_insert_column(insertBefore, insertAfter, 0)
 
         values = [v + startWith for v in self.enumerateBy()]
-        self._addColumFromIterable(colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
+        self._addColumFromIterable(
+            colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
     def sortBy(self, colNames, ascending=True):
         """
@@ -694,7 +699,8 @@ class Table(object):
 
         idxs = [self.colIndizes[name] for name in colNames]
 
-        decorated = [([row[idx] for idx in idxs], i) for (i, row) in enumerate(self.rows)]
+        decorated = [([row[idx] for idx in idxs], i)
+                     for (i, row) in enumerate(self.rows)]
         decorated.sort(reverse=not ascending)
         permutation = [i for (_, i) in decorated]
 
@@ -707,7 +713,8 @@ class Table(object):
         return permutation
 
     def _applyRowPermutation(self, permutation):
-        self.rows = [self.rows[permutation[i]] for i in range(len(permutation))]
+        self.rows = [self.rows[permutation[i]]
+                     for i in range(len(permutation))]
         self.resetInternals()
 
     def copy(self):
@@ -807,14 +814,16 @@ class Table(object):
             writer = csv.writer(fp, delimiter=";")
             if as_printed:
                 colNames = self.getVisibleCols()
-                formatters = [_formatter(self.getColFormat(n)) for n in colNames]
+                formatters = [
+                    _formatter(self.getColFormat(n)) for n in colNames]
             else:
                 colNames = self._colNames
                 noop = lambda x: x
                 formatters = [noop for n in colNames]
             writer.writerow(colNames)
             for row in self.rows:
-                data = [f(self.getValue(row, v)) for (f, v) in zip(formatters, colNames)]
+                data = [f(self.getValue(row, v))
+                        for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)
 
     def store(self, path, forceOverwrite=False, compressed=True):
@@ -826,11 +835,13 @@ class Table(object):
         Latter the file can be loaded with :py:meth:`~.load`
         """
         if not forceOverwrite and os.path.exists(path):
-            raise Exception("%s exists. You may use forceOverwrite=True" % path)
+            raise Exception(
+                "%s exists. You may use forceOverwrite=True" % path)
         if compressed:
             self.compressPeakMaps()
         with open(path, "w+b") as fp:
-            fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
+            fp.write("emzed_version=%s.%s.%s\n" %
+                     self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
 
@@ -847,7 +858,8 @@ class Table(object):
         if not isinstance(data, (list, tuple)):
             raise Exception("data item from file is not list or tuple")
         if len(data) != len(Table._to_pickle):
-            raise Exception("number of data items from file does not match Table._to_pickle")
+            raise Exception(
+                "number of data items from file does not match Table._to_pickle")
         tab = Table([], [], [], [], None, None)
         for name, item in zip(Table._to_pickle, data):
             setattr(tab, name, item)
@@ -1070,7 +1082,8 @@ class Table(object):
         """
 
         if type_ is None:
-            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
 
         self.ensureColNames(name)
         # we do:
@@ -1101,7 +1114,8 @@ class Table(object):
         if self.hasColumn(name):
             self.replaceColumn(name, what, type_, format_)
         else:
-            self.addColumn(name, what, type_, format_, insertBefore, insertAfter)
+            self.addColumn(
+                name, what, type_, format_, insertBefore, insertAfter)
 
     def addColumn(self, name, what, type_=None, format_="", insertBefore=None, insertAfter=None):
         """
@@ -1119,9 +1133,11 @@ class Table(object):
             raise Exception("double underscore in %r not allowed" % name)
 
         if type_ is None:
-            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
 
-        self._addColumnWithoutNameCheck(name, what, type_, format_, insertBefore, insertAfter)
+        self._addColumnWithoutNameCheck(
+            name, what, type_, format_, insertBefore, insertAfter)
 
     def _addColumnWithoutNameCheck(self, name, what, type_=None, format_="",
                                    insertBefore=None, insertAfter=None):
@@ -1178,7 +1194,8 @@ class Table(object):
             return len(self._colNames)
 
         if insertBefore is not None and insertAfter is not None:
-            raise Exception("can not handle insertBefore and insertAfter at the same time")
+            raise Exception(
+                "can not handle insertBefore and insertAfter at the same time")
 
         if insertBefore is not None:
             # colname -> index
@@ -1200,7 +1217,8 @@ class Table(object):
         # to python types if present, else does nothing !!!!
 
         assert len(values) == len(self), "length of new column %d does not "\
-                                         "fit number of rows %d in table" % (len(values), len(self))
+                                         "fit number of rows %d in table" % (
+                                             len(values), len(self))
 
         if type(values) == np.ma.core.MaskedArray:
             values = values.tolist()  # handles missing values as None !
@@ -1310,8 +1328,10 @@ class Table(object):
             else:
                 filteredTable.rows = []
         else:
-            assert len(flags) == len(self), "result of filter expression does not match table size"
-            filteredTable.rows = [self.rows[n][:] for n, i in enumerate(flags) if i]
+            assert len(flags) == len(
+                self), "result of filter expression does not match table size"
+            filteredTable.rows = [self.rows[n][:]
+                                  for n, i in enumerate(flags) if i]
         return filteredTable
 
     def removePostfixes(self, *postfixes):
@@ -1438,7 +1458,8 @@ class Table(object):
                 if flags[0]:
                     rows.extend([r1[:] + row[:] for row in t.rows])
             else:
-                rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
+                rows.extend([r1[:] + t.rows[n][:]
+                             for (n, i) in enumerate(flags) if i])
             cmdlineProgress.progress(ii)
         cmdlineProgress.finish()
         table.rows = rows
@@ -1497,7 +1518,8 @@ class Table(object):
                 else:
                     rows.extend([r1[:] + filler[:]])
             elif np.any(flags):
-                rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
+                rows.extend([r1[:] + t.rows[n][:]
+                             for (n, i) in enumerate(flags) if i])
             else:
                 rows.extend([r1[:] + filler[:]])
             cmdlineProgress.progress(ii)
@@ -1659,7 +1681,8 @@ class Table(object):
 
         values = convert_list_to_overall_type(list(iterable))
         if type_ is None:
-            warn("you did not provide a type_ parameter, this might be dangerous !!!!")
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
             type_ = common_type_for(values)
         if format_ == "":
             format_ = guessFormatFor(colName, type_)
@@ -1733,7 +1756,8 @@ class Table(object):
         if "feature_id" in self._colNames:
             # feature table from openms
             ti = self.splitBy("feature_id")
-            # intensity, rt, mz should be the same value for each feature table:
+            # intensity, rt, mz should be the same value for each feature
+            # table:
             areas = [t0.intensity.values[0] for t0 in ti]
             rts = [t0.rt.values[0] for t0 in ti]
             mzs = [t0.mz.values[0] for t0 in ti]
@@ -1781,24 +1805,28 @@ class Table(object):
             only if it appers in  ``tables``.
 
         """
-        assert isinstance(tables, (list, tuple)), "need list of tables as first argument"
+        assert isinstance(
+            tables, (list, tuple)), "need list of tables as first argument"
         if reference_table is not None:
             final_colnames = reference_table._colNames
             start_with = reference_table.buildEmptyClone()
         else:
             final_colnames, final_types, final_formats = tools._build_starttable(
                 tables, force_merge)
-            start_with = Table._create(final_colnames, final_types, final_formats)
+            start_with = Table._create(
+                final_colnames, final_types, final_formats)
 
         extended_tables = []
         for table in tables:
-            missing_names = [c for c in final_colnames if c not in table._colNames]
+            missing_names = [
+                c for c in final_colnames if c not in table._colNames]
             if missing_names:
                 table = table.copy()
                 for name in missing_names:
                     type_ = start_with.getType(name)
                     format_ = start_with.getFormat(name)
-                    table._addColumnWithoutNameCheck(name, None, type_, format_)
+                    table._addColumnWithoutNameCheck(
+                        name, None, type_, format_)
             table = table.extractColumns(*final_colnames)
             extended_tables.append(table)
 
@@ -1828,7 +1856,8 @@ class Table(object):
                 names = [""] * len(l1)
             for i, (name, v1, v2) in enumerate(zip(names, l1, l2)):
                 if v1 != v2:
-                    msgs.append("%10s col(number=%d, name=%s): %s vs %s" % (txt, i, name, v1, v2))
+                    msgs.append(
+                        "%10s col(number=%d, name=%s): %s vs %s" % (txt, i, name, v1, v2))
             return "\n".join(msgs)
 
         for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
@@ -1855,12 +1884,15 @@ class Table(object):
                     continue
                 j = i + di + 1
                 if t1._colTypes != t2._colTypes:
-                    msg = diff_message(t1._colTypes, t2._colTypes, "%d/%d" % (i, j), t1._colNames)
+                    msg = diff_message(
+                        t1._colTypes, t2._colTypes, "%d/%d" % (i, j), t1._colNames)
                     msgs.append(msg)
                 if t1._colFormats != t2._colFormats:
-                    msg = diff_message(t1._colFormats, t2._colFormats, "%d/%d" % (i, j), t1._colNames)
+                    msg = diff_message(
+                        t1._colFormats, t2._colFormats, "%d/%d" % (i, j), t1._colNames)
                     msgs.append(msg)
-                # we checked a pair of sequential tables (skipping empty ones), so:
+                # we checked a pair of sequential tables (skipping empty ones),
+                # so:
                 break
         if msgs:
             full_msg = "\n".join(msgs)
@@ -1910,11 +1942,57 @@ class Table(object):
         rows = []
         for subt in self.splitBy(*col_names):
             key_values = [subt.getValue(subt.rows[0], n) for n in col_names]
-            subt.title = ", ".join(["%s=%s" % (cn, kv) for (cn, kv) in zip(col_names, key_values)])
+            subt.title = ", ".join(["%s=%s" % (cn, kv)
+                                    for (cn, kv) in zip(col_names, key_values)])
             row = key_values + [subt]
             rows.append(row)
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
+
+    def splitVerticaly(self, columns):
+        """this method separates a table vertically based on columnames.
+        the method returns two tables: the first one matches the given column names, the second is the
+        reminder.
+
+        the argument *columns* is either a string or a list of strings. Globbing is allowed !
+        So for example::
+
+             tleft, tright = t.splitVerticaly("rt*", "mz*")
+
+        will return two tables. The left one has columns where the names start with "mz" or "rt",
+        the right one contains the reminder.
+        """
+        if isinstance(columns, basestring):
+            columns = [columns]
+        assert all(isinstance(n, basestring) for n in columns), "need strings as argument(s)"
+
+        to_separate = []
+        to_keep = []
+        for ix, name in enumerate(self._colNames):
+            if any(fnmatch.fnmatch(name, pattern) for pattern in columns):
+                to_separate.append(ix)
+            else:
+                to_keep.append(ix)
+
+        def _separate(values):
+            values_to_keep = [values[ix] for ix in to_keep]
+            values_to_separate = [values[ix] for ix in to_separate]
+            return values_to_keep, values_to_separate
+
+        rows_to_keep, rows_to_separate = zip(*map(_separate, self.rows))
+        names_to_keep, names_to_separate = _separate(self._colNames)
+        types_to_keep, types_to_separate = _separate(self._colTypes)
+        formats_to_keep, formats_to_separate = _separate(self._colFormats)
+        meta_to_keep = self.meta.copy()
+        meta_to_separate = self.meta.copy()
+
+        table_to_keep = Table._create(names_to_keep, types_to_keep, formats_to_keep, rows_to_keep,
+                                      meta=meta_to_keep)
+
+        table_to_separate = Table._create(names_to_separate, types_to_separate, formats_to_separate,
+                                          rows_to_separate, meta=meta_to_separate)
+
+        return table_to_separate, table_to_keep
 
     def _resetUniqueId(self):
         if "unique_id" in self.meta:
@@ -1972,7 +2050,8 @@ class Table(object):
     def to_pandas(self):
         """ converts table to pandas DataFrame object """
         import pandas
-        data = dict((name, getattr(self, name).values) for name in self.getColNames())
+        data = dict((name, getattr(self, name).values)
+                    for name in self.getColNames())
         return pandas.DataFrame(data, columns=self.getColNames())
 
     @staticmethod
@@ -2035,7 +2114,8 @@ class Table(object):
                 t = common_type_for(column)
                 col_types[i] = t
 
-        _formats = {int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
+        _formats = {
+            int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
         if formats is not None:
             _formats.update(formats)
 

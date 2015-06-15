@@ -819,3 +819,18 @@ def test_slicing():
     t = emzed.utils.toTable("x", (1, 2, 3.0))
     assert t.x[:] == t.x.values
     assert t.x[:0] == ()
+
+
+def test_vertical_split(regtest):
+    t = emzed.utils.toTable("x", (1, 2, 3.0))
+    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d")
+    t.addColumn("yi", 1.0, type_=float, format_="%.7e")
+
+    t1, t2 = t.splitVerticaly("x")
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVerticaly("x*")
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVerticaly(["x", "xi"])
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVerticaly("?i")
+    print(t1, t2, file=regtest)
