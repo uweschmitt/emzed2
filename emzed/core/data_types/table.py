@@ -1959,7 +1959,7 @@ class Table(object):
         the argument *columns* is either a string or a list of strings. Globbing is allowed !
         So for example::
 
-             tleft, tright = t.splitVerticaly("rt*", "mz*")
+             tleft, tright = t.splitVertically("rt*", "mz*")
 
         will return two tables. The left one has columns where the names start with "mz" or "rt",
         the right one contains the reminder.
@@ -1981,7 +1981,10 @@ class Table(object):
             values_to_separate = [values[ix] for ix in to_separate]
             return values_to_keep, values_to_separate
 
-        rows_to_keep, rows_to_separate = zip(*map(_separate, self.rows))
+        if len(self.rows):
+            rows_to_keep, rows_to_separate = zip(*map(_separate, self.rows))
+        else:
+            rows_to_keep, rows_to_separate = [], []
         names_to_keep, names_to_separate = _separate(self._colNames)
         types_to_keep, types_to_separate = _separate(self._colTypes)
         formats_to_keep, formats_to_separate = _separate(self._colFormats)

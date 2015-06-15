@@ -840,3 +840,12 @@ def test_vertical_split(regtest):
     print(t1, t2, file=regtest)
     assert t1.shape == (3, 0)
     assert t2.shape == (3, 3)
+
+    t_empty = t.filter(t.x == -1)
+    assert t_empty.shape == (0, 3)
+
+    assert t1.shape == (3, 0)
+    t1, t2 = t_empty.splitVertically("x")
+    print(t1, t2, file=regtest)
+
+
