@@ -1281,6 +1281,8 @@ class Table(object):
         self._setupColumnAttributes()
         self._resetUniqueId()
 
+        self.shape = (len(self), len(self._colNames))
+
     def uniqueRows(self, byColumns=None):
         """
         extracts table with unique rows.
