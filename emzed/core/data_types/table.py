@@ -1951,7 +1951,7 @@ class Table(object):
 
         return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
 
-    def splitVerticaly(self, columns):
+    def splitVertically(self, columns):
         """this method separates a table vertically based on columnames.
         the method returns two tables: the first one matches the given column names, the second is the
         reminder.

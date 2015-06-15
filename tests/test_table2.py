@@ -1,4 +1,5 @@
 from __future__ import print_function
+import pdb
 
 from emzed.core.data_types import Table, PeakMap
 from emzed.core.data_types.col_types import Blob
@@ -822,15 +823,20 @@ def test_slicing():
 
 
 def test_vertical_split(regtest):
-    t = emzed.utils.toTable("x", (1, 2, 3.0))
+    t = emzed.utils.toTable("x", (1, 2, 3.0), type_=int)
     t.addColumn("xi", (1, None, -1), type_=int, format_="%03d")
     t.addColumn("yi", 1.0, type_=float, format_="%.7e")
 
-    t1, t2 = t.splitVerticaly("x")
+    t1, t2 = t.splitVertically("x")
     print(t1, t2, file=regtest)
-    t1, t2 = t.splitVerticaly("x*")
+    t1, t2 = t.splitVertically("x*")
     print(t1, t2, file=regtest)
-    t1, t2 = t.splitVerticaly(["x", "xi"])
+    t1, t2 = t.splitVertically(["x", "xi"])
     print(t1, t2, file=regtest)
-    t1, t2 = t.splitVerticaly("?i")
+    t1, t2 = t.splitVertically("?i")
     print(t1, t2, file=regtest)
+
+    t1, t2 = t.splitVertically("abc")
+    print(t1, t2, file=regtest)
+    assert t1.shape == (3, 0)
+    assert t2.shape == (3, 3)
