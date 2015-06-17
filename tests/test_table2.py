@@ -849,3 +849,66 @@ def test_vertical_split(regtest):
     print(t1, t2, file=regtest)
 
 
+def test_iter(regtest):
+
+    t = emzed.utils.toTable("x", (1, 2, 3.0), type_=int)
+    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d")
+    t.addColumn("yi", 1.0, type_=float, format_="%.7e")
+
+    # we record the ids of the internal dict to make sure that this is only created
+    # once per iteration over t, which saves a huge amount of memory !
+    ids = set()
+
+    print()
+    print(t, file=regtest)
+    print()
+
+    for i, row in enumerate(t):
+        print(row)
+        ids.add(id(row._dict))
+        assert len(row) == 3
+
+        assert row.x in (1, 2, 3.0)
+        assert row.xi in (1, None, -1)
+        assert row.yi == 1.0
+
+        assert row["x"] == row.x
+        assert row["xi"] == row.xi
+        assert row["yi"] == row.yi
+
+        assert row[0] == row.x
+        assert row[1] == row.xi
+        assert row[2] == row.yi
+
+        print()
+        print(i)
+        print("keys=", row.keys(), file=regtest)
+        print("values=", row.values(), file=regtest)
+        print("items=", row.items(), file=regtest)
+        print("as list=", list(row), file=regtest)
+        print("as str=", str(row), file=regtest)
+        print()
+
+
+    assert len(ids) == 1
+
+    # we record the ids of the internal dict again to make sure that _dict is a different one
+    # as before, but still unique for the iteration:
+    for row in t:
+        print(row)
+        ids.add(id(row._dict))
+        assert len(row) == 3
+
+        assert row.x in (1, 2, 3.0)
+        assert row.xi in (1, None, -1)
+        assert row.yi == 1.0
+
+        assert row["x"] == row.x
+        assert row["xi"] == row.xi
+        assert row["yi"] == row.yi
+
+        assert row[0] == row.x
+        assert row[1] == row.xi
+        assert row[2] == row.yi
+
+    assert len(ids) == 2

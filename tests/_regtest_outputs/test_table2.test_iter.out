@@ -1,0 +1,22 @@
+x        xi       yi           
+int      int      float        
+------   ------   ------       
+1        001      1.0000000e+00
+2        -        1.0000000e+00
+3        -01      1.0000000e+00
+
+keys= ['yi', 'x', 'xi']
+values= [1.0, 1, 1.0]
+items= [('yi', 1.0), ('x', 1), ('xi', 1.0)]
+as list= [('yi', 1.0), ('x', 1), ('xi', 1.0)]
+as str= [1.0, 1, 1.0]
+keys= ['yi', 'x', 'xi']
+values= [2.0, None, 1.0]
+items= [('yi', 2.0), ('x', None), ('xi', 1.0)]
+as list= [('yi', 2.0), ('x', None), ('xi', 1.0)]
+as str= [2.0, None, 1.0]
+keys= ['yi', 'x', 'xi']
+values= [3.0, -1, 1.0]
+items= [('yi', 3.0), ('x', -1), ('xi', 1.0)]
+as list= [('yi', 3.0), ('x', -1), ('xi', 1.0)]
+as str= [3.0, -1, 1.0]

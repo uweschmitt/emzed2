@@ -47,6 +47,50 @@ class CallBack(object):
         return self.label
 
 
+def create_row_class(table):
+
+    class Row(object):
+
+        # we store this mapping in the class, not in the instance, this
+        # saves memory for huge tables:
+
+        _dict = dict(zip(table._colNames, range(len(table._colNames))))
+
+        def __init__(self, values):
+            self._data = values
+            self._dict = Row._dict
+
+        def __getitem__(self, ix):
+            if isinstance(ix, int):
+                return self._data[ix]
+            else:
+                return self._data[Row._dict[ix]]
+
+        def __getattr__(self, name):
+            if name in Row._dict.keys():
+                return self._data[Row._dict[name]]
+            raise NameError("attribute %s not known" % name)
+
+        def __len__(self):
+            return len(self._data)
+
+        def keys(self):
+            return Row._dict.keys()
+
+        def values(self):
+            return self._data
+
+        def items(self):
+            return zip(Row._dict.keys(), self._data)
+
+        def __iter__(self):
+            return iter(self.items())
+
+        def __str__(self):
+            return str(self._data)
+
+    return Row
+
 standardFormats = {int: "%d", long: "%d", float: "%.2f",
                    str: "%s", unicode: "%s", CallBack: "%s"}
 
@@ -567,8 +611,10 @@ class Table(object):
         self.resetInternals()
 
     def __iter__(self):
+
+        Row = create_row_class(self)
         for row in self.rows:
-            yield row
+            yield Row(row)
 
     def getValues(self, row):
         """
