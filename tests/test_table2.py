@@ -885,6 +885,11 @@ def test_iter(regtest):
 
         print(file=regtest)
         print(i)
+        print(row[:], file=regtest)
+        print(row[:-1], file=regtest)
+        print(row[1:], file=regtest)
+        print(row[:-1], file=regtest)
+        print(row[1:3], file=regtest)
         print("keys=", row.keys(), file=regtest)
         print("values=", row.values(), file=regtest)
         print("items=", row.items(), file=regtest)
@@ -916,5 +921,6 @@ def test_iter(regtest):
         assert row[0] == row.x
         assert row[1] == row.xi
         assert row[2] == row.yi
+
 
     assert len(ids) == 2

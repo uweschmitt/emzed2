@@ -63,7 +63,7 @@ def create_row_class(table):
             self.__dict__["_dict"] = Row._dict
 
         def __getitem__(self, ix):
-            if isinstance(ix, int):
+            if isinstance(ix, (int, slice)):
                 return self._data[ix]
             else:
                 return self._data[Row._dict[ix]]
@@ -95,7 +95,8 @@ def create_row_class(table):
             self._data[ix] = value
 
         def __setattr__(self, name, value):
-            self._data[Row._dict[name]] = value
+            if name in Row._dict:
+                self._data[Row._dict[name]] = value
 
 
     return Row
