@@ -57,8 +57,10 @@ def create_row_class(table):
         _dict = dict(zip(table._colNames, range(len(table._colNames))))
 
         def __init__(self, values):
-            self._data = values
-            self._dict = Row._dict
+            # as we override __setattr__ below we have to set the following attributes
+            # using self.__dict__:
+            self.__dict__["_data"] = values
+            self.__dict__["_dict"] = Row._dict
 
         def __getitem__(self, ix):
             if isinstance(ix, int):
@@ -88,6 +90,13 @@ def create_row_class(table):
 
         def __str__(self):
             return str(self._data)
+
+        def __setitem__(self, ix, value):
+            self._data[ix] = value
+
+        def __setattr__(self, name, value):
+            self._data[Row._dict[name]] = value
+
 
     return Row
 

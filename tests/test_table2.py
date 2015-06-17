@@ -859,9 +859,9 @@ def test_iter(regtest):
     # once per iteration over t, which saves a huge amount of memory !
     ids = set()
 
-    print()
+    print(file=regtest)
     print(t, file=regtest)
-    print()
+    print(file=regtest)
 
     for i, row in enumerate(t):
         print(row)
@@ -880,15 +880,21 @@ def test_iter(regtest):
         assert row[1] == row.xi
         assert row[2] == row.yi
 
-        print()
+        row[0] = 4711
+        row.yi = "42"
+
+        print(file=regtest)
         print(i)
         print("keys=", row.keys(), file=regtest)
         print("values=", row.values(), file=regtest)
         print("items=", row.items(), file=regtest)
         print("as list=", list(row), file=regtest)
         print("as str=", str(row), file=regtest)
-        print()
+        print(file=regtest)
 
+    print(t, file=regtest)
+
+    # we changed the table in place, now check this:
 
     assert len(ids) == 1
 
@@ -899,9 +905,9 @@ def test_iter(regtest):
         ids.add(id(row._dict))
         assert len(row) == 3
 
-        assert row.x in (1, 2, 3.0)
+        assert row.x == 4711
         assert row.xi in (1, None, -1)
-        assert row.yi == 1.0
+        assert row.yi == "42"
 
         assert row["x"] == row.x
         assert row["xi"] == row.xi
