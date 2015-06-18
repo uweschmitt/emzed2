@@ -852,8 +852,8 @@ def test_vertical_split(regtest):
 def test_iter(regtest):
 
     t = emzed.utils.toTable("x", (1, 2, 3.0), type_=int)
-    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d")
-    t.addColumn("yi", 1.0, type_=float, format_="%.7e")
+    t.addColumn("yi", "1.0", type_=str, format_="%5s", insertAfter="x")
+    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d", insertBefore=1)
 
     # we record the ids of the internal dict to make sure that this is only created
     # once per iteration over t, which saves a huge amount of memory !
@@ -864,13 +864,12 @@ def test_iter(regtest):
     print(file=regtest)
 
     for i, row in enumerate(t):
-        print(row)
         ids.add(id(row._dict))
         assert len(row) == 3
 
         assert row.x in (1, 2, 3.0)
         assert row.xi in (1, None, -1)
-        assert row.yi == 1.0
+        assert row.yi == "1.0"
 
         assert row["x"] == row.x
         assert row["xi"] == row.xi
@@ -880,16 +879,19 @@ def test_iter(regtest):
         assert row[1] == row.xi
         assert row[2] == row.yi
 
+        print(file=regtest)
+        print("iter", i, file=regtest)
+        print("row %d before modification is" % i, row, file=regtest)
+
         row[0] = 4711
         row.yi = "42"
-
+        print("row %d after modification is" % i, row, file=regtest)
+        print("table is\n", t, file=regtest)
         print(file=regtest)
-        print(i)
-        print(row[:], file=regtest)
-        print(row[:-1], file=regtest)
-        print(row[1:], file=regtest)
-        print(row[:-1], file=regtest)
-        print(row[1:3], file=regtest)
+        print("row copy is", row[:], file=regtest)
+        print("row[:-1] is", row[:-1], file=regtest)
+        print("row[1:] is", row[1:], file=regtest)
+        print("row[1:3] is", row[1:3], file=regtest)
         print("keys=", row.keys(), file=regtest)
         print("values=", row.values(), file=regtest)
         print("items=", row.items(), file=regtest)
