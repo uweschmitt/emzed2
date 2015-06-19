@@ -369,7 +369,6 @@ class MzPlotter(PlotterBase):
                 npeaks = 3000
 
             peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-            print "peaks=", peaks.shape
             all_peaks.append(peaks)
             config = configs[i] if configs is not None else None
             if config is None:
@@ -379,7 +378,6 @@ class MzPlotter(PlotterBase):
             else:
                 title = u""
             curve = make.curve([], [], title=title, curvestyle="Sticks", **config)
-            print("plot")
             curve.set_data(peaks[:, 0], peaks[:, 1])
             curve.__class__ = ModifiedCurveItem
             self.widget.plot.add_item(curve)

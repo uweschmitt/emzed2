@@ -939,5 +939,9 @@ def test_iter(regtest):
         assert row[1] == row.xi
         assert row[2] == row.yi
 
+    for a, b, c in t:
+        print(a, b, c, file=regtest)
+        
+
 
     assert len(ids) == 2

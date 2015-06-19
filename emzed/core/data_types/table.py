@@ -86,7 +86,7 @@ def create_row_class(table):
             return zip(Row._dict.keys(), self._data)
 
         def __iter__(self):
-            return iter(self.items())
+            return iter(self._data)
 
         def __str__(self):
             return str(self._data)
