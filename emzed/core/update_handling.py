@@ -244,7 +244,7 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         latest_version = tuple(map(int, version_str.split(".")))
         if latest_version > version.version:
             s = "stable" if is_stable else "untested"
-            return "new %s emzed version %s available" % (s, version_str), True
+            return "new %s emzed version %s available" % (s.upper(), version_str), True
         return "emzed still up to date", False
 
     def do_update(self, limit):
