@@ -3,7 +3,7 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from ..data_types import PeakMap
+from ..data_types import PeakMap, TimeSeries
 
 import guidata
 
@@ -277,7 +277,7 @@ class TableModel(QAbstractTableModel):
         return self.checkForAny("eic")
 
     def hasTimeSeries(self):
-        return self.checkForAny("time_series")
+        return any(t is TimeSeries for t in self.table.getColTypes())
 
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
@@ -364,10 +364,9 @@ class TableModel(QAbstractTableModel):
 
     def getTimeSeries(self, data_row_idx):
         ts = []
-        for p in self.table.supportedPostfixes(["time_series"]):
-            tsi = self.table.getValue(self.table.rows[data_row_idx], "time_series" + p)
-            ts.append(tsi)
-        return ts
+        cols = [i for (i, t) in enumerate(self.table.getColTypes()) if t is TimeSeries]
+        row = self.table.rows[data_row_idx]
+        return [row[c] for c in cols]
 
     def getLevelNSpectra(self, data_row_idx, minLevel=2, maxLevel=999):
         spectra = []

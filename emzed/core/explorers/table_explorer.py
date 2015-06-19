@@ -1,6 +1,4 @@
-import pdb
 # -*- coding: utf-8 -*-
-
 import os
 
 from PyQt4.QtGui import *

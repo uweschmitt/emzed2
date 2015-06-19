@@ -37,7 +37,7 @@ t = emzed.utils.integrate(t)
 # t.dropColumns("peakmap", "rtmin")
 t.addEnumeration()
 t.addColumn("f", t.id / 3)
-t.addColumn("time_series", tsi, format_="%s", type_=object)
+t.addColumn("time_series", tsi, format_="%s", type_=TimeSeries)
 
 print t.getColFormats()
 
