@@ -47,6 +47,7 @@ class TableModel(QAbstractTableModel):
         self.setFiltersEnabled(False)
 
         self.selected_data_rows = []
+        self.counter_for_calls_to_sort = 0
 
     def set_selected_data_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
@@ -252,14 +253,22 @@ class TableModel(QAbstractTableModel):
         raise RuntimeError("obsolte method, use removeRows instead")
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
-        if len(self.widgetColToDataCol):
-            dataColIdx = self.widgetColToDataCol[colIdx]
-            self.beginResetModel()
-            self.runAction(SortTableAction, dataColIdx, colIdx, order)
-            self.current_sort_col_idx = colIdx
-            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
-            #self.endResetModel()
-            #self.emit_data_change()
+        # the counter is a dirty hack: during startup of table explorer the sort method is
+        # called twice automatically, so the original order of the table is not maintained
+        # in the view when the explorer windows shows up.
+        # we count the calls ignore the first two calls. then sorting is only done if
+        # the user clicks to a column heading.
+        # this is a dirty hack but I cound not find out why sort() is called twice.
+        # the first call is triggered by setSortingEnabled() in the table view, the origin
+        # of the second call is unclear.
+        self.counter_for_calls_to_sort += 1
+        if self.counter_for_calls_to_sort > 2:
+            if len(self.widgetColToDataCol):
+                dataColIdx = self.widgetColToDataCol[colIdx]
+                self.beginResetModel()
+                self.runAction(SortTableAction, dataColIdx, colIdx, order)
+                self.current_sort_col_idx = colIdx
+                self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.beginResetModel()
