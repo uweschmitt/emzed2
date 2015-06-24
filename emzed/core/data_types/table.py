@@ -92,12 +92,13 @@ def create_row_class(table):
             return str(self._data)
 
         def __setitem__(self, ix, value):
-            self._data[ix] = value
+            if self._data[ix] != value:
+                self._data[ix] = value
+                table._resetUniqueId()
 
         def __setattr__(self, name, value):
             if name in Row._dict:
-                self._data[Row._dict[name]] = value
-
+                self.__setitem__(Row._dict[name], value)
 
     return Row
 

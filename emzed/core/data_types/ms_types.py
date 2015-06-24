@@ -238,6 +238,12 @@ class PeakMap(object):
         if meta is None:
             meta = dict()
         self.meta = meta
+
+        # accepting the unique id from another peakmap is dangerous, eg if we uwe
+        # the extract method, so we delete the cached value:
+        if "unique_id" in self.meta:
+            del self.meta["unique_id"]
+
         polarities = set(spec.polarity for spec in spectra)
         if len(polarities) > 1:
             self.polarity = list(polarities)
