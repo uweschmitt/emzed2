@@ -10,6 +10,7 @@ version = (2, 13, 2)
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
       version="%d.%d.%d" % version,
+      keywords=["alpha",],
       description="Rewrite of emzed framework for LCMS data analysis",
       entry_points={
           "gui_scripts": ["emzed.workbench = emzed.workbench.main:main",

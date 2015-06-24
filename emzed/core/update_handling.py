@@ -239,8 +239,11 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         response.raise_for_status()
         response = response.json()
         version_str = response["info"]["version"]
-        keywords = map(string.lower, response["info"]["keywords"].split(","))
+
+        keywords = response["info"].get("keywords") or ""
+        keywords = map(string.lower, keywords.split(","))
         is_stable = "stable" in keywords
+
         latest_version = tuple(map(int, version_str.split(".")))
         if latest_version > version.version:
             s = "stable" if is_stable else "untested"
