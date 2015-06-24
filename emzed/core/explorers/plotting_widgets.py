@@ -166,7 +166,13 @@ class RtPlotter(PlotterBase):
             self.widget.plot.set_axis_title("bottom", "RT")
         # self.widget.plot.set_antialiasing(True)
         if is_time_series:
+            seen = set()
             for i, ts in enumerate(data):
+                # we do not plot duplicates, which might happen if multiple lines in the
+                # table explorer are sellected !
+                if id(ts) in seen:
+                    continue
+                seen.add(id(ts))
                 config = None
                 if configs is not None:
                     config = configs[i]
@@ -184,8 +190,13 @@ class RtPlotter(PlotterBase):
                     self.widget.plot.add_item(curve)
                     self.cursor_info.is_time_series = True
         else:
-            for i in range(len(data)):
-                rts, chromatogram = data[i]
+            seen = set()
+            for i, (rts, chromatogram) in enumerate(data):
+                # we do not plot duplicates, which might happen if multiple lines in the
+                # table explorer are sellected !
+                if (id(rts), id(chromatogram)) in seen:
+                    continue
+                seen.add((id(rts), id(chromatogram)))
                 config = None
                 if configs is not None:
                     config = configs[i]

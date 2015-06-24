@@ -797,15 +797,15 @@ class TableExplorer(EmzedDialog):
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
 
-        # first entry is approx "manual selection"
+        # first entry is "manual selection"
         if group_by_idx == 0:
             to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
         else:
             col_name = str(self.chooseGroupColumn.currentText())
             widget_rows = self.model.rows_with_same_value(col_name, widget_row_idx)
-            to_select = widget_rows[:40]  # avoid to many rows
+            to_select = widget_rows[:200]  # avoid to many rows
 
-            # expand selection 
+            # expand selection
             mode_before = self.tableView.selectionMode()
             scrollbar_before = self.tableView.verticalScrollBar().value()
 
@@ -880,7 +880,9 @@ class TableExplorer(EmzedDialog):
 
         elif self.hasTimeSeries:
             for idx in self.model.selected_data_rows:
+                # filter valid time series
                 tsi = [tsi for tsi in self.model.getTimeSeries(idx) if tsi is not None]
+                # extract all valid x values from all time series
                 xi = [xi for ts in tsi for xi in ts.x if xi is not None]
                 if xi:
                     rtmins.append(min(xi))

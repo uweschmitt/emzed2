@@ -351,6 +351,9 @@ class Table(object):
         """ returns type of column ``name`` """
         return self._colTypes[self.getIndex(name)]
 
+    def setTitle(self, title):
+        self.title = title
+
     def setColType(self, name, type_):
         """
         sets type of column ``name`` to type ``type_``.
