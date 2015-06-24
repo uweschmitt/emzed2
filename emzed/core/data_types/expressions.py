@@ -498,6 +498,16 @@ class BaseExpression(object):
         return AggregateExpression(self, lambda v: not any(v), "allFalse(%s)", None)
 
     @property
+    def allNone(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        expression to true if all values are Nones
+
+        Example: ``tab.rt.allNone``
+        """
+        return AggregateExpression(self, lambda v: all(vi is None for vi in v), "allNone(%s)", None)
+
+    @property
     def anyFalse(self):
         """
         This is an **aggregation expression** which evaluates an
