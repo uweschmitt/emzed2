@@ -57,29 +57,6 @@ class LookupMS2(object):
         return found
 
 
-def _compute_alignments(spectra, mz_tolerance):
-
-    aligner = pyopenms.SpectrumAlignment()
-    alignment = []
-    conf = aligner.getDefaults()
-    conf_d = conf.asDict()
-    conf_d["is_relative_tolerance"] = "false"  # "true" not implemented yet !
-    conf_d["tolerance"] = mz_tolerance
-    conf.update(conf_d)
-    aligner.setParameters(conf)
-
-    openms_spectra = [s.toMSSpectrum() for s in spectra]
-
-    # create pairwise alignments
-    alignments = []
-    for s0, s1 in zip(openms_spectra, openms_spectra[1:]):
-        alignment = []
-        aligner.getSpectrumAlignment(alignment, s0, s1)
-        alignments.append(alignment)
-
-    return alignments
-
-
 def _botton_up_common(alignments):
     # find common peaks from botton to up
     # the indices in the result list realte to the last spectrum
@@ -150,7 +127,7 @@ def _merge_ms2(spectra, mz_tolerance=1.3e-3, only_common_peaks=False, verbose=Tr
     if len(spectra) == 1:
         return spectra[0]
 
-    alignments = _compute_alignments(spectra, mz_tolerance)
+    alignments = Spectrum.compute_alignments(spectra, mz_tolerance)
     common = _botton_up_common(alignments)
 
     mz_vecs = [s.peaks[:, 0] for s in spectra]
@@ -213,6 +190,8 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
 
     modes:
         - "all": extracts a list of ms2 spectra per peak
+        - "max_range": extracts spec with widest m/z range
+        - "max_energy": extrats spec with maximal energy
         - "union": merges all ms2 spectra from one peak to one spectrum containing all peaks
         - "intersection": merges all ms2 spectra from one peak to one spectrum containing peaks
                           which appear in all ms2 spectra.
@@ -223,6 +202,9 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
                you shoud set this parameter to True if you are not sure if mz_tolerance
                fits to your machines resolution.
     """
+
+
+    assert mode in ("all", "max_range", "max_energy", "union", "intersection")
 
     peak_table.ensureColNames(("id", "rtmin", "rtmax", "mzmin", "mzmax", "peakmap"))
     assert "ms2_spectra" not in peak_table.getColNames()
@@ -241,13 +223,21 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
             last_n = n
         spectra = lookup.find_spectra(row.mzmin, row.mzmax, row.rtmin, row.rtmax)
         if spectra:
-            if mode == "all":
-                pass
-            else:
+            if mode == "max_range":
+                spectrum = max(spectra, key=lambda s: (max(s.peaks[:, 0]) - min(s.peaks[:, 0])))
+                spectra = [spectrum]
+            elif mode == "max_energy":
+                spectrum = max(spectra, key=lambda s: sum(s.peaks[:, 1] ** 2))
+                spectra = [spectrum]
+            elif mode in ("union", "intersection"):
                 only_common_peaks = (mode == "intersection")
                 ms2_spec = _merge_ms2(spectra, only_common_peaks=only_common_peaks,
                                       mz_tolerance=mz_tolerance, verbose=verbose)
                 spectra = [ms2_spec]
+            elif mode == "all":
+                pass  # this i
+            else:
+                raise RuntimeError("this should never happen")
         else:
             spectra = None
         ms2_spectra.append(spectra)
