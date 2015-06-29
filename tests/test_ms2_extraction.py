@@ -35,10 +35,10 @@ def check(peaks, peakmap, regtest, mode):
         iis = [ii for s in spectra for ii in s.peaks[:, 1]]
         return sum(i * i for i in iis)
 
-    peaks.addColumn("ms2_mz_range", peaks.ms2_spectra.apply(mz_range), type_=float)
-    peaks.addColumn("ms2_energy", peaks.ms2_spectra.apply(energy), type_=float, format_="%.2e")
-    peaks.addColumn("ms2_spec_count", peaks.ms2_spectra.apply(len), type_=int, format_="%d")
-    peaks.setColFormat("ms2_spectra", None)
+    peaks.addColumn("ms2_mz_range", peaks.spectra_ms2.apply(mz_range), type_=float)
+    peaks.addColumn("ms2_energy", peaks.spectra_ms2.apply(energy), type_=float, format_="%.2e")
+    peaks.addColumn("ms2_spec_count", peaks.spectra_ms2.apply(len), type_=int, format_="%d")
+    peaks.setColFormat("spectra_ms2", None)
 
     print(peaks, file=regtest)
 

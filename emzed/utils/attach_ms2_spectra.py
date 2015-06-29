@@ -179,7 +179,6 @@ def _overlay(mz_vecs, intensity_vecs, scalings, mz_tolerance, verbose, n):
     return peaks
 
 
-
 def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, verbose=True):
     """takes *peak_table* with columns "id", "rtmin", "rtmax", "mzmin", "mzmax" and "peakmap"
     and extracts the ms2 spectra for these peaks.
@@ -203,15 +202,14 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
                fits to your machines resolution.
     """
 
-
     assert mode in ("all", "max_range", "max_energy", "union", "intersection")
 
     peak_table.ensureColNames(("id", "rtmin", "rtmax", "mzmin", "mzmax", "peakmap"))
-    assert "ms2_spectra" not in peak_table.getColNames()
+    assert "spectra_ms2" not in peak_table.getColNames()
 
     lookup = LookupMS2(peak_map)
 
-    ms2_spectra = []
+    all_spectra = []
     last_n = 0
     for i, row in enumerate(peak_table):
         n = int(10.0 * i / len(peak_table))
@@ -240,13 +238,13 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
                 raise RuntimeError("this should never happen")
         else:
             spectra = None
-        ms2_spectra.append(spectra)
-    peak_table.addColumn("ms2_spectra", ms2_spectra, type_=list)
-    num_ms2_added = peak_table.ms2_spectra.countNotNone()
+        all_spectra.append(spectra)
+    peak_table.addColumn("spectra_ms2", all_spectra, type_=list)
+    num_ms2_added = peak_table.spectra_ms2.countNotNone()
     print()
     if num_ms2_added == 0:
         print("*" * 80)
-        print("WARNING: all values in the ms2_spectra columns are None")
+        print("WARNING: all values in the spectra columns are None")
         print("*" * 80)
     else:
         print("added ms2 spectra to %d peaks out of %d" % (num_ms2_added, len(peak_table)))
