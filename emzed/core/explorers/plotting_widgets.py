@@ -351,6 +351,28 @@ class MzPlotter(PlotterBase):
         if self.c_callback:
             self.c_callback(p)
 
+    def plot_spectra(self, all_peaks, labels):
+        self.widget.plot.del_all_items()
+        self.widget.plot.add_item(self.marker)
+        self.widget.plot.add_item(make.legend("TL"))
+        self.widget.plot.add_item(self.label)
+
+        for i, (peaks, label) in enumerate(zip(all_peaks, labels)):
+            config = dict(color=getColor(i))
+            curve = make.curve([], [], title=label, curvestyle="Sticks", **config)
+            curve.set_data(peaks[:, 0], peaks[:, 1])
+            curve.__class__ = ModifiedCurveItem
+            self.widget.plot.add_item(curve)
+            #self.widget.plot.curves.append(curve)
+            self.widget.plot.resample_config = []
+
+        self.widget.plot.add_item(self.line)
+        if len(all_peaks):
+            self.widget.plot.all_peaks = np.vstack(all_peaks)
+        else:
+            self.widget.plot.all_peaks = np.zeros((0, 2))
+
+
     def plot(self, data, configs=None, titles=None):
         """ do not forget to call replot() after calling this function ! """
         self.widget.plot.del_all_items()
@@ -360,7 +382,7 @@ class MzPlotter(PlotterBase):
         self.widget.plot.add_item(self.label)
 
         all_peaks = []
-        self.widget.plot.data = []
+        self.widget.plot.resample_config = []
         self.widget.plot.curves = []
         for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
             ms_level = min(pm.getMsLevels())
@@ -393,7 +415,7 @@ class MzPlotter(PlotterBase):
             curve.__class__ = ModifiedCurveItem
             self.widget.plot.add_item(curve)
             self.widget.plot.curves.append(curve)
-            self.widget.plot.data.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
+            self.widget.plot.resample_config.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
         self.widget.plot.add_item(self.line)
         if len(all_peaks):
             self.widget.plot.all_peaks = np.vstack(all_peaks)

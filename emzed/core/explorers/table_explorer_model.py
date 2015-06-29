@@ -288,6 +288,9 @@ class TableModel(QAbstractTableModel):
     def hasTimeSeries(self):
         return any(t is TimeSeries for t in self.table.getColTypes())
 
+    def hasExtraSpectra(self):
+        return any(n.startswith("spectra") for n in self.table.getColNames())
+
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
 
@@ -374,19 +377,14 @@ class TableModel(QAbstractTableModel):
         row = self.table.rows[data_row_idx]
         return [row[c] for c in cols]
 
-    def getLevelNSpectra(self, data_row_idx, minLevel=2, maxLevel=999):
+    def getExtraSpectra(self, data_row_idx):
         spectra = []
         postfixes = []
-        for p in self.table.supportedPostfixes(self.eicColNames()):
+        for p in self.table.supportedPostfixes(("spectra",)):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            pm = values["peakmap" + p]
-            rtmin = values["rtmin" + p]
-            rtmax = values["rtmax" + p]
-            if pm is not None and rtmin is not None and rtmax is not None:
-                for spec in pm.levelNSpecs(minLevel, maxLevel):
-                    if rtmin <= spec.rt <= rtmax:
-                        spectra.append(spec)
-                        postfixes.append(p)
+            specs = values["spectra" + p]
+            spectra.append(specs)
+            postfixes.append(p)
         return postfixes, spectra
 
     def extractEICs(self, data_row_idx):

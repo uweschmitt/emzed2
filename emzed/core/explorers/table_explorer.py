@@ -164,7 +164,6 @@ class TableExplorer(EmzedDialog):
     def setupWidgets(self):
         self.setupMenuBar()
         self.setupTableViews()
-        self.chooseSpectrum = QComboBox()
         self.setupPlottingAndIntegrationWidgets()
         self.setupToolWidgets()
         if self.offerAbortOption:
@@ -287,6 +286,11 @@ class TableExplorer(EmzedDialog):
         self.rt_plotter.widget.setSizePolicy(pol)
         self.mz_plotter.widget.setSizePolicy(pol)
 
+        self.spec_label = QLabel("plot spectra:")
+        self.choose_spec = QListWidget()
+        self.choose_spec.setFixedHeight(90)
+        self.choose_spec.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
     def setupIntegrationWidgets(self):
         self.intLabel = QLabel("Integration")
         self.chooseIntMethod = QComboBox()
@@ -344,7 +348,6 @@ class TableExplorer(EmzedDialog):
 
         vsplitter.addWidget(self.menubar)  # 0
         vsplitter.addWidget(self.layoutPlottingAndIntegrationWidgets())   # 1
-        vsplitter.addWidget(self.chooseSpectrum)  # 2
 
         extra = self.create_additional_widgets(vsplitter)
         if extra is not None:
@@ -354,25 +357,25 @@ class TableExplorer(EmzedDialog):
         for view in self.tableViews:
             self.table_view_container.addWidget(view)
 
-        vsplitter.addWidget(self.table_view_container)  # 3
+        vsplitter.addWidget(self.table_view_container)  # 2
 
-        vsplitter.addWidget(self.layoutToolWidgets())  # 4
+        vsplitter.addWidget(self.layoutToolWidgets())  # 3
 
         self.filter_widgets_container = QStackedWidget(self)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
 
         self.filter_widgets_container.setVisible(False)
-        vsplitter.addWidget(self.filter_widgets_container)  # 5
+        vsplitter.addWidget(self.filter_widgets_container)  # 4
 
         di = 1 if extra is not None else 0
 
         vsplitter.setStretchFactor(0, 1.0)   # menubar
         vsplitter.setStretchFactor(1, 3.0)   # plots + integration
-        vsplitter.setStretchFactor(2, 1.0)   # ms2 spec chooser
-        vsplitter.setStretchFactor(3 + di, 5.0)   # table
-        vsplitter.setStretchFactor(4 + di, 1.0)   # tools
-        vsplitter.setStretchFactor(5 + di, 2.0)   # filters
+        # vsplitter.setStretchFactor(2, 1.0)   # ms2 spec chooser
+        vsplitter.setStretchFactor(2 + di, 5.0)   # table
+        vsplitter.setStretchFactor(3 + di, 1.0)   # tools
+        vsplitter.setStretchFactor(4 + di, 2.0)   # filters
 
         vlayout.addWidget(vsplitter)
 
@@ -387,27 +390,42 @@ class TableExplorer(EmzedDialog):
         hbox.setAlignment(self.okButton, Qt.AlignVCenter)
         return hbox
 
+    def enable_integration_widgets(self, flag=True):
+        self.intLabel.setEnabled(flag)
+        self.chooseIntMethod.setEnabled(flag)
+        self.choosePostfix.setEnabled(flag)
+        self.reintegrateButton.setEnabled(flag)
+
+    def enable_spec_chooser_widgets(self, flag=True):
+        self.spec_label.setEnabled(flag)
+        self.choose_spec.setEnabled(flag)
+
     def layoutPlottingAndIntegrationWidgets(self):
 
         hsplitter = QSplitter()
         hsplitter.setOpaqueResize(False)
 
-        integrationLayout = QVBoxLayout()
-        integrationLayout.setSpacing(10)
-        integrationLayout.setMargin(5)
-        integrationLayout.addWidget(self.intLabel)
-        integrationLayout.addWidget(self.chooseIntMethod)
-        integrationLayout.addWidget(self.choosePostfix)
-        integrationLayout.addWidget(self.reintegrateButton)
-        integrationLayout.addStretch()
-        integrationLayout.setAlignment(self.intLabel, Qt.AlignTop)
-        integrationLayout.setAlignment(self.chooseIntMethod, Qt.AlignTop)
-        integrationLayout.setAlignment(self.reintegrateButton, Qt.AlignTop)
+        middleLayout = QVBoxLayout()
+        middleLayout.setSpacing(10)
+        middleLayout.setMargin(5)
+        middleLayout.addWidget(self.intLabel)
+        middleLayout.addWidget(self.chooseIntMethod)
+        middleLayout.addWidget(self.choosePostfix)
+        middleLayout.addWidget(self.reintegrateButton)
+        middleLayout.addStretch()
 
-        self.integrationFrame = QFrame()
-        self.integrationFrame.setLayout(integrationLayout)
+        middleLayout.addWidget(self.spec_label)
+        middleLayout.addWidget(self.choose_spec)
+        middleLayout.addStretch()
+        middleLayout.addStretch()
 
-        plot_widgets = self.setup_plot_widgets([self.rt_plotter.widget, self.integrationFrame,
+        middleLayout.setAlignment(self.chooseIntMethod, Qt.AlignTop)
+        middleLayout.setAlignment(self.reintegrateButton, Qt.AlignTop)
+
+        self.middleFrame = QFrame()
+        self.middleFrame.setLayout(middleLayout)
+
+        plot_widgets = self.setup_plot_widgets([self.rt_plotter.widget, self.middleFrame,
                                                 self.mz_plotter.widget])
 
         for widget in plot_widgets:
@@ -457,6 +475,7 @@ class TableExplorer(EmzedDialog):
         self.isIntegrated = isIntegrated
         self.hasEIConly = False
         self.hasTimeSeries = False
+        self.hasExtraSpectra = self.model.hasExtraSpectra()
         if self.model.hasTimeSeries():
             # overrides everything !
             self.hasTimeSeries = True
@@ -465,15 +484,16 @@ class TableExplorer(EmzedDialog):
         elif not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
             self.hasEIConly = True
 
-        self.chooseSpectrum.setVisible(False)
         if hasFeatures != self.hadFeatures:
             self.setPlotVisibility(hasFeatures)
             self.hadFeatures = hasFeatures
             # default: invisible, only activated when row clicked and
             # level >= 2 spectra are available
-        if isIntegrated != self.wasIntegrated:
-            self.setIntegrationPanelVisiblity(isIntegrated)
-            self.wasIntegrated = isIntegrated
+        self.enable_integration_widgets(isIntegrated)
+        self.enable_spec_chooser_widgets(hasFeatures or hasExtraSpectra)
+        #if isIntegrated != self.wasIntegrated:
+            #self.setIntegrationPanelVisiblity(isIntegrated)
+            #self.wasIntegrated = isIntegrated
         if hasFeatures:
             self.rt_plotter.setEnabled(True)
             self.resetPlots()
@@ -495,7 +515,7 @@ class TableExplorer(EmzedDialog):
         self.mz_plotter.reset()
 
     def setIntegrationPanelVisiblity(self, doShow):
-        self.integrationFrame.setVisible(doShow)
+        self.middleFrame.setVisible(doShow)
 
     @protect_signal_handler
     def handleClick(self, index, model):
@@ -526,7 +546,7 @@ class TableExplorer(EmzedDialog):
             self.connect_additional_widgets(model)
 
         self.connect(self.reintegrateButton, SIGNAL("clicked()"), self.doIntegrate)
-        self.connect(self.chooseSpectrum, SIGNAL("activated(int)"), self.spectrumChosen)
+        self.choose_spec.itemSelectionChanged.connect(self.spectrumChosen)
 
         if self.offerAbortOption:
             self.connect(self.okButton, SIGNAL("clicked()"), self.ok)
@@ -639,16 +659,10 @@ class TableExplorer(EmzedDialog):
         self.menubar.connect(self.redoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.redoLastAction))
 
-        self.connect(self.chooseGroupColumn, SIGNAL("activated(int)"), self.group_column_selected)
-
         self.model.DATA_CHANGE.connect(self.set_window_title)
 
     def group_column_selected(self, idx):
-        multi_select_available = (idx == 0)  # entry labeled "- manual multi select -"
-        if multi_select_available:
-            self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        else:
-            self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
     def updateMenubar(self):
         undoInfo = self.model.infoLastAction()
@@ -832,36 +846,35 @@ class TableExplorer(EmzedDialog):
             self.setupSpectrumChooser()
 
     def setupSpectrumChooser(self):
-        # delete QComboBox:
-        while self.chooseSpectrum.count():
-            self.chooseSpectrum.removeItem(0)
+        self.choose_spec.clear()
 
-        postfixes, spectra = [], []
+        spectra = []
+        labels = []
+
+        if self.hasFeatures:
+            labels.append("spectra from peak")
+            spectra.append(None)
+
         for idx in self.model.selected_data_rows:
-            pf, s = self.model.getLevelNSpectra(idx, minLevel=2)
-            postfixes.extend(pf)
-            spectra.extend(s)
+            pf, s = self.model.getExtraSpectra(idx)
+            for pfi, si in zip(pf, s):
+                if si is not None:
+                    for sii in si:
+                        label = "spectra%s rt=%.2fm" % (pfi, sii.rt / 60.0)
+                        if sii.precursors:
+                            mz, I = sii.precursors[0]
+                            label += " pre=(%.5f, %.2e)" % (mz, I)
+                        labels.append(label)
+                        spectra.append(sii)
 
-        self.currentLevelNSpecs = []
+        self.spectra_from_chooser = spectra
+        self.choose_spec.setVisible(len(spectra) > 0)
 
-        if not len(spectra):
-            self.chooseSpectrum.setVisible(False)
-            return
+        for label in labels:
+            self.choose_spec.addItem(label)
 
-        self.chooseSpectrum.setVisible(True)
-        self.chooseSpectrum.addItem("Show only Level 1 spectra")
-        for postfix, s in zip(postfixes, spectra):
-            if postfix != "":
-                txt = postfix + ", "
-            else:
-                txt = ""
-            txt += "rt=%.2fm, level=%d" % (s.rt / 60.0, s.msLevel)
-            mzs = [mz for (mz, I) in s.precursors]
-            precursors = ", ".join("%.6f" % mz for mz in mzs)
-            if precursors:
-                txt += ", precursor mzs=[%s]" % precursors
-            self.chooseSpectrum.addItem(txt)
-            self.currentLevelNSpecs.append(s)
+        if labels:
+            self.choose_spec.setCurrentRow(0)
 
     def updatePlots(self, reset=False):
 
@@ -944,19 +957,17 @@ class TableExplorer(EmzedDialog):
             self.plotMz(resetLimits=limits)
 
     @protect_signal_handler
-    def spectrumChosen(self, idx):
-        if idx == 0:
-            self.rt_plotter.setEnabled(True)
-            self.chooseIntMethod.setEnabled(True)
-            self.reintegrateButton.setEnabled(True)
-            self.plotMz()
-        else:
-            self.rt_plotter.setEnabled(False)
-            self.chooseIntMethod.setEnabled(False)
-            self.reintegrateButton.setEnabled(False)
-            self.mz_plotter.plot([self.currentLevelNSpecs[idx - 1].peaks])
+    def spectrumChosen(self):
+        spectra = [self.spectra_from_chooser[idx.row()] for idx in self.choose_spec.selectedIndexes()]
+        labels = [str(item.data(0).toString()) for item in self.choose_spec.selectedItems()]
+        data = [(l, s) for (l, s) in zip(labels, spectra) if s is not None and l is not None]
+        if data:
+            labels, spectra = zip(*data)
+            self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)
             self.mz_plotter.resetAxes()
             self.mz_plotter.replot()
+        else:
+            self.plotMz()
 
     def plotMz(self, resetLimits=None, limits_from_rows=False):
         """ this one is used from updatePlots and the rangeselectors

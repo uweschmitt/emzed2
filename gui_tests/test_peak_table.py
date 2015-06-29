@@ -8,10 +8,25 @@ app = guidata.qapplication()
 import emzed
 import datetime
 import math
+import numpy as np
 
 pm = emzed.io.loadPeakMap(os.path.join(here, "..", "tests", "data", "test_mini.mzXML"))
 
 TimeSeries = emzed.core.data_types.TimeSeries
+Spectrum = emzed.core.data_types.Spectrum
+
+mzs = np.arange(100, 200, 10)
+iis = np.log(mzs) * 10000.0
+peaks = np.vstack((mzs, iis)).T
+print peaks.shape
+
+spectrum = Spectrum(peaks, rt=10.0, msLevel=2, polarity="-", precursors=[(1000.0, 20000)])
+spectra = [spectrum]
+
+spectrum = Spectrum(peaks + 2.0, rt=12.0, msLevel=2, polarity="-", precursors=[(1010.0, 30000)])
+spectra += [spectrum]
+
+
 
 print "TIME IS IN SECONDS"
 
@@ -35,8 +50,13 @@ t.addColumn("mzmax", t.mzmin + 10.0)
 t.addColumn("rtmin", 2 * range(10, 30), type_=float)
 t.addColumn("rtmax", t.rtmin + 3)
 t.addColumn("peakmap", pm)
-t.addColumn("class", t.rtmin > 20)
-t = emzed.utils.integrate(t)
+t.addColumn("class_", t.rtmin > 20)
+
+ti = emzed.utils.integrate(t)
+
+t.addColumn("spectra_ms2", t.class_.thenElse(spectra, None), format_=None)
+t.addColumn("ms2_spectra_count", t.spectra_ms2.apply(len), type_=int, format_="%d")
+
 # t.dropColumns("peakmap", "rtmin")
 t.addEnumeration()
 t.addColumn("f", t.id / 3)
@@ -62,7 +82,7 @@ t2.setTitle("incomplete peak table")
 
 # t2 = emzed.utils.integrate(t2)
 
-emzed.gui.inspect((t, t1, t2))
+emzed.gui.inspect((t, ti, t1, t2))
 
 
 
