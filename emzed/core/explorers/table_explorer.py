@@ -490,7 +490,7 @@ class TableExplorer(EmzedDialog):
             # default: invisible, only activated when row clicked and
             # level >= 2 spectra are available
         self.enable_integration_widgets(isIntegrated)
-        self.enable_spec_chooser_widgets(hasFeatures or hasExtraSpectra)
+        self.enable_spec_chooser_widgets(hasFeatures or self.hasExtraSpectra)
         #if isIntegrated != self.wasIntegrated:
             #self.setIntegrationPanelVisiblity(isIntegrated)
             #self.wasIntegrated = isIntegrated
