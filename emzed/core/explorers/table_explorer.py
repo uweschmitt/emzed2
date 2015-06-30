@@ -145,7 +145,6 @@ class TableExplorer(EmzedDialog):
         self.tableView = None
 
         self.hadFeatures = None
-        self.wasIntegrated = None
 
         self.setupWidgets()
         self.setupLayout()
@@ -484,16 +483,15 @@ class TableExplorer(EmzedDialog):
         elif not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
             self.hasEIConly = True
 
-        if hasFeatures != self.hadFeatures:
-            self.setPlotVisibility(hasFeatures)
-            self.hadFeatures = hasFeatures
-            # default: invisible, only activated when row clicked and
-            # level >= 2 spectra are available
+        self.setPlotVisibility(hasFeatures)
         self.enable_integration_widgets(isIntegrated)
         self.enable_spec_chooser_widgets(hasFeatures or self.hasExtraSpectra)
-        #if isIntegrated != self.wasIntegrated:
-            #self.setIntegrationPanelVisiblity(isIntegrated)
-            #self.wasIntegrated = isIntegrated
+
+        show_middle = isIntegrated or hasFeatures or self.hasExtraSpectra
+        self.middleFrame.setVisible(show_middle)
+
+        self.choose_spec.clear()
+
         if hasFeatures:
             self.rt_plotter.setEnabled(True)
             self.resetPlots()
@@ -501,6 +499,12 @@ class TableExplorer(EmzedDialog):
             self.rt_plotter.setEnabled(True)
             self.rt_plotter.widget.setVisible(True)
             self.mz_plotter.widget.setVisible(False)
+            self.resetPlots()
+        elif self.hasTimeSeries:
+            self.rt_plotter.setEnabled(True)
+            self.mz_plotter.setEnabled(True)
+            self.rt_plotter.widget.setVisible(True)
+            self.mz_plotter.widget.setVisible(True)
             self.resetPlots()
         else:
             self.rt_plotter.widget.setVisible(False)
@@ -951,10 +955,14 @@ class TableExplorer(EmzedDialog):
                 self.rt_plotter.setYAxisLimits(ymin, ymax)
                 self.rt_plotter.updateAxes()
 
-        reset = reset and mzmin is not None and mzmax is not None
-        limits = (mzmin, mzmax) if reset else None
+        if self.hasTimeSeries and reset:
+            self.rt_plotter.reset_x_limits(fac=1.0)
+
+        reset_ = reset and mzmin is not None and mzmax is not None
+        limits = (mzmin, mzmax) if reset_ else None
         if not self.hasEIConly and not self.hasTimeSeries:
             self.plotMz(resetLimits=limits)
+
 
     @protect_signal_handler
     def spectrumChosen(self):

@@ -271,14 +271,11 @@ class ModifiedCurvePlot(CurvePlot):
         if xmin is None:
             if len(xvals):
                 xmin = min(xvals) / fac
-            else:
-                xmin = 0
         if xmax is None:
             if len(xvals):
                 xmax = max(xvals) * fac
-            else:
-                xmax = 1.0
-        self.update_plot_xlimits(xmin, xmax)
+        if xmin is not None and xmax is not None:
+            self.update_plot_xlimits(xmin, xmax)
 
     def reset_y_limits(self, ymin=None, ymax=None, fac=1.2):
         yvals = []
