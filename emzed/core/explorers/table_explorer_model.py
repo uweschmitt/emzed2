@@ -146,7 +146,7 @@ class TableModel(QAbstractTableModel):
             return QVariant()
         if orientation == Qt.Horizontal:
             dataIdx = self.widgetColToDataCol[section]
-            return self.table._colNames[dataIdx]
+            return str(self.table._colNames[dataIdx])
         # vertical header:
         return QString("   ")
 

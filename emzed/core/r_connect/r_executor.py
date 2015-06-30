@@ -22,8 +22,43 @@ from ..data_types.table import guessFormatFor, Table
 import patched_pyper as pyper
 
 
+def data_frame_col_types(rip, value, name):
+    rip.execute(""".__types <- sapply(%s, typeof); """ % name)
+    type_strings = getattr(rip, ".__types")
+    if isinstance(type_strings, basestring):
+        type_strings = [type_strings]
+    else:
+        type_strings = type_strings.tolist()
+    type_map = {"logical": bool, "integer": int, "double": float, "complex": complex,
+                "character": str}
+    py_types = [type_map.get(type_string, object) for type_string in type_strings]
+    py_types = dict((str(n), t) for (n, t) in zip(value.columns, py_types))
+    return py_types
+
+
+def data_frame_to_table(rip, value, name, types=None, **kw):
+    py_types = data_frame_col_types(rip, value, name)
+    if types is not None:
+        py_types.update(types)
+    for name, t in py_types.items():
+        values = None
+        if t == int:
+            # R factors -> string
+            values = value[name].tolist()
+            if all(isinstance(v, basestring) for v in values):
+                py_types[name] = t = str
+        if t == str:
+            if values is None:
+                values = value[name].tolist()
+            if all(v in ("TRUE", "FALSE") for v in values):
+                value[name] = [True if v == "TRUE" else False for v in values]
+                py_types[name] = bool
+    return Table.from_pandas(value, types=py_types, **kw)
+
+
 class Bunch(dict):
     __getattr__ = dict.__getitem__
+
 
 def find_r_exe_on_windows(required_version=""):
 
@@ -215,7 +250,10 @@ class RInterpreter(object):
         """
         native = getattr(self.session, name)
         assert isinstance(native, pandas.DataFrame), "expected data frame, got %s" % type(native)
-        return Table.from_pandas(native, title, meta, types, formats)
+
+        return data_frame_to_table(self, native, name, types=types, title=title, meta=meta, formats=formats)
+        py_types = data_frame_col_types(self, native, name)
+        return Table.from_pandas(native, title, meta, py_types, formats)
 
     def get_raw(self, name):
         """
@@ -235,7 +273,7 @@ class RInterpreter(object):
         if hasattr(self, "session"):
             value = getattr(self.session, name)
             if convert_to_table and isinstance(value, pandas.DataFrame):
-                return Table.from_pandas(value)
+                return data_frame_to_table(self, value, name)
             return value
 
     def __setattr__(self, name, value):
@@ -382,7 +420,7 @@ class RInterpreterFast(object):
         if formats is None:
             formats = {}
 
-        col_names = value.keys
+        col_names = map(str, value.keys)
         col_values = value.values
 
         type_map = {"logical": bool, "integer": int, "double": float, "complex": complex,

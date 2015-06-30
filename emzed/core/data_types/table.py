@@ -2151,8 +2151,7 @@ class Table(object):
         if types is None:
             types = dict()
 
-        col_names = df.columns.values.tolist()
-
+        col_names = map(str, df.columns.values)
         col_types = [types.get(n) for n in col_names]
 
         kinds_to_type = dict(i=int, f=float, O=object, V=object, U=unicode, a=str, u=int, b=bool,

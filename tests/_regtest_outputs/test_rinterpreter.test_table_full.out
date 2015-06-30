@@ -1,0 +1,28 @@
+names    idx      mass     class
+str      int      float    bool
+------   ------   ------   ------
+uwe      1        1.00000  True
+schmit   2        1.11000  False
+
+names    idx      mass     class
+str      int      float    bool
+------   ------   ------   ------
+uwe      1        1.000000 True
+schmit   2        1.110000 False
+
+names    idx      mass     class
+str      int      float    bool
+------   ------   ------   ------
+uwe      1        1.000000 True
+schmit   2        1.110000 False
+
+names    idx      mass     class
+str      long     float    bool
+------   ------   ------   ------
+uwe      1        1.000000 True
+schmit   2        1.110000 False
+
+[<type 'str'>, <type 'str'>, <type 'str'>, <type 'str'>]
+[<type 'str'>, <type 'str'>, <type 'str'>, <type 'str'>]
+[<type 'str'>, <type 'int'>, <type 'float'>, <type 'bool'>]
+[<type 'str'>, <type 'int'>, <type 'float'>, <type 'bool'>]

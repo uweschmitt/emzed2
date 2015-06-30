@@ -59,6 +59,28 @@ def _test_tables(ip, regtest):
     print >> regtest, ip.mtcars
 
 
+def test_table_full(regtest):
+
+    t = toTable("names", ("uwe", "schmit"), type_=str)
+    t.addColumn("idx", (1, 2), type_=int)
+    t.addColumn("mass", (1.0, 1.11), type_=float)
+    t.addColumn("class", (True, False), type_=bool)
+
+    ip = RInterpreter()
+    ip.t = t
+
+    print >> regtest, t
+    print >> regtest, ip.t
+    print >> regtest, ip.get_df_as_table("t")
+    print >> regtest, ip.get_df_as_table("t", types=dict(idx=long))
+
+    print >> regtest, map(type, t._colNames)
+    print >> regtest, map(type, ip.t._colNames)
+    print >> regtest, t._colTypes
+    print >> regtest, ip.t._colTypes
+
+
+
 def test_nested(regtest):
     ip = RInterpreterFast()
     ip.execute("""
