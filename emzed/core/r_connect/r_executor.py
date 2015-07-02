@@ -197,8 +197,16 @@ class RInterpreter(object):
         """
         return ["execute", "get_df_as_table", "get_raw"]
 
-    def execute(self, *cmds):
-        """executes commands. Each command by be a multiline command. """
+    def execute(self, *cmds, **kw):
+        """executes commands. Each command may be a multiline command. 
+           **kw is used for easier string interpolation, eg
+
+              rip.execute("x <- %(name)r", name="emzed")
+
+           instead of
+
+              rip.execute("x <- %(name)r" % dict(name="emzed"))
+           """
         has_fh = self.__dict__.get("_fh") is not None
         if has_fh:
             print >> self._fh, "#", datetime.datetime.now()
@@ -207,6 +215,8 @@ class RInterpreter(object):
             if has_fh:
                 print >> self._fh, cmd
                 self._fh.flush()
+            if kw:
+                cmd = cmd % kw
             self.session(cmd)
 
         if has_fh:
@@ -349,12 +359,16 @@ class RInterpreterFast(object):
         self.__dict__["_del_ref"] = weakref.ref(self, on_die)
 
     @shutdown_on_error
-    def execute(self, r_code):
+    def execute(self, r_code, **kw):
         # we put our (potentially multiline) r code into a function so that we can use
         # capture.output to pass output to python back.
         # the eval.parent(substitute(..))) injects all variables in this function
         # to the global R environment. so code as "x <- 3" is executed inside the .__run
         # function but then x is globally set:
+
+        # kw is easier way to provide strint interpolation
+        if kw:
+            r_code = r_code % kw
         self.conn.eval(""".__run <- function() eval.parent(substitute({%s})); """ % r_code)
         if self.dump_stdout:
             self.conn.eval("""capture.output(.__run(), file=pipe("cat"))""")

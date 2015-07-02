@@ -116,3 +116,8 @@ def test_r_error_pickling():
     # loads failed because the old constructor or RError had no "default constructor"
     err = dill.loads(dill.dumps(RError("test")))
     assert err.value == "test"
+
+def test_interpolation():
+    ip = RInterpreter()
+    ip.execute("x<-%(name)r", name="Uwe")
+    assert ip.x == "Uwe"
