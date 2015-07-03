@@ -475,7 +475,11 @@ class BaseExpression(object):
 
         Example: ``tab.rt.allTrue``
         """
-        return AggregateExpression(self, lambda v: all(v), "allTrue(%s)", None)
+        return AggregateExpression(self,
+                                   lambda v: all(v), "allTrue(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
 
     @property
     def anyTrue(self):
@@ -485,7 +489,8 @@ class BaseExpression(object):
 
         Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: any(v), "anyTrue(%s)", None)
+        return AggregateExpression(self, lambda v: any(v), "anyTrue(%s)", None,
+                                   ignore_none=False, default_empty=False)
 
     @property
     def allFalse(self):
@@ -495,7 +500,15 @@ class BaseExpression(object):
 
         Example: ``tab.rt.allFalse``
         """
-        return AggregateExpression(self, lambda v: not any(v), "allFalse(%s)", None)
+        def test(values):
+            if not values:
+                return True
+            return all(vi is not None and bool(vi) is False for vi in values)
+        return AggregateExpression(self,
+                                   test,
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
 
     @property
     def allNone(self):
@@ -505,7 +518,25 @@ class BaseExpression(object):
 
         Example: ``tab.rt.allNone``
         """
-        return AggregateExpression(self, lambda v: all(vi is None for vi in v), "allNone(%s)", None)
+        return AggregateExpression(self,
+                                   lambda v: all(vi is None for vi in v), "allNone(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
+
+    @property
+    def anyNone(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        expression to true if at least one value is None.
+
+        Example: ``tab.rt.anyNone``
+        """
+        return AggregateExpression(self,
+                                   lambda v: any(vi is None for vi in v), "anyNone(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=False)
 
     @property
     def anyFalse(self):
@@ -515,7 +546,12 @@ class BaseExpression(object):
 
         Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: not all(v), "anyFalse(%s)", None)
+        return AggregateExpression(self,
+                                   lambda v: any(vi is not None and not vi for vi in v),
+                                   "anyFalse(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=False)
 
     @property
     def max(self):

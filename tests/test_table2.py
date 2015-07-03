@@ -682,6 +682,26 @@ def test_any_all_agg_expressions():
     assert t.v.anyTrue() is True
     assert t.v.anyFalse() is False
 
+    t = emzed.utils.toTable("v", [None, 0, 0])
+    # pep8 would recomment "is" instead of "==" below, but py.tests assert rewriting can not
+    # handle this
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is False
+    assert t.v.anyFalse() is True
+
+    t = emzed.utils.toTable("v", [None, 0, 1])
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is True
+
+    t = emzed.utils.toTable("v", [None, 1, 1])
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is False
+
 
 def test_getitem_variations():
     t = emzed.utils.toTable("v", range(3))
@@ -941,7 +961,37 @@ def test_iter(regtest):
 
     for a, b, c in t:
         print(a, b, c, file=regtest)
-        
-
 
     assert len(ids) == 2
+
+
+def test_all_none():
+    t = emzed.utils.toTable("a", (1, 2, None))
+    assert t.a.allNone() is False
+
+    t = emzed.utils.toTable("a", (None, None, None))
+    assert t.a.allNone() is True
+
+
+def test_all_x():
+    t = emzed.utils.toTable("a", ())
+    assert t.a.allNone() is True
+    assert t.a.allFalse() is True
+    assert t.a.allTrue() is True
+
+    t = emzed.utils.toTable("a", (None, None))
+    assert t.a.allNone() is True
+    assert t.a.allFalse() is False
+    assert t.a.allTrue() is False
+
+
+def test_any_x():
+    t = emzed.utils.toTable("a", ())
+    assert t.a.anyNone() is False
+    assert t.a.anyFalse() is False
+    assert t.a.anyTrue() is False
+
+    t = emzed.utils.toTable("a", (None, None))
+    assert t.a.anyNone() is True
+    assert t.a.anyFalse() is False
+    assert t.a.anyTrue() is False
