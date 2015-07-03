@@ -462,7 +462,9 @@ class TableExplorer(EmzedDialog):
         frame.setLayout(layout)
         return frame
 
-    def set_window_title(self, table, visible):
+    def set_window_title(self, table, visible=None):
+        if visible is None:
+            visible = table
         model_title = self.model.getTitle()
         title = "%d out of %d rows from %s" % (len(visible), len(table), model_title)
         self.setWindowTitle(title)
@@ -719,6 +721,7 @@ class TableExplorer(EmzedDialog):
         self.setup_choose_group_column_widget([])
         self.connectModelSignals()
         self.updateMenubar()
+        self.set_window_title(self.model.table)
 
     def setup_choose_group_column_widget(self, hidden_names):
         before = None
