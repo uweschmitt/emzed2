@@ -1543,10 +1543,13 @@ class Table(object):
         """
         table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
         rows = []
-        for row in self.rows:
+        cmdlineProgress = _CmdLineProgress(len(self))
+        for ii, row in enumerate(self.rows):
             matches = index.get(row[idx])
             if matches:
                 rows.extend([row[:] + other.rows[i][:] for i in matches])
+            cmdlineProgress.progress(ii)
+        cmdlineProgress.finish()
         table.rows = rows
         return table
 
@@ -1636,12 +1639,15 @@ class Table(object):
         table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
         rows = []
         no = len(other._colNames)
-        for row in self.rows:
+        cmdlineProgress = _CmdLineProgress(len(self))
+        for ii, row in enumerate(self.rows):
             matches = index.get(row[idx])
             if matches:
                 rows.extend([row[:] + other.rows[i][:] for i in matches])
             else:
                 rows.append(row[:] + [None] * no)
+            cmdlineProgress.progress(ii)
+        cmdlineProgress.finish()
         table.rows = rows
         return table
 

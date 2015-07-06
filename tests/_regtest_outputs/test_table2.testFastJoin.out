@@ -1,3 +1,4 @@
+33 66 100
 
 join
 a        a__0
@@ -6,6 +7,7 @@ int      int
 -        -
 2        2
 3        3
+33 66 100
 
 left join
 a        a__0
@@ -14,6 +16,7 @@ int      int
 -        -
 2        2
 3        3
+33 66 100
 
 join
 a        b__0     i__0
@@ -24,6 +27,7 @@ int      int      int
 2        2        2
 2        2        3
 2        2        4
+33 66 100
 
 left join
 a        b__0     i__0
@@ -36,6 +40,7 @@ int      int      int
 2        2        3
 2        2        4
 3        -        -
+33 66 100
 
 join
 a        b__0     i__0
@@ -46,6 +51,7 @@ int      int      int
 2        2        2
 3        3        3
 3        3        4
+33 66 100
 
 left join
 a        b__0     i__0
@@ -57,6 +63,7 @@ int      int      int
 2        2        2
 3        3        3
 3        3        4
+33 66 100
 
 join
 a        b__0     i__0
@@ -67,6 +74,7 @@ int      int      int
 2        2        2
 3        3        3
 3        3        4
+33 66 100
 
 left join
 a        b__0     i__0
@@ -78,11 +86,13 @@ int      int      int
 2        2        2
 3        3        3
 3        3        4
+33 66 100
 
 join
 a        b__0     i__0
 int      int      int
 ------   ------   ------
+33 66 100
 
 left join
 a        b__0     i__0
@@ -91,11 +101,13 @@ int      int      int
 -        -        -
 2        -        -
 3        -        -
+33 66 100
 
 join
 a        b__0     i__0
 int      int      int
 ------   ------   ------
+33 66 100
 
 left join
 a        b__0     i__0
