@@ -37,7 +37,6 @@ def check(peaks, peakmap, regtest, mode):
 
     peaks.addColumn("ms2_mz_range", peaks.spectra_ms2.apply(mz_range), type_=float)
     peaks.addColumn("ms2_energy", peaks.spectra_ms2.apply(energy), type_=float, format_="%.2e")
-    peaks.addColumn("ms2_spec_count", peaks.spectra_ms2.apply(len), type_=int, format_="%d")
     peaks.setColFormat("spectra_ms2", None)
 
     print(peaks, file=regtest)

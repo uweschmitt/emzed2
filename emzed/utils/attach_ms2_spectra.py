@@ -204,13 +204,14 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
 
     assert mode in ("all", "max_range", "max_energy", "union", "intersection")
 
-    peak_table.ensureColNames(("id", "rtmin", "rtmax", "mzmin", "mzmax", "peakmap"))
+    peak_table.ensureColNames(("id", "rtmin", "rtmax", "mzmin", "mzmax"))
     assert "spectra_ms2" not in peak_table.getColNames()
 
     lookup = LookupMS2(peak_map)
 
     all_spectra = []
     last_n = 0
+    num_spectra = []
     for i, row in enumerate(peak_table):
         n = int(10.0 * i / len(peak_table))
         if n != last_n:
@@ -220,6 +221,7 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
                 print()  # else we mix other output with this counting output in one line
             last_n = n
         spectra = lookup.find_spectra(row.mzmin, row.mzmax, row.rtmin, row.rtmax)
+        num_spectra.append(len(spectra))
         if spectra:
             if mode == "max_range":
                 spectrum = max(spectra, key=lambda s: (max(s.peaks[:, 0]) - min(s.peaks[:, 0])))
@@ -240,6 +242,7 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
             spectra = None
         all_spectra.append(spectra)
     peak_table.addColumn("spectra_ms2", all_spectra, type_=list)
+    peak_table.addColumn("num_spectra_ms2", num_spectra, type_=int)
     num_ms2_added = peak_table.spectra_ms2.countNotNone()
     print()
     if num_ms2_added == 0:
