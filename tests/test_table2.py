@@ -52,6 +52,49 @@ def testFullJoin():
     assert t2.a__0.values == t.a.values * 3
 
 
+def testFastJoin(regtest_redirect):
+
+    def ttt(t, other):
+        joined = t.fastJoin(other, "a", "b")
+        print()
+        print("join")
+        joined.print_()
+        joined = t.fastLeftJoin(other, "a", "b")
+        print()
+        print("left join")
+        joined.print_()
+
+    with regtest_redirect():
+        t = emzed.utils.toTable("a", [None, 2, 3], type_=int)
+        joined = t.fastJoin(t, "a")
+        print()
+        print("join")
+        joined.print_()
+        joined = t.fastLeftJoin(t, "a")
+        print()
+        print("left join")
+        joined.print_()
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 2, 2], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 3, 3], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 3, 3], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [7, 7, 7, 7, 7], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
 def testIfNotNoneElse():
     t = emzed.utils.toTable("a", [None, 2, 3])
     t.print_()

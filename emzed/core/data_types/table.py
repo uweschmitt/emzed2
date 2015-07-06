@@ -1527,6 +1527,29 @@ class Table(object):
         table.rows = rows
         return table
 
+    def fastJoin(self, other, column_name_self, column_name_other=None):
+        """Fast joining for combining tables based on equality constraint.
+
+        For example: ``t1`` and ``t2`` have a column named ``id``. The the call::
+
+            tn = t1.fastJoin(t2, "id")
+
+        yields the same result as::
+
+            tn = t1.join(t2, t1.id == t2.id)
+
+        but is much faster. The column name ``column_name_other`` can be used if ``t2`` does
+        have a column ``id`` for matching. Then this column name is used instead.
+        """
+        table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
+        rows = []
+        for row in self.rows:
+            matches = index.get(row[idx])
+            if matches:
+                rows.extend([row[:] + other.rows[i][:] for i in matches])
+        table.rows = rows
+        return table
+
     def leftJoin(self, t, expr=True, debug=False, title=None):
         """performs an *left join* also known as *outer join* of two tables.
 
@@ -1588,6 +1611,37 @@ class Table(object):
 
         cmdlineProgress.finish()
 
+        table.rows = rows
+        return table
+
+    def _prepare_fast_join(self, other, column_name_self, column_name_other):
+        self.requireColumn(column_name_self)
+        if column_name_other is None:
+            column_name_other = column_name_self
+        other.requireColumn(column_name_other)
+        table = self._buildJoinTable(other, title=None)
+        rows_other = collections.defaultdict(list)
+
+        idx = other.getIndex(column_name_other)
+        for i, row in enumerate(other.rows):
+            rows_other[row[idx]].append(i)
+
+        idx = self.getIndex(column_name_self)
+        return table, rows_other, idx
+
+    def fastLeftJoin(self, other, column_name_self, column_name_other=None):
+        """Same optimization as fastJoin described above, but performas a fast ``leftJoin``
+        instead.
+        """
+        table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
+        rows = []
+        no = len(other._colNames)
+        for row in self.rows:
+            matches = index.get(row[idx])
+            if matches:
+                rows.extend([row[:] + other.rows[i][:] for i in matches])
+            else:
+                rows.append(row[:] + [None] * no)
         table.rows = rows
         return table
 
