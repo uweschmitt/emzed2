@@ -1,4 +1,5 @@
 from __future__ import print_function
+import pdb
 
 from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
 import emzed.utils
@@ -94,6 +95,7 @@ def testFastJoin(regtest_redirect):
         other = emzed.utils.toTable("b", [], type_=int)
         other.addColumn("i", range(len(other)), type_=int)
         ttt(t, other)
+
 
 def testIfNotNoneElse():
     t = emzed.utils.toTable("a", [None, 2, 3])
@@ -749,21 +751,120 @@ def test_any_all_agg_expressions():
 def test_getitem_variations():
     t = emzed.utils.toTable("v", range(3))
     t1 = t[0:2]
-    t2 = t[(0, 1)]
-    t3 = t[(True, True, False)]
-    t4 = t[[0, 1]]
-    t5 = t[[True, True, False]]
-    t6 = t[np.array((True, True, False), dtype=bool)]
-    t7 = t[np.array((0, 1), dtype=int)]
+    t2 = t[[0, 1]]
+    t3 = t[[True, True, False]]
+    t4 = t[np.array((True, True, False), dtype=bool)]
+    t5 = t[np.array((0, 1), dtype=int)]
 
     assert t1.rows == [[0], [1]]
 
-    for ti in (t1, t2, t3, t4, t5, t6, t7):
+    for ti in (t1, t2, t3, t4, t5):
         assert ti.getColNames() == t.getColNames()
         assert ti.getColTypes() == t.getColTypes()
         assert ti.getColFormats() == t.getColFormats()
         assert ti.rows == t1.rows
 
+    t1 = t[0:2, :]
+    t2 = t[[0, 1], :]
+    t3 = t[[True, True, False], :]
+    t4 = t[np.array((True, True, False), dtype=bool), :]
+    t5 = t[np.array((0, 1), dtype=int), :]
+
+    assert t1.rows == [[0], [1]]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t.addColumn("w", t.v * 2.0)
+
+    t1 = t[0:2, :]
+    t2 = t[[0, 1], :]
+    t3 = t[[True, True, False], :]
+    t4 = t[np.array((True, True, False), dtype=bool), :]
+    t5 = t[np.array((0, 1), dtype=int), :]
+
+    assert t1.rows == [[0, 0.0], [1, 2.0]]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, :1]
+    t2 = t[[0, 1], :1]
+    t3 = t[[True, True, False], :1]
+    t4 = t[np.array((True, True, False), dtype=bool), :1]
+    t5 = t[np.array((0, 1), dtype=int), :1]
+
+    assert t1.rows == [[0], [1]]
+    assert t1.getColNames() == ["v"]
+    assert t1.getColTypes() == [int]
+    assert t1.getColFormats() == ["%d"]
+
+    for ti in (t2, t3, t4, t5):
+        assert ti.getColNames() == t1.getColNames()
+        assert ti.getColTypes() == t1.getColTypes()
+        assert ti.getColFormats() == t1.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:]
+    t2 = t[[0, 1], (0, 1)]
+    t3 = t[[True, True, False], [True, True]]
+    t4 = t[np.array((True, True, False), dtype=bool), np.array((True, True), dtype=bool)]
+    t5 = t[np.array((0, 1), dtype=int), np.array((0, 1), dtype=int)]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:2]
+    t2 = t[[0, 1], 0:2]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:2:1]
+    t2 = t[[0, 1], 0:2:1]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[:, :]
+
+    assert t1.rows == t.rows
+
+    for ti in (t1,):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[::-1, ::-1]
+
+    assert t1.rows == [r[::-1] for r in t.rows[::-1]]
+
+    for ti in (t1,):
+        assert ti.getColNames() == t.getColNames()[::-1]
+        assert ti.getColTypes() == t.getColTypes()[::-1]
+        assert ti.getColFormats() == t.getColFormats()[::-1]
 
 def test_t():
     t = emzed.utils.toTable("v", range(1, 3))
@@ -820,7 +921,7 @@ def test_add_postfix():
 
 
 def test_write_csv(tmpdir, regtest):
-    t = emzed.utils.toTable("a", (1, 2), format_ = "%03d")
+    t = emzed.utils.toTable("a", (1, 2), format_="%03d")
     t.addColumn("b", (2, 3), format_=None)
 
     path = tmpdir.join("1.csv").strpath
@@ -887,6 +988,7 @@ def test_col_name_trans(regtest):
         t.transformColumnNames(lambda s: "xx")
 
     print(e.value, file=regtest)
+
 
 def test_expr_to_iter():
     t = emzed.utils.toTable("x", (1, 2, 3.0))

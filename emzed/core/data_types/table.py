@@ -491,37 +491,64 @@ class Table(object):
                 t[:1].a.values == [1]
                 t[1:].a.values == [2, 3]
                 t[:].a.values == [1, 2, 3]
+                t[::-1].a.values == [3, 2, 1]
 
                 # now:
                 t[:] == t.copy()
 
-        For selection rows *ix* max be a list/tuple of booleans or integers:
+                # revert
+                t_reverted = t[::-1]
 
-                t[(True, False, False)] == t[0]
-                t[(0, 1)] == t[:2]
+        For selection rows *irow* max be a list or numpy array of booleans or integers:
+
+                t[[True, False, False]] == t[0]
+                t[[0, 1]] == t[:2]
+                t[numpy.arange(0, 2)] == t[:2]
+
+        Selection of columns is supported as well, so expressions like ``t[:, 1:2]``,
+        ``t[:, [0, 1]]`` work as expected.
 
         """
-        prototype = self.buildEmptyClone()
-        if isinstance(ix, np.ndarray):
-            ix = ix.tolist()
-        if isinstance(ix, (list, tuple)):
-            if not len(ix):
-                prototype.rows = []
-            elif all(isinstance(ixi, bool) for ixi in ix):
-                if len(ix) == len(self):
-                    for ixi, row in zip(ix, self.rows):
-                        if ixi:
-                            prototype.rows.append(row[:])
-                else:
-                    raise Exception("invalid access, len(ix) != len(table)")
-
-            elif all(isinstance(ixi, (long, int)) for ixi in ix):
-                prototype.rows = [self.rows[i][:] for i in ix]
+        irow = None
+        icol = None
+        if isinstance(ix, tuple):
+            if len(ix) == 1:
+                    irow, icol = ix[0], None
+            elif len(ix) == 2:
+                    irow, icol = ix
+            else:
+                raise Exception("can not handle argument %r" % ix)
         else:
-            if not isinstance(ix, slice):
-                ix = slice(ix, ix + 1)
-            prototype.rows = [row[:] for row in self.rows[ix]]
-        prototype.resetInternals()
+            irow = ix
+
+        def _setup(ix, n):
+            if ix is not None:
+                if isinstance(ix, np.ndarray):
+                    ix = ix.tolist()
+                if isinstance(ix, slice):
+                    start = ix.start if ix.start is not None else 0
+                    end = ix.stop if ix.stop is not None else n
+                    stepsize = ix.step if ix.step is not None else 1
+                    if stepsize < 0:
+                        start, end = end - 1, start - 1
+                    ix = range(start, end, stepsize)
+                elif isinstance(ix, (int, long)):
+                    ix = [ix]
+                elif isinstance(ix, list) and all(isinstance(vi, bool) for vi in ix):
+                    ix = [i for (i, v) in enumerate(ix) if v]
+            else:
+                ix = range(0, n)
+            return ix
+
+        icol = _setup(icol, len(self._colNames))
+        irow = _setup(irow, len(self))
+
+        def select(li, ix):
+            return li[:] if ix is None else [li[i] for i in ix]
+
+        prototype = self.buildEmptyClone(icol)
+        for row in select(self.rows, irow):
+            prototype.rows.append(select(row, icol))
         return prototype
 
     def __getstate__(self):
@@ -980,11 +1007,16 @@ class Table(object):
             except:
                 return Table._try_to_load_old_version(pickle_data)
 
-    def buildEmptyClone(self):
+    def buildEmptyClone(self, cols=None):
         """ returns empty table with same names, types, formatters,
             title and meta data """
-        return Table._create(self._colNames, self._colTypes, self._colFormats,
-                             [], self.title, self.meta.copy())
+        def select(li):
+            return li[:] if cols is None else [li[i] for i in cols]
+        names = select(self._colNames)
+        types = select(self._colTypes)
+        formats = select(self._colFormats)
+
+        return Table._create(names, types, formats, [], self.title, self.meta.copy())
 
     def dropColumns(self, *patterns):
         """ removes columns where name matches on of given ``patterns`` from the table.
