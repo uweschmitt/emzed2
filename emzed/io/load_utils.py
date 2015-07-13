@@ -3,6 +3,7 @@
 
 from utils import _prepare_path
 
+
 def loadPeakMap(path=None):
     """ loads mzXML, mzML and mzData files
 
@@ -11,29 +12,13 @@ def loadPeakMap(path=None):
     """
 
     # local import in order to keep namespaces clean
-    import os.path
-    import sys
-    from pyopenms import MSExperiment, FileHandler
     from ..core.data_types import PeakMap
 
     path = _prepare_path(path, extensions=["mzML", "mzXML", "mzData"])
     if path is None:
         return None
 
-    # open-ms returns empty peakmap if file not exists, so we
-    # check ourselves:
-    if not os.path.exists(path):
-        raise Exception("file %s does not exist" % path)
-    if not os.path.isfile(path):
-        raise Exception("path %s is not a file" % path)
-
-    experiment = MSExperiment()
-    fh = FileHandler()
-    if sys.platform == "win32":
-        path = path.replace("/", "\\")  # needed for network shares
-    fh.loadExperiment(path, experiment)
-
-    return PeakMap.fromMSExperiment(experiment)
+    return PeakMap.load(path)
 
 
 def loadTable(path=None, compress_after_load=True):

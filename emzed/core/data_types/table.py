@@ -1,4 +1,3 @@
-import pdb
 import cPickle
 import cStringIO
 import codecs
@@ -25,7 +24,7 @@ from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_ty
 
 from . import tools
 
-from .ms_types import PeakMap
+from .ms_types import PeakMap, PeakMapProxy
 from .col_types import Blob
 
 __doc__ = """
@@ -913,7 +912,7 @@ class Table(object):
                         for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)
 
-    def store(self, path, forceOverwrite=False, compressed=True):
+    def store(self, path, forceOverwrite=False, compressed=True, peakmap_cache_folder=None):
         """
         writes the table in binary format. All information, as
         corresponding peak maps ar too.
@@ -926,6 +925,10 @@ class Table(object):
                 "%s exists. You may use forceOverwrite=True" % path)
         if compressed:
             self.compressPeakMaps()
+
+        if peakmap_cache_folder is not None:
+            self._introduce_proxies(peakmap_cache_folder)
+
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
@@ -2195,6 +2198,19 @@ class Table(object):
                 if isinstance(cell, PeakMap):
                     row[i] = peak_maps[cell.uniqueId()]
         self.resetInternals()
+
+    def _introduce_proxies(self, folder):
+        proxies = dict()
+        for row in self.rows:
+            for i, cell in enumerate(row):
+                if isinstance(cell, PeakMap):
+                    id_ = cell.uniqueId()
+                    if id_ not in proxies:
+                        path = os.path.join(folder, "peak_map_%s.pickle" % id_)
+                        if not os.path.exists(path):
+                            cell.dump_as_pickle(path)
+                        proxies[id_] = PeakMapProxy(path)
+                    row[i] = proxies[id_]
 
     @staticmethod
     def _conv_nan(val):

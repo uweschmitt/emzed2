@@ -1,10 +1,12 @@
 import pyopenms
 import numpy as np
 import os.path
+import sys
 import copy
 import hashlib
 from collections import defaultdict
 import warnings
+
 
 OPTIMIZATIONS_INSTALLED = False
 try:
@@ -13,8 +15,7 @@ try:
 except:
     pass
 
-
-IS_PYOPENMS_2  = pyopenms.__version__.startswith("2.")
+IS_PYOPENMS_2 = pyopenms.__version__.startswith("2.")
 
 
 def deprecation(message):
@@ -662,3 +663,84 @@ class PeakMap(object):
 
         meta = self.meta.copy()
         return sorted([(key, PeakMap(values, meta=meta)) for (key, values) in msn_spectra.items()])
+
+    @staticmethod
+    def load(path):
+        # open-ms returns empty peakmap if file not exists, so we
+        # check ourselves:
+        if not os.path.exists(path):
+            raise Exception("file %s does not exist" % path)
+        if not os.path.isfile(path):
+            raise Exception("path %s is not a file" % path)
+
+        experiment = pyopenms.MSExperiment()
+        fh = pyopenms.FileHandler()
+        if sys.platform == "win32":
+            path = path.replace("/", "\\")  # needed for network shares
+        fh.loadExperiment(path, experiment)
+        return PeakMap.fromMSExperiment(experiment)
+
+    def store(self, path):
+        if sys.platform == "win32":
+            path = path.replace("/", "\\")  # needed for network shares
+
+        experiment = self.toMSExperiment()
+        fh = pyopenms.FileHandler()
+        fh.storeExperiment(path, experiment)
+
+    def dump_as_pickle(self, fp_or_path):
+        import dill
+        if isinstance(fp_or_path, basestring):
+            if sys.platform == "win32":
+                fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
+            with open(fp_or_path, "wb") as fp:
+                dill.dump(self, fp)
+            return
+        dill.dump(self, fp_or_path)
+
+    @staticmethod
+    def load_as_pickle(fp_or_path):
+        import dill
+        if isinstance(fp_or_path, basestring):
+            if sys.platform == "win32":
+                fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
+            with open(fp_or_path, "rb") as fp:
+                return dill.load(fp)
+            return
+        return dill.load(fp_or_path)
+
+
+class PeakMapProxy(PeakMap):
+
+    def __init__(self, path):
+        self._path = path
+        self._loaded = False
+
+    def __getattr__(self, name):
+        if name == "spectra" and not self._loaded:
+            ext = os.path.splitext(self._path)[1].upper()
+            if ext in (".MZML", ".MZXML", ".MZDATA"):
+                pm = PeakMap.load(self._path)
+            else:
+                pm = PeakMap.load_as_pickle(self._path)
+            self.__dict__.update(vars(pm))
+            self._loaded = True
+            return self.spectra
+        elif name == "meta":
+            self.meta = {}
+            return self.meta
+        raise AttributeError("unknown attribute %s" % name)
+
+    def __getstate__(self):
+        return self._path
+
+    def __setstate__(self, dd):
+        self._path = dd
+        self._loaded = False
+
+
+
+
+
+
+

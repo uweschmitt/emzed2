@@ -1,7 +1,8 @@
-import pdb
 import emzed.utils
 import emzed.io
 import os.path as osp
+
+
 
 
 def test_formula():
@@ -10,7 +11,6 @@ def test_formula():
     assert str(mf1 + mf2) == "CH4O2"
     mf3 = mf1 + mf2 - mf2
     assert str(mf3) == "H2O"
-
 
 def test_recalc_peaks(path):
     from_ = path(u"data/SHORT_MS2_FILE.mzData")
