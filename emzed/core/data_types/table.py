@@ -2203,13 +2203,13 @@ class Table(object):
         proxies = dict()
         for row in self.rows:
             for i, cell in enumerate(row):
-                if isinstance(cell, PeakMap):
+                if isinstance(cell, PeakMap) and not isinstance(cell, PeakMapProxy):
                     id_ = cell.uniqueId()
                     if id_ not in proxies:
                         path = os.path.join(folder, "peak_map_%s.pickle" % id_)
                         if not os.path.exists(path):
                             cell.dump_as_pickle(path)
-                        proxies[id_] = PeakMapProxy(path)
+                        proxies[id_] = PeakMapProxy(path, id_)
                     row[i] = proxies[id_]
 
     @staticmethod

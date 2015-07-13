@@ -706,15 +706,16 @@ class PeakMap(object):
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
             with open(fp_or_path, "rb") as fp:
                 return dill.load(fp)
-            return
         return dill.load(fp_or_path)
 
 
 class PeakMapProxy(PeakMap):
 
-    def __init__(self, path):
+    def __init__(self, path, unique_id=None):
         self._path = path
         self._loaded = False
+        if unique_id is not None:
+            self.meta = {"unique_id": unique_id}
 
     def __getattr__(self, name):
         if name == "spectra" and not self._loaded:

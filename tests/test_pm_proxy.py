@@ -13,16 +13,22 @@ def test_0(path):
     assert n == 41
 
 
-def test_1(path):
+def test_1(path, tmpdir):
+    from emzed.core.data_types.ms_types import PeakMapProxy
     pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
     t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
     t.addColumn("peakmap", pm, type_=object)
-    t.store("without_comp.table", True)
-    t.store("with_comp.table", True, peakmap_cache_folder=".")
+    t.store(tmpdir.join("without_comp.table").strpath, True)
+    t.store(tmpdir.join("with_comp.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
 
-    tn = emzed.io.loadTable("with_comp.table")
+    tn = emzed.io.loadTable(tmpdir.join("with_comp.table").strpath)
     pm = tn.peakmap.uniqueValue()
+    assert isinstance(pm, PeakMapProxy)
     assert len(pm) == 41
 
+    t.store(tmpdir.join("with_comp_2.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
 
-
+    tn = emzed.io.loadTable(tmpdir.join("with_comp_2.table").strpath)
+    pm = tn.peakmap.uniqueValue()
+    assert isinstance(pm, PeakMapProxy)
+    assert len(pm) == 41
