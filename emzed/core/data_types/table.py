@@ -2325,3 +2325,38 @@ class Table(object):
             rows.append(row)
         table.rows = rows
         return table
+
+    def apply(self, fun, args, keep_nones=False):
+
+        all_values = []
+        fixed = set()
+        for i, arg in enumerate(args):
+            if isinstance(arg, BaseExpression):
+                values, _, type2_ = arg._eval(None)
+                if type2_ in _basic_num_types:
+                    values = values.tolist()
+                all_values.append(list(values))
+                assert len(values) in (1, len(self))
+            else:
+                all_values.append(arg)
+                fixed.add(i)
+
+        func_values = []
+        cache = dict()
+
+        result = []
+
+        for i in xrange(len(self)):
+            arg = []
+            for j, v in enumerate(all_values):
+                if j in fixed:
+                    arg.append(v)
+                else:
+                    arg.append(v[i])
+            arg = tuple(arg)
+            if not keep_nones and None in arg:
+                cache[arg] = None
+            elif arg not in cache:
+                cache[arg] = fun(*arg)
+            result.append(cache[arg])
+        return result

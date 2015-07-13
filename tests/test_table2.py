@@ -1140,3 +1140,24 @@ def test_any_x():
     assert t.a.anyNone() is True
     assert t.a.anyFalse() is False
     assert t.a.anyTrue() is False
+
+
+def test_new_apply(regtest):
+    t = emzed.utils.toTable("a", (1, 2, None), type_=float)
+    t.addColumn("b", t.a + 1.0, type_=float)
+
+    def add(a, b):
+        return a + b
+
+    def any_none(a, b):
+        return a is None or b  is None
+
+
+    t.addColumn("sum", t.apply(add, (t.a, t.b)))
+    t.addColumn("b+1", t.apply(add, (1.0, t.b)))
+    t.addColumn("a+3", t.apply(add, (t.a, 3.0)))
+    t.addColumn("four", t.apply(add, (1.0, 3.0)))
+
+    t.addColumn("n", (None, 1, 2), type_=int)
+    t.addColumn("a_or_n_is_none", t.apply(any_none, (t.a, t.n), keep_nones=True), type_=bool)
+    print(t, file=regtest)
