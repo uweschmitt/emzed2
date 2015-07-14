@@ -1,5 +1,6 @@
+#encoding: utf-8
+
 from __future__ import print_function
-import pdb
 
 from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
 import emzed.utils
@@ -95,6 +96,91 @@ def testFastJoin(regtest_redirect):
         other = emzed.utils.toTable("b", [], type_=int)
         other.addColumn("i", range(len(other)), type_=int)
         ttt(t, other)
+
+
+def testFastApproxLookup(regtest):
+    t = emzed.utils.toTable("a", (None, 1.0, 2.0, 3.0, 4.0, 5.0))
+    t2 = t.fastJoin(t, "a", abs_tol=.001)
+    print(t2, file=regtest)
+
+    t2 = t.fastJoin(t, "a", rel_tol=.5)
+    print(t2, file=regtest)
+
+    t2 = t.fastLeftJoin(t, "a", abs_tol=.001)
+    print(t2, file=regtest)
+
+    t2 = t.fastLeftJoin(t, "a", rel_tol=.5)
+    print(t2, file=regtest)
+
+    t = emzed.utils.toTable("ix", range(300))
+    import random
+
+    random.seed(4711)
+
+    t.addColumn("r", t.apply(random.random, ()))
+    t2 = t.copy()
+
+    import time
+
+    t2.sortBy("r")
+
+    started = time.time()
+    r = t.fastJoin(t2, "r", abs_tol=0.0002)
+    print()
+    print("fastJoin: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    started = time.time()
+    r1 = t.join(t2, t.r.approxEqual(t2.r, 0.0002))
+    print()
+    print("join with approxEqual: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r1.uniqueId()
+
+    started = time.time()
+    r2 = t.join(t2, t.r.equals(t2.r, abs_tol=0.0002))
+    print()
+    print("join with equals: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r2.uniqueId()
+
+    started = time.time()
+    r3 = t.join(t2, t.r.equals(t2.r, abs_tol=1.00) & t.r.equals(t2.r, abs_tol=0.0002))
+    print()
+    print("join with equals, two times: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r3.uniqueId()
+
+    started = time.time()
+    r4 = t.join(t2, (t.r - t2.r).apply(abs) <= 0.0002)
+    print()
+    print("join with computing distance, two times: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r4.uniqueId()
+
+    # now we test for matching with relative tolerance:
+
+    r = t.fastJoin(t2, "r", rel_tol=0.02)
+    r2 = t.join(t2, t.r.equals(t2.r, rel_tol=0.02))
+    assert r.uniqueId() == r2.uniqueId()
+
+    r3 = t.join(t2, t.r.equals(t2.r, rel_tol=0.2) & t.r.equals(t2.r, rel_tol=0.02))
+
+    assert r.uniqueId() == r3.uniqueId()
+
+    started = time.time()
+    r4 = t.join(t2, (t.r - t2.r).apply(abs) / t.r <= 0.02)
+
+    assert r.uniqueId() == r4.uniqueId()
 
 
 def testIfNotNoneElse():

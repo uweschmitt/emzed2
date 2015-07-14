@@ -1,10 +1,10 @@
 
-x        xi       yi      
-int      int      str     
-------   ------   ------  
-1        001        1.0   
-2        -          1.0   
-3        -01        1.0   
+x        xi       yi
+int      int      str
+------   ------   ------
+1        001        1.0
+2        -          1.0
+3        -01        1.0
 
 
 
@@ -12,12 +12,12 @@ iter 0
 row 0 before modification is [1.0, 1, '1.0']
 row 0 after modification is [4711, 1, '42']
 table is
- x        xi       yi      
-int      int      str     
-------   ------   ------  
-4711     001         42   
-2        -          1.0   
-3        -01        1.0   
+ x        xi       yi
+int      int      str
+------   ------   ------
+4711     001         42
+2        -          1.0
+3        -01        1.0
 
 
 row copy is [4711, 1, '42']
@@ -35,12 +35,12 @@ iter 1
 row 1 before modification is [2.0, None, '1.0']
 row 1 after modification is [4711, None, '42']
 table is
- x        xi       yi      
-int      int      str     
-------   ------   ------  
-4711     001         42   
-4711     -           42   
-3        -01        1.0   
+ x        xi       yi
+int      int      str
+------   ------   ------
+4711     001         42
+4711     -           42
+3        -01        1.0
 
 
 row copy is [4711, None, '42']
@@ -58,12 +58,12 @@ iter 2
 row 2 before modification is [3.0, -1, '1.0']
 row 2 after modification is [4711, -1, '42']
 table is
- x        xi       yi      
-int      int      str     
-------   ------   ------  
-4711     001         42   
-4711     -           42   
-4711     -01         42   
+ x        xi       yi
+int      int      str
+------   ------   ------
+4711     001         42
+4711     -           42
+4711     -01         42
 
 
 row copy is [4711, -1, '42']
@@ -76,12 +76,12 @@ items= [('yi', 4711), ('x', -1), ('xi', '42')]
 as list= [4711, -1, '42']
 as str= [4711, -1, '42']
 
-x        xi       yi      
-int      int      str     
-------   ------   ------  
-4711     001         42   
-4711     -           42   
-4711     -01         42   
+x        xi       yi
+int      int      str
+------   ------   ------
+4711     001         42
+4711     -           42
+4711     -01         42
 
 4711 1 42
 4711 None 42

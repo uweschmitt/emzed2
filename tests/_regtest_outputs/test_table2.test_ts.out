@@ -1,9 +1,9 @@
 [1, 2, 3, 4] [11, 12, 14, 13]
 [4] [100]
 <empty TimeSeries>
-id       ts                                     
+id       ts
 int      emzed.core.data_types.col_types.TimeSeries
-------   ------                                 
+------   ------
 1        <TimeSeries, time=1..4, values=11..100>
 1        <TimeSeries, time=1..4, values=11..100>
 2        <TimeSeries, time=1..4, values=11..100>

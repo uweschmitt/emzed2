@@ -20,7 +20,8 @@ import pyopenms
 
 
 from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
-                          common_type_for, is_numpy_number_type)
+                          common_type_for, is_numpy_number_type,
+                          ExactLookup, FuzzyRelativeLookup, FuzzyAbsoluteLookup)
 
 from . import tools
 
@@ -1562,31 +1563,6 @@ class Table(object):
         table.rows = rows
         return table
 
-    def fastJoin(self, other, column_name_self, column_name_other=None):
-        """Fast joining for combining tables based on equality constraint.
-
-        For example: ``t1`` and ``t2`` have a column named ``id``. The the call::
-
-            tn = t1.fastJoin(t2, "id")
-
-        yields the same result as::
-
-            tn = t1.join(t2, t1.id == t2.id)
-
-        but is much faster. The column name ``column_name_other`` can be used if ``t2`` does
-        have a column ``id`` for matching. Then this column name is used instead.
-        """
-        table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
-        rows = []
-        cmdlineProgress = _CmdLineProgress(len(self))
-        for ii, row in enumerate(self.rows):
-            matches = index.get(row[idx])
-            if matches:
-                rows.extend([row[:] + other.rows[i][:] for i in matches])
-            cmdlineProgress.progress(ii)
-        cmdlineProgress.finish()
-        table.rows = rows
-        return table
 
     def leftJoin(self, t, expr=True, debug=False, title=None):
         """performs an *left join* also known as *outer join* of two tables.
@@ -1652,31 +1628,82 @@ class Table(object):
         table.rows = rows
         return table
 
-    def _prepare_fast_join(self, other, column_name_self, column_name_other):
+    def _prepare_fast_join(self, other, column_name_self, column_name_other, rel_tol, abs_tol):
         self.requireColumn(column_name_self)
         if column_name_other is None:
             column_name_other = column_name_self
         other.requireColumn(column_name_other)
         table = self._buildJoinTable(other, title=None)
-        rows_other = collections.defaultdict(list)
+
+        lookup = other.buildLookup(column_name_other, rel_tol, abs_tol)
 
         idx = other.getIndex(column_name_other)
-        for i, row in enumerate(other.rows):
-            rows_other[row[idx]].append(i)
+        return table, lookup, idx
 
-        idx = self.getIndex(column_name_self)
-        return table, rows_other, idx
 
-    def fastLeftJoin(self, other, column_name_self, column_name_other=None):
+    def buildLookup(self, column_name, rel_tol, abs_tol):
+        assert rel_tol is None or abs_tol is None, ("you are not allowed to provide rel_tol and"
+                                                    " abs_tol at the same time")
+        if rel_tol is not None:
+            lookup = FuzzyRelativeLookup(self.getColumn(column_name).values, rel_tol)
+        elif abs_tol is not None:
+            lookup = FuzzyAbsoluteLookup(self.getColumn(column_name).values, abs_tol)
+        else:
+            lookup = ExactLookup(self.getColumn(column_name).values)
+        return lookup
+
+
+    def fastJoin(self, other, column_name_self, column_name_other=None, rel_tol=None, abs_tol=None):
+        """Fast joining for combining tables based on equality constraint.
+
+        For example: ``t1`` and ``t2`` have a column named ``id``. The the call::
+
+            tn = t1.fastJoin(t2, "id")
+
+        yields the same result as::
+
+            tn = t1.join(t2, t1.id == t2.id)
+
+        but is much faster. The column name ``column_name_other`` can be used if ``t2`` does
+        have a column ``id`` for matching. Then this column name is used instead.
+
+        You can use *rel_tol* or *abs_tol* for approximate matching of numerical values.
+
+        For a more flexible way to join on exact or approximate matches use the .equals
+        expression, which allows and/or for more complex match conditions::
+
+            tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+
+        """
+        table, lookup, idx = self._prepare_fast_join(other, column_name_self, column_name_other,
+                                                    rel_tol, abs_tol)
+        rows = []
+        cmdlineProgress = _CmdLineProgress(len(self))
+        for ii, row in enumerate(self.rows):
+            if row[idx] is None:
+                continue
+            matches = lookup.find(row[idx])
+            if matches:
+                rows.extend([row[:] + other.rows[i][:] for i in matches])
+            cmdlineProgress.progress(ii)
+        cmdlineProgress.finish()
+        table.rows = rows
+        return table
+
+    def fastLeftJoin(self, other, column_name_self, column_name_other=None, rel_tol=None, abs_tol=None):
         """Same optimization as fastJoin described above, but performas a fast ``leftJoin``
         instead.
         """
-        table, index, idx = self._prepare_fast_join(other, column_name_self, column_name_other)
+        table, lookup, idx = self._prepare_fast_join(other, column_name_self, column_name_other,
+                                                     rel_tol, abs_tol)
         rows = []
         no = len(other._colNames)
         cmdlineProgress = _CmdLineProgress(len(self))
         for ii, row in enumerate(self.rows):
-            matches = index.get(row[idx])
+            if row[idx] is None:
+                rows.append(row[:] + [None] * no)
+                continue
+            matches = lookup.find(row[idx])
             if matches:
                 rows.extend([row[:] + other.rows[i][:] for i in matches])
             else:
@@ -2342,7 +2369,6 @@ class Table(object):
                 fixed.add(i)
 
         func_values = []
-        cache = dict()
 
         result = []
 
@@ -2355,8 +2381,8 @@ class Table(object):
                     arg.append(v[i])
             arg = tuple(arg)
             if not keep_nones and None in arg:
-                cache[arg] = None
-            elif arg not in cache:
-                cache[arg] = fun(*arg)
-            result.append(cache[arg])
+                value = None
+            else:
+                value = fun(*arg)
+            result.append(value)
         return result

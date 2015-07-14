@@ -2,6 +2,8 @@ import numpy as np
 import re
 import col_types
 import collections
+import warnings
+
 
 
 __doc__ = """
@@ -10,6 +12,14 @@ Working with tables relies on so called ``Expressions``
 
 
 """
+
+
+def warn(message):
+    warnings.warn(message, UserWarning, stacklevel=3)
+
+
+def depreciation_warning(message):
+    warnings.warn(message, DeprecationWarning, stacklevel=3)
 
 
 def le(a, x):
@@ -172,6 +182,86 @@ def common_type(t1, t2):
     return object
 
 
+class Lookup(object):
+
+    def find(self, value):
+        pass
+
+
+class ExactLookup(Lookup):
+
+    def __init__(self, values):
+        if not isinstance(values, list):
+            values = list(values)
+        self.values = values
+        self.index = collections.defaultdict(list)
+        for (i, v) in enumerate(values):
+            self.index[v].append(i)
+
+    def find(self, value):
+        return self.index.get(value, [])
+
+
+class _FuzzyLookup(Lookup):
+
+    def __init__(self, values, tol):
+        if not isinstance(values, list):
+            values = list(values)
+        self.values = values
+        self.index = collections.defaultdict(list)
+        self.tol = tol
+        for (i, v) in enumerate(values):
+            if v is not None:
+                k = self._bin(v)
+                self.index[k].append((v, i))
+
+    def find(self, value):
+        if value is None:
+            return []
+        k = self._bin(value)
+        candidates = self.index.get(k - 1, []) + self.index.get(k, []) + self.index.get(k + 1, [])
+        result = []
+        for value_i, i in candidates:
+            if self._fit(value, value_i):
+                result.append(i)
+        return result
+
+
+class FuzzyAbsoluteLookup(_FuzzyLookup):
+
+    def _bin(self, value):
+        try:
+            return int(value / self.tol)
+        except TypeError:
+            raise TypeError("computing fraction  %s by %s failed" % (value, self.tol))
+
+    def _fit(self, reference, other):
+        try:
+            return abs(reference - other) <= self.tol
+        except TypeError:
+            raise TypeError("computing absolute distance of %s and %s failed" % (refernce, other))
+
+
+class FuzzyRelativeLookup(_FuzzyLookup):
+
+    def __init__(self, values, tol):
+        self.abs_tol = max(values) * tol
+        _FuzzyLookup.__init__(self, values, tol)
+
+    def _bin(self, value):
+        try:
+            return int(value / self.abs_tol)
+        except TypeError:
+            raise TypeError("computing fraction %s by %s failed" % (value, self.abs_tol))
+
+    def _fit(self, reference, other):
+        try:
+            return abs(other - reference) / reference <= self.tol
+        except TypeError:
+            raise TypeError("computing relative distance of %s and %s failed" % (refernce, other))
+
+
+
 class BaseExpression(object):
 
     """
@@ -311,6 +401,20 @@ class BaseExpression(object):
             return lc + self.right._neededColumns()
         return lc
 
+    def equals(self, other, abs_tol=None, rel_tol=None):
+        """fast comparison for equality, maybe with some numerical tolerance::
+
+            tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+
+        """
+        assert abs_tol is None or rel_tol is None
+        if abs_tol is not None:
+            return MatchExpression(self, FuzzyAbsoluteLookup(other, abs_tol))
+        elif rel_tol is not None:
+            return MatchExpression(self, FuzzyRelativeLookup(other, rel_tol))
+        else:
+            return MatchExpression(self, ExactLookup(other))
+
     def startswith(self, other):
         """
         For two string valued expressions ``a`` and ``b`` the expression
@@ -383,6 +487,7 @@ class BaseExpression(object):
 
         Example: ``tab.mz.approxEqual(meatbolites.mz, 0.001)``
         """
+        depreciation_warning("you better use the .equals instead of .approxEqual !")
         return self.inRange(what - tol, what + tol)
 
     def thenElse(self, then, else_):
@@ -918,6 +1023,56 @@ class EqExpression(CompExpression):
         i0 = le(vec, refval)
         i1 = ge(vec, refval)
         return Range(i1, i0 + 1, len(vec))
+
+
+class MatchExpression(BaseExpression):
+
+    def __init__(self, left, lookup):
+        self.lookup = lookup
+        self.left = left
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        if len(lvals) > 1:
+            raise Exception("your join/leftJoin/... has a wrong way to apply the matches concept.")
+        val = lvals[0]
+        if val is None:
+            return [False] * len(self.lookup.values), None, bool
+        matching_row_idx = set(self.lookup.find(val))
+        values = [m in matching_row_idx for m in xrange(len(self.lookup.values))]
+        return values, None, bool
+
+    def __and__(self, other):
+        return FastAndExpression(self, other)
+
+    def __or__(self, other):
+        return FastOrExpression(self, other)
+
+
+class FastAndExpression(BaseExpression):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        rvals, idxl, tl = saveeval(self.right, ctx)
+        result = [l and r for l, r in zip(lvals, rvals)]
+        return result, None, bool
+
+
+class FastOrExpression(BaseExpression):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        rvals, idxl, tl = saveeval(self.right, ctx)
+        result = [l or r for l, r in zip(lvals, rvals)]
+        return result, None, bool
 
 
 class BinaryExpression(BaseExpression):
