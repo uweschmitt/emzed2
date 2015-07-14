@@ -499,7 +499,7 @@ class Table(object):
                 # revert
                 t_reverted = t[::-1]
 
-        For selection rows *irow* max be a list or numpy array of booleans or integers:
+        For selection rows *irow* max be a list or numpy array of booleans or integers::
 
                 t[[True, False, False]] == t[0]
                 t[[0, 1]] == t[:2]
@@ -652,6 +652,15 @@ class Table(object):
         self.resetInternals()
 
     def __iter__(self):
+        """allows iteration over the rows of a table.
+
+        For example::
+
+                for row in table:
+                    print row.mz, row["rt"]
+                    row.rt = 1.0
+                    row["mz"] *= 1.01
+        """
 
         Row = create_row_class(self)
         for row in self.rows:
