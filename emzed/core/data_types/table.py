@@ -1981,15 +1981,17 @@ class Table(object):
         """ merges tables. Eg:
 
             .. pycon::
-            t1 = emzed.utils.toTable("a",[1])
-            t2 = t1.copy()
-            t1.addColumn("b", 3)
-            t2.addColumn("c", 5)
 
-            print t1.print
-            print t2.print
-            t3 = emzed.utils.mergeTables([t1, t2])
-            print t3.print
+                import emzed
+                t1 = emzed.utils.toTable("a", [1], type_=int)
+                t2 = t1.copy()
+                t1.addColumn("b", 3, type_=int)
+                t2.addColumn("c", 5, type_=int)
+
+                print t1
+                print t2
+                t3 = emzed.utils.mergeTables([t1, t2])
+                print t3
 
             in case of conflicting names, name orders, types or formats
             you can try ``force_merge=True`` or provide a reference

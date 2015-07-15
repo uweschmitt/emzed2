@@ -129,6 +129,7 @@ APIs: Detailed List
     api_align
     api_batches
     api_tables_expressions
+    api_utils
     api_stats
     api_gui
     api_other

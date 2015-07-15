@@ -192,8 +192,8 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
         - "max_range": extracts spec with widest m/z range
         - "max_energy": extrats spec with maximal energy
         - "union": merges all ms2 spectra from one peak to one spectrum containing all peaks
-        - "intersection": merges all ms2 spectra from one peak to one spectrum containing peaks
-                          which appear in all ms2 spectra.
+        - "intersection": merges all ms2 spectra from one peak to one spectrum containing peaks which appear in all ms2 spectra.
+
 
     *mz_tolerance*: only needed for modes "union" and "intersection".
 

@@ -402,10 +402,11 @@ class BaseExpression(object):
         return lc
 
     def equals(self, other, abs_tol=None, rel_tol=None):
-        """fast comparison for equality, maybe with some numerical tolerance::
+        """fast comparison for equality, maybe with some numerical tolerance.
 
-            tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+        For example::
 
+               tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
         """
         assert abs_tol is None or rel_tol is None
         if abs_tol is not None:
@@ -722,12 +723,12 @@ class BaseExpression(object):
     @property
     def count(self):
         """
-        This is an **aggregation expression** which evaluates an
-        column expression to the number of values in the column.
+        This is an **aggregation expression** which evaluates an column expression to the number of
+        values in the column.
 
         Example: ``tab.id.len``
 
-        replaces  ``len` experession
+        replaces ``len` expression.
         """
         return AggregateExpression(self, lambda v: len(v), "count(%s)",
                                    int, ignore_none=False, default_empty=0)
