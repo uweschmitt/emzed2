@@ -1637,10 +1637,10 @@ class Table(object):
         table.rows = rows
         return table
 
-    def _prepare_fast_join(self, other, column_name_self, column_name_other, rel_tol, abs_tol):
-        self.requireColumn(column_name_self)
+    def _prepare_fast_join(self, other, column_name, column_name_other, rel_tol, abs_tol):
+        self.requireColumn(column_name)
         if column_name_other is None:
-            column_name_other = column_name_self
+            column_name_other = column_name
         other.requireColumn(column_name_other)
         table = self._buildJoinTable(other, title=None)
 
@@ -1662,8 +1662,9 @@ class Table(object):
         return lookup
 
 
-    def fastJoin(self, other, column_name_self, column_name_other=None, rel_tol=None, abs_tol=None):
-        """Fast joining for combining tables based on equality constraint.
+    def fastJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
+        """Fast joining for combining tables based on equality of a given column.
+        `.fastJoin` is more restricted than the regualar `.join` method but **much faster**.
 
         For example: ``t1`` and ``t2`` have a column named ``id``. The the call::
 
@@ -1673,18 +1674,20 @@ class Table(object):
 
             tn = t1.join(t2, t1.id == t2.id)
 
-        but is much faster. The column name ``column_name_other`` can be used if ``t2`` does
-        have a column ``id`` for matching. Then this column name is used instead.
+        The column name ``column_name_other`` can be used if table ``other`` does have a column
+        ``column_name`` for matching. Then this column name is used instead.
 
         You can use *rel_tol* or *abs_tol* for approximate matching of numerical values.
 
-        For a more flexible way to join on exact or approximate matches use the .equals
-        expression, which allows and/or for more complex match conditions::
+        Remark:
+
+        For a more flexible but still fast way to join on exact or approximate matches use
+        the ``.equals`` expression, which allows and/or for more complex match conditions::
 
             tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
 
         """
-        table, lookup, idx = self._prepare_fast_join(other, column_name_self, column_name_other,
+        table, lookup, idx = self._prepare_fast_join(other, column_name, column_name_other,
                                                     rel_tol, abs_tol)
         rows = []
         cmdlineProgress = _CmdLineProgress(len(self))
@@ -1699,11 +1702,11 @@ class Table(object):
         table.rows = rows
         return table
 
-    def fastLeftJoin(self, other, column_name_self, column_name_other=None, rel_tol=None, abs_tol=None):
+    def fastLeftJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
         """Same optimization as fastJoin described above, but performas a fast ``leftJoin``
         instead.
         """
-        table, lookup, idx = self._prepare_fast_join(other, column_name_self, column_name_other,
+        table, lookup, idx = self._prepare_fast_join(other, column_name, column_name_other,
                                                      rel_tol, abs_tol)
         rows = []
         no = len(other._colNames)
@@ -2365,6 +2368,21 @@ class Table(object):
         return table
 
     def apply(self, fun, args, keep_nones=False):
+        """Allows computing a new columen from a function with multiple arguments.
+
+        .. pycon::
+
+            import emzed
+            t = emzed.utils.toTable("a", [1, 2, 3], type_=int)
+            t.addColumn("b", [None, 5, 1], type_=int)
+            print t
+            t.addColumn("c", t.apply(max, (t.a, t.b, 4)), type_=int)
+            print t
+
+        Here missing values (``None`` values) are not passed to the function. To change
+        this behaviour the ``keep_nones`` parameter should be set to ``True``.
+
+        """
 
         all_values = []
         fixed = set()

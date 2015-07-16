@@ -488,7 +488,7 @@ class BaseExpression(object):
 
         Example: ``tab.mz.approxEqual(meatbolites.mz, 0.001)``
         """
-        depreciation_warning("you better use the .equals instead of .approxEqual !")
+        depreciation_warning("you better may use .equals instead of .approxEqual !")
         return self.inRange(what - tol, what + tol)
 
     def thenElse(self, then, else_):
