@@ -708,6 +708,10 @@ class PeakMap(object):
                 return dill.load(fp)
         return dill.load(fp_or_path)
 
+    def squeeze(self):
+        """only supported for peakmap proxies to save space if possible"""
+        pass
+
 
 class PeakMapProxy(PeakMap):
 
@@ -738,6 +742,10 @@ class PeakMapProxy(PeakMap):
     def __setstate__(self, dd):
         self._path = dd
         self._loaded = False
+
+    def squeeze(self):
+        self._loaded = False
+        self.spectra = None
 
 
 
