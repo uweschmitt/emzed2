@@ -1769,7 +1769,10 @@ class Table(object):
         colTypes = self._colTypes + t._colTypes
         if title is None:
             title = "%s vs %s" % (self.title, t.title)
-        meta = {self: self.meta.copy(), t: t.meta.copy()}
+
+        key_left = (self.title, self.uniqueId())
+        key_right = (t.title, t.uniqueId())
+        meta = {key_left: self.meta.copy(), key_right:t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
     def print_(self, w=8, out=None, title=None, max_lines=None):
