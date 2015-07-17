@@ -1,10 +1,12 @@
-import numpy as np
-import re
-import col_types
+import pdb
 import collections
+import re
+import types
 import warnings
 
+import numpy as np
 
+import col_types
 
 __doc__ = """
 
@@ -846,6 +848,33 @@ class BaseExpression(object):
         """
         from .table import Table
         return Table.toTable(colName, self.values, fmt, type_, title, meta)
+
+    def call_method(self, name, args=()):
+        """
+        calls method named ``name`` on values of given column or expression result.
+        ``args`` can be used to pass parameters to the method call.
+
+        .. pycon::
+            import emzed
+            t = emzed.utils.toTable("a", ("1", "23"))
+            t.addColumn("l", t.a.call_method("__len__"), type_=int)
+            t.addColumn("x", t.a.call_method("startswith", ("1",)), type_=bool)
+            print t
+        """
+
+        results = []
+        for v in self.values:
+            if not hasattr(v, name):
+                raise Exception("%r has no attribute %s" % (v, name))
+            att = getattr(v, name)
+            try:
+                result = att(*args)
+            except Exception, e:
+                args = ", ".join([str(ai) for ai in args])
+                message = "calling %s(%s) raised error %s" % (name, args, e.message)
+                raise e.__class__, message
+            results.append(result)
+        return results
 
 
 class CompExpression(BaseExpression):

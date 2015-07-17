@@ -1247,3 +1247,27 @@ def test_new_apply(regtest):
     t.addColumn("n", (None, 1, 2), type_=int)
     t.addColumn("a_or_n_is_none", t.apply(any_none, (t.a, t.n), keep_nones=True), type_=bool)
     print(t, file=regtest)
+
+
+def test_method_call(regtest):
+    t = emzed.utils.toTable("a", ("1", "23"))
+    t.addColumn("l", t.a.call_method("__len__"), type_=int)
+    t.addColumn("x", t.a.call_method("startswith", ("1",)), type_=bool)
+    print(t, file=regtest)
+
+    class Counter(object):
+
+        def __init__(self):
+            self.counter = 0
+
+        def up(self):
+            self.counter += 1
+
+    cc = Counter()
+    t.addColumn("cc", cc)
+    print(t.cc.call_method("up"))
+
+    assert cc.counter == 2
+
+
+
