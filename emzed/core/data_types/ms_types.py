@@ -713,6 +713,13 @@ class PeakMap(object):
         pass
 
 
+"""
+TODO:
+    - proxy testen !! (io, integrate, etc !!!)
+    - mem  measurements workflow eawag fertig !
+    - mem measurements table view (gorsse tabelle, oft splitten...)
+"""
+
 class PeakMapProxy(PeakMap):
 
     def __init__(self, path, unique_id=None):
@@ -745,7 +752,8 @@ class PeakMapProxy(PeakMap):
 
     def squeeze(self):
         self._loaded = False
-        self.spectra = None
+        if hasattr(self, "spectra"):
+            del self.spectra
 
 
 
