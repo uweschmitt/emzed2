@@ -1,0 +1,6 @@
+a        l        x
+str      int      bool
+------   ------   ------
+1        1        True
+23       2        False
+

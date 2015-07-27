@@ -853,7 +853,7 @@ class BaseExpression(object):
         from .table import Table
         return Table.toTable(colName, self.values, fmt, type_, title, meta)
 
-    def call_method(self, name, args=()):
+    def callMethod(self, name, args=()):
         """
         calls method named ``name`` on values of given column or expression result.
         ``args`` can be used to pass parameters to the method call.
@@ -861,8 +861,8 @@ class BaseExpression(object):
         .. pycon::
             import emzed
             t = emzed.utils.toTable("a", ("1", "23"))
-            t.addColumn("l", t.a.call_method("__len__"), type_=int)
-            t.addColumn("x", t.a.call_method("startswith", ("1",)), type_=bool)
+            t.addColumn("l", t.a.callMethod("__len__"), type_=int)
+            t.addColumn("x", t.a.callMethod("startswith", ("1",)), type_=bool)
             print t
         """
 

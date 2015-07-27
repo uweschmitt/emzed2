@@ -1251,8 +1251,8 @@ def test_new_apply(regtest):
 
 def test_method_call(regtest):
     t = emzed.utils.toTable("a", ("1", "23"))
-    t.addColumn("l", t.a.call_method("__len__"), type_=int)
-    t.addColumn("x", t.a.call_method("startswith", ("1",)), type_=bool)
+    t.addColumn("l", t.a.callMethod("__len__"), type_=int)
+    t.addColumn("x", t.a.callMethod("startswith", ("1",)), type_=bool)
     print(t, file=regtest)
 
     class Counter(object):
@@ -1265,7 +1265,7 @@ def test_method_call(regtest):
 
     cc = Counter()
     t.addColumn("cc", cc)
-    print(t.cc.call_method("up"))
+    print(t.cc.callMethod("up"))
 
     assert cc.counter == 2
 
