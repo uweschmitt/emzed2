@@ -1,50 +1,156 @@
+import pdb
 import math
 import itertools
-import numpy as np
+import re
 
-from elements import Elements
+import numpy as np
+from scipy.fftpack import fftn, ifftn
+
 from molecular_formula import MolecularFormula
 
+from ...core.chemistry.elements import (create_abundance_mapping,
+                                        create_mass_mappings)
 
-def multinomial(abundances, partition):
-    """ mutinomial probability for
 
-        (k1+...+kn)! / ( k1! ... kn!) * p1^k1 * ...* pn^kn
 
-        with:
-            partition = (k1, ... kn)
-            abundances = (p1, ... pn)
+def fast_multinomial(pii, nsum, thresh):
+    """generate multinomial distribution for given probability tuple pii.
+
+    *nsum* is the overal number of atoms of a fixed element, pii is a tuple holding the
+    distribution of the isotopes.
+
+    this generator yields all combinations and their probabilities which are above *thresh*.
+
+    Remark: the count of the first isotope of all combinations is not computed and "yielded", it is
+    automatically *nsum* minus the sum of the elemens in the combinations. We could compute this
+    value in this generator, but it is faster to do this later (so only if needed).
+
+    Example:: given three isotopes ([n1]E, [n2]E, [n3]E) of an element E which have
+              probabilities 0.2, 0.3 and 0.5.
+
+    To generate all molecules consisting of 5 atoms of this element where the overall probability
+    is abore 0.1 we can run:
+
+        for index, pi in gen_n((0.2, 0.3, 0.5), 5, 0.1):
+            print(index, pi)
+
+    which prints:
+
+        (1, 3) 0.15
+        (2, 2) 0.135
+        (2, 3) 0.1125
+
+    the first combination refers to (1, 1, 3) (sum is 5), the second to (1, 2, 2) and the last to
+    (0, 2, 3).
+
+    So the probability of an molecule with the overall formula [n1]E1 [n2]E1 [n3]E3 is 0.15, for
+    [n1]E1 [n2]E2 [n3]E2 is 0.135, and for [n2]E2 [n3]E3 is 0.1125.
+
+    Implementation:: multinomial distribution can be described as the n times folding (convolution)
+    of an underlying simpler distribution. convolution can be fast computed with fft + inverse
+    fft as we do below.
+
+    This is often 100 times faster than the old implementatation computing the full distribution
+    using its common definition.
     """
-    n = sum(partition)
-    mult = lambda a, b: a * b
-    fac = math.factorial(n)
-    denom = reduce(mult, [math.factorial(si) for si in partition])
-    simpleprob = reduce(mult, [abundances[i] ** ni for (i, ni) in enumerate(partition)])
-    return fac / denom * simpleprob
+    n = len(pii)
+    dim = n - 1
+    a = np.zeros((nsum + 1,) * dim)
+    a[(0,) * dim] = pii[0]
+    for i, pi in enumerate(pii[1:]):
+        idx = [0] * dim
+        idx[i] = 1
+        a[tuple(idx)] = pi
+
+    probs = ifftn(fftn(a) ** nsum).real
+    mask = (probs >= thresh)
+    pi = probs[mask]
+    ii = zip(*np.where(mask))
+    for iii, pii in zip(ii, pi):
+        yield iii, pii
 
 
-def sum_partition(n, s):
-    """ generates nonnegative n-tuples which sum up to s """
-    if n == 1:
-        yield [s]
-    elif n == 0:
-        yield []
+def gen_patterns(elems, thresh):
+    """yields all isotope combinations of the given *elems* where the probability
+    is above *thresh*.
+
+    elems is a list of tuples, the first item of the tuple is the number of isotopes of a element
+    in the overall mass formula, the following values are the probabilities of the isotopes.
+    For example we have for the mass formula C20O6 the setting (with rounded aboundances):
+
+        elems = [(20, .989, .011), (6, .9976, .00038, .002)]
+
+    """
+    for item in _gen_patterns(elems, thresh, 0):
+        yield item
+
+
+def _gen_patterns(elems, thresh, i0):
+    """recursive implementation of pattern generation. the *elems* and *thresh* parameters
+    are given as described for *gen_patterns*. *i0* tracks the current element when recursing
+    over the items in *elems*.
+    """
+    if i0 < len(elems):
+        sum = np.sum  # speedup, avoids dynamic lookup in iteration below
+        n_atoms = elems[i0][0]
+        probabilites = elems[i0][1:]
+        for decomp_rec, proba_rec in _gen_patterns(elems, thresh, i0 + 1):
+            if proba_rec >= thresh:
+                for decomp, proba in fast_multinomial(probabilites, n_atoms, thresh / proba_rec):
+                    # we complete the decomosition, because fast_multinomial ommits the first entry
+                    # for improving speed:
+                    decomp = (n_atoms - sum(decomp),) + decomp
+                    yield (decomp,) + decomp_rec, proba_rec * proba
     else:
-        for i in range(s + 1):
-            for k in sum_partition(n - 1, s - i):
-                yield [i] + k
+        yield (), 1.0
 
 
-def merge_none_entries_to_one_single_entry(centroids):
-    result = []
-    else_ = 0.0
-    for m, mf, a in centroids:
-        if m is None:
-            else_ += a
+_abundances = create_abundance_mapping()
+_masses, __ = create_mass_mappings()
+
+
+def create_centroids(mf, thresh, fixed_abundances, _abundances=_abundances, _masses=_masses):
+
+    def _fix_keys(dd):
+        """ fixed keys like "C13" -> 13 """
+        result = dict()
+        for k, v in dd.items():
+            k = int(re.sub("[A-Z][a-z]?", "", k))
+            result[k] = v
+        return result
+
+    aa = []
+    mi = []
+    elems = []
+    massnums = []
+    for (elem, __), count in MolecularFormula(mf).asDict().items():
+        if elem in fixed_abundances:
+            isos = sorted(_fix_keys(fixed_abundances[elem]).items())
         else:
-            result.append((m, mf, a))
-    result.append((None, None, else_))
-    return result
+            isos = sorted(_abundances[elem].items())
+        counts, abundances = zip(*isos)
+        masses = [_masses[elem][ci] for ci in counts]
+        tp = (count,) + abundances
+        aa.append(tp)
+        mi.append(masses)
+        elems.append(elem)
+        massnums.append(counts)
+
+    centroids = []
+    for comb, p0 in gen_patterns(aa, thresh):
+        mass_sum = 0.0
+        mf = []
+        for elem_idx, iso_dist in enumerate(comb):
+            for (iso_num, num_iso) in enumerate(iso_dist):
+                if num_iso:
+                    single_mass = mi[elem_idx][iso_num]
+                    mass_sum += single_mass * num_iso
+                    mn = massnums[elem_idx][iso_num]
+                    mfi = "[%d]%s%d" % (mn, elems[elem_idx], num_iso)
+                    mf.append(mfi)
+        centroids.append([mass_sum, " ".join(mf), p0])
+
+    return centroids
 
 
 class IsotopeDistributionGenerator(object):
@@ -65,62 +171,13 @@ class IsotopeDistributionGenerator(object):
             self.centroids = self._measuredCentroids()
 
     def _theoreticalCentroids(self):
-        """ generates mass distribution for given *formula*
-        """
-        allIterators = []
-        for (symbol, __), count in MolecularFormula(self.formula).asDict().items():
-            decompositionIterator = self._isotopeDecompositions(symbol, count)
-            allIterators.append(decompositionIterator)
-        centroids = []
-        # iterate over crossproduct over elementwise iterators:
-        for item in itertools.product(*allIterators):
-            totalmass = 0.0
-            totalprob = 1.0
-            mfs = []
-            if any(mf is None for (mf, m, p) in item):
-                totalprob = reduce(lambda a, b: a * b,
-                                   [p for (__, __, p) in item], 1.0)
-                centroids.append((None, None, totalprob))
-                continue
-            for iso_mf, m, p in item:
-                totalprob *= p
-                totalmass += m
-                mfs.append(iso_mf)
-            if totalprob >= self.minp:
-                centroids.append((totalmass, " ".join(mfs), totalprob))
-        return merge_none_entries_to_one_single_entry(sorted(centroids))
-
-    def _isotopeDecompositions(self, symbol, count):
-        """ generates isotope distribution for *count* atoms of element
-            with symbol *symbol*
-            yields "molecular formula", mass, abundance for abundance < self.minp
-            and at last one yield (None, None, "sum of all abundances below minp").
-
-            The last yield helps calculating abundances which correspond to probabilites
-            of isotopes.
-        """
-        el = Elements()
-        el = el.filter(el.symbol == symbol)
-        massnums = el.massnumber.values
-        masses = el.mass.values
-        abundances = el.abundance.values
-        if symbol in self.abundances:
-            abundances = [self.abundances[symbol].get(symbol + str(massnum), 0)
-                          for massnum in massnums]
-        # iterate over all possible decompositions of count atoms into
-        # isotopes:
-        summed_p_below_minp = 0.0
-        for partition in sum_partition(len(massnums), count):
-            prob = multinomial(abundances, partition)
-            # reduce computation cost by ignoring to low probabilites:
-            if prob >= self.minp:
-                decomp = ["[%d]%s%d" % (m, symbol, p)
-                          for (m, p) in zip(massnums, partition) if p]
-                iso_mf = " ".join(decomp)
-                yield iso_mf, sum(n * masses[i] for i, n in enumerate(partition)), prob
-            else:
-                summed_p_below_minp += prob
-        yield None, None, summed_p_below_minp
+        centroids = create_centroids(self.formula, self.minp, self.abundances)
+        centroids.sort()
+        # add line with summed up abundance of isotopologues filtered out because
+        # of thresholding:
+        missing = 1.0 - sum(abundance for (__, __, abundance) in centroids)
+        centroids.append((None, None, missing))
+        return centroids
 
     def measuredIntensity(self, m0):
         """ measured intensity at mass *m0* for given resolution """
