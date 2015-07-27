@@ -1,8 +1,8 @@
-detected incompatibilities: 
+detected incompatibilities:
        0/2 col(number=0, name=a): <type 'int'> vs <type 'str'>
        0/2 col(number=0, name=a): %d vs %s
 tables 0 and 1 have different number columns (2 and 1)
-column names do not fit: 
+column names do not fit:
   column  0: a vs c
-detected incompatibilities: 
+detected incompatibilities:
        0/2 col(number=0, name=a): %4d vs %d
