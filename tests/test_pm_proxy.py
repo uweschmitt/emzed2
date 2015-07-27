@@ -24,11 +24,27 @@ def test_1(path, tmpdir):
     tn = emzed.io.loadTable(tmpdir.join("with_comp.table").strpath)
     pm = tn.peakmap.uniqueValue()
     assert isinstance(pm, PeakMapProxy)
-    assert len(pm) == 41
+    assert len(pm) == 41  # triggers loading
 
     t.store(tmpdir.join("with_comp_2.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
 
     tn = emzed.io.loadTable(tmpdir.join("with_comp_2.table").strpath)
     pm = tn.peakmap.uniqueValue()
     assert isinstance(pm, PeakMapProxy)
-    assert len(pm) == 41
+    assert len(pm) == 41  # triggers loading
+
+
+def test_squeeze(path):
+
+    from emzed.core.data_types.ms_types import PeakMapProxy
+    pm = PeakMapProxy(path("data/SHORT_MS2_FILE.mzData"))
+    # this will trigger loading:
+    n = len(pm)
+    assert n == 41
+    assert isinstance(pm, PeakMapProxy)
+    assert "spectra" in pm.__dict__
+
+    pm.squeeze()
+    assert "spectra" not in pm.__dict__
+    assert len(pm) == 41  # triggers loading
+    assert "spectra" in pm.__dict__
