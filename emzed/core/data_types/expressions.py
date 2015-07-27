@@ -408,15 +408,19 @@ class BaseExpression(object):
 
         For example::
 
-               tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+               tn = t.join(t2, t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+
+        **Attention**: This operation only works if the first arg of the join (here ``t2``)
+        appears as the table in the first argument (here ``t2.mz``) of ``equals``. Else an
+        exception will be thrown !
         """
         assert abs_tol is None or rel_tol is None
         if abs_tol is not None:
-            return MatchExpression(self, FuzzyAbsoluteLookup(other, abs_tol))
+            return FastEqualExpression(self, FuzzyAbsoluteLookup(other, abs_tol))
         elif rel_tol is not None:
-            return MatchExpression(self, FuzzyRelativeLookup(other, rel_tol))
+            return FastEqualExpression(self, FuzzyRelativeLookup(other, rel_tol))
         else:
-            return MatchExpression(self, ExactLookup(other))
+            return FastEqualExpression(self, ExactLookup(other))
 
     def startswith(self, other):
         """
@@ -1055,7 +1059,7 @@ class EqExpression(CompExpression):
         return Range(i1, i0 + 1, len(vec))
 
 
-class MatchExpression(BaseExpression):
+class FastEqualExpression(BaseExpression):
 
     def __init__(self, left, lookup):
         self.lookup = lookup
@@ -1064,7 +1068,13 @@ class MatchExpression(BaseExpression):
     def _eval(self, ctx=None):
         lvals, idxl, tl = saveeval(self.left, ctx)
         if len(lvals) > 1:
-            raise Exception("your join/leftJoin/... has a wrong way to apply the matches concept.")
+            msg = """
+            your join/leftJoin/... uses .equals not as intended.  This operation only works if
+            the first arg of the join appears as the table in the first argument of ``equals``.
+            Have a look at the doc of `.equals` for an example."""
+            msg = "\n".join([l.lstrip() for l in msg.split("\n")])
+            raise Exception(msg)
+
         val = lvals[0]
         if val is None:
             return [False] * len(self.lookup.values), None, bool
