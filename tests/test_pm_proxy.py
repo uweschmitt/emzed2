@@ -3,6 +3,7 @@ from __future__ import print_function
 
 
 import emzed
+import os
 
 
 def test_0(path):
@@ -18,8 +19,15 @@ def test_1(path, tmpdir):
     pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
     t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
     t.addColumn("peakmap", pm, type_=object)
-    t.store(tmpdir.join("without_comp.table").strpath, True)
-    t.store(tmpdir.join("with_comp.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
+    p1 = tmpdir.join("without_comp.table").strpath
+    t.store(p1 , True, True)
+    p2 = tmpdir.join("with_comp.table").strpath
+    t.store(p2 , True, True, tmpdir.strpath)
+
+    # compression by peakmap proxy should be factor 30 or better in this particular case:
+    s1 = os.stat(p1).st_size
+    s2 = os.stat(p2).st_size
+    assert s1 > 30 * s2, (s1, s2, 30 * s2)
 
     assert isinstance(t.peakmap.uniqueValue(), PeakMapProxy)
     assert not t.peakmap.uniqueValue()._loaded

@@ -2255,7 +2255,7 @@ class Table(object):
                         path = os.path.join(folder, "peak_map_%s.pickle" % id_)
                         if not os.path.exists(path):
                             cell.dump_as_pickle(path)
-                        proxies[id_] = PeakMapProxy(path, id_)
+                        proxies[id_] = PeakMapProxy(path, cell.meta)
                     row[i] = proxies[id_]
 
     @staticmethod

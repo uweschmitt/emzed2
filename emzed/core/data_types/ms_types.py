@@ -716,11 +716,10 @@ class PeakMap(object):
 
 class PeakMapProxy(PeakMap):
 
-    def __init__(self, path, unique_id=None):
+    def __init__(self, path, meta=None):
         self._path = path
         self._loaded = False
-        if unique_id is not None:
-            self.meta = {"unique_id": unique_id}
+        self.meta = meta if meta is not None else {}
 
     def __getattr__(self, name):
         if name == "spectra" and not self._loaded:
