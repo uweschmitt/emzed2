@@ -21,17 +21,27 @@ def test_1(path, tmpdir):
     t.store(tmpdir.join("without_comp.table").strpath, True)
     t.store(tmpdir.join("with_comp.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
 
+    assert isinstance(t.peakmap.uniqueValue(), PeakMapProxy)
+    assert not t.peakmap.uniqueValue()._loaded
+    assert t.peakmap.uniqueValue().uniqueId() is not None    # must not trigger loading !
+    assert not t.peakmap.uniqueValue()._loaded
+
     tn = emzed.io.loadTable(tmpdir.join("with_comp.table").strpath)
     pm = tn.peakmap.uniqueValue()
-    assert isinstance(pm, PeakMapProxy)
+    assert t.peakmap.uniqueValue().uniqueId() is not None    # must not trigger loading !
+    assert not tn.peakmap.uniqueValue()._loaded
     assert len(pm) == 41  # triggers loading
+    assert tn.peakmap.uniqueValue()._loaded
 
     t.store(tmpdir.join("with_comp_2.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
 
     tn = emzed.io.loadTable(tmpdir.join("with_comp_2.table").strpath)
     pm = tn.peakmap.uniqueValue()
     assert isinstance(pm, PeakMapProxy)
+    assert t.peakmap.uniqueValue().uniqueId() is not None    # must not trigger loading !
+    assert not tn.peakmap.uniqueValue()._loaded
     assert len(pm) == 41  # triggers loading
+    assert tn.peakmap.uniqueValue()._loaded
 
 
 def test_squeeze(path):

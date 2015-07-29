@@ -186,6 +186,24 @@ def common_type(t1, t2):
 
 class Lookup(object):
 
+    def __init__(self, values, abs_tol=None, rel_tol=None):
+        if abs_tol is not None:
+            assert abs_tol > 0.0
+        if rel_tol is not None:
+            assert rel_tol > 0.0
+        if abs_tol is not None and abs_tol > 0.0:
+            self.__class__ = FuzzyAbsoluteLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values, abs_tol)
+        elif rel_tol is not None and rel_tol > 0.0:
+            self.__class__ = FuzzyRelativeLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values, rel_tol)
+        else:
+            self.__class__ = ExactLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values)
+
     def find(self, value):
         pass
 
@@ -257,6 +275,8 @@ class FuzzyRelativeLookup(_FuzzyLookup):
             raise TypeError("computing fraction %s by %s failed" % (value, self.abs_tol))
 
     def _fit(self, reference, other):
+        if reference == 0.0:
+            return other == reference
         try:
             return abs(other - reference) / reference <= self.tol
         except TypeError:
@@ -416,11 +436,12 @@ class BaseExpression(object):
         """
         assert abs_tol is None or rel_tol is None
         if abs_tol is not None:
-            return FastEqualExpression(self, FuzzyAbsoluteLookup(other, abs_tol))
-        elif rel_tol is not None:
-            return FastEqualExpression(self, FuzzyRelativeLookup(other, rel_tol))
-        else:
-            return FastEqualExpression(self, ExactLookup(other))
+            assert abs_tol >= 0.0
+        if rel_tol is not None:
+            assert rel_tol >= 0.0
+
+        lookup = Lookup(other, abs_tol, rel_tol)
+        return FastEqualExpression(self, lookup)
 
     def startswith(self, other):
         """

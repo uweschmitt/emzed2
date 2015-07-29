@@ -21,7 +21,7 @@ import pyopenms
 
 from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
                           common_type_for, is_numpy_number_type,
-                          ExactLookup, FuzzyRelativeLookup, FuzzyAbsoluteLookup)
+                          Lookup)
 
 from . import tools
 
@@ -1638,29 +1638,21 @@ class Table(object):
         return table
 
     def _prepare_fast_join(self, other, column_name, column_name_other, rel_tol, abs_tol):
+        assert rel_tol is None or abs_tol is None, ("you are not allowed to provide rel_tol and"
+                                                    " abs_tol at the same time")
         self.requireColumn(column_name)
         if column_name_other is None:
             column_name_other = column_name
         other.requireColumn(column_name_other)
         table = self._buildJoinTable(other, title=None)
 
-        lookup = other.buildLookup(column_name_other, rel_tol, abs_tol)
+        lookup = other.buildLookup(column_name_other, abs_tol, rel_tol)
 
         idx = other.getIndex(column_name_other)
         return table, lookup, idx
 
-
-    def buildLookup(self, column_name, rel_tol, abs_tol):
-        assert rel_tol is None or abs_tol is None, ("you are not allowed to provide rel_tol and"
-                                                    " abs_tol at the same time")
-        if rel_tol is not None:
-            lookup = FuzzyRelativeLookup(self.getColumn(column_name).values, rel_tol)
-        elif abs_tol is not None:
-            lookup = FuzzyAbsoluteLookup(self.getColumn(column_name).values, abs_tol)
-        else:
-            lookup = ExactLookup(self.getColumn(column_name).values)
-        return lookup
-
+    def buildLookup(self, column_name, abs_tol, rel_tol):
+        return Lookup(self.getColumn(column_name).values, abs_tol, rel_tol)
 
     def fastJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
         """Fast joining for combining tables based on equality of a given column.

@@ -6,6 +6,7 @@ import copy
 import hashlib
 from collections import defaultdict
 import warnings
+import zlib
 
 
 OPTIMIZATIONS_INSTALLED = False
@@ -694,7 +695,7 @@ class PeakMap(object):
             if sys.platform == "win32":
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
             with open(fp_or_path, "wb") as fp:
-                dill.dump(self, fp)
+                fp.write(zlib.compress(dill.dumps(self), 9))
             return
         dill.dump(self, fp_or_path)
 
@@ -705,7 +706,7 @@ class PeakMap(object):
             if sys.platform == "win32":
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
             with open(fp_or_path, "rb") as fp:
-                return dill.load(fp)
+                return dill.loads(zlib.decompress(fp.read()))
         return dill.load(fp_or_path)
 
     def squeeze(self):
@@ -737,10 +738,10 @@ class PeakMapProxy(PeakMap):
         raise AttributeError("unknown attribute %s" % name)
 
     def __getstate__(self):
-        return self._path
+        return (self._path, self.meta)
 
     def __setstate__(self, dd):
-        self._path = dd
+        self._path, self.meta = dd
         self._loaded = False
 
     def squeeze(self):
@@ -748,9 +749,8 @@ class PeakMapProxy(PeakMap):
         if "spectra" in self.__dict__:  # use of 'hasattr' would trigger 'getattr' and load data !
             del self.spectra
 
-
-
-
-
-
-
+    def store(self, path):
+        """overrides path from PeakMap class because this method would trigger loading the
+        peakmap, altough it is already on disk"""
+        if not os.path.exists(path):
+            self.dump_as_pickle(path)
