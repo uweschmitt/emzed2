@@ -2130,7 +2130,7 @@ class Table(object):
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]
-        master_formats = [self.getColFormat(n) for n in col_names] + ["%s"]
+        master_formats = [self.getColFormat(n) for n in col_names] + ["%r"]
 
         rows = []
         for subt in self.splitBy(*col_names):
