@@ -923,10 +923,20 @@ class Table(object):
                 writer.writerow(data)
 
     def store(self, path, forceOverwrite=False, compressed=True, peakmap_cache_folder=None):
-        """
-        writes the table in binary format. All information, as
-        corresponding peak maps ar too.
-        The file name extension must be ".table".
+        """Writes the table in binary format. All information, as corresponding peak maps too.
+
+        The file name extension in ``path``must be ``.table``.
+
+        ``forceOverwrite`` must be set to ``True`` to overwrite an existing file.
+
+        ``compressed`` replaces duplicate copies of the same peakmap of a single one to save
+        space on disk.
+
+        ``peakmap_cache_folder`` is a folder. if provided the table data and the peakmap
+        are stored separtely. so the table file can then be loaded much faster and the peakmaps are
+        lazily loaded only if one tries to access their spectra. This speeds up workflows but the
+        developer must care about consistency: if the peakmap folder is deleted the table may
+        becom useless !
 
         Latter the file can be loaded with :py:meth:`~.load`
         """

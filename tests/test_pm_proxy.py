@@ -33,7 +33,7 @@ def test_1(path, tmpdir):
     assert len(pm) == 41  # triggers loading
     assert tn.peakmap.uniqueValue()._loaded
 
-    t.store(tmpdir.join("with_comp_2.table").strpath, True, True, peakmap_cache_folder=tmpdir.strpath)
+    emzed.io.storeTable(t, tmpdir.join("with_comp_2.table").strpath, True, True, tmpdir.strpath)
 
     tn = emzed.io.loadTable(tmpdir.join("with_comp_2.table").strpath)
     pm = tn.peakmap.uniqueValue()
