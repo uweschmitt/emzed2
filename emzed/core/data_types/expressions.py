@@ -889,15 +889,16 @@ class BaseExpression(object):
 
         results = []
         for v in self.values:
-            if not hasattr(v, name):
-                raise Exception("%r has no attribute %s" % (v, name))
-            att = getattr(v, name)
-            try:
-                result = att(*args)
-            except Exception, e:
-                args = ", ".join([str(ai) for ai in args])
-                message = "calling %s(%s) raised error %s" % (name, args, e.message)
-                raise e.__class__, message
+            if v is None:
+                result = None
+            else:
+                try:
+                    att = getattr(v, name)
+                    result = att(*args)
+                except Exception, e:
+                    args = ", ".join([str(ai) for ai in args])
+                    message = "calling %s(%s) raised error %s" % (name, args, e.message)
+                    raise e.__class__, message
             results.append(result)
         return results
 
