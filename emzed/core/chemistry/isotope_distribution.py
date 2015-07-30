@@ -54,6 +54,11 @@ def fast_multinomial(pii, nsum, thresh):
     using its common definition.
     """
     n = len(pii)
+
+    if n == 1:
+        yield (0,), pii[0]
+        return
+
     dim = n - 1
     a = np.zeros((nsum + 1,) * dim)
     a[(0,) * dim] = pii[0]

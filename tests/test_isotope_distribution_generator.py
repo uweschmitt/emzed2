@@ -19,3 +19,9 @@ def testIDGen(regtest):
 
     t = emzed.utils.isotopeDistributionTable("C4Cl", R=None)
     t._print(out=regtest)
+
+    t = emzed.utils.isotopeDistributionTable("C4P", R=None)
+    t._print(out=regtest)
+
+    t = emzed.utils.isotopeDistributionTable("P100", R=None)
+    t._print(out=regtest)
