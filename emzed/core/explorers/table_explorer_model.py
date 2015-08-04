@@ -4,6 +4,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 from ..data_types import PeakMap, TimeSeries
+from ..data_types.table import create_row_class
 
 import guidata
 
@@ -90,7 +91,8 @@ class TableModel(QAbstractTableModel):
 
     def row(self, index):
         ridx, cidx = self.table_index(index)
-        return self.table.getValues(self.table.rows[ridx])
+        row = create_row_class(self.table)(self.table.rows[ridx])
+        return row
 
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 

@@ -83,8 +83,11 @@ class ButtonDelegate(QItemDelegate):
 
             parent = self.parent()   # this is the table explorer
 
-            def clicked(__):
+            def clicked(__, index=index):
+                parent.model.beginResetModel()
                 cell.callback(row, parent)
+                parent.model.endResetModel()
+                parent.model.emit_data_change()
 
             button = QPushButton(label, self.parent(), clicked=clicked)
             self.view.setIndexWidget(index, button)
