@@ -900,7 +900,7 @@ class BaseExpression(object):
                     message = "calling %s(%s) raised error %s" % (name, args, e.message)
                     raise e.__class__, message
             results.append(result)
-        return results
+        return ColumnByValuesExpression(results)
 
 
 class CompExpression(BaseExpression):
@@ -1604,6 +1604,33 @@ class IfThenElse(BaseExpression):
         return self.e1._neededColumns() \
             + self.e2._neededColumns() \
             + self.e3._neededColumns()
+
+
+class ColumnByValuesExpression(BaseExpression):
+
+    def __init__(self, values):
+        self._values = values
+
+    def _eval(self, ctx=None):
+        return self._values, None, None
+
+    def _evalsize(self, ctx=None):
+        return len(self._values)
+
+    def _neededColumns(self):
+        return []
+
+    @property
+    def values(self):
+        return self._values
+
+    def __str__(self):
+        if len(self._values) < 10:
+            v = str(self._values)
+        else:
+            v = str(self._values[:5] + ".." + self._values[-5:])
+        return "ColumnByValuesExpression(%s)" % v
+
 
 
 class ColumnExpression(BaseExpression):

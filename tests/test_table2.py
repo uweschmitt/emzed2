@@ -603,6 +603,7 @@ def test_collapse():
     t.addColumn("a", [1, 2, 3])
     t.addColumn("b", [3, 4, 5])
     t2 = t.collapse("id")
+    t2.sortBy("id")
     assert len(t2) == 2
     assert t2.getColNames() == ["id", "collapsed"]
     assert t2.getColTypes() == [int, t.__class__]
@@ -1265,9 +1266,13 @@ def test_method_call(regtest):
 
     cc = Counter()
     t.addColumn("cc", cc)
-    print(t.cc.callMethod("up"))
+    t.cc.callMethod("up")
 
     assert cc.counter == 3
+
+    t = t.filter(t.a.callMethod("__len__") > 1)
+    t = t.filter(t.a.callMethod("startswith", ("2",)))
+    print(t, file=regtest)
 
 
 
