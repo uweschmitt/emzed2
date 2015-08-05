@@ -2158,6 +2158,9 @@ class Table(object):
         """
         self.ensureColNames(*col_names)
 
+        if kw:
+            assert "efficient" in kw, "only allowed keyword argument is 'efficient'"
+
         efficient = kw.get("efficient", False)
 
         master_names = list(col_names) + ["collapsed"]
