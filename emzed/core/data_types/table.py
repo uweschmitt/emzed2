@@ -102,6 +102,7 @@ def create_row_class(table):
 
     return Row
 
+
 standardFormats = {int: "%d", long: "%d", float: "%.2f",
                    str: "%s", unicode: "%s", CallBack: "%s"}
 
@@ -329,7 +330,7 @@ class Table(object):
 
     def __repr__(self):
         n = len(self)
-        return "<Table %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
+        return "<Table at %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
 
     def __str__(self):
         fp = cStringIO.StringIO()
@@ -462,10 +463,13 @@ class Table(object):
         """
         return getattr(self, name)
 
-    def _setupColumnAttributes(self):
+    def _removeColumnAttributes(self):
         for name in self.__dict__.keys():
             if isinstance(getattr(self, name), ColumnExpression):
                 delattr(self, name)
+
+    def _setupColumnAttributes(self):
+        self._removeColumnAttributes()
         for name in self._colNames:
             ix = self.getIndex(name)
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
@@ -1229,8 +1233,7 @@ class Table(object):
         if self.hasColumn(name):
             self.replaceColumn(name, what, type_, format_)
         else:
-            self.addColumn(
-                name, what, type_, format_, insertBefore, insertAfter)
+            self.addColumn(name, what, type_, format_, insertBefore, insertAfter)
 
     def addColumn(self, name, what, type_=None, format_="", insertBefore=None, insertAfter=None):
         """
@@ -1582,7 +1585,6 @@ class Table(object):
         table.rows = rows
         return table
 
-
     def leftJoin(self, t, expr=True, debug=False, title=None):
         """performs an *left join* also known as *outer join* of two tables.
 
@@ -1690,7 +1692,7 @@ class Table(object):
 
         """
         table, lookup, idx = self._prepare_fast_join(other, column_name, column_name_other,
-                                                    rel_tol, abs_tol)
+                                                     rel_tol, abs_tol)
         rows = []
         cmdlineProgress = _CmdLineProgress(len(self))
         for ii, row in enumerate(self.rows):
@@ -1774,7 +1776,7 @@ class Table(object):
 
         key_left = (self.title, self.uniqueId())
         key_right = (t.title, t.uniqueId())
-        meta = {key_left: self.meta.copy(), key_right:t.meta.copy()}
+        meta = {key_left: self.meta.copy(), key_right: t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
     def print_(self, w=8, out=None, title=None, max_lines=None):
@@ -2135,22 +2137,51 @@ class Table(object):
         return Table._create(t0._colNames, t0._colTypes, t0._colFormats,
                              all_rows, title=title, meta=meta)
 
-    def collapse(self, *col_names):
+    def collapse(self, *col_names, **kw):
+        """colapse a table by grouping according to columns ``col_names``. This creates a
+        subtable for every group, but is in "standard" mode not memory efficient if the number
+        of groups is in the range of several thousands. As this method is mostly used for
+        preparing a table before visual inspection, the "efficient" mode is available, where
+        the sub tables may be inspected, but access to the columns via attribute access is
+        not available any more.
+
+        .. pycon::
+
+            import emzed
+            t = emzed.utils.toTable("group", (1, 1, 2, 3))
+            t.addColumn("values", range(4))
+            print(t)
+            tn = t.collapse("group")
+            print(tn)
+            tn = t.collapse("group", efficient=True)
+            print(tn)
+        """
         self.ensureColNames(*col_names)
+
+        efficient = kw.get("efficient", False)
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]
         master_formats = [self.getColFormat(n) for n in col_names] + ["%r"]
 
-        rows = []
-        for subt in self.splitBy(*col_names):
-            key_values = [subt.getValue(subt.rows[0], n) for n in col_names]
-            subt.title = ", ".join(["%s=%s" % (cn, kv)
-                                    for (cn, kv) in zip(col_names, key_values)])
-            row = key_values + [subt]
-            rows.append(row)
+        grouped_rows = collections.OrderedDict()
+        for row in self:
+            key_values = tuple([row[n] for n in col_names])
+            if key_values not in grouped_rows:
+                grouped_rows[key_values] = []
+            grouped_rows[key_values].append(list(row))
 
-        return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
+        final_rows = []
+        for key_values, rows in grouped_rows.items():
+            key_values = list(key_values)
+            if efficient:
+                t = TProxy(self, rows)
+            else:
+                t = Table._create(self._colNames, self._colTypes, self._colFormats, rows)
+            final_rows.append(key_values + [t])
+
+        final_rows.sort()
+        return Table._create(master_names, master_types, master_formats, final_rows, meta=self.meta)
 
     def splitVertically(self, columns):
         """this method separates a table vertically based on columnames.
@@ -2420,3 +2451,31 @@ class Table(object):
                 value = fun(*arg)
             result.append(value)
         return result
+
+
+class TProxy(Table):
+
+    """memory efficient view to an existing table with some limitations.
+    may be used for creating sub tables in Table.collapse """
+
+    __slots__ = ["_t", "_rows"]
+
+    def __init__(self, t, rows):
+        self._t = t
+        self._rows = rows
+
+    @property
+    def rows(self):
+        return self._rows
+
+    def __getattr__(self, name):
+        if name in self._t._colNames:
+            raise Exception("proxy generated by collapse in 'efficient mode' does not "
+                            "allow access to columns as attributes")
+        return getattr(self._t, name)
+
+    def __repr__(self):
+        n = len(self.rows)
+        return "<TProxy to %#x with %d row%s>" % (id(self._t), n, "" if n == 1 else "s")
+
+    __str__ = __repr__

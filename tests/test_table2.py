@@ -598,7 +598,7 @@ def test_multi_sort():
     assert t.z.values == (3, 2, 1,)
 
 
-def test_collapse():
+def test_collapse(regtest):
     t = emzed.utils.toTable("id", [1, 1, 2])
     t.addColumn("a", [1, 2, 3])
     t.addColumn("b", [3, 4, 5])
@@ -627,6 +627,24 @@ def test_collapse():
     assert subs[2].getColNames() == ["id", "a", "b"]
     assert len(subs[2]) == 1
 
+    print(t2, file=regtest)
+
+    t = emzed.utils.toTable("id", [1, 1, 2])
+    t.addColumn("a", [1, 2, 3])
+    t.addColumn("b", [3, 4, 5])
+    t2 = t.collapse("id", efficient=True)
+    t2.sortBy("id")
+    assert len(t2) == 2
+    assert t2.getColNames() == ["id", "collapsed"]
+    assert t2.getColTypes() == [int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 2
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+
+    print(t2, file=regtest)
 
 def test_uniuqe_id():
     ti = emzed.utils.toTable("id", [1, 1, 2])
