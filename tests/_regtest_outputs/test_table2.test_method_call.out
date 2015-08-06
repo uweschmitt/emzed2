@@ -8,5 +8,5 @@ str      int      bool
 a        l        x        cc
 str      int      bool     tests.test_table2.Counter
 ------   ------   ------   ------
-23       2        False    <tests.test_table2.Counter object at 0x110889e10>
+23       2        False    <tests.test_table2.Counter object at 0x?????????>
 

@@ -629,10 +629,12 @@ def test_collapse(regtest):
 
     print(t2, file=regtest)
 
-    t = emzed.utils.toTable("id", [1, 1, 2])
-    t.addColumn("a", [1, 2, 3])
-    t.addColumn("b", [3, 4, 5])
+    #t = emzed.utils.toTable("id", [1, 1, 2])
+    #t.addColumn("a", [1, 2, 3])
+    #t.addColumn("b", [3, 4, 5])
+
     t2 = t.collapse("id", efficient=True)
+
     t2.sortBy("id")
     assert len(t2) == 2
     assert t2.getColNames() == ["id", "collapsed"]
@@ -645,6 +647,9 @@ def test_collapse(regtest):
     assert len(subs[1]) == 1
 
     print(t2, file=regtest)
+
+    import cPickle
+    print(cPickle.loads(cPickle.dumps(t2)))
 
 def test_uniuqe_id():
     ti = emzed.utils.toTable("id", [1, 1, 2])

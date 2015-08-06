@@ -2481,4 +2481,10 @@ class TProxy(Table):
         n = len(self.rows)
         return "<TProxy to %#x with %d row%s>" % (id(self._t), n, "" if n == 1 else "s")
 
+    def __getstate__(self):
+        return self.__dict__.copy()
+
+    def __setstate__(self, dd):
+        self.__dict__.update(dd)
+
     __str__ = __repr__
