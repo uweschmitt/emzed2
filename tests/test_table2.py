@@ -602,6 +602,8 @@ def test_collapse(regtest):
     t = emzed.utils.toTable("id", [1, 1, 2])
     t.addColumn("a", [1, 2, 3])
     t.addColumn("b", [3, 4, 5])
+    print(t, file=regtest)
+
     t2 = t.collapse("id")
     t2.sortBy("id")
     assert len(t2) == 2
@@ -629,10 +631,6 @@ def test_collapse(regtest):
 
     print(t2, file=regtest)
 
-    #t = emzed.utils.toTable("id", [1, 1, 2])
-    #t.addColumn("a", [1, 2, 3])
-    #t.addColumn("b", [3, 4, 5])
-
     t2 = t.collapse("id", efficient=True)
 
     t2.sortBy("id")
@@ -649,7 +647,18 @@ def test_collapse(regtest):
     print(t2, file=regtest)
 
     import cPickle
-    print(cPickle.loads(cPickle.dumps(t2)))
+    tneu = cPickle.loads(cPickle.dumps(t2))
+    print(tneu, file=regtest)
+    # this cause recursion because pickling/unpickling was broken due to using slots:
+    print(tneu.rows, file=regtest)
+    ts0 = tneu.collapsed.values[0]
+    ts1 = tneu.collapsed.values[1]
+    print(ts0.a.values, file=regtest)
+    print(ts0.b.values, file=regtest)
+    print(ts1.a.values, file=regtest)
+    print(ts1.b.values, file=regtest)
+    print(ts0, file=regtest)
+
 
 def test_uniuqe_id():
     ti = emzed.utils.toTable("id", [1, 1, 2])

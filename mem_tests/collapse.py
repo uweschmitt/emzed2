@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import emzed
+import cPickle
 
 try:
     profile
@@ -22,6 +23,10 @@ def test():
     tn = t.collapse("id")
 
     tn = t.collapse("id", efficient=True)
+
+    tn = cPickle.loads(cPickle.dumps(tn))
+    print(tn)
+    tn.replaceColumn("id", 1, type_=int)
 
     import time
     time.sleep(1.0)  # to make sure that memory mesaurement does not lack behind
