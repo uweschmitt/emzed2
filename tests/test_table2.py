@@ -78,7 +78,7 @@ def testFastJoin(regtest_redirect):
         joined.print_()
 
         other = emzed.utils.toTable("b", [2, 2, 2, 2, 2], type_=int)
-        other.addColumn("i", range(len(other)), type_=int)
+        other.addColumn("i", range(len(other)), type_=int, insertBefore=0)
         ttt(t, other)
 
         other = emzed.utils.toTable("b", [2, 2, 2, 3, 3], type_=int)

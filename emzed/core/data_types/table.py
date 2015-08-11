@@ -1691,8 +1691,9 @@ class Table(object):
             tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
 
         """
-        table, lookup, idx = self._prepare_fast_join(other, column_name, column_name_other,
-                                                     rel_tol, abs_tol)
+        table, lookup, __ = self._prepare_fast_join(other, column_name, column_name_other,
+                                                    rel_tol, abs_tol)
+        idx = self.getIndex(column_name)
         rows = []
         cmdlineProgress = _CmdLineProgress(len(self))
         for ii, row in enumerate(self.rows):
@@ -1710,8 +1711,9 @@ class Table(object):
         """Same optimization as fastJoin described above, but performas a fast ``leftJoin``
         instead.
         """
-        table, lookup, idx = self._prepare_fast_join(other, column_name, column_name_other,
-                                                     rel_tol, abs_tol)
+        table, lookup, __ = self._prepare_fast_join(other, column_name, column_name_other,
+                                                    rel_tol, abs_tol)
+        idx = self.getIndex(column_name)
         rows = []
         no = len(other._colNames)
         cmdlineProgress = _CmdLineProgress(len(self))
