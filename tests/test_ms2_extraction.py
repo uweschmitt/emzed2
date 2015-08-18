@@ -25,6 +25,7 @@ def check(peaks, peakmap, regtest, mode):
     print(file=regtest)
     print("MODE=", mode, file=regtest)
     print(file=regtest)
+
     emzed.utils.attach_ms2_spectra(peaks, peakmap, mode=mode)
 
     def mz_range(spectra):
@@ -60,3 +61,13 @@ def test_mode_is_max_energy(peaks, peakmap, regtest):
 
 def test_mode_is_all(peaks, peakmap, regtest):
     check(peaks, peakmap, regtest, "all")
+
+
+def test_overlay(peakmap, regtest):
+    overlay = emzed.utils.overlay_spectra(peakmap.spectra[5:10])
+    print(overlay.peaks.shape, file=regtest)
+    print(overlay.peaks, file=regtest)
+
+    common = emzed.utils.overlay_spectra(peakmap.spectra[5:10], mode="intersection")
+    print(common.peaks.shape, file=regtest)
+    print(common.peaks, file=regtest)

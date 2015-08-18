@@ -79,14 +79,16 @@ def _determine_scaling_factors(mz_vecs, intensity_vecs, alignments, common):
     # common relates to the last spectrum, so we start with this and collect
     # the common peaks:
     for i in range(n - 1, 0, -1):
+        if not common:
+            break
         iiv = intensity_vecs[i]
         intensities.append([iiv[ii] for ii in common])
         # adapt common for spectrum in next iteration:
         alignment = alignments[i - 1]
         common = [_i for (_i, _j) in alignment if _j in common]
-
-    iiv = intensity_vecs[0]
-    intensities.append([iiv[ii] for ii in common])
+    else:
+        iiv = intensity_vecs[0]
+        intensities.append([iiv[ii] for ii in common])
 
     # we collected in reverse order, this is we slice with stepsize -1:
     intensities = np.vstack(intensities)[::-1]
@@ -109,7 +111,7 @@ def _final_spectrum(peaks, spectra):
     return Spectrum(np.vstack(peaks), rt, msLevel, polarity, precursors)
 
 
-def _merge_ms2(spectra, mz_tolerance=1.3e-3, only_common_peaks=False, verbose=True):
+def _merge(spectra, mz_tolerance=1.3e-3, only_common_peaks=False, verbose=True):
     """merges a list of spectra to one spetrum.
 
     *mz_tolerance*        : binning size for grouping peaks.
@@ -140,9 +142,7 @@ def _merge_ms2(spectra, mz_tolerance=1.3e-3, only_common_peaks=False, verbose=Tr
         return _final_spectrum(peaks, spectra)
 
     scalings = _determine_scaling_factors(mz_vecs, intensity_vecs, alignments, common)
-
     peaks = _overlay(mz_vecs, intensity_vecs, scalings, mz_tolerance, verbose, len(common))
-
     return _final_spectrum(peaks, spectra)
 
 
@@ -178,6 +178,42 @@ def _overlay(mz_vecs, intensity_vecs, scalings, mz_tolerance, verbose, n):
     peaks.sort()
     return peaks
 
+
+def overlay_spectra(spectra, mode="union", mz_tolerance=1.3e-3, verbose=True):
+    """merge a list of spectra to one single spectrum.
+
+    - allowed modes are 'union' and 'intersection'.
+    - mz_tolerance is absolute in Dalton, used to group peaks from different spectra
+    - verbose=True gives extra debugging messages which might help to adjust mz_tolerance.
+    """
+    assert mode in ("union", "intersection"), "invalid value for mode parameter"
+    only_common_peaks = (mode == "intersection")
+    return _merge(spectra, only_common_peaks=only_common_peaks,
+                  mz_tolerance=mz_tolerance, verbose=verbose)
+
+
+def _merge_spectra(spectra, mode, mz_tolerance, verbose):
+    """merge a list of spectra. allowed modes are 'max_range', 'max_energy', 'union',
+    'intersection' and 'all'
+    """
+    if not spectra:
+        return None
+    if mode == "max_range":
+        spectrum = max(spectra, key=lambda s: (max(s.peaks[:, 0]) - min(s.peaks[:, 0])))
+        spectra = [spectrum]
+    elif mode == "max_energy":
+        spectrum = max(spectra, key=lambda s: sum(s.peaks[:, 1] ** 2))
+        spectra = [spectrum]
+    elif mode in ("union", "intersection"):
+        only_common_peaks = (mode == "intersection")
+        ms2_spec = _merge(spectra, only_common_peaks=only_common_peaks,
+                          mz_tolerance=mz_tolerance, verbose=verbose)
+        spectra = [ms2_spec]
+    elif mode == "all":
+        pass  # this i
+    else:
+        raise ValueError("mode is not allowed")
+    return spectra
 
 def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, verbose=True):
     """takes *peak_table* with columns "id", "rtmin", "rtmax", "mzmin", "mzmax" and "peakmap"
@@ -222,24 +258,7 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
             last_n = n
         spectra = lookup.find_spectra(row.mzmin, row.mzmax, row.rtmin, row.rtmax)
         num_spectra.append(len(spectra))
-        if spectra:
-            if mode == "max_range":
-                spectrum = max(spectra, key=lambda s: (max(s.peaks[:, 0]) - min(s.peaks[:, 0])))
-                spectra = [spectrum]
-            elif mode == "max_energy":
-                spectrum = max(spectra, key=lambda s: sum(s.peaks[:, 1] ** 2))
-                spectra = [spectrum]
-            elif mode in ("union", "intersection"):
-                only_common_peaks = (mode == "intersection")
-                ms2_spec = _merge_ms2(spectra, only_common_peaks=only_common_peaks,
-                                      mz_tolerance=mz_tolerance, verbose=verbose)
-                spectra = [ms2_spec]
-            elif mode == "all":
-                pass  # this i
-            else:
-                raise RuntimeError("this should never happen")
-        else:
-            spectra = None
+        spectra = _merge_spectra(spectra, mode, mz_tolerance, verbose)
         all_spectra.append(spectra)
     peak_table.addColumn("spectra_ms2", all_spectra, type_=list)
     peak_table.addColumn("num_spectra_ms2", num_spectra, type_=int)
