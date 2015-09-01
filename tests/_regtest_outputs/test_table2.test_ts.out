@@ -1,0 +1,12 @@
+[1, 2, 3, 4] [11, 12, 14, 13]
+[4] [100]
+<empty TimeSeries>
+id       ts
+int      emzed.core.data_types.col_types.TimeSeries
+------   ------
+1        <TimeSeries, time=1..4, values=11..100>
+1        <TimeSeries, time=1..4, values=11..100>
+2        <TimeSeries, time=1..4, values=11..100>
+
+fbc35e40ca277d63eadd5c396cac9c62fc7c2bd8a692e6e9b4896dc96824df62
+983b6acb4001d04fcfb4e0a58346460858d669ef3adff9fe657e184154fe0d6f

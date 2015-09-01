@@ -1,10 +1,13 @@
 import pyopenms
 import numpy as np
 import os.path
+import sys
 import copy
 import hashlib
 from collections import defaultdict
 import warnings
+import zlib
+
 
 OPTIMIZATIONS_INSTALLED = False
 try:
@@ -13,8 +16,7 @@ try:
 except:
     pass
 
-
-IS_PYOPENMS_2  = pyopenms.__version__.startswith("2.")
+IS_PYOPENMS_2 = pyopenms.__version__.startswith("2.")
 
 
 def deprecation(message):
@@ -179,6 +181,128 @@ class Spectrum(object):
         """maximal intensity in spectrum"""
         return float(self.peak[:, 1].max())
 
+    @staticmethod
+    def compute_alignments(spectra, mz_tolerance):
+        """takes a list of spectra and groups peaks given mz_tolerance.
+        it returns a list of lists. every inner list specifies the alignment of one input
+        spectrum to its follower in the list.
+        One assignment is a list of tuples, where the first entry is a peak index from the first
+        list, the second entry is the index of a peak from the second spectrum.
+
+        For example:
+
+            if you run this method with a list or tuple of three spectra (s0, s1, s2) the return
+            values will be [align_0_to_1, align_1_to_2]
+
+            an alignment is a list [(i0, j0), (i1, j1),  ...]
+
+            so that s0.peaks[i0, :] is assigned to s1.peaks[j0, :] and so on.
+        """
+        aligner = pyopenms.SpectrumAlignment()
+        alignment = []
+        conf = aligner.getDefaults()
+        conf_d = conf.asDict()
+        conf_d["is_relative_tolerance"] = "false"  # "true" not implemented yet !
+        conf_d["tolerance"] = mz_tolerance
+        conf.update(conf_d)
+        aligner.setParameters(conf)
+
+        openms_spectra = [s.toMSSpectrum() for s in spectra]
+
+        # create pairwise alignments
+        alignments = []
+        for s0, s1 in zip(openms_spectra, openms_spectra[1:]):
+            alignment = []
+            aligner.getSpectrumAlignment(alignment, s0, s1)
+            alignments.append(alignment)
+
+        return alignments
+
+    def compute_alignment(self, other, mz_tolerance):
+        assert isinstance(other, Spectrum), "need spectrum as argument"
+
+        aligner = pyopenms.SpectrumAlignment()
+        alignment = []
+        conf = aligner.getDefaults()
+        conf_d = conf.asDict()
+        conf_d["is_relative_tolerance"] = "false"  # "true" not implemented yet !
+        conf_d["tolerance"] = mz_tolerance
+        conf.update(conf_d)
+        aligner.setParameters(conf)
+
+        s0 = self.toMSSpectrum()
+        s1 = other.toMSSpectrum()
+
+        alignment = []
+        aligner.getSpectrumAlignment(alignment, s0, s1)
+        return alignment
+
+    def cosine_distance(self, other, mz_tolerance, top_n=10, min_matches=10,
+                        consider_precursor_shift=False):
+
+        """computes the cosine distance of *self* and *other*.
+
+        *top_n* is the number of most intense peaks which should be used for alignment.
+        *min_matches*: if there are less than *min_matches* matches the cosine distance will be 0.0
+
+        *weight_for_precursor_shift*: for ms2 spectra the parameter *weight_for_precursor_shift*
+        stirs advanced matching. in this mode the mz values of the peaks of *other* are shifted
+        by the precursor difference of *self* and *other* and an additional cosine distance is
+        computed. the final result is a weighted sum of "cosine_ms_level_0" and
+        "cosine_ms_level_1", where the weight 0.0 only considers the match on ms1 level, a value
+        of 1.0 only considers match on ms2 level and 0.5 computes an average of the cosine
+        distances on both levels.
+        """
+
+        assert isinstance(other, Spectrum), "need spectrum as argument"
+
+        if not consider_precursor_shift:
+            al = self.compute_alignment(other, mz_tolerance)
+            if len(al) >= min_matches:
+                peaks_self = sorted([self.peaks[i, 1] for (i, j) in al])[:top_n]
+                # fill up with zeros
+                peaks_self += [0.0] * (top_n - len(peaks_self))
+                peaks_self = np.array(peaks_self, dtype=float)
+                peaks_self /= np.linalg.norm(peaks_self)
+
+                peaks_other = sorted([other.peaks[j, 1] for (i, j) in al])[:top_n]
+                # fill up with zeros
+                peaks_other += [0.0] * (top_n - len(peaks_other))
+                peaks_other = np.array(peaks_other, dtype=float)
+                peaks_other /= np.linalg.norm(peaks_other)
+
+                cos_dist = np.dot(peaks_self, peaks_other)
+                return cos_dist
+        else:
+            assert len(self.precursors) > 0, "no precursor given"
+            assert len(other.precursors) > 0, "no precursor given"
+
+            mz_pc_self = self.precursors[0][0]
+            mz_pc_other = other.precursors[0][0]
+            shift = mz_pc_other - mz_pc_self
+            peaks_shifted = np.vstack((other.peaks[:, 0] - shift, other.peaks[:, 1])).T
+            other_shifted = Spectrum(peaks_shifted, other.rt, other.msLevel, other.polarity)
+
+            al = self.compute_alignment(other_shifted, mz_tolerance)
+            if len(al) >= min_matches:
+
+                peaks_self = sorted([self.peaks[i, 1] for (i, j) in al])[:top_n]
+                # fill up with zeros
+                peaks_self += [0.0] * (top_n - len(peaks_self))
+                peaks_self = np.array(peaks_self, dtype=float)
+                peaks_self /= np.linalg.norm(peaks_self)
+
+                peaks_other = sorted([other.peaks[j, 1] for (i, j) in al])[:top_n]
+                # fill up with zeros
+                peaks_other += [0.0] * (top_n - len(peaks_other))
+                peaks_other = np.array(peaks_other, dtype=float)
+                peaks_other /= np.linalg.norm(peaks_other)
+
+                cos_dist_shifted = np.dot(peaks_self, peaks_other)
+                return cos_dist_shifted
+
+        return 0.0
+
     def toMSSpectrum(self):
         """converts to pyopenms.MSSpectrum"""
         spec = pyopenms.MSSpectrum()
@@ -238,15 +362,15 @@ class PeakMap(object):
         if meta is None:
             meta = dict()
         self.meta = meta
+
+        # accepting the unique id from another peakmap is dangerous, eg if we uwe
+        # the extract method, so we delete the cached value:
+        if "unique_id" in self.meta:
+            del self.meta["unique_id"]
+
         polarities = set(spec.polarity for spec in spectra)
         if len(polarities) > 1:
-            print
-            print "INCONSISTENT POLARITIES"
-            for i, s in enumerate(spectra):
-                print "%7.2fm : %s" % (s.rt / 60.0, s.polarity),
-                if i % 5 == 4:
-                    print
-            print
+            self.polarity = list(polarities)
         elif len(polarities) == 1:
             self.polarity = polarities.pop()
         else:
@@ -538,5 +662,97 @@ class PeakMap(object):
                     key = round(key, significant_digits_precursor)
                 msn_spectra[key].append(spectrum)
 
-        meta = self.meta.copy()
-        return sorted([(key, PeakMap(values, meta=meta)) for (key, values) in msn_spectra.items()])
+        m = self.meta.copy()
+        if "unique_id" in m:
+            del m["unique_id"]
+
+        return sorted([(k, PeakMap(v, meta=m.copy())) for (k, v) in msn_spectra.items()])
+
+    @staticmethod
+    def load(path):
+        # open-ms returns empty peakmap if file not exists, so we
+        # check ourselves:
+        if not os.path.exists(path):
+            raise Exception("file %s does not exist" % path)
+        if not os.path.isfile(path):
+            raise Exception("path %s is not a file" % path)
+
+        experiment = pyopenms.MSExperiment()
+        fh = pyopenms.FileHandler()
+        if sys.platform == "win32":
+            path = path.replace("/", "\\")  # needed for network shares
+        fh.loadExperiment(path, experiment)
+        return PeakMap.fromMSExperiment(experiment)
+
+    def store(self, path):
+        if sys.platform == "win32":
+            path = path.replace("/", "\\")  # needed for network shares
+
+        experiment = self.toMSExperiment()
+        fh = pyopenms.FileHandler()
+        fh.storeExperiment(path, experiment)
+
+    def dump_as_pickle(self, fp_or_path):
+        import dill
+        if isinstance(fp_or_path, basestring):
+            if sys.platform == "win32":
+                fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
+            with open(fp_or_path, "wb") as fp:
+                fp.write(zlib.compress(dill.dumps(self), 9))
+            return
+        dill.dump(self, fp_or_path)
+
+    @staticmethod
+    def load_as_pickle(fp_or_path):
+        import dill
+        if isinstance(fp_or_path, basestring):
+            if sys.platform == "win32":
+                fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
+            with open(fp_or_path, "rb") as fp:
+                return dill.loads(zlib.decompress(fp.read()))
+        return dill.load(fp_or_path)
+
+    def squeeze(self):
+        """only supported for peakmap proxies to save space if possible"""
+        pass
+
+
+class PeakMapProxy(PeakMap):
+
+    def __init__(self, path, meta=None):
+        self._path = path
+        self._loaded = False
+        self.meta = meta if meta is not None else {}
+
+    def __getattr__(self, name):
+        if name == "spectra" and not self._loaded:
+            ext = os.path.splitext(self._path)[1].upper()
+            if ext in (".MZML", ".MZXML", ".MZDATA"):
+                pm = PeakMap.load(self._path)
+            else:
+                pm = PeakMap.load_as_pickle(self._path)
+            self.__dict__.update(vars(pm))
+            self._loaded = True
+            return self.spectra
+        elif name == "meta":
+            self.meta = {}
+            return self.meta
+        raise AttributeError("unknown attribute %s" % name)
+
+    def __getstate__(self):
+        return (self._path, self.meta)
+
+    def __setstate__(self, dd):
+        self._path, self.meta = dd
+        self._loaded = False
+
+    def squeeze(self):
+        self._loaded = False
+        if "spectra" in self.__dict__:  # use of 'hasattr' would trigger 'getattr' and load data !
+            del self.spectra
+
+    def store(self, path):
+        """overrides path from PeakMap class because this method would trigger loading the
+        peakmap, altough it is already on disk"""
+        if not os.path.exists(path):
+            self.dump_as_pickle(path)

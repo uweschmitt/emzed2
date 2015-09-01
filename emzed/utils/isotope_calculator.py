@@ -74,5 +74,5 @@ def isotopeDistributionTable(formula, R=None, fullC13=False, minp=0.01, **kw):
     for mass, formula, abundance in gen.getCentroids():
         t.addRow([formula, mass, abundance], False)
     t.resetInternals()
-    t.replaceColumn("abundance", t.abundance / t.abundance.sum, format_ = "%.4f")
+    t.replaceColumn("abundance", t.abundance / t.abundance.sum, format_ = "%.4f", type_=float)
     return t

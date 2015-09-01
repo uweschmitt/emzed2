@@ -1,0 +1,12 @@
+a        l        x
+str      int      bool
+------   ------   ------
+1        1        True
+23       2        False
+-        -        -
+
+a        l        x        cc
+str      int      bool     tests.test_table2.Counter
+------   ------   ------   ------
+23       2        False    <tests.test_table2.Counter object at 0x?????????>
+

@@ -15,7 +15,9 @@ def show(row, parent):
     emzed.gui.inspect(row.table, modal=False, parent=parent)
 
 def message(row, parent):
-    emzed.gui.showInformation("you clicked on row with number %d" % row.number)
+    row.number = 2
+    print(row)
+    # emzed.gui.showInformation("you clicked on row with number %d" % row.number)
 
 # create three cells of type CallBack manually:
 cb1 = CallBack("show subtable", show)

@@ -1,0 +1,22 @@
+Filename: mem_tests/collapse.py
+
+Line #    Mem usage    Increment   Line Contents
+================================================
+    12   91.383 MiB    0.000 MiB   @profile
+    13                             def test():
+    14   91.383 MiB    0.000 MiB       m = 1000
+    15   91.383 MiB    0.000 MiB       n = 50
+    16                             
+    17   91.469 MiB    0.086 MiB       t = emzed.utils.toTable("id", range(m))
+    18   92.316 MiB    0.848 MiB       for ni in range(n):
+    19   92.316 MiB    0.000 MiB           name = chr(ord("a") + ni)
+    20   92.316 MiB    0.000 MiB           t.addColumn(name, m * (5 * name,), type_=str)
+    21                             
+    22  128.953 MiB   36.637 MiB       tn = t.collapse("id")
+    23                             
+    24  129.969 MiB    1.016 MiB       tn = t.collapse("id", efficient=True)
+    25                             
+    26  129.969 MiB    0.000 MiB       import time
+    27  129.969 MiB    0.000 MiB       time.sleep(1.0)  # to make sure that memory mesaurement does not lack behind
+
+

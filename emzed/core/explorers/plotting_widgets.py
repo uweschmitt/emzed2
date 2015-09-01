@@ -13,6 +13,8 @@ from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 import numpy as np
 import new
 
+from datetime import datetime
+
 from helpers import protect_signal_handler
 
 from emzed_optimizations.sample import sample_peaks
@@ -79,10 +81,17 @@ class RtCursorInfo(ObjectInfo):
     def __init__(self, marker):
         ObjectInfo.__init__(self)
         self.marker = marker
+        self.is_time_series = False
 
     def get_text(self):
         rt = self.marker.xValue()
-        txt = "%.2fm" % (rt / 60.0)
+        if self.is_time_series:
+            try:
+                txt = str(datetime.fromordinal(int(rt)))
+            except:
+                txt = ""
+        else:
+            txt = "%.2fm" % (rt / 60.0)
         return txt
 
 
@@ -95,13 +104,6 @@ class RtPlotter(PlotterBase):
 
         widget = self.widget
         widget.plot.__class__ = RtPlot
-
-        # todo: refactor as helper
-        a = QwtScaleDraw()
-        # render tic labels in modfied format:
-        label = lambda self, v: QwtText(formatSeconds(v))
-        a.label = new.instancemethod(label, widget.plot, QwtScaleDraw)
-        widget.plot.setAxisScaleDraw(widget.plot.xBottom, a)
 
         self.pm = PlotManager(widget)
         self.pm.add_plot(widget.plot)
@@ -117,12 +119,29 @@ class RtPlotter(PlotterBase):
         marker.attach(self.widget.plot)
         self.marker = marker
 
-        label = make.info_label("T", [RtCursorInfo(marker)], title=None)
+        self.cursor_info = RtCursorInfo(marker)
+        label = make.info_label("T", [self.cursor_info], title=None)
         label.labelparam.label = ""
         self.label = label
 
         self.minRTRangeSelected = None
         self.maxRTRangeSelected = None
+
+    def set_rt_x_axis_labels(self):
+        # todo: refactor as helper
+        a = QwtScaleDraw()
+        # render tic labels in modfied format:
+        label = lambda self, v: QwtText(formatSeconds(v))
+        a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
+        self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
+
+    def set_ts_x_axis_labels(self):
+        # todo: refactor as helper
+        a = QwtScaleDraw()
+        # render tic labels in modfied format:
+        label = lambda self, v: QwtText("") # QwtText(str(v))
+        a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
+        self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
 
     def addTool(self, tool):
         t = self.pm.add_tool(tool)
@@ -133,38 +152,77 @@ class RtPlotter(PlotterBase):
         self.marker.rts = [0]
         self.replot()
 
-    def plot(self, chromatograms, titles=None, configs=None,
+    def plot(self, data, is_time_series=False, titles=None, configs=None,
              withmarker=False):
         """ do not forget to call replot() after calling this function ! """
-        allrts = set()
+        allrts = []
         self.widget.plot.del_all_items()
-        # self.widget.plot.set_antialiasing(True)
-        for i in range(len(chromatograms)):
-            rts, chromatogram = chromatograms[i]
-            config = None
-            if configs is not None:
-                config = configs[i]
-            if config is None:
-                config = dict(color=getColor(i))
-            if titles:
-                title = titles[i]
-            else:
-                title = ""
 
-            curve = make.curve(rts, chromatogram, title=title, **config)
-            curve.__class__ = ModifiedCurveItem
-            allrts.update(rts)
-            self.widget.plot.add_item(curve)
+        if is_time_series:
+            self.set_ts_x_axis_labels()
+            self.widget.plot.set_axis_title("bottom", "time")
+        else:
+            self.set_rt_x_axis_labels()
+            self.widget.plot.set_axis_title("bottom", "RT")
+        # self.widget.plot.set_antialiasing(True)
+        if is_time_series:
+            seen = set()
+            for i, ts in enumerate(data):
+                # we do not plot duplicates, which might happen if multiple lines in the
+                # table explorer are sellected !
+                if id(ts) in seen:
+                    continue
+                seen.add(id(ts))
+                config = None
+                if configs is not None:
+                    config = configs[i]
+                if config is None:
+                    config = dict(color=getColor(i))
+                if titles:
+                    title = titles[i]
+                else:
+                    title = ""
+                for (x, y) in ts.segments():
+                    x = [xi.toordinal() if isinstance(xi, datetime) else xi for xi in x]
+                    allrts.extend(x)
+                    curve = make.curve(x, y, title=title, **config)
+                    curve.__class__ = ModifiedCurveItem
+                    self.widget.plot.add_item(curve)
+                    self.cursor_info.is_time_series = True
+        else:
+            seen = set()
+            for i, (rts, chromatogram) in enumerate(data):
+                # we do not plot duplicates, which might happen if multiple lines in the
+                # table explorer are sellected !
+                if (id(rts), id(chromatogram)) in seen:
+                    continue
+                seen.add((id(rts), id(chromatogram)))
+                config = None
+                if configs is not None:
+                    config = configs[i]
+                if config is None:
+                    config = dict(color=getColor(i))
+                if titles:
+                    title = titles[i]
+                else:
+                    title = ""
+                curve = make.curve(rts, chromatogram, title=title, **config)
+                curve.__class__ = ModifiedCurveItem
+                allrts.extend(rts)
+                self.widget.plot.add_item(curve)
+                self.cursor_info.is_time_series = False
+
 
         if withmarker:
             self.widget.plot.add_item(self.label)
-            allrts = sorted(allrts)
+            allrts = sorted(set(allrts))
             self.marker.rts = allrts
             self.marker.attach(self.widget.plot)
             self.widget.plot.add_item(self.marker)
         if titles is not None:
             self.widget.plot.add_item(make.legend("TL"))
-        self.addRangeSelector(allrts)
+        if not is_time_series:
+            self.addRangeSelector(allrts)
 
     def setEnabled(self, enabled):
         self.widget.plot.setVisible(enabled)
@@ -293,6 +351,28 @@ class MzPlotter(PlotterBase):
         if self.c_callback:
             self.c_callback(p)
 
+    def plot_spectra(self, all_peaks, labels):
+        self.widget.plot.del_all_items()
+        self.widget.plot.add_item(self.marker)
+        self.widget.plot.add_item(make.legend("TL"))
+        self.widget.plot.add_item(self.label)
+
+        for i, (peaks, label) in enumerate(zip(all_peaks, labels)):
+            config = dict(color=getColor(i))
+            curve = make.curve([], [], title=label, curvestyle="Sticks", **config)
+            curve.set_data(peaks[:, 0], peaks[:, 1])
+            curve.__class__ = ModifiedCurveItem
+            self.widget.plot.add_item(curve)
+            #self.widget.plot.curves.append(curve)
+            self.widget.plot.resample_config = []
+
+        self.widget.plot.add_item(self.line)
+        if len(all_peaks):
+            self.widget.plot.all_peaks = np.vstack(all_peaks)
+        else:
+            self.widget.plot.all_peaks = np.zeros((0, 2))
+
+
     def plot(self, data, configs=None, titles=None):
         """ do not forget to call replot() after calling this function ! """
         self.widget.plot.del_all_items()
@@ -302,7 +382,7 @@ class MzPlotter(PlotterBase):
         self.widget.plot.add_item(self.label)
 
         all_peaks = []
-        self.widget.plot.data = []
+        self.widget.plot.resample_config = []
         self.widget.plot.curves = []
         for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
             ms_level = min(pm.getMsLevels())
@@ -335,7 +415,7 @@ class MzPlotter(PlotterBase):
             curve.__class__ = ModifiedCurveItem
             self.widget.plot.add_item(curve)
             self.widget.plot.curves.append(curve)
-            self.widget.plot.data.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
+            self.widget.plot.resample_config.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
         self.widget.plot.add_item(self.line)
         if len(all_peaks):
             self.widget.plot.all_peaks = np.vstack(all_peaks)

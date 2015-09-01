@@ -19,37 +19,36 @@ def storePeakMap(pm, path=None):
         choosing an output file name is opened.
     """
 
-    # local import in order to keep namespaces clean
-    import sys
-    from pyopenms import FileHandler
-
     path = _prepare_path(path, extensions=["mzML", "mzXML", "mzData"], store=False)
     if path is None:
         return None
 
-    if sys.platform == "win32":
-        path = path.replace("/", "\\")  # needed for network shares
-
-    experiment = pm.toMSExperiment()
-    fh = FileHandler()
-    fh.storeExperiment(path, experiment)
+    pm.store(path)
 
 
-def storeTable(tab, path=None, forceOverwrite=False, compressed=True):
-    """ Saves *tab* in a binary ``.table`` file.
-        If *path* is not provided, a file dialog opens
-        for choosing the files name and location.
+def storeTable(tab, path=None, forceOverwrite=False, compressed=True, peakmap_cache_folder=None):
+    """Writes the table in binary format. All information, as corresponding peak maps too.
 
-        *path* must have file extension ``.table``.
+    The file name extension in ``path``must be ``.table``.
+
+    ``forceOverwrite`` must be set to ``True`` to overwrite an existing file.
+
+    ``compressed`` replaces duplicate copies of the same peakmap of a single one to save
+    space on disk.
+
+    ``peakmap_cache_folder`` is a folder. if provided the table data and the peakmap
+    are stored separtely. so the table file can then be loaded much faster and the peakmaps are
+    lazily loaded only if one tries to access their spectra. This speeds up workflows but the
+    developer must care about consistency: if the peakmap folder is deleted the table may
+    becom useless !
+
+    Latter the file can be loaded with ``emzed.io.loadTable``
     """
-
-    # local import in order to keep namespaces clean
 
     path = _prepare_path(path, extensions=["table"], store=False)
     if path is None:
         return None
-
-    tab.store(path, forceOverwrite, compressed)
+    tab.store(path, forceOverwrite, compressed, peakmap_cache_folder)
 
 
 def storeCSV(tab, path=None):

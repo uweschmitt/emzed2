@@ -175,6 +175,10 @@ def testSimpleTable():
 
     assert len(model.actions) == 1 # 1 undo missing
 
+    # we have to call sort three times, the first two are ingnored
+    # for details look at the comment of the TableModel.sort method !
+    model.sort(0, Qt.DescendingOrder)
+    model.sort(0, Qt.DescendingOrder)
     model.sort(0, Qt.DescendingOrder)
 
     assert model.table.mz.values == ( 3.5, 2.5, None)

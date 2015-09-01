@@ -14,7 +14,7 @@ Tables
 Expressions
 -----------
 
-.. automodule:: emzed.core.data_types.expressions.Expressions
+.. automodule:: emzed.core.data_types.expressions
 
 .. autoclass:: emzed.core.data_types.expressions.BaseExpression
    :members: 

@@ -3,7 +3,8 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from ..data_types import PeakMap
+from ..data_types import PeakMap, TimeSeries
+from ..data_types.table import create_row_class
 
 import guidata
 
@@ -47,6 +48,7 @@ class TableModel(QAbstractTableModel):
         self.setFiltersEnabled(False)
 
         self.selected_data_rows = []
+        self.counter_for_calls_to_sort = 0
 
     def set_selected_data_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
@@ -89,7 +91,8 @@ class TableModel(QAbstractTableModel):
 
     def row(self, index):
         ridx, cidx = self.table_index(index)
-        return self.table.getValues(self.table.rows[ridx])
+        row = create_row_class(self.table)(self.table.rows[ridx])
+        return row
 
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -145,7 +148,7 @@ class TableModel(QAbstractTableModel):
             return QVariant()
         if orientation == Qt.Horizontal:
             dataIdx = self.widgetColToDataCol[section]
-            return self.table._colNames[dataIdx]
+            return str(self.table._colNames[dataIdx])
         # vertical header:
         return QString("   ")
 
@@ -252,14 +255,22 @@ class TableModel(QAbstractTableModel):
         raise RuntimeError("obsolte method, use removeRows instead")
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
-        if len(self.widgetColToDataCol):
-            dataColIdx = self.widgetColToDataCol[colIdx]
-            self.beginResetModel()
-            self.runAction(SortTableAction, dataColIdx, colIdx, order)
-            self.current_sort_col_idx = colIdx
-            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
-            #self.endResetModel()
-            #self.emit_data_change()
+        # the counter is a dirty hack: during startup of table explorer the sort method is
+        # called twice automatically, so the original order of the table is not maintained
+        # in the view when the explorer windows shows up.
+        # we count the calls ignore the first two calls. then sorting is only done if
+        # the user clicks to a column heading.
+        # this is a dirty hack but I cound not find out why sort() is called twice.
+        # the first call is triggered by setSortingEnabled() in the table view, the origin
+        # of the second call is unclear.
+        self.counter_for_calls_to_sort += 1
+        if self.counter_for_calls_to_sort > 2:
+            if len(self.widgetColToDataCol):
+                dataColIdx = self.widgetColToDataCol[colIdx]
+                self.beginResetModel()
+                self.runAction(SortTableAction, dataColIdx, colIdx, order)
+                self.current_sort_col_idx = colIdx
+                self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.beginResetModel()
@@ -275,6 +286,12 @@ class TableModel(QAbstractTableModel):
 
     def hasEIC(self):
         return self.checkForAny("eic")
+
+    def hasTimeSeries(self):
+        return any(t is TimeSeries for t in self.table.getColTypes())
+
+    def hasExtraSpectra(self):
+        return any(n.startswith("spectra") for n in self.table.getColNames())
 
     def integrationColNames(self):
         return ["area", "rmse", "method", "params"]
@@ -303,9 +320,6 @@ class TableModel(QAbstractTableModel):
             title = table.title
         else:
             title = os.path.basename(table.meta.get("source", ""))
-        if self.hasFeatures():
-            title += " rt_aligned=%s" % table.meta.get("rt_aligned", "False")
-            title += " mz_aligned=%s" % table.meta.get("mz_aligned", "False")
         return title
 
     def getShownColumnName(self, col_idx):
@@ -348,19 +362,31 @@ class TableModel(QAbstractTableModel):
             peakMaps.append(pm)
         return peakMaps
 
-    def getLevelNSpectra(self, data_row_idx, minLevel=2, maxLevel=999):
+    def getEICWindows(self, data_row_idx):
+        windows = []
+        for p in self.table.supportedPostfixes(["rtmin", "rtmax", "mzmin", "mzmax"]):
+            rtmin = self.table.getValue(self.table.rows[data_row_idx], "rtmin" + p)
+            rtmax = self.table.getValue(self.table.rows[data_row_idx], "rtmax" + p)
+            mzmin = self.table.getValue(self.table.rows[data_row_idx], "mzmin" + p)
+            mzmax = self.table.getValue(self.table.rows[data_row_idx], "mzmax" + p)
+            if all((rtmin is not None, rtmax is not None, mzmin is not None, mzmax is not None)):
+                windows.append((rtmin, rtmax, mzmin, mzmax))
+        return windows
+
+    def getTimeSeries(self, data_row_idx):
+        ts = []
+        cols = [i for (i, t) in enumerate(self.table.getColTypes()) if t is TimeSeries]
+        row = self.table.rows[data_row_idx]
+        return [row[c] for c in cols]
+
+    def getExtraSpectra(self, data_row_idx):
         spectra = []
         postfixes = []
-        for p in self.table.supportedPostfixes(self.eicColNames()):
+        for p in self.table.supportedPostfixes(("spectra",)):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            pm = values["peakmap" + p]
-            rtmin = values["rtmin" + p]
-            rtmax = values["rtmax" + p]
-            if pm is not None and rtmin is not None and rtmax is not None:
-                for spec in pm.levelNSpecs(minLevel, maxLevel):
-                    if rtmin <= spec.rt <= rtmax:
-                        spectra.append(spec)
-                        postfixes.append(p)
+            specs = values["spectra" + p]
+            spectra.append(specs)
+            postfixes.append(p)
         return postfixes, spectra
 
     def extractEICs(self, data_row_idx):

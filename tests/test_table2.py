@@ -1,7 +1,8 @@
+#encoding: utf-8
+
 from __future__ import print_function
 
-from emzed.core.data_types import Table, PeakMap
-from emzed.core.data_types.col_types import Blob
+from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
 import emzed.utils
 import emzed.mass
 import numpy as np
@@ -51,6 +52,135 @@ def testFullJoin():
     assert len(t2) == 9
     assert t2.a.values == (None, None, None, 2, 2, 2, 3, 3, 3,)
     assert t2.a__0.values == t.a.values * 3
+
+
+def testFastJoin(regtest_redirect):
+
+    def ttt(t, other):
+        joined = t.fastJoin(other, "a", "b")
+        print()
+        print("join")
+        joined.print_()
+        joined = t.fastLeftJoin(other, "a", "b")
+        print()
+        print("left join")
+        joined.print_()
+
+    with regtest_redirect():
+        t = emzed.utils.toTable("a", [None, 2, 3], type_=int)
+        joined = t.fastJoin(t, "a")
+        print()
+        print("join")
+        joined.print_()
+        joined = t.fastLeftJoin(t, "a")
+        print()
+        print("left join")
+        joined.print_()
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 2, 2], type_=int)
+        other.addColumn("i", range(len(other)), type_=int, insertBefore=0)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 3, 3], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [2, 2, 2, 3, 3], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [7, 7, 7, 7, 7], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+        other = emzed.utils.toTable("b", [], type_=int)
+        other.addColumn("i", range(len(other)), type_=int)
+        ttt(t, other)
+
+
+def testFastApproxLookup(regtest):
+    t = emzed.utils.toTable("a", (None, 1.0, 2.0, 3.0, 4.0, 5.0))
+    t2 = t.fastJoin(t, "a", abs_tol=.001)
+    print(t2, file=regtest)
+
+    t2 = t.fastJoin(t, "a", rel_tol=.5)
+    print(t2, file=regtest)
+
+    t2 = t.fastLeftJoin(t, "a", abs_tol=.001)
+    print(t2, file=regtest)
+
+    t2 = t.fastLeftJoin(t, "a", rel_tol=.5)
+    print(t2, file=regtest)
+
+    t = emzed.utils.toTable("ix", range(300))
+    import random
+
+    random.seed(4711)
+
+    t.addColumn("r", t.apply(random.random, ()))
+    t2 = t.copy()
+
+    import time
+
+    t2.sortBy("r")
+
+    started = time.time()
+    r = t.fastJoin(t2, "r", abs_tol=0.0002)
+    print()
+    print("fastJoin: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    started = time.time()
+    r1 = t.join(t2, t.r.approxEqual(t2.r, 0.0002))
+    print()
+    print("join with approxEqual: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r1.uniqueId()
+
+    started = time.time()
+    r2 = t.join(t2, t.r.equals(t2.r, abs_tol=0.0002))
+    print()
+    print("join with equals: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r2.uniqueId()
+
+    started = time.time()
+    r3 = t.join(t2, t.r.equals(t2.r, abs_tol=1.00) & t.r.equals(t2.r, abs_tol=0.0002))
+    print()
+    print("join with equals, two times: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r3.uniqueId()
+
+    started = time.time()
+    r4 = t.join(t2, (t.r - t2.r).apply(abs) <= 0.0002)
+    print()
+    print("join with computing distance, two times: ", end="")
+    print(len(r), "rows", time.time() - started, "seconds needed")
+    print()
+
+    assert r.uniqueId() == r4.uniqueId()
+
+    # now we test for matching with relative tolerance:
+
+    r = t.fastJoin(t2, "r", rel_tol=0.02)
+    r2 = t.join(t2, t.r.equals(t2.r, rel_tol=0.02))
+    assert r.uniqueId() == r2.uniqueId()
+
+    r3 = t.join(t2, t.r.equals(t2.r, rel_tol=0.2) & t.r.equals(t2.r, rel_tol=0.02))
+
+    assert r.uniqueId() == r3.uniqueId()
+
+    started = time.time()
+    r4 = t.join(t2, (t.r - t2.r).apply(abs) / t.r <= 0.02)
+
+    assert r.uniqueId() == r4.uniqueId()
 
 
 def testIfNotNoneElse():
@@ -468,11 +598,14 @@ def test_multi_sort():
     assert t.z.values == (3, 2, 1,)
 
 
-def test_collapse():
+def test_collapse(regtest):
     t = emzed.utils.toTable("id", [1, 1, 2])
     t.addColumn("a", [1, 2, 3])
     t.addColumn("b", [3, 4, 5])
+    print(t, file=regtest)
+
     t2 = t.collapse("id")
+    t2.sortBy("id")
     assert len(t2) == 2
     assert t2.getColNames() == ["id", "collapsed"]
     assert t2.getColTypes() == [int, t.__class__]
@@ -496,6 +629,36 @@ def test_collapse():
     assert subs[2].getColNames() == ["id", "a", "b"]
     assert len(subs[2]) == 1
 
+    print(t2, file=regtest)
+
+    t2 = t.collapse("id", efficient=True)
+
+    t2.sortBy("id")
+    assert len(t2) == 2
+    assert t2.getColNames() == ["id", "collapsed"]
+    assert t2.getColTypes() == [int, t.__class__]
+
+    subs = t2.collapsed.values
+    assert subs[0].getColNames() == ["id", "a", "b"]
+    assert len(subs[0]) == 2
+    assert subs[1].getColNames() == ["id", "a", "b"]
+    assert len(subs[1]) == 1
+
+    print(t2, file=regtest)
+
+    import cPickle
+    tneu = cPickle.loads(cPickle.dumps(t2))
+    print(tneu, file=regtest)
+    # this cause recursion because pickling/unpickling was broken due to using slots:
+    print(tneu.rows, file=regtest)
+    ts0 = tneu.collapsed.values[0]
+    ts1 = tneu.collapsed.values[1]
+    print(ts0.a.values, file=regtest)
+    print(ts0.b.values, file=regtest)
+    print(ts1.a.values, file=regtest)
+    print(ts1.b.values, file=regtest)
+    print(ts0, file=regtest)
+
 
 def test_uniuqe_id():
     ti = emzed.utils.toTable("id", [1, 1, 2])
@@ -504,6 +667,23 @@ def test_uniuqe_id():
     t.addColumn("pm", PeakMap([]))
     t.addColumn("blob", Blob("data"))
     assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
+
+
+def test_ts(regtest_redirect):
+    t = emzed.utils.toTable("id", [1, 1, 2])
+    # peakmap unique id already tested by compression of peakmap:
+    x = [None, 1, 2, 3, 4, None, None, 4, None]
+    y = [None, 11, 12, 14, 13, None, None, 100, None]
+    ts = TimeSeries(x, y)
+    t.addColumn("ts", ts, format_="%s")
+
+    with regtest_redirect():
+        for xi, yi in ts.segments():
+            print(xi, yi)
+        print(TimeSeries([], []))
+        print(t)
+        print(t.ts[0].uniqueId())
+        print(t.uniqueId())
 
 
 def test_missing_values_binary_expressions():
@@ -666,25 +846,144 @@ def test_any_all_agg_expressions():
     assert t.v.anyTrue() is True
     assert t.v.anyFalse() is False
 
+    t = emzed.utils.toTable("v", [None, 0, 0])
+    # pep8 would recomment "is" instead of "==" below, but py.tests assert rewriting can not
+    # handle this
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is False
+    assert t.v.anyFalse() is True
+
+    t = emzed.utils.toTable("v", [None, 0, 1])
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is True
+
+    t = emzed.utils.toTable("v", [None, 1, 1])
+    assert t.v.allTrue() is False
+    assert t.v.allFalse() is False
+    assert t.v.anyTrue() is True
+    assert t.v.anyFalse() is False
+
 
 def test_getitem_variations():
     t = emzed.utils.toTable("v", range(3))
     t1 = t[0:2]
-    t2 = t[(0, 1)]
-    t3 = t[(True, True, False)]
-    t4 = t[[0, 1]]
-    t5 = t[[True, True, False]]
-    t6 = t[np.array((True, True, False), dtype=bool)]
-    t7 = t[np.array((0, 1), dtype=int)]
+    t2 = t[[0, 1]]
+    t3 = t[[True, True, False]]
+    t4 = t[np.array((True, True, False), dtype=bool)]
+    t5 = t[np.array((0, 1), dtype=int)]
 
     assert t1.rows == [[0], [1]]
 
-    for ti in (t1, t2, t3, t4, t5, t6, t7):
+    for ti in (t1, t2, t3, t4, t5):
         assert ti.getColNames() == t.getColNames()
         assert ti.getColTypes() == t.getColTypes()
         assert ti.getColFormats() == t.getColFormats()
         assert ti.rows == t1.rows
 
+    t1 = t[0:2, :]
+    t2 = t[[0, 1], :]
+    t3 = t[[True, True, False], :]
+    t4 = t[np.array((True, True, False), dtype=bool), :]
+    t5 = t[np.array((0, 1), dtype=int), :]
+
+    assert t1.rows == [[0], [1]]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t.addColumn("w", t.v * 2.0)
+
+    t1 = t[0:2, :]
+    t2 = t[[0, 1], :]
+    t3 = t[[True, True, False], :]
+    t4 = t[np.array((True, True, False), dtype=bool), :]
+    t5 = t[np.array((0, 1), dtype=int), :]
+
+    assert t1.rows == [[0, 0.0], [1, 2.0]]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, :1]
+    t2 = t[[0, 1], :1]
+    t3 = t[[True, True, False], :1]
+    t4 = t[np.array((True, True, False), dtype=bool), :1]
+    t5 = t[np.array((0, 1), dtype=int), :1]
+
+    assert t1.rows == [[0], [1]]
+    assert t1.getColNames() == ["v"]
+    assert t1.getColTypes() == [int]
+    assert t1.getColFormats() == ["%d"]
+
+    for ti in (t2, t3, t4, t5):
+        assert ti.getColNames() == t1.getColNames()
+        assert ti.getColTypes() == t1.getColTypes()
+        assert ti.getColFormats() == t1.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:]
+    t2 = t[[0, 1], (0, 1)]
+    t3 = t[[True, True, False], [True, True]]
+    t4 = t[np.array((True, True, False), dtype=bool), np.array((True, True), dtype=bool)]
+    t5 = t[np.array((0, 1), dtype=int), np.array((0, 1), dtype=int)]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2, t3, t4, t5):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:2]
+    t2 = t[[0, 1], 0:2]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[0:2, 0:2:1]
+    t2 = t[[0, 1], 0:2:1]
+
+    assert t1.rows == t.rows[:2]
+
+    for ti in (t1, t2):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[:, :]
+
+    assert t1.rows == t.rows
+
+    for ti in (t1,):
+        assert ti.getColNames() == t.getColNames()
+        assert ti.getColTypes() == t.getColTypes()
+        assert ti.getColFormats() == t.getColFormats()
+        assert ti.rows == t1.rows
+
+    t1 = t[::-1, ::-1]
+
+    assert t1.rows == [r[::-1] for r in t.rows[::-1]]
+
+    for ti in (t1,):
+        assert ti.getColNames() == t.getColNames()[::-1]
+        assert ti.getColTypes() == t.getColTypes()[::-1]
+        assert ti.getColFormats() == t.getColFormats()[::-1]
 
 def test_t():
     t = emzed.utils.toTable("v", range(1, 3))
@@ -741,7 +1040,7 @@ def test_add_postfix():
 
 
 def test_write_csv(tmpdir, regtest):
-    t = emzed.utils.toTable("a", (1, 2), format_ = "%03d")
+    t = emzed.utils.toTable("a", (1, 2), format_="%03d")
     t.addColumn("b", (2, 3), format_=None)
 
     path = tmpdir.join("1.csv").strpath
@@ -809,8 +1108,203 @@ def test_col_name_trans(regtest):
 
     print(e.value, file=regtest)
 
+
 def test_expr_to_iter():
     t = emzed.utils.toTable("x", (1, 2, 3.0))
 
     assert tuple(t.x + 1) == (2, 3, 4.0)
+
+
+def test_slicing():
+    t = emzed.utils.toTable("x", (1, 2, 3.0))
+    assert t.x[:] == t.x.values
+    assert t.x[:0] == ()
+
+
+def test_vertical_split(regtest):
+    t = emzed.utils.toTable("x", (1, 2, 3.0), type_=int)
+    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d")
+    t.addColumn("yi", 1.0, type_=float, format_="%.7e")
+
+    t1, t2 = t.splitVertically("x")
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVertically("x*")
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVertically(["x", "xi"])
+    print(t1, t2, file=regtest)
+    t1, t2 = t.splitVertically("?i")
+    print(t1, t2, file=regtest)
+
+    t1, t2 = t.splitVertically("abc")
+    print(t1, t2, file=regtest)
+    assert t1.shape == (3, 0)
+    assert t2.shape == (3, 3)
+
+    t_empty = t.filter(t.x == -1)
+    assert t_empty.shape == (0, 3)
+
+    assert t1.shape == (3, 0)
+    t1, t2 = t_empty.splitVertically("x")
+    print(t1, t2, file=regtest)
+
+
+def test_iter(regtest):
+
+    t = emzed.utils.toTable("x", (1, 2, 3.0), type_=int)
+    t.addColumn("yi", "1.0", type_=str, format_="%5s", insertAfter="x")
+    t.addColumn("xi", (1, None, -1), type_=int, format_="%03d", insertBefore=1)
+
+    # we record the ids of the internal dict to make sure that this is only created
+    # once per iteration over t, which saves a huge amount of memory !
+    ids = set()
+
+    print(file=regtest)
+    print(t, file=regtest)
+    print(file=regtest)
+
+    for i, row in enumerate(t):
+        ids.add(id(row._dict))
+        assert len(row) == 3
+
+        assert row.x in (1, 2, 3.0)
+        assert row.xi in (1, None, -1)
+        assert row.yi == "1.0"
+
+        assert row["x"] == row.x
+        assert row["xi"] == row.xi
+        assert row["yi"] == row.yi
+
+        assert row[0] == row.x
+        assert row[1] == row.xi
+        assert row[2] == row.yi
+
+        print(file=regtest)
+        print("iter", i, file=regtest)
+        print("row %d before modification is" % i, row, file=regtest)
+
+        row[0] = 4711
+        row.yi = "42"
+        print("row %d after modification is" % i, row, file=regtest)
+        print("table is\n", t, file=regtest)
+        print(file=regtest)
+        print("row copy is", row[:], file=regtest)
+        print("row[:-1] is", row[:-1], file=regtest)
+        print("row[1:] is", row[1:], file=regtest)
+        print("row[1:3] is", row[1:3], file=regtest)
+        print("keys=", row.keys(), file=regtest)
+        print("values=", row.values(), file=regtest)
+        print("items=", row.items(), file=regtest)
+        print("as list=", list(row), file=regtest)
+        print("as str=", str(row), file=regtest)
+        print(file=regtest)
+
+    print(t, file=regtest)
+
+    # we changed the table in place, now check this:
+
+    assert len(ids) == 1
+
+    # we record the ids of the internal dict again to make sure that _dict is a different one
+    # as before, but still unique for the iteration:
+    for row in t:
+        print(row)
+        ids.add(id(row._dict))
+        assert len(row) == 3
+
+        assert row.x == 4711
+        assert row.xi in (1, None, -1)
+        assert row.yi == "42"
+
+        assert row["x"] == row.x
+        assert row["xi"] == row.xi
+        assert row["yi"] == row.yi
+
+        assert row[0] == row.x
+        assert row[1] == row.xi
+        assert row[2] == row.yi
+
+    for a, b, c in t:
+        print(a, b, c, file=regtest)
+
+    assert len(ids) == 2
+
+
+def test_all_none():
+    t = emzed.utils.toTable("a", (1, 2, None))
+    assert t.a.allNone() is False
+
+    t = emzed.utils.toTable("a", (None, None, None))
+    assert t.a.allNone() is True
+
+
+def test_all_x():
+    t = emzed.utils.toTable("a", ())
+    assert t.a.allNone() is True
+    assert t.a.allFalse() is True
+    assert t.a.allTrue() is True
+
+    t = emzed.utils.toTable("a", (None, None))
+    assert t.a.allNone() is True
+    assert t.a.allFalse() is False
+    assert t.a.allTrue() is False
+
+
+def test_any_x():
+    t = emzed.utils.toTable("a", ())
+    assert t.a.anyNone() is False
+    assert t.a.anyFalse() is False
+    assert t.a.anyTrue() is False
+
+    t = emzed.utils.toTable("a", (None, None))
+    assert t.a.anyNone() is True
+    assert t.a.anyFalse() is False
+    assert t.a.anyTrue() is False
+
+
+def test_new_apply(regtest):
+    t = emzed.utils.toTable("a", (1, 2, None), type_=float)
+    t.addColumn("b", t.a + 1.0, type_=float)
+
+    def add(a, b):
+        return a + b
+
+    def any_none(a, b):
+        return a is None or b  is None
+
+
+    t.addColumn("sum", t.apply(add, (t.a, t.b)))
+    t.addColumn("b+1", t.apply(add, (1.0, t.b)))
+    t.addColumn("a+3", t.apply(add, (t.a, 3.0)))
+    t.addColumn("four", t.apply(add, (1.0, 3.0)))
+
+    t.addColumn("n", (None, 1, 2), type_=int)
+    t.addColumn("a_or_n_is_none", t.apply(any_none, (t.a, t.n), keep_nones=True), type_=bool)
+    print(t, file=regtest)
+
+
+def test_method_call(regtest):
+    t = emzed.utils.toTable("a", ("1", "23", None))
+    t.addColumn("l", t.a.callMethod("__len__"), type_=int)
+    t.addColumn("x", t.a.callMethod("startswith", ("1",)), type_=bool)
+    print(t, file=regtest)
+
+    class Counter(object):
+
+        def __init__(self):
+            self.counter = 0
+
+        def up(self):
+            self.counter += 1
+
+    cc = Counter()
+    t.addColumn("cc", cc)
+    t.cc.callMethod("up")
+
+    assert cc.counter == 3
+
+    t = t.filter(t.a.callMethod("__len__") > 1)
+    t = t.filter(t.a.callMethod("startswith", ("2",)))
+    print(t, file=regtest)
+
+
 

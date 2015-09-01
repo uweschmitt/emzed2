@@ -1,8 +1,11 @@
-import numpy as np
-import re
-import col_types
 import collections
+import re
+import types
+import warnings
 
+import numpy as np
+
+import col_types
 
 __doc__ = """
 
@@ -10,6 +13,14 @@ Working with tables relies on so called ``Expressions``
 
 
 """
+
+
+def warn(message):
+    warnings.warn(message, UserWarning, stacklevel=3)
+
+
+def depreciation_warning(message):
+    warnings.warn(message, DeprecationWarning, stacklevel=3)
 
 
 def le(a, x):
@@ -172,6 +183,106 @@ def common_type(t1, t2):
     return object
 
 
+class Lookup(object):
+
+    def __init__(self, values, abs_tol=None, rel_tol=None):
+        if abs_tol is not None:
+            assert abs_tol > 0.0
+        if rel_tol is not None:
+            assert rel_tol > 0.0
+        if abs_tol is not None and abs_tol > 0.0:
+            self.__class__ = FuzzyAbsoluteLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values, abs_tol)
+        elif rel_tol is not None and rel_tol > 0.0:
+            self.__class__ = FuzzyRelativeLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values, rel_tol)
+        else:
+            self.__class__ = ExactLookup
+            # now __init__ depends on class we set before !
+            self.__init__(values)
+
+    def find(self, value):
+        pass
+
+
+class ExactLookup(Lookup):
+
+    def __init__(self, values):
+        if not isinstance(values, list):
+            values = list(values)
+        self.values = values
+        self.index = collections.defaultdict(list)
+        for (i, v) in enumerate(values):
+            self.index[v].append(i)
+
+    def find(self, value):
+        return self.index.get(value, [])
+
+
+class _FuzzyLookup(Lookup):
+
+    def __init__(self, values, tol):
+        if not isinstance(values, list):
+            values = list(values)
+        self.values = values
+        self.index = collections.defaultdict(list)
+        self.tol = tol
+        for (i, v) in enumerate(values):
+            if v is not None:
+                k = self._bin(v)
+                self.index[k].append((v, i))
+
+    def find(self, value):
+        if value is None:
+            return []
+        k = self._bin(value)
+        candidates = self.index.get(k - 1, []) + self.index.get(k, []) + self.index.get(k + 1, [])
+        result = []
+        for value_i, i in candidates:
+            if self._fit(value, value_i):
+                result.append(i)
+        return result
+
+
+class FuzzyAbsoluteLookup(_FuzzyLookup):
+
+    def _bin(self, value):
+        try:
+            return int(value / self.tol)
+        except TypeError:
+            raise TypeError("computing fraction  %s by %s failed" % (value, self.tol))
+
+    def _fit(self, reference, other):
+        try:
+            return abs(reference - other) <= self.tol
+        except TypeError:
+            raise TypeError("computing absolute distance of %s and %s failed" % (refernce, other))
+
+
+class FuzzyRelativeLookup(_FuzzyLookup):
+
+    def __init__(self, values, tol):
+        self.abs_tol = max(values) * tol
+        _FuzzyLookup.__init__(self, values, tol)
+
+    def _bin(self, value):
+        try:
+            return int(value / self.abs_tol)
+        except TypeError:
+            raise TypeError("computing fraction %s by %s failed" % (value, self.abs_tol))
+
+    def _fit(self, reference, other):
+        if reference == 0.0:
+            return other == reference
+        try:
+            return abs(other - reference) / reference <= self.tol
+        except TypeError:
+            raise TypeError("computing relative distance of %s and %s failed" % (refernce, other))
+
+
+
 class BaseExpression(object):
 
     """
@@ -311,6 +422,26 @@ class BaseExpression(object):
             return lc + self.right._neededColumns()
         return lc
 
+    def equals(self, other, abs_tol=None, rel_tol=None):
+        """fast comparison for equality, maybe with some numerical tolerance.
+
+        For example::
+
+               tn = t.join(t2, t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+
+        **Attention**: This operation only works if the first arg of the join (here ``t2``)
+        appears as the table in the first argument (here ``t2.mz``) of ``equals``. Else an
+        exception will be thrown !
+        """
+        assert abs_tol is None or rel_tol is None
+        if abs_tol is not None:
+            assert abs_tol >= 0.0
+        if rel_tol is not None:
+            assert rel_tol >= 0.0
+
+        lookup = Lookup(other, abs_tol, rel_tol)
+        return FastEqualExpression(self, lookup)
+
     def startswith(self, other):
         """
         For two string valued expressions ``a`` and ``b`` the expression
@@ -383,6 +514,7 @@ class BaseExpression(object):
 
         Example: ``tab.mz.approxEqual(meatbolites.mz, 0.001)``
         """
+        depreciation_warning("you better may use .equals instead of .approxEqual !")
         return self.inRange(what - tol, what + tol)
 
     def thenElse(self, then, else_):
@@ -475,7 +607,11 @@ class BaseExpression(object):
 
         Example: ``tab.rt.allTrue``
         """
-        return AggregateExpression(self, lambda v: all(v), "allTrue(%s)", None)
+        return AggregateExpression(self,
+                                   lambda v: all(v), "allTrue(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
 
     @property
     def anyTrue(self):
@@ -485,7 +621,8 @@ class BaseExpression(object):
 
         Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: any(v), "anyTrue(%s)", None)
+        return AggregateExpression(self, lambda v: any(v), "anyTrue(%s)", None,
+                                   ignore_none=False, default_empty=False)
 
     @property
     def allFalse(self):
@@ -495,7 +632,43 @@ class BaseExpression(object):
 
         Example: ``tab.rt.allFalse``
         """
-        return AggregateExpression(self, lambda v: not any(v), "allFalse(%s)", None)
+        def test(values):
+            if not values:
+                return True
+            return all(vi is not None and bool(vi) is False for vi in values)
+        return AggregateExpression(self,
+                                   test,
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
+
+    @property
+    def allNone(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        expression to true if all values are Nones
+
+        Example: ``tab.rt.allNone``
+        """
+        return AggregateExpression(self,
+                                   lambda v: all(vi is None for vi in v), "allNone(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=True)
+
+    @property
+    def anyNone(self):
+        """
+        This is an **aggregation expression** which evaluates an
+        expression to true if at least one value is None.
+
+        Example: ``tab.rt.anyNone``
+        """
+        return AggregateExpression(self,
+                                   lambda v: any(vi is None for vi in v), "anyNone(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=False)
 
     @property
     def anyFalse(self):
@@ -505,7 +678,12 @@ class BaseExpression(object):
 
         Example: ``tab.rt.anyTrue``
         """
-        return AggregateExpression(self, lambda v: not all(v), "anyFalse(%s)", None)
+        return AggregateExpression(self,
+                                   lambda v: any(vi is not None and not vi for vi in v),
+                                   "anyFalse(%s)",
+                                   None,
+                                   ignore_none=False,
+                                   default_empty=False)
 
     @property
     def max(self):
@@ -571,12 +749,12 @@ class BaseExpression(object):
     @property
     def count(self):
         """
-        This is an **aggregation expression** which evaluates an
-        column expression to the number of values in the column.
+        This is an **aggregation expression** which evaluates an column expression to the number of
+        values in the column.
 
         Example: ``tab.id.len``
 
-        replaces  ``len` experession
+        replaces ``len` expression.
         """
         return AggregateExpression(self, lambda v: len(v), "count(%s)",
                                    int, ignore_none=False, default_empty=0)
@@ -656,6 +834,10 @@ class BaseExpression(object):
     def __iter__(self):
         return iter(self.values)
 
+    def __getitem__(self, what):
+        """delegate index access and slicing"""
+        return self.values[what]
+
     def uniqueValue(self, up_to_digits=None):
 
         values = self.values
@@ -690,6 +872,34 @@ class BaseExpression(object):
         """
         from .table import Table
         return Table.toTable(colName, self.values, fmt, type_, title, meta)
+
+    def callMethod(self, name, args=()):
+        """
+        calls method named ``name`` on values of given column or expression result.
+        ``args`` can be used to pass parameters to the method call.
+
+        .. pycon::
+            import emzed
+            t = emzed.utils.toTable("a", ("1", "23"))
+            t.addColumn("l", t.a.callMethod("__len__"), type_=int)
+            t.addColumn("x", t.a.callMethod("startswith", ("1",)), type_=bool)
+            print t
+        """
+
+        results = []
+        for v in self.values:
+            if v is None:
+                result = None
+            else:
+                try:
+                    att = getattr(v, name)
+                    result = att(*args)
+                except Exception, e:
+                    args = ", ".join([str(ai) for ai in args])
+                    message = "calling %s(%s) raised error %s" % (name, args, e.message)
+                    raise e.__class__, message
+            results.append(result)
+        return ColumnByValuesExpression(results)
 
 
 class CompExpression(BaseExpression):
@@ -868,6 +1078,62 @@ class EqExpression(CompExpression):
         i0 = le(vec, refval)
         i1 = ge(vec, refval)
         return Range(i1, i0 + 1, len(vec))
+
+
+class FastEqualExpression(BaseExpression):
+
+    def __init__(self, left, lookup):
+        self.lookup = lookup
+        self.left = left
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        if len(lvals) > 1:
+            msg = """
+            your join/leftJoin/... uses .equals not as intended.  This operation only works if
+            the first arg of the join appears as the table in the first argument of ``equals``.
+            Have a look at the doc of `.equals` for an example."""
+            msg = "\n".join([l.lstrip() for l in msg.split("\n")])
+            raise Exception(msg)
+
+        val = lvals[0]
+        if val is None:
+            return [False] * len(self.lookup.values), None, bool
+        matching_row_idx = set(self.lookup.find(val))
+        values = [m in matching_row_idx for m in xrange(len(self.lookup.values))]
+        return values, None, bool
+
+    def __and__(self, other):
+        return FastAndExpression(self, other)
+
+    def __or__(self, other):
+        return FastOrExpression(self, other)
+
+
+class FastAndExpression(BaseExpression):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        rvals, idxl, tl = saveeval(self.right, ctx)
+        result = [l and r for l, r in zip(lvals, rvals)]
+        return result, None, bool
+
+
+class FastOrExpression(BaseExpression):
+
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def _eval(self, ctx=None):
+        lvals, idxl, tl = saveeval(self.left, ctx)
+        rvals, idxl, tl = saveeval(self.right, ctx)
+        result = [l or r for l, r in zip(lvals, rvals)]
+        return result, None, bool
 
 
 class BinaryExpression(BaseExpression):
@@ -1337,6 +1603,33 @@ class IfThenElse(BaseExpression):
         return self.e1._neededColumns() \
             + self.e2._neededColumns() \
             + self.e3._neededColumns()
+
+
+class ColumnByValuesExpression(BaseExpression):
+
+    def __init__(self, values):
+        self._values = values
+
+    def _eval(self, ctx=None):
+        return self._values, None, None
+
+    def _evalsize(self, ctx=None):
+        return len(self._values)
+
+    def _neededColumns(self):
+        return []
+
+    @property
+    def values(self):
+        return self._values
+
+    def __str__(self):
+        if len(self._values) < 10:
+            v = str(self._values)
+        else:
+            v = str(self._values[:5] + ".." + self._values[-5:])
+        return "ColumnByValuesExpression(%s)" % v
+
 
 
 class ColumnExpression(BaseExpression):

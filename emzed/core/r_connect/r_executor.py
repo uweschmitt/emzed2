@@ -22,8 +22,43 @@ from ..data_types.table import guessFormatFor, Table
 import patched_pyper as pyper
 
 
+def data_frame_col_types(rip, value, name):
+    rip.execute(""".__types <- sapply(%s, typeof); """ % name)
+    type_strings = getattr(rip, ".__types")
+    if isinstance(type_strings, basestring):
+        type_strings = [type_strings]
+    else:
+        type_strings = type_strings.tolist()
+    type_map = {"logical": bool, "integer": int, "double": float, "complex": complex,
+                "character": str}
+    py_types = [type_map.get(type_string, object) for type_string in type_strings]
+    py_types = dict((str(n), t) for (n, t) in zip(value.columns, py_types))
+    return py_types
+
+
+def data_frame_to_table(rip, value, name, types=None, **kw):
+    py_types = data_frame_col_types(rip, value, name)
+    if types is not None:
+        py_types.update(types)
+    for name, t in py_types.items():
+        values = None
+        if t == int:
+            # R factors -> string
+            values = value[name].tolist()
+            if all(isinstance(v, basestring) for v in values):
+                py_types[name] = t = str
+        if t == str:
+            if values is None:
+                values = value[name].tolist()
+            if all(v in ("TRUE", "FALSE") for v in values):
+                value[name] = [True if v == "TRUE" else False for v in values]
+                py_types[name] = bool
+    return Table.from_pandas(value, types=py_types, **kw)
+
+
 class Bunch(dict):
     __getattr__ = dict.__getitem__
+
 
 def find_r_exe_on_windows(required_version=""):
 
@@ -162,8 +197,16 @@ class RInterpreter(object):
         """
         return ["execute", "get_df_as_table", "get_raw"]
 
-    def execute(self, *cmds):
-        """executes commands. Each command by be a multiline command. """
+    def execute(self, *cmds, **kw):
+        """executes commands. Each command may be a multiline command. 
+           **kw is used for easier string interpolation, eg
+
+              rip.execute("x <- %(name)r", name="emzed")
+
+           instead of
+
+              rip.execute("x <- %(name)r" % dict(name="emzed"))
+           """
         has_fh = self.__dict__.get("_fh") is not None
         if has_fh:
             print >> self._fh, "#", datetime.datetime.now()
@@ -172,6 +215,8 @@ class RInterpreter(object):
             if has_fh:
                 print >> self._fh, cmd
                 self._fh.flush()
+            if kw:
+                cmd = cmd % kw
             self.session(cmd)
 
         if has_fh:
@@ -215,7 +260,10 @@ class RInterpreter(object):
         """
         native = getattr(self.session, name)
         assert isinstance(native, pandas.DataFrame), "expected data frame, got %s" % type(native)
-        return Table.from_pandas(native, title, meta, types, formats)
+
+        return data_frame_to_table(self, native, name, types=types, title=title, meta=meta, formats=formats)
+        py_types = data_frame_col_types(self, native, name)
+        return Table.from_pandas(native, title, meta, py_types, formats)
 
     def get_raw(self, name):
         """
@@ -235,7 +283,7 @@ class RInterpreter(object):
         if hasattr(self, "session"):
             value = getattr(self.session, name)
             if convert_to_table and isinstance(value, pandas.DataFrame):
-                return Table.from_pandas(value)
+                return data_frame_to_table(self, value, name)
             return value
 
     def __setattr__(self, name, value):
@@ -311,12 +359,16 @@ class RInterpreterFast(object):
         self.__dict__["_del_ref"] = weakref.ref(self, on_die)
 
     @shutdown_on_error
-    def execute(self, r_code):
+    def execute(self, r_code, **kw):
         # we put our (potentially multiline) r code into a function so that we can use
         # capture.output to pass output to python back.
         # the eval.parent(substitute(..))) injects all variables in this function
         # to the global R environment. so code as "x <- 3" is executed inside the .__run
         # function but then x is globally set:
+
+        # kw is easier way to provide strint interpolation
+        if kw:
+            r_code = r_code % kw
         self.conn.eval(""".__run <- function() eval.parent(substitute({%s})); """ % r_code)
         if self.dump_stdout:
             self.conn.eval("""capture.output(.__run(), file=pipe("cat"))""")
@@ -382,7 +434,7 @@ class RInterpreterFast(object):
         if formats is None:
             formats = {}
 
-        col_names = value.keys
+        col_names = map(str, value.keys)
         col_values = value.values
 
         type_map = {"logical": bool, "integer": int, "double": float, "complex": complex,

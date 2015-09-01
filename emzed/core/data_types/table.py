@@ -1,4 +1,3 @@
-import pdb
 import cPickle
 import cStringIO
 import codecs
@@ -21,11 +20,12 @@ import pyopenms
 
 
 from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
-                          common_type_for, is_numpy_number_type)
+                          common_type_for, is_numpy_number_type,
+                          Lookup)
 
 from . import tools
 
-from .ms_types import PeakMap
+from .ms_types import PeakMap, PeakMapProxy
 from .col_types import Blob
 
 __doc__ = """
@@ -33,7 +33,7 @@ __doc__ = """
 """
 
 
-def deprecation(message):
+def warn(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
 
@@ -47,7 +47,64 @@ class CallBack(object):
         return self.label
 
 
-standardFormats = {int: "%d", long: "%d", float: "%.2f", str: "%s", unicode: "%s", CallBack: "%s"}
+def create_row_class(table):
+
+    class Row(object):
+
+        # we store this mapping in the class, not in the instance, this
+        # saves memory for huge tables:
+
+        _dict = dict(zip(table._colNames, range(len(table._colNames))))
+
+        def __init__(self, values):
+            # as we override __setattr__ below we have to set the following attributes
+            # using self.__dict__:
+            self.__dict__["_data"] = values
+            self.__dict__["_dict"] = Row._dict
+
+        def __getitem__(self, ix):
+            if isinstance(ix, (int, slice)):
+                return self._data[ix]
+            else:
+                return self._data[Row._dict[ix]]
+
+        def __getattr__(self, name):
+            if name in Row._dict.keys():
+                return self._data[Row._dict[name]]
+            raise NameError("attribute %s not known" % name)
+
+        def __len__(self):
+            return len(self._data)
+
+        def keys(self):
+            return Row._dict.keys()
+
+        def values(self):
+            return self._data
+
+        def items(self):
+            return zip(Row._dict.keys(), self._data)
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def __str__(self):
+            return str(self._data)
+
+        def __setitem__(self, ix, value):
+            if self._data[ix] != value:
+                self._data[ix] = value
+                table._resetUniqueId()
+
+        def __setattr__(self, name, value):
+            if name in Row._dict:
+                self.__setitem__(Row._dict[name], value)
+
+    return Row
+
+
+standardFormats = {int: "%d", long: "%d", float: "%.2f",
+                   str: "%s", unicode: "%s", CallBack: "%s"}
 
 fms = "'%.2fm' % (o/60.0)"  # format seconds to floating point minutes
 
@@ -114,8 +171,6 @@ def cleanup_values(rows):
     for row in rows:
         for i, value in enumerate(row):
             if isinstance(value, basestring):
-                #if value == "-":
-                    #row[i] = None
                 if is_minute_value(value):
                     value = convert_minute_value(value)
                     row[i] = value
@@ -211,7 +266,8 @@ class Table(object):
 
         assert all("__" not in name for name in colNames),\
             "illegal column name(s), double underscores not allowed"
-        self._setup_without_namecheck(colNames, colTypes, colFormats, rows, title, meta)
+        self._setup_without_namecheck(
+            colNames, colTypes, colFormats, rows, title, meta)
 
     @classmethod
     def _create(clz, colNames, colTypes, colFormats, rows=None, title=None, meta=None):
@@ -274,7 +330,7 @@ class Table(object):
 
     def __repr__(self):
         n = len(self)
-        return "<Table %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
+        return "<Table at %#x '%s' with %d row%s>" % (id(self), self.title or "", n, "" if n == 1 else "s")
 
     def __str__(self):
         fp = cStringIO.StringIO()
@@ -296,6 +352,9 @@ class Table(object):
     def getColType(self, name):
         """ returns type of column ``name`` """
         return self._colTypes[self.getIndex(name)]
+
+    def setTitle(self, title):
+        self.title = title
 
     def setColType(self, name, type_):
         """
@@ -404,10 +463,13 @@ class Table(object):
         """
         return getattr(self, name)
 
-    def _setupColumnAttributes(self):
+    def _removeColumnAttributes(self):
         for name in self.__dict__.keys():
             if isinstance(getattr(self, name), ColumnExpression):
                 delattr(self, name)
+
+    def _setupColumnAttributes(self):
+        self._removeColumnAttributes()
         for name in self._colNames:
             ix = self.getIndex(name)
             col = ColumnExpression(self, name, ix, self._colTypes[ix])
@@ -433,37 +495,64 @@ class Table(object):
                 t[:1].a.values == [1]
                 t[1:].a.values == [2, 3]
                 t[:].a.values == [1, 2, 3]
+                t[::-1].a.values == [3, 2, 1]
 
                 # now:
                 t[:] == t.copy()
 
-        For selection rows *ix* max be a list/tuple of booleans or integers:
+                # revert
+                t_reverted = t[::-1]
 
-                t[(True, False, False)] == t[0]
-                t[(0, 1)] == t[:2]
+        For selection rows *irow* max be a list or numpy array of booleans or integers::
+
+                t[[True, False, False]] == t[0]
+                t[[0, 1]] == t[:2]
+                t[numpy.arange(0, 2)] == t[:2]
+
+        Selection of columns is supported as well, so expressions like ``t[:, 1:2]``,
+        ``t[:, [0, 1]]`` work as expected.
 
         """
-        prototype = self.buildEmptyClone()
-        if isinstance(ix, np.ndarray):
-            ix = ix.tolist()
-        if isinstance(ix, (list, tuple)):
-            if not len(ix):
-                prototype.rows = []
-            elif all(isinstance(ixi, bool) for ixi in ix):
-                if len(ix) == len(self):
-                    for ixi, row in zip(ix, self.rows):
-                        if ixi:
-                            prototype.rows.append(row[:])
-                else:
-                    raise Exception("invalid access, len(ix) != len(table)")
-
-            elif all(isinstance(ixi, (long, int)) for ixi in ix):
-                prototype.rows = [self.rows[i][:] for i in ix]
+        irow = None
+        icol = None
+        if isinstance(ix, tuple):
+            if len(ix) == 1:
+                    irow, icol = ix[0], None
+            elif len(ix) == 2:
+                    irow, icol = ix
+            else:
+                raise Exception("can not handle argument %r" % ix)
         else:
-            if not isinstance(ix, slice):
-                ix = slice(ix, ix + 1)
-            prototype.rows = [row[:] for row in self.rows[ix]]
-        prototype.resetInternals()
+            irow = ix
+
+        def _setup(ix, n):
+            if ix is not None:
+                if isinstance(ix, np.ndarray):
+                    ix = ix.tolist()
+                if isinstance(ix, slice):
+                    start = ix.start if ix.start is not None else 0
+                    end = ix.stop if ix.stop is not None else n
+                    stepsize = ix.step if ix.step is not None else 1
+                    if stepsize < 0:
+                        start, end = end - 1, start - 1
+                    ix = range(start, end, stepsize)
+                elif isinstance(ix, (int, long)):
+                    ix = [ix]
+                elif isinstance(ix, list) and all(isinstance(vi, bool) for vi in ix):
+                    ix = [i for (i, v) in enumerate(ix) if v]
+            else:
+                ix = range(0, n)
+            return ix
+
+        icol = _setup(icol, len(self._colNames))
+        irow = _setup(irow, len(self))
+
+        def select(li, ix):
+            return li[:] if ix is None else [li[i] for i in ix]
+
+        prototype = self.buildEmptyClone(icol)
+        for row in select(self.rows, irow):
+            prototype.rows.append(select(row, icol))
         return prototype
 
     def __getstate__(self):
@@ -529,7 +618,8 @@ class Table(object):
             found = ", ".join(sorted(found))
             missing = ", ".join(sorted(missing))
             if tobe != missing:
-                msg = "expected names %s, found %s but %s where missing" % (tobe, found, missing)
+                msg = "expected names %s, found %s but %s where missing" % (
+                    tobe, found, missing)
             else:
                 msg = "expected names %s but found %s" % (tobe, found)
 
@@ -566,8 +656,19 @@ class Table(object):
         self.resetInternals()
 
     def __iter__(self):
+        """allows iteration over the rows of a table.
+
+        For example::
+
+                for row in table:
+                    print row.mz, row["rt"]
+                    row.rt = 1.0
+                    row["mz"] *= 1.01
+        """
+
+        Row = create_row_class(self)
         for row in self.rows:
-            yield row
+            yield Row(row)
 
     def getValues(self, row):
         """
@@ -596,7 +697,8 @@ class Table(object):
             be carefull we only check the length not the types !
         """
         assert 0 <= idx < len(self)
-        assert len(row) == len(self._colNames), "row as wrong length %d" % len(row)
+        assert len(row) == len(
+            self._colNames), "row as wrong length %d" % len(row)
 
         # check for conversion !
         for i, (v, t) in enumerate(zip(row, self._colTypes)):
@@ -677,7 +779,8 @@ class Table(object):
         col_idx = self._find_insert_column(insertBefore, insertAfter, 0)
 
         values = [v + startWith for v in self.enumerateBy()]
-        self._addColumFromIterable(colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
+        self._addColumFromIterable(
+            colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
     def sortBy(self, colNames, ascending=True):
         """
@@ -696,7 +799,8 @@ class Table(object):
 
         idxs = [self.colIndizes[name] for name in colNames]
 
-        decorated = [([row[idx] for idx in idxs], i) for (i, row) in enumerate(self.rows)]
+        decorated = [([row[idx] for idx in idxs], i)
+                     for (i, row) in enumerate(self.rows)]
         decorated.sort(reverse=not ascending)
         permutation = [i for (_, i) in decorated]
 
@@ -709,7 +813,8 @@ class Table(object):
         return permutation
 
     def _applyRowPermutation(self, permutation):
-        self.rows = [self.rows[permutation[i]] for i in range(len(permutation))]
+        self.rows = [self.rows[permutation[i]]
+                     for i in range(len(permutation))]
         self.resetInternals()
 
     def copy(self):
@@ -809,30 +914,48 @@ class Table(object):
             writer = csv.writer(fp, delimiter=";")
             if as_printed:
                 colNames = self.getVisibleCols()
-                formatters = [_formatter(self.getColFormat(n)) for n in colNames]
+                formatters = [
+                    _formatter(self.getColFormat(n)) for n in colNames]
             else:
                 colNames = self._colNames
                 noop = lambda x: x
                 formatters = [noop for n in colNames]
             writer.writerow(colNames)
             for row in self.rows:
-                data = [f(self.getValue(row, v)) for (f, v) in zip(formatters, colNames)]
+                data = [f(self.getValue(row, v))
+                        for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)
 
-    def store(self, path, forceOverwrite=False, compressed=True):
-        """
-        writes the table in binary format. All information, as
-        corresponding peak maps ar too.
-        The file name extension must be ".table".
+    def store(self, path, forceOverwrite=False, compressed=True, peakmap_cache_folder=None):
+        """Writes the table in binary format. All information, as corresponding peak maps too.
+
+        The file name extension in ``path``must be ``.table``.
+
+        ``forceOverwrite`` must be set to ``True`` to overwrite an existing file.
+
+        ``compressed`` replaces duplicate copies of the same peakmap of a single one to save
+        space on disk.
+
+        ``peakmap_cache_folder`` is a folder. if provided the table data and the peakmap
+        are stored separtely. so the table file can then be loaded much faster and the peakmaps are
+        lazily loaded only if one tries to access their spectra. This speeds up workflows but the
+        developer must care about consistency: if the peakmap folder is deleted the table may
+        becom useless !
 
         Latter the file can be loaded with :py:meth:`~.load`
         """
         if not forceOverwrite and os.path.exists(path):
-            raise Exception("%s exists. You may use forceOverwrite=True" % path)
+            raise Exception(
+                "%s exists. You may use forceOverwrite=True" % path)
         if compressed:
             self.compressPeakMaps()
+
+        if peakmap_cache_folder is not None:
+            self._introduce_proxies(peakmap_cache_folder)
+
         with open(path, "w+b") as fp:
-            fp.write("emzed_version=%s.%s.%s\n" % self._latest_internal_update_with_version)
+            fp.write("emzed_version=%s.%s.%s\n" %
+                     self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
 
@@ -849,7 +972,8 @@ class Table(object):
         if not isinstance(data, (list, tuple)):
             raise Exception("data item from file is not list or tuple")
         if len(data) != len(Table._to_pickle):
-            raise Exception("number of data items from file does not match Table._to_pickle")
+            raise Exception(
+                "number of data items from file does not match Table._to_pickle")
         tab = Table([], [], [], [], None, None)
         for name, item in zip(Table._to_pickle, data):
             setattr(tab, name, item)
@@ -910,11 +1034,16 @@ class Table(object):
             except:
                 return Table._try_to_load_old_version(pickle_data)
 
-    def buildEmptyClone(self):
+    def buildEmptyClone(self, cols=None):
         """ returns empty table with same names, types, formatters,
             title and meta data """
-        return Table._create(self._colNames, self._colTypes, self._colFormats,
-                             [], self.title, self.meta.copy())
+        def select(li):
+            return li[:] if cols is None else [li[i] for i in cols]
+        names = select(self._colNames)
+        types = select(self._colTypes)
+        formats = select(self._colFormats)
+
+        return Table._create(names, types, formats, [], self.title, self.meta.copy())
 
     def dropColumns(self, *patterns):
         """ removes columns where name matches on of given ``patterns`` from the table.
@@ -1071,6 +1200,10 @@ class Table(object):
 
         """
 
+        if type_ is None:
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
+
         self.ensureColNames(name)
         # we do:
         #      add tempcol, then delete oldcol, then rename tempcol -> oldcol
@@ -1117,7 +1250,12 @@ class Table(object):
         if "__" in name:
             raise Exception("double underscore in %r not allowed" % name)
 
-        self._addColumnWithoutNameCheck(name, what, type_, format_, insertBefore, insertAfter)
+        if type_ is None:
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
+
+        self._addColumnWithoutNameCheck(
+            name, what, type_, format_, insertBefore, insertAfter)
 
     def _addColumnWithoutNameCheck(self, name, what, type_=None, format_="",
                                    insertBefore=None, insertAfter=None):
@@ -1146,7 +1284,7 @@ class Table(object):
                 return self._addColumFromIterable(name, what, type_, format_,
                                                   insertBefore, insertAfter)
             else:
-                warnings.warn("you added %d numpy array as colum", what.ndim)
+                warn("you added %d numpy array as colum", what.ndim)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
                                                        format_, insertBefore, insertAfter)
@@ -1174,7 +1312,8 @@ class Table(object):
             return len(self._colNames)
 
         if insertBefore is not None and insertAfter is not None:
-            raise Exception("can not handle insertBefore and insertAfter at the same time")
+            raise Exception(
+                "can not handle insertBefore and insertAfter at the same time")
 
         if insertBefore is not None:
             # colname -> index
@@ -1196,7 +1335,8 @@ class Table(object):
         # to python types if present, else does nothing !!!!
 
         assert len(values) == len(self), "length of new column %d does not "\
-                                         "fit number of rows %d in table" % (len(values), len(self))
+                                         "fit number of rows %d in table" % (
+                                             len(values), len(self))
 
         if type(values) == np.ma.core.MaskedArray:
             values = values.tolist()  # handles missing values as None !
@@ -1259,6 +1399,8 @@ class Table(object):
         self._setupColumnAttributes()
         self._resetUniqueId()
 
+        self.shape = (len(self), len(self._colNames))
+
     def uniqueRows(self, byColumns=None):
         """
         extracts table with unique rows.
@@ -1306,8 +1448,10 @@ class Table(object):
             else:
                 filteredTable.rows = []
         else:
-            assert len(flags) == len(self), "result of filter expression does not match table size"
-            filteredTable.rows = [self.rows[n][:] for n, i in enumerate(flags) if i]
+            assert len(flags) == len(
+                self), "result of filter expression does not match table size"
+            filteredTable.rows = [self.rows[n][:]
+                                  for n, i in enumerate(flags) if i]
         return filteredTable
 
     def removePostfixes(self, *postfixes):
@@ -1434,7 +1578,8 @@ class Table(object):
                 if flags[0]:
                     rows.extend([r1[:] + row[:] for row in t.rows])
             else:
-                rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
+                rows.extend([r1[:] + t.rows[n][:]
+                             for (n, i) in enumerate(flags) if i])
             cmdlineProgress.progress(ii)
         cmdlineProgress.finish()
         table.rows = rows
@@ -1493,13 +1638,96 @@ class Table(object):
                 else:
                     rows.extend([r1[:] + filler[:]])
             elif np.any(flags):
-                rows.extend([r1[:] + t.rows[n][:] for (n, i) in enumerate(flags) if i])
+                rows.extend([r1[:] + t.rows[n][:]
+                             for (n, i) in enumerate(flags) if i])
             else:
                 rows.extend([r1[:] + filler[:]])
             cmdlineProgress.progress(ii)
 
         cmdlineProgress.finish()
 
+        table.rows = rows
+        return table
+
+    def _prepare_fast_join(self, other, column_name, column_name_other, rel_tol, abs_tol):
+        assert rel_tol is None or abs_tol is None, ("you are not allowed to provide rel_tol and"
+                                                    " abs_tol at the same time")
+        self.requireColumn(column_name)
+        if column_name_other is None:
+            column_name_other = column_name
+        other.requireColumn(column_name_other)
+        table = self._buildJoinTable(other, title=None)
+
+        lookup = other.buildLookup(column_name_other, abs_tol, rel_tol)
+
+        idx = other.getIndex(column_name_other)
+        return table, lookup, idx
+
+    def buildLookup(self, column_name, abs_tol, rel_tol):
+        return Lookup(self.getColumn(column_name).values, abs_tol, rel_tol)
+
+    def fastJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
+        """Fast joining for combining tables based on equality of a given column.
+        `.fastJoin` is more restricted than the regualar `.join` method but **much faster**.
+
+        For example: ``t1`` and ``t2`` have a column named ``id``. The the call::
+
+            tn = t1.fastJoin(t2, "id")
+
+        yields the same result as::
+
+            tn = t1.join(t2, t1.id == t2.id)
+
+        The column name ``column_name_other`` can be used if table ``other`` does have a column
+        ``column_name`` for matching. Then this column name is used instead.
+
+        You can use *rel_tol* or *abs_tol* for approximate matching of numerical values.
+
+        Remark:
+
+        For a more flexible but still fast way to join on exact or approximate matches use
+        the ``.equals`` expression, which allows and/or for more complex match conditions::
+
+            tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+
+        """
+        table, lookup, __ = self._prepare_fast_join(other, column_name, column_name_other,
+                                                    rel_tol, abs_tol)
+        idx = self.getIndex(column_name)
+        rows = []
+        cmdlineProgress = _CmdLineProgress(len(self))
+        for ii, row in enumerate(self.rows):
+            if row[idx] is None:
+                continue
+            matches = lookup.find(row[idx])
+            if matches:
+                rows.extend([row[:] + other.rows[i][:] for i in matches])
+            cmdlineProgress.progress(ii)
+        cmdlineProgress.finish()
+        table.rows = rows
+        return table
+
+    def fastLeftJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
+        """Same optimization as fastJoin described above, but performas a fast ``leftJoin``
+        instead.
+        """
+        table, lookup, __ = self._prepare_fast_join(other, column_name, column_name_other,
+                                                    rel_tol, abs_tol)
+        idx = self.getIndex(column_name)
+        rows = []
+        no = len(other._colNames)
+        cmdlineProgress = _CmdLineProgress(len(self))
+        for ii, row in enumerate(self.rows):
+            if row[idx] is None:
+                rows.append(row[:] + [None] * no)
+                continue
+            matches = lookup.find(row[idx])
+            if matches:
+                rows.extend([row[:] + other.rows[i][:] for i in matches])
+            else:
+                rows.append(row[:] + [None] * no)
+            cmdlineProgress.progress(ii)
+        cmdlineProgress.finish()
         table.rows = rows
         return table
 
@@ -1547,7 +1775,10 @@ class Table(object):
         colTypes = self._colTypes + t._colTypes
         if title is None:
             title = "%s vs %s" % (self.title, t.title)
-        meta = {self: self.meta.copy(), t: t.meta.copy()}
+
+        key_left = (self.title, self.uniqueId())
+        key_right = (t.title, t.uniqueId())
+        meta = {key_left: self.meta.copy(), key_right: t.meta.copy()}
         return Table._create(colNames, colTypes, colFormats, [], title, meta)
 
     def print_(self, w=8, out=None, title=None, max_lines=None):
@@ -1655,6 +1886,8 @@ class Table(object):
 
         values = convert_list_to_overall_type(list(iterable))
         if type_ is None:
+            warn(
+                "you did not provide a type_ parameter, this might be dangerous !!!!")
             type_ = common_type_for(values)
         if format_ == "":
             format_ = guessFormatFor(colName, type_)
@@ -1728,7 +1961,8 @@ class Table(object):
         if "feature_id" in self._colNames:
             # feature table from openms
             ti = self.splitBy("feature_id")
-            # intensity, rt, mz should be the same value for each feature table:
+            # intensity, rt, mz should be the same value for each feature
+            # table:
             areas = [t0.intensity.values[0] for t0 in ti]
             rts = [t0.rt.values[0] for t0 in ti]
             mzs = [t0.mz.values[0] for t0 in ti]
@@ -1759,15 +1993,17 @@ class Table(object):
         """ merges tables. Eg:
 
             .. pycon::
-            t1 = emzed.utils.toTable("a",[1])
-            t2 = t1.copy()
-            t1.addColumn("b", 3)
-            t2.addColumn("c", 5)
 
-            print t1.print
-            print t2.print
-            t3 = emzed.utils.mergeTables([t1, t2])
-            print t3.print
+                import emzed
+                t1 = emzed.utils.toTable("a", [1], type_=int)
+                t2 = t1.copy()
+                t1.addColumn("b", 3, type_=int)
+                t2.addColumn("c", 5, type_=int)
+
+                print t1
+                print t2
+                t3 = emzed.utils.mergeTables([t1, t2])
+                print t3
 
             in case of conflicting names, name orders, types or formats
             you can try ``force_merge=True`` or provide a reference
@@ -1776,24 +2012,28 @@ class Table(object):
             only if it appers in  ``tables``.
 
         """
-        assert isinstance(tables, (list, tuple)), "need list of tables as first argument"
+        assert isinstance(
+            tables, (list, tuple)), "need list of tables as first argument"
         if reference_table is not None:
             final_colnames = reference_table._colNames
             start_with = reference_table.buildEmptyClone()
         else:
             final_colnames, final_types, final_formats = tools._build_starttable(
                 tables, force_merge)
-            start_with = Table._create(final_colnames, final_types, final_formats)
+            start_with = Table._create(
+                final_colnames, final_types, final_formats)
 
         extended_tables = []
         for table in tables:
-            missing_names = [c for c in final_colnames if c not in table._colNames]
+            missing_names = [
+                c for c in final_colnames if c not in table._colNames]
             if missing_names:
                 table = table.copy()
                 for name in missing_names:
                     type_ = start_with.getType(name)
                     format_ = start_with.getFormat(name)
-                    table._addColumnWithoutNameCheck(name, None, type_, format_)
+                    table._addColumnWithoutNameCheck(
+                        name, None, type_, format_)
             table = table.extractColumns(*final_colnames)
             extended_tables.append(table)
 
@@ -1816,6 +2056,17 @@ class Table(object):
     @staticmethod
     def _check_if_compatible(tables):
         assert all(isinstance(o, Table) for o in tables), "only tables allowed"
+
+        def diff_message(l1, l2, txt, names=None):
+            msgs = []
+            if names is None:
+                names = [""] * len(l1)
+            for i, (name, v1, v2) in enumerate(zip(names, l1, l2)):
+                if v1 != v2:
+                    msgs.append(
+                        "%10s col(number=%d, name=%s): %s vs %s" % (txt, i, name, v1, v2))
+            return "\n".join(msgs)
+
         for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
             if t1.numCols() != t2.numCols():
                 raise Exception("tables %d and %d have different number columns (%d and %d)"
@@ -1823,11 +2074,14 @@ class Table(object):
 
         for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
             if t1._colNames != t2._colNames:
-                names1 = ", ".join(t1._colNames)
-                names2 = ", ".join(t2._colNames)
-                raise Exception("tables %d and %d have different column names (%s and %s)"
-                                % (i, i + 1, names1, names2))
+                msgs = []
+                for i, (n1, n2) in enumerate(zip(t1._colNames, t2._colNames)):
+                    if n1 != n2:
+                        msgs.append("  column %2d: %s vs %s" % (i, n1, n2))
+                msg = "\n".join(msgs)
+                raise Exception("column names do not fit: \n%s" % msg)
 
+        msgs = []
         for i, t1 in enumerate(tables):
             if len(t1) == 0:
                 continue
@@ -1837,17 +2091,19 @@ class Table(object):
                     continue
                 j = i + di + 1
                 if t1._colTypes != t2._colTypes:
-                    types1 = ", ".join(map(str, t1._colTypes))
-                    types2 = ", ".join(map(str, t2._colTypes))
-                    raise Exception("tables %d and %d have different column types (%s and %s)"
-                                    % (i, j, types1, types2))
+                    msg = diff_message(
+                        t1._colTypes, t2._colTypes, "%d/%d" % (i, j), t1._colNames)
+                    msgs.append(msg)
                 if t1._colFormats != t2._colFormats:
-                    formats1 = ", ".join(map(str, t1._colFormats))
-                    formats2 = ", ".join(map(str, t2._colFormats))
-                    raise Exception("tables %d and %d have different column formats (%r and %r)"
-                                    % (i, j, formats1, formats2))
-                # we checked a pair of sequential tables (skipping empty ones), so:
+                    msg = diff_message(
+                        t1._colFormats, t2._colFormats, "%d/%d" % (i, j), t1._colNames)
+                    msgs.append(msg)
+                # we checked a pair of sequential tables (skipping empty ones),
+                # so:
                 break
+        if msgs:
+            full_msg = "\n".join(msgs)
+            raise Exception("detected incompatibilities: \n%s" % full_msg)
 
     @staticmethod
     def _merge_metas(tables):
@@ -1883,21 +2139,102 @@ class Table(object):
         return Table._create(t0._colNames, t0._colTypes, t0._colFormats,
                              all_rows, title=title, meta=meta)
 
-    def collapse(self, *col_names):
+    def collapse(self, *col_names, **kw):
+        """colapse a table by grouping according to columns ``col_names``. This creates a
+        subtable for every group, but is in "standard" mode not memory efficient if the number
+        of groups is in the range of several thousands. As this method is mostly used for
+        preparing a table before visual inspection, the "efficient" mode is available, where
+        the sub tables may be inspected, but access to the columns via attribute access is
+        not available any more.
+
+        .. pycon::
+
+            import emzed
+            t = emzed.utils.toTable("group", (1, 1, 2, 3))
+            t.addColumn("values", range(4))
+            print(t)
+            tn = t.collapse("group")
+            print(tn)
+            tn = t.collapse("group", efficient=True)
+            print(tn)
+        """
         self.ensureColNames(*col_names)
+
+        if kw:
+            assert "efficient" in kw, "only allowed keyword argument is 'efficient'"
+
+        efficient = kw.get("efficient", False)
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]
-        master_formats = [self.getColFormat(n) for n in col_names] + ["%s"]
+        master_formats = [self.getColFormat(n) for n in col_names] + ["%r"]
 
-        rows = []
-        for subt in self.splitBy(*col_names):
-            key_values = [subt.getValue(subt.rows[0], n) for n in col_names]
-            subt.title = ", ".join(["%s=%s" % (cn, kv) for (cn, kv) in zip(col_names, key_values)])
-            row = key_values + [subt]
-            rows.append(row)
+        grouped_rows = collections.OrderedDict()
+        for row in self:
+            key_values = tuple([row[n] for n in col_names])
+            if key_values not in grouped_rows:
+                grouped_rows[key_values] = []
+            grouped_rows[key_values].append(list(row))
 
-        return Table._create(master_names, master_types, master_formats, rows, meta=self.meta)
+        final_rows = []
+        for key_values, rows in grouped_rows.items():
+            key_values = list(key_values)
+            if efficient:
+                t = TProxy(self, rows)
+            else:
+                t = Table._create(self._colNames, self._colTypes, self._colFormats, rows)
+            final_rows.append(key_values + [t])
+
+        final_rows.sort()
+        return Table._create(master_names, master_types, master_formats, final_rows, meta=self.meta)
+
+    def splitVertically(self, columns):
+        """this method separates a table vertically based on columnames.
+        the method returns two tables: the first one matches the given column names, the second is the
+        reminder.
+
+        the argument *columns* is either a string or a list of strings. Globbing is allowed !
+        So for example::
+
+             tleft, tright = t.splitVertically("rt*", "mz*")
+
+        will return two tables. The left one has columns where the names start with "mz" or "rt",
+        the right one contains the reminder.
+        """
+        if isinstance(columns, basestring):
+            columns = [columns]
+        assert all(isinstance(n, basestring) for n in columns), "need strings as argument(s)"
+
+        to_separate = []
+        to_keep = []
+        for ix, name in enumerate(self._colNames):
+            if any(fnmatch.fnmatch(name, pattern) for pattern in columns):
+                to_separate.append(ix)
+            else:
+                to_keep.append(ix)
+
+        def _separate(values):
+            values_to_keep = [values[ix] for ix in to_keep]
+            values_to_separate = [values[ix] for ix in to_separate]
+            return values_to_keep, values_to_separate
+
+        if len(self.rows):
+            rows_to_keep, rows_to_separate = zip(*map(_separate, self.rows))
+        else:
+            rows_to_keep, rows_to_separate = [], []
+        names_to_keep, names_to_separate = _separate(self._colNames)
+        types_to_keep, types_to_separate = _separate(self._colTypes)
+        formats_to_keep, formats_to_separate = _separate(self._colFormats)
+        meta_to_keep = self.meta.copy()
+        meta_to_separate = self.meta.copy()
+
+        table_to_keep = Table._create(names_to_keep, types_to_keep, formats_to_keep, rows_to_keep,
+                                      meta=meta_to_keep)
+
+        table_to_separate = Table._create(names_to_separate, types_to_separate, formats_to_separate,
+                                          rows_to_separate, meta=meta_to_separate)
+
+        return table_to_separate, table_to_keep
 
     def _resetUniqueId(self):
         if "unique_id" in self.meta:
@@ -1944,6 +2281,19 @@ class Table(object):
                     row[i] = peak_maps[cell.uniqueId()]
         self.resetInternals()
 
+    def _introduce_proxies(self, folder):
+        proxies = dict()
+        for row in self.rows:
+            for i, cell in enumerate(row):
+                if isinstance(cell, PeakMap) and not isinstance(cell, PeakMapProxy):
+                    id_ = cell.uniqueId()
+                    if id_ not in proxies:
+                        path = os.path.join(folder, "peak_map_%s.pickle" % id_)
+                        if not os.path.exists(path):
+                            cell.dump_as_pickle(path)
+                        proxies[id_] = PeakMapProxy(path, cell.meta)
+                    row[i] = proxies[id_]
+
     @staticmethod
     def _conv_nan(val):
         try:
@@ -1955,7 +2305,8 @@ class Table(object):
     def to_pandas(self):
         """ converts table to pandas DataFrame object """
         import pandas
-        data = dict((name, getattr(self, name).values) for name in self.getColNames())
+        data = dict((name, getattr(self, name).values)
+                    for name in self.getColNames())
         return pandas.DataFrame(data, columns=self.getColNames())
 
     @staticmethod
@@ -1990,8 +2341,7 @@ class Table(object):
         if types is None:
             types = dict()
 
-        col_names = df.columns.values.tolist()
-
+        col_names = map(str, df.columns.values)
         col_types = [types.get(n) for n in col_names]
 
         kinds_to_type = dict(i=int, f=float, O=object, V=object, U=unicode, a=str, u=int, b=bool,
@@ -2018,7 +2368,8 @@ class Table(object):
                 t = common_type_for(column)
                 col_types[i] = t
 
-        _formats = {int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
+        _formats = {
+            int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
         if formats is not None:
             _formats.update(formats)
 
@@ -2056,3 +2407,87 @@ class Table(object):
             rows.append(row)
         table.rows = rows
         return table
+
+    def apply(self, fun, args, keep_nones=False):
+        """Allows computing a new columen from a function with multiple arguments.
+
+        .. pycon::
+
+            import emzed
+            t = emzed.utils.toTable("a", [1, 2, 3], type_=int)
+            t.addColumn("b", [None, 5, 1], type_=int)
+            print t
+            t.addColumn("c", t.apply(max, (t.a, t.b, 4)), type_=int)
+            print t
+
+        Here missing values (``None`` values) are not passed to the function. To change
+        this behaviour the ``keep_nones`` parameter should be set to ``True``.
+
+        """
+
+        all_values = []
+        fixed = set()
+        for i, arg in enumerate(args):
+            if isinstance(arg, BaseExpression):
+                values, _, type2_ = arg._eval(None)
+                if type2_ in _basic_num_types:
+                    values = values.tolist()
+                all_values.append(list(values))
+                assert len(values) in (1, len(self))
+            else:
+                all_values.append(arg)
+                fixed.add(i)
+
+        func_values = []
+
+        result = []
+
+        for i in xrange(len(self)):
+            arg = []
+            for j, v in enumerate(all_values):
+                if j in fixed:
+                    arg.append(v)
+                else:
+                    arg.append(v[i])
+            arg = tuple(arg)
+            if not keep_nones and None in arg:
+                value = None
+            else:
+                value = fun(*arg)
+            result.append(value)
+        return result
+
+
+class TProxy(Table):
+
+    """memory efficient view to an existing table with some limitations.
+    may be used for creating sub tables in Table.collapse """
+
+    __slots__ = ["_t", "_rows"]
+
+    def __init__(self, t, rows):
+        self._t = t
+        self._rows = rows
+
+    @property
+    def rows(self):
+        return self._rows
+
+    def __getattr__(self, name):
+        if name in self._t._colNames:
+            ix = self.getIndex(name)
+            col = ColumnExpression(self, name, ix, self._colTypes[ix])
+            return col
+        return getattr(self._t, name)
+
+    def __repr__(self):
+        n = len(self.rows)
+        return "<TProxy to %#x with %d row%s>" % (id(self._t), n, "" if n == 1 else "s")
+
+    def __getstate__(self):
+        return (self._t, self._rows)
+
+    def __setstate__(self, data):
+        (self._t, self._rows) = data
+
+    __str__ = Table.__str__

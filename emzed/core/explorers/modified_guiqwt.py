@@ -271,14 +271,11 @@ class ModifiedCurvePlot(CurvePlot):
         if xmin is None:
             if len(xvals):
                 xmin = min(xvals) / fac
-            else:
-                xmin = 0
         if xmax is None:
             if len(xvals):
                 xmax = max(xvals) * fac
-            else:
-                xmax = 1.0
-        self.update_plot_xlimits(xmin, xmax)
+        if xmin is not None and xmax is not None:
+            self.update_plot_xlimits(xmin, xmax)
 
     def reset_y_limits(self, ymin=None, ymax=None, fac=1.2):
         yvals = []
@@ -439,7 +436,6 @@ class MzPlot(ModifiedCurvePlot):
         mzmaxs = []
 
         axis_ids_horizontal = (self.get_axis_id("bottom"), self.get_axis_id("top"))
-        all_peaks = []
         for __, id_ in axes_to_update:
             if id_ in axis_ids_horizontal:
                 mzmin, mzmax = self.get_axis_limits(id_)
@@ -452,7 +448,7 @@ class MzPlot(ModifiedCurvePlot):
     def do_backspace_pressed(self, filter, evt):
         """ reset axes of plot """
         all_peaks = []
-        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.data):
+        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.resample_config):
             ms_level = min(pm.getMsLevels())
             if rtmin is None and rtmax is None:
                 rtmin, rtmax = pm.rtRange()
@@ -559,10 +555,12 @@ class MzPlot(ModifiedCurvePlot):
     def resample_peaks(self, mzmin, mzmax):
         if mzmin == self.latest_mzmin and mzmax == self.latest_mzmax:
             return
+        if not self.resample_config:
+            return
         self.latest_mzmin = mzmin
         self.latest_mzmax = mzmax
         all_peaks = []
-        for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.data):
+        for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.resample_config):
             ms_level = min(pm.getMsLevels())
             peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             curve = self.curves[i]

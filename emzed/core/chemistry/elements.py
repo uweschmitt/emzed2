@@ -1,4 +1,6 @@
 import os
+from collections import defaultdict
+
 import pyopenms
 
 from ..data_types import Table
@@ -131,9 +133,35 @@ class MonoIsotopicElements(Table):
         return self.getValue(row, name)
 
 
+def create_abundance_mapping():
+    elements = Elements()
+    symbols = elements.symbol.values
+    massnumbers = elements.massnumber.values
+    abundances = elements.abundance.values
+    result = defaultdict(dict)
+    for symbol, massnumber, abundance in zip(symbols, massnumbers, abundances):
+        result[symbol][massnumber] = abundance
+    return result
+
+
+def create_mass_mappings():
+    elements = Elements()
+    symbols = elements.symbol.values
+    massnumbers = elements.massnumber.values
+    isomasses = elements.mass.values
+
+    all_masses = defaultdict(dict)
+    for symbol, massnumber, isomass in zip(symbols, massnumbers, isomasses):
+        all_masses[symbol][massnumber] = isomass
+
+    mono_iso_elements = MonoIsotopicElements()
+    symbols = mono_iso_elements.symbol.values
+    m0s = mono_iso_elements.m0.values
+
+    mono_masses = dict(zip(symbols, m0s))
+
+    return all_masses, mono_masses
+
 
 if __name__ == "__main__":
     print Elements().symbol.values
-
-
-
