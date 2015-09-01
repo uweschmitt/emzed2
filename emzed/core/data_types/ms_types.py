@@ -662,8 +662,11 @@ class PeakMap(object):
                     key = round(key, significant_digits_precursor)
                 msn_spectra[key].append(spectrum)
 
-        meta = self.meta.copy()
-        return sorted([(key, PeakMap(values, meta=meta)) for (key, values) in msn_spectra.items()])
+        m = self.meta.copy()
+        if "unique_id" in m:
+            del m["unique_id"]
+
+        return sorted([(k, PeakMap(v, meta=m.copy())) for (k, v) in msn_spectra.items()])
 
     @staticmethod
     def load(path):
