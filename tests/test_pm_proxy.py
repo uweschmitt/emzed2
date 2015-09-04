@@ -52,6 +52,41 @@ def test_1(path, tmpdir):
     assert tn.peakmap.uniqueValue()._loaded
 
 
+def test_2(path, tmpdir, regtest):
+    from emzed.core.data_types.ms_types import PeakMapProxy
+    from emzed.core.data_types import Table
+
+    pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
+    t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
+    t.addColumn("peakmap", pm, type_=object)
+
+    p2 = tmpdir.join("with_comp.table").strpath
+
+    t.store(p2 , True, True, ".")
+
+    # chekc if pm proxy is next ot
+    file_names = [p.basename for p in tmpdir.listdir()]
+    print(file_names, file=regtest)
+
+    # force loading of data:.
+    print(len(t.peakmap.values[0]), file=regtest)
+    s1 = os.stat(p2).st_size
+    assert s1 < 1000
+    t = Table.load(p2)
+    print(len(t.peakmap.values[0]), file=regtest)
+
+    import shutil
+    subfolder = tmpdir.join("subfolder")
+    os.makedirs(subfolder.strpath)
+    for p in file_names:
+        shutil.copy(tmpdir.join(p).strpath, subfolder.strpath)
+
+    t2 = Table.load(subfolder.join("with_comp.table").strpath)
+    print(t2, file=regtest)
+    print(len(t2.peakmap.values[0]), file=regtest)
+    print(t2, file=regtest)
+
+
 def test_squeeze(path):
 
     from emzed.core.data_types.ms_types import PeakMapProxy

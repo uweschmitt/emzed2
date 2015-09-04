@@ -1,0 +1,18 @@
+['peak_map_009bf7c2dd290e7f183de61545bb2ec8eb349286bbe1136852250fb5c7bf6157.pickle', 'with_comp.table']
+41
+41
+id       peakmap
+int      object
+------   ------
+1        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+2        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+3        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+
+41
+id       peakmap
+int      object
+------   ------
+1        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+2        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+3        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+

@@ -1,0 +1,30 @@
+from= /a/b/c/
+to= /a/b/x/y/proxies/d.proxy
+relative_path= ../x/y/proxies/d.proxy
+/a/b/x/y/proxies/d.proxy
+
+from= /z/b/c/
+to= /a/b/x/y/proxies/d.proxy
+relative_path= ../../../a/b/x/y/proxies/d.proxy
+/a/b/x/y/proxies/d.proxy
+
+from= /a/b/c/d/e
+to= /a/b/c/d/proxies/d.proxy
+relative_path= ../proxies/d.proxy
+/a/b/c/d/proxies/d.proxy
+
+from= /
+to= /a/b/x/y/proxies/d.proxy
+relative_path= a/b/x/y/proxies/d.proxy
+/a/b/x/y/proxies/d.proxy
+
+from= /
+to= /d.proxy
+relative_path= d.proxy
+/d.proxy
+
+from= /a/
+to= /d.proxy
+relative_path= ../d.proxy
+/d.proxy
+
