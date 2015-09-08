@@ -31,6 +31,18 @@ def load_pubchem(folder=None):
     return _load_pubchem(folder).table
 
 
+def reset_pubchem(folder=None):
+    if folder is None:
+        folder = _default_pubchem_folder()
+    path = _db_path(folder)
+    # we remove the file first, because _load_pubchem below could finally raise an exception
+    # that the existing file / db is not up to date any more.
+    import os
+    if os.path.exists(path):
+        os.remove(path)
+    _load_pubchem(folder).reset()
+
+
 def load_kegg(folder=None):
     table = _load_pubchem(folder).table
     return table.filter(table.is_in_kegg==True)

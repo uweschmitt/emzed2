@@ -17,17 +17,18 @@ def dom_tree_from_bytes(data):
 class PubChemDB(object):
 
     colNames = ["m0", "mw", "cid", "mf", "iupac", "synonyms", "url",
-                "is_in_kegg", "is_in_hmdb"]
-    colTypes = [float, float, int, str, str, str, str, int, int]
+                "is_in_kegg", "is_in_hmdb", "is_in_bioycyc", "inchi"]
+    colTypes = [float, float, int, str, str, str, str, int, int, int, str]
     syn_formatter = "str(o) if len(o) < 60 else str(o)[:57]+'...'"
-    colFormats = ["%.6f", "%.6f", "%s", "%s", "%s", syn_formatter, "%s", "%d", "%d"]
+    colFormats = ["%.6f", "%.6f", "%s", "%s", "%s", syn_formatter, "%s", "%d", "%d", "%d", "%s"]
 
     @staticmethod
     def _get_count():
         url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
         data = dict(db="pccompound",
                     rettype="count",
-                    term="metabolic[SRCC] AND 0[TFC]",
+                    term="""((0:0[TotalFormalCharge]) AND ( ("KEGG"[SourceName]) or ("Human
+                    Metabolome Database"[SourceName]) or "(Biocyc"[SourceName]) )) """,
                     tool="emzed",
                     email="tools@emzed.ethz.ch",
                     )
@@ -42,9 +43,11 @@ class PubChemDB(object):
 
     @staticmethod
     def _get_uilist(retmax=None, source=None):
-        term = "metabolic[SRCC] AND 0[TFC]"
-        if source is not None:
-            term += ' AND "%s"[SRC]' % source
+        if source is None:
+            term="""((0:0[TotalFormalCharge]) AND ( ("KEGG"[SourceName]) or ("Human
+            Metabolome Database"[SourceName]) or "(Biocyc"[SourceName]) )) """
+        else:
+            term="""((0:0[TotalFormalCharge]) AND ( ("%s"[SourceName]) ))""" % source
         if retmax is None:
             retmax = 99999999
         data = dict(db="pccompound",
@@ -80,7 +83,7 @@ class PubChemDB(object):
         return r.text
 
     @staticmethod
-    def _parse_data(data, keggIds=None, humanMBdbIds=None):
+    def _parse_data(data, keggIds=None, humanMBdbIds=None, biocycIds=None):
         doc = dom_tree_from_bytes(data)
         items = []
         for summary in doc[0].findall("DocumentSummary"):
@@ -92,7 +95,8 @@ class PubChemDB(object):
             for name, type_, colName in [("CID", int, "cid"),
                                          ("MolecularWeight", float, "mw"),
                                          ("MolecularFormula", str, "mf"),
-                                         ("IUPACName", str, "iupac")]:
+                                         ("IUPACName", str, "iupac"),
+                                         ("InChI", str, "inchi")]:
                 element = summary.find(name)
                 text = element.text
                 value = type_(text)
@@ -102,11 +106,12 @@ class PubChemDB(object):
             dd["synonyms"] = synonyms
             dd["is_in_kegg"] = dd["cid"] in (keggIds or [])
             dd["is_in_hmdb"] = dd["cid"] in (humanMBdbIds or [])
+            dd["is_in_bioycyc"] = dd["cid"] in (biocycIds or [])
             items.append(dd)
         return items
 
     @staticmethod
-    def _download(idlist, keggIds=None, humanMBdbIds=None):
+    def _download(idlist, keggIds=None, humanMBdbIds=None, biocycIds=None):
         print
         print "START DOWNLOAD OF", len(idlist), "ITEMS"
         sys.stdout.flush()
@@ -119,7 +124,7 @@ class PubChemDB(object):
                 print "FAILED TO CONNECT"
                 data = []
 
-            bulk_data = PubChemDB._parse_data(data, keggIds, humanMBdbIds)
+            bulk_data = PubChemDB._parse_data(data, keggIds, humanMBdbIds, biocycIds)
             for item in bulk_data:
                 yield item
             print "   %3d %%" % (100.0 * (i + 1) / len(jobs)), "done",
@@ -149,6 +154,10 @@ class PubChemDB(object):
         path = self.path
         if path is not None and os.path.exists(path):
             self.table = Table.load(path)
+            if self.table.getColNames() != PubChemDB.colNames:
+                cmd = "import emzed; emzed.db.reset_pubchem()"
+                raise Exception("local pubchem data base has old format, please run %r to refresh, "
+                                "this might take a while" % cmd)
             self.table.resetInternals()
         else:
             self.table = self._emptyTable()
@@ -161,22 +170,16 @@ class PubChemDB(object):
         return len(self.table)
 
     def getDiff(self, maxIds=None):
-        try:
-            counts = PubChemDB._get_count()
-            unknown = []
-            missing = []
-            if counts != len(self.table):
-                uis = set(PubChemDB._get_uilist(maxIds))
-                if uis is not None:
-                    known_uis = set(self.table.cid.values)
-                    unknown = list(uis - known_uis)
-                    missing = list(known_uis - uis)
-            return unknown, missing
-        except:
-            raise
-            #import traceback
-            #traceback.print_exc()
-            #return [], []  # failed
+        counts = PubChemDB._get_count()
+        unknown = []
+        missing = []
+        if counts != len(self.table):
+            uis = set(PubChemDB._get_uilist(maxIds))
+            if uis is not None:
+                known_uis = set(self.table.cid.values)
+                unknown = list(uis - known_uis)
+                missing = list(known_uis - uis)
+        return unknown, missing
 
     def reset(self):
         self.table = self._emptyTable()
@@ -197,6 +200,7 @@ class PubChemDB(object):
 
         keggids = set(PubChemDB._get_uilist(source="KEGG"))
         hmdbids = set(PubChemDB._get_uilist(source="Human Metabolome Database"))
+        biocycids = set(PubChemDB._get_uilist(source="Biocyc"))
 
         if callback is None:
             callback = lambda i, imax: None
@@ -205,8 +209,8 @@ class PubChemDB(object):
         if newIds:
             try:
                 callback(0, len(newIds))
-                for i, dd in enumerate(PubChemDB._download(newIds, keggids, hmdbids)):
-                    row = [dd.get(n) for n in self._colNames]
+                for i, dd in enumerate(PubChemDB._download(newIds, keggids, hmdbids, biocycids)):
+                    row = [dd.get(n) for n in PubChemDB.colNames]
                     self.table.rows.append(row)
                     if i % 20 == 0:
                         callback(i, len(newIds))
@@ -227,7 +231,7 @@ class PubChemDB(object):
             print "DELETE", len(missingIds), "ENTRIES FROM LOCAL DB"
             self.table = self.table.filter(~self.table.cid.isIn(missingIds))
         url = "http://pubchem.ncbi.nlm.nih.gov/summary/summary.cgi?cid="
-        self.table.addColumn("url", url + self.table.cid.apply(str), type_=str)
+        self.table.addColumn("url", url + self.table.cid.apply(str), type_=str, insertBefore="is_in_kegg")
         self.table.addColumn(
             "m0", self.massCalculator, type_=float, format_="%.7f", insertBefore="mw")
         self.table.sortBy("m0")  # build index

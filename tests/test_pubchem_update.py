@@ -18,7 +18,7 @@ def testPubChemUpdate(tmpdir):
 
     db.update(100)
     assert len(db.table) == 100
-    assert db.table.rows[0][-1].startswith("http")
+    assert db.table.url[0].startswith("http")
     assert len(db.table.rows[0]) == len(db.getColNames())
     assert db.table.getColNames()[0] == "m0"
 
@@ -34,7 +34,7 @@ def testPubChemUpdate(tmpdir):
     db.store()
     db = PubChemDB(dbPath)
     assert len(db.table) == 100
-    assert db.table.rows[0][-1].startswith("http")
+    assert db.table.url[0].startswith("http")
     assert len(db.table.rows[0]) == len(db.getColNames())
 
 
