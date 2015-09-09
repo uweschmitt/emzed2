@@ -79,7 +79,7 @@ def test_2(path, tmpdir, regtest):
     subfolder = tmpdir.join("subfolder")
     os.makedirs(subfolder.strpath)
     for p in file_names:
-        shutil.copy(tmpdir.join(p).strpath, subfolder.strpath)
+        shutil.move(tmpdir.join(p).strpath, subfolder.strpath)
 
     t2 = Table.load(subfolder.join("with_comp.table").strpath)
     print(t2, file=regtest)

@@ -971,6 +971,11 @@ class Table(object):
         if compressed:
             self.compressPeakMaps()
 
+        # if peakmap_cache_folder is "." we introduce relative pathes in the proxies,
+        # store the table with these entries and than correct the proxies after storing
+        # so that the pathes are absolute.
+        # when loading the table later we do this correction again
+
         if peakmap_cache_folder is not None:
             self._introduce_proxies(peakmap_cache_folder, path)
 
