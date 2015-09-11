@@ -263,8 +263,13 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         # starting easy_install from temp dir is needed as it fails if easy_install
         # is started from a dir which has emzed as sub dir:
         temp_dir = tempfile.mkdtemp()
-        exit_code = subprocess.call("easy_install -vUN %s %s emzed" % (user_flag, extra_args),
-                                    shell=True, cwd=temp_dir)
+        try:
+            print subprocess.check_output("easy_install -vUN %s %s emzed" % (user_flag, extra_args),
+                                        shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError, e:
+            print e.output
+        #exit_code = subprocess.call(["easy_install", "-vUN", user_flag, extra_args, "emzed"],
+                                    #shell=False, cwd=temp_dir)
         # try to cleanup, failure does not matter
         try:
             os.rmdir(temp_dir)
