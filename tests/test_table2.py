@@ -2,7 +2,10 @@
 
 from __future__ import print_function
 
+import os
+
 from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
+from emzed.core.data_types.table import relative_path
 import emzed.utils
 import emzed.mass
 import numpy as np
@@ -1307,4 +1310,20 @@ def test_method_call(regtest):
     print(t, file=regtest)
 
 
+def test_relative_path_computation(regtest):
+
+    def _test(a, b):
+        print("from=", a, file=regtest)
+        print("to=", b, file=regtest)
+        result = relative_path(a, b)
+        print("relative_path=", result, file=regtest)
+        print(os.path.normpath(os.path.join(a, result)), file=regtest)
+        print(file=regtest)
+
+    _test("/a/b/c/", "/a/b/x/y/proxies/d.proxy")
+    _test("/z/b/c/", "/a/b/x/y/proxies/d.proxy")
+    _test("/a/b/c/d/e", "/a/b/c/d/proxies/d.proxy")
+    _test("/", "/a/b/x/y/proxies/d.proxy")
+    _test("/", "/d.proxy")
+    _test("/a/", "/d.proxy")
 

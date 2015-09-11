@@ -33,6 +33,27 @@ __doc__ = """
 """
 
 
+def relative_path(from_, to):
+    def split(p):
+        result = []
+        while p.lstrip("/"):
+            p, x = os.path.split(p)
+            result.insert(0, x)
+        return result
+
+    fi = split(os.path.abspath(from_))
+    ti = split(os.path.abspath(to))
+    i = 0
+    for i, (fii, tii) in enumerate(zip(fi, ti)):
+        if fii == tii:
+            continue
+        break
+
+    missing = len(fi) - i
+    steps = [".."] * missing + ti[i:]
+    return os.path.join(*steps)
+
+
 def warn(message):
     warnings.warn(message, UserWarning, stacklevel=3)
 
@@ -951,13 +972,16 @@ class Table(object):
             self.compressPeakMaps()
 
         if peakmap_cache_folder is not None:
-            self._introduce_proxies(peakmap_cache_folder)
+            self._introduce_proxies(peakmap_cache_folder, path)
 
         with open(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
+
+        if peakmap_cache_folder == ".":
+            self._correct_proxies(path)
 
     @staticmethod
     def _load_strict(pickle_data, v_number):
@@ -972,11 +996,11 @@ class Table(object):
         if not isinstance(data, (list, tuple)):
             raise Exception("data item from file is not list or tuple")
         if len(data) != len(Table._to_pickle):
-            raise Exception(
-                "number of data items from file does not match Table._to_pickle")
+            raise Exception("number of data items from file does not match Table._to_pickle")
         tab = Table([], [], [], [], None, None)
         for name, item in zip(Table._to_pickle, data):
             setattr(tab, name, item)
+        tab.resetInternals()
         return tab
 
     @staticmethod
@@ -1028,6 +1052,8 @@ class Table(object):
             v_number = tuple(map(int, v_number_str.split(".")))
             try:
                 tab = Table._load_strict(pickle_data, v_number)
+                if v_number >= (2, 7, 5):
+                    tab._correct_proxies(path)
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
                 return tab
@@ -2281,17 +2307,36 @@ class Table(object):
                     row[i] = peak_maps[cell.uniqueId()]
         self.resetInternals()
 
-    def _introduce_proxies(self, folder):
+    def _correct_proxies(self, table_path):
+        abs_pathes = dict()
+        base_path = os.path.dirname(table_path)
+        for row in self.rows:
+            for i, cell in enumerate(row):
+                if isinstance(cell, PeakMapProxy):
+                    if cell._path.startswith("."):
+                        if cell._path not in abs_pathes:
+                            path = os.path.normpath(os.path.join(base_path, cell._path))
+                            abs_pathes[cell._path] = path
+                        cell._path = abs_pathes[cell._path]
+
+    def _introduce_proxies(self, folder, table_path):
         proxies = dict()
         for row in self.rows:
             for i, cell in enumerate(row):
                 if isinstance(cell, PeakMap) and not isinstance(cell, PeakMapProxy):
                     id_ = cell.uniqueId()
                     if id_ not in proxies:
-                        path = os.path.join(folder, "peak_map_%s.pickle" % id_)
-                        if not os.path.exists(path):
-                            cell.dump_as_pickle(path)
-                        proxies[id_] = PeakMapProxy(path, cell.meta)
+                        fname = "peak_map_%s.pickle" % id_
+                        if folder == ".":
+                            pickle_path = os.path.join(os.path.dirname(table_path), fname)
+                        else:
+                            pickle_path = os.path.abspath(os.path.join(folder, fname))
+                        if not os.path.exists(pickle_path):
+                            cell.dump_as_pickle(pickle_path)
+                        if folder == ".":
+                            proxies[id_] = PeakMapProxy(os.path.join(".", fname), cell.meta)
+                        else:
+                            proxies[id_] = PeakMapProxy(pickle_path, cell.meta)
                     row[i] = proxies[id_]
 
     @staticmethod

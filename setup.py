@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 19, 1)
+version = (2, 19, 4)
 
 
 setup(name="emzed",
@@ -34,7 +34,7 @@ setup(name="emzed",
                         "pandas",
                         "dill",
                         "pyopenms",
-                        "pyRserve",
+                        "pyRserve==0.8.2",
                         "pytest",
                         "pyreadline" if sys.platform == "win32" else "readline",
                         ]
