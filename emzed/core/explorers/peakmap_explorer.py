@@ -4,12 +4,11 @@ import os
 import types
 import math
 import numpy as np
-import sys
 
 from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QComboBox, QLineEdit, QDoubleValidator, QFrame,
-                         QSizePolicy, QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
-                         QKeySequence, QVBoxLayout, QFileDialog, QPixmap, QPainter,
+                         QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
+                         QKeySequence, QVBoxLayout, QPixmap, QPainter,
                          QMessageBox, QTableWidget, QTableWidgetItem, QSplitter, QHeaderView)
 
 from PyQt4.QtCore import (Qt, SIGNAL, QRectF, QPointF)
@@ -43,7 +42,7 @@ from lru_cache import lru_cache
 
 from ...io.load_utils import loadPeakMap
 
-from ...gui.file_dialogs import askForSave, askForSingleFile, askForMultipleFiles
+from ...gui.file_dialogs import askForSave, askForSingleFile
 
 from emzed_dialog import EmzedDialog
 
@@ -95,7 +94,6 @@ class PeakMapImageBase(object):
 
     def get_peakmap_bounds(self):
         return self.rtmin, self.rtmax, self.mzmin, self.mzmax
-
 
     def get_gamma(self):
         return self.gamma
@@ -546,8 +544,6 @@ class ModifiedImagePlot(ImagePlot):
             self.go_back_in_history()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax, add_to_history):
-        print
-        print("plot: set limits", mzmin, mzmax, add_to_history)
         self.rtmin = rtmin = max(rtmin, self.peakmap_range[0])
         self.rtmax = rtmax = min(rtmax, self.peakmap_range[1])
         self.mzmin = mzmin = min(max(mzmin, self.peakmap_range[2]), self.peakmap_range[3])
@@ -567,11 +563,8 @@ class ModifiedImagePlot(ImagePlot):
             self.history.new_head((rtmin, rtmax, mzmin, mzmax))
             self.emit(SIG_HISTORY_CHANGED, self.history)
 
-        print("replot")
         self.replot()
-        print("emit SIG_PLOT_AXIS_CHANGED")
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
-        print("set_limits finished\n")
 
     @protect_signal_handler
     def go_back_in_history(self, filter_=None, evt=None):
@@ -1069,8 +1062,9 @@ class PeakMapExplorer(EmzedDialog):
         self.last_used_directory_for_save = None
 
     def keyPressEvent(self, e):
+        # avoid closing of dialog when Esc key pressed:
         if e.key() != Qt.Key_Escape:
-            super(PeakMapExplorer, self).keyPressEvent(e)
+            return super(PeakMapExplorer, self).keyPressEvent(e)
 
     def setWindowTitle(self):
         if self.peakmap2 is None:
@@ -1147,12 +1141,12 @@ class PeakMapExplorer(EmzedDialog):
         self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
 
     def set_range_value_fields(self, rtmin, rtmax, mzmin, mzmax):
-        print("inside : set range value fields", rtmin, rtmax, mzmin, mzmax)
         self.rtmin_input.setText("%.2f" % (rtmin / 60.0))
         self.rtmax_input.setText("%.2f" % (rtmax / 60.0))
         self.mzmin_input.setText("%.5f" % mzmin)
         self.mzmax_input.setText("%.5f" % mzmax)
-        print("done : set range value fields", rtmin, rtmax, mzmin, mzmax)
+        self.mz_middle_input.setText("%.5f" % ((mzmax + mzmin) / 2.0))
+        self.dmz_input.setText("%.5f" % ((mzmax - mzmin) / 2.0))
 
     def setup_input_widgets(self):
         self.log_label = QLabel("Logarithmic Scale:", self)
@@ -1185,15 +1179,6 @@ class PeakMapExplorer(EmzedDialog):
         self.rt_range_label = QLabel("Retention Time [minutes]:", self)
         self.rtmin_input = QLineEdit(self)
         self.rtmin_input.setValidator(QDoubleValidator())
-        # self.rtmin_slider = QSlider(Qt.Horizontal, self)
-        # self.rtmin_slider.setMinimum(0)
-        # self.rtmin_slider.setMaximum(100)
-        # self.rtmin_slider.setSliderPosition(0)
-
-        # self.rtmax_slider = QSlider(Qt.Horizontal, self)
-        # self.rtmax_slider.setMinimum(0)
-        # self.rtmax_slider.setMaximum(100)
-        # self.rtmax_slider.setSliderPosition(100)
         self.rtmax_input = QLineEdit(self)
         self.rtmax_input.setValidator(QDoubleValidator())
 
@@ -1207,23 +1192,10 @@ class PeakMapExplorer(EmzedDialog):
         self.mz_range_label = QLabel("Mass to Charge range [Da]:", self)
         self.mzmin_input = QLineEdit(self)
         self.mzmin_input.setValidator(QDoubleValidator())
-        # self.mzmin_slider = QSlider(Qt.Horizontal, self)
-        # self.mzmin_slider.setMinimum(0)
-        # self.mzmin_slider.setMaximum(100)
-        # self.mzmin_slider.setSliderPosition(0)
-
-        # self.mzmax_slider = QSlider(Qt.Horizontal, self)
-        # self.mzmax_slider.setMinimum(0)
-        # self.mzmax_slider.setMaximum(100)
-        # self.mzmax_slider.setSliderPosition(100)
         self.mzmax_input = QLineEdit(self)
         self.mzmax_input.setValidator(QDoubleValidator())
 
-        self.history_back_button = QPushButton("Hist Back", self)
-        self.history_forward_button = QPushButton("Hist Fwd", self)
-        self.set_img_range_button = QPushButton("Set Bounds", self)
-
-        self.history_list_label = QLabel("History:", self)
+        # self.history_list_label = QLabel("History:", self)
         self.history_list = QComboBox(self)
 
     def setup_plot_widgets(self):
@@ -1327,44 +1299,28 @@ class PeakMapExplorer(EmzedDialog):
         controls_layout.setMargin(5)
 
         row = 0
-        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 4)
+        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 2)
 
         row += 1
         controls_layout.addWidget(self.rtmin_input, row, 0)
-        # controls_layout.addWidget(self.rtmin_slider, row, 1)
-        # controls_layout.addWidget(self.rtmax_slider, row, 2)
-        controls_layout.addWidget(self.rtmax_input, row, 3)
+        controls_layout.addWidget(self.rtmax_input, row, 1)
 
         row += 1
-        controls_layout.addWidget(self.mz_middle_label, row, 0, 1, 4)
+        controls_layout.addWidget(self.mz_middle_label, row, 0, 1, 2)
 
         row += 1
         controls_layout.addWidget(self.mz_middle_input, row, 0)
-        controls_layout.addWidget(self.dmz_input, row, 3)
+        controls_layout.addWidget(self.dmz_input, row, 1)
 
         row += 1
-        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 4)
+        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 2)
 
         row += 1
         controls_layout.addWidget(self.mzmin_input, row, 0)
-        # controls_layout.addWidget(self.mzmin_slider, row, 1)
-        # controls_layout.addWidget(self.mzmax_slider, row, 2)
-        controls_layout.addWidget(self.mzmax_input, row, 3)
-
-        self.set_img_range_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        lo = QHBoxLayout()
-        lo.addWidget(self.history_back_button)
-        lo.addWidget(self.set_img_range_button)
-        lo.addWidget(self.history_forward_button)
-        lo.setMargin(5)
-        lo.setSpacing(25)
-        row += 1
-        controls_layout.addLayout(lo, row, 0, 1, 4)
+        controls_layout.addWidget(self.mzmax_input, row, 1)
 
         row += 1
-        controls_layout.addWidget(self.history_list_label, row, 0)
-        controls_layout.addWidget(self.history_list, row, 1, 1, 3)
+        controls_layout.addWidget(self.history_list, row, 0, 1, 2)
 
         frame2 = QFrame(self)
         frame2.setLineWidth(1)
@@ -1388,20 +1344,10 @@ class PeakMapExplorer(EmzedDialog):
         self.connect(self.mzmin_input, SIGNAL("returnPressed()"), self.set_image_range)
         self.connect(self.mzmax_input, SIGNAL("returnPressed()"), self.set_image_range)
 
-        self.connect(self.mz_middle_input, SIGNAL("returnPressed()"), self.update_mz_range)
-        self.connect(self.dmz_input, SIGNAL("returnPressed()"), self.update_mz_range)
-
-        #self.connect(self.rtmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
-        #self.connect(self.rtmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
-        #self.connect(self.mzmin_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
-        #self.connect(self.mzmax_slider, SIGNAL("valueChanged(int)"), self.img_range_slider_changed)
+        self.connect(self.mz_middle_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
+        self.connect(self.dmz_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
 
         self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
-        self.connect(self.history_back_button, SIGNAL("pressed()"),
-                     self.history_back_button_pressed)
-        self.connect(self.history_forward_button, SIGNAL("pressed()"),
-                     self.history_forward_button_pressed)
-        self.connect(self.set_img_range_button, SIGNAL("pressed()"), self.set_image_range)
 
         self.connect(self.peakmap_plotter.get_plot(), SIG_PLOT_AXIS_CHANGED, self.changed_axis)
         self.connect(self.peakmap_plotter.get_plot(), SIG_HISTORY_CHANGED, self.history_changed)
@@ -1445,7 +1391,7 @@ class PeakMapExplorer(EmzedDialog):
         while True:
             path = askForSave(self.last_used_directory_for_save,
                               caption="Save Image",
-                              extensions = ("png", "PNG")
+                              extensions=("png", "PNG")
                               )
             if path is None:
                 break
@@ -1457,20 +1403,6 @@ class PeakMapExplorer(EmzedDialog):
                 pix.save(path)
                 break
         return
-
-    def update_mz_range(self):
-        middle = str(self.mz_middle_input.text())
-        dmz = str(self.dmz_input.text())
-        try:
-            middle = float(middle)
-            dmz = float(dmz)
-        except ValueError:
-            return
-        mzmin = middle - dmz
-        mzmax = middle + dmz
-        self.mzmin_input.setText("%.6f" % mzmin)
-        self.mzmax_input.setText("%.6f" % mzmax)
-
 
     def _do_load(self, title, attribute):
         path = askForSingleFile(self.last_used_directory_for_load,
@@ -1559,17 +1491,7 @@ class PeakMapExplorer(EmzedDialog):
                                                               rtmax / 60.0)
             self.history_list.addItem(str_item)
 
-        self.history_back_button.setEnabled(not history.current_position_is_beginning())
-        self.history_forward_button.setEnabled(not history.current_position_is_end())
         self.history_list.setCurrentIndex(history.position)
-
-    @protect_signal_handler
-    def history_back_button_pressed(self):
-        self.peakmap_plotter.go_back_in_history()
-
-    @protect_signal_handler
-    def history_forward_button_pressed(self):
-        self.peakmap_plotter.go_forward_in_history()
 
     @protect_signal_handler
     def history_item_selected(self, index):
@@ -1603,6 +1525,7 @@ class PeakMapExplorer(EmzedDialog):
         self.mz_plotter.widget.plot.reset_y_limits()
         self.mz_plotter.updateAxes()
         self.mz_plotter.replot()
+        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
 
     @protect_signal_handler
     def log_changed(self, is_log):
@@ -1624,7 +1547,7 @@ class PeakMapExplorer(EmzedDialog):
         txt = inp.text()
         try:
             abs_value = float(txt)
-        except:
+        except ValueError:
             return
         setter(abs_value)
 
@@ -1674,19 +1597,52 @@ class PeakMapExplorer(EmzedDialog):
             value, self.imax_slider, self.peakmap_plotter.set_imax, self.imax_input)
         return
 
+    def _read_rt_values(self):
+        rtmin = self.rtmin_input.text()
+        rtmax = self.rtmax_input.text()
+        try:
+            rtmin = float(rtmin)
+            rtmax = float(rtmax)
+        except ValueError:
+            guidata.qapplication().beep()
+            return self.rtmin, self.rtmax
+        return rtmin, rtmax
+
     @protect_signal_handler
     def set_image_range(self):
-        print("set image range")
-        # statt der folgenden beiden zeilen, diese werte auslesen:
+        mzmin = self.mzmin_input.text()
+        mzmax = self.mzmax_input.text()
+        rtmin, rtmax = self._read_rt_values()
         try:
-            rtmin, rtmax, mzmin, mzmax = map(float, (self.rtmin_input.text(),
-                                                     self.rtmax_input.text(),
-                                                     self.mzmin_input.text(),
-                                                     self.mzmax_input.text(),))
-        except:
+            mzmin = float(mzmin)
+            mzmax = float(mzmax)
+        except ValueError:
             guidata.qapplication().beep()
             return
-        print("got", rtmin, rtmax, mzmin, mzmax)
+        mzmean = (mzmin + mzmax) / 2.0
+        dmz = (mzmax - mzmin) / 2.0
+        self.mz_middle_input.setText("%.5f" % mzmean)
+        self.dmz_input.setText("%.5f" % dmz)
+        self.update_image_range(rtmin, rtmax, mzmin, mzmax)
+
+    @protect_signal_handler
+    def set_image_range_from_center(self):
+        middle = str(self.mz_middle_input.text())
+        dmz = str(self.dmz_input.text())
+        try:
+            middle = float(middle)
+            dmz = float(dmz)
+        except ValueError:
+            return
+        mzmin = middle - dmz
+        mzmax = middle + dmz
+        self.mzmin_input.setText("%.6f" % mzmin)
+        self.mzmax_input.setText("%.6f" % mzmax)
+        rtmin, rtmax = self._read_rt_values()
+        self.update_image_range(rtmin, rtmax, mzmin, mzmax)
+
+    @protect_signal_handler
+    def update_image_range(self, rtmin, rtmax, mzmin, mzmax):
 
         rtmin *= 60.0
         rtmax *= 60.0
@@ -1702,64 +1658,12 @@ class PeakMapExplorer(EmzedDialog):
         rtmin, rtmax = sorted((rtmin, rtmax))
         mzmin, mzmax = sorted((mzmin, mzmax))
 
-        print("set range value fields", rtmin, rtmax, mzmin, mzmax)
         self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-
-        print("set plot limits")
         self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
-        print("did setting plot limits")
-        # self.set_sliders(rtmin, rtmax, mzmin, mzmax)
-
-    def set_sliders(self, rtmin, rtmax, mzmin, mzmax):
-
-        for value, max_value, slider in ((rtmin, self.rtmax, self.rtmin_slider),
-                                         (rtmax, self.rtmax, self.rtmax_slider),):
-
-            slider_value = int(slider.maximum() * value / max_value)
-            slider.blockSignals(True)
-            slider.setSliderPosition(slider_value)
-            slider.blockSignals(False)
-
-        min_v = self.mzmin
-        max_v = self.mzmax
-        for value, slider in ((mzmin, self.mzmin_slider), (mzmax, self.mzmax_slider)):
-            slider_value = int(slider.maximum() * (value - min_v) / (max_v - min_v))
-            slider.blockSignals(True)
-            slider.setSliderPosition(slider_value)
-            slider.blockSignals(False)
-
-    @protect_signal_handler
-    def img_range_slider_changed(self, int):
-        rtmin = self.rtmin + (self.rtmax - self.rtmin) * \
-            self.rtmin_slider.sliderPosition() / self.rtmin_slider.maximum()
-        rtmax = self.rtmin + (self.rtmax - self.rtmin) * \
-            self.rtmax_slider.sliderPosition() / self.rtmax_slider.maximum()
-
-        if rtmax < rtmin:
-            self.rtmax_slider.setSliderPosition(self.rtmin_slider.sliderPosition())
-            rtmax = rtmin
-
-        mzmin = self.mzmin + (self.mzmax - self.mzmin) * \
-            self.mzmin_slider.sliderPosition() / self.mzmin_slider.maximum()
-        mzmax = self.mzmin + (self.mzmax - self.mzmin) * \
-            self.mzmax_slider.sliderPosition() / self.mzmax_slider.maximum()
-
-        if mzmax < mzmin:
-            self.mzmax_slider.setSliderPosition(self.mzmin_slider.sliderPosition())
-            mzmax = mzmin
-
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
 
     def plot_peakmap(self):
         self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, self.mzmin, self.mzmax,
                                         add_to_history=True)
-
-    def zoom(self, rtmin=None, rtmax=None, mzmin=None, mzmax=None):
-        rtmin = self.rtmin if rtmin is None else rtmin
-        rtmax = self.rtmax if rtmax is None else rtmax
-        mzmin = self.mzmin if mzmin is None else mzmin
-        mzmax = self.mzmax if mzmax is None else mzmax
-        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
 
 
 def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, rtmin=None,
@@ -1775,7 +1679,6 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, 
     ok_rows = []
     win = PeakMapExplorer(ok_rows, parent=parent)
     win.setup(peakmap, peakmap2, table)
-    win.zoom(rtmin, rtmax, mzmin, mzmax)
 
     if modal:
         win.raise_()

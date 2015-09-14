@@ -421,11 +421,12 @@ class MzPlot(ModifiedCurvePlot):
 
     def set_mz(self, mz):
         mz, I = self.next_peak_to(mz)
-        marker = self.get_unique_item(Marker)
-        new_x = self.transform(self.xBottom, mz)
-        new_y = self.transform(self.yLeft, I)
-        marker.setValue(mz, I)  # avoids sending signal
-        self.replot()
+        if mz is not None and I is not None:
+            marker = self.get_unique_item(Marker)
+            new_x = self.transform(self.xBottom, mz)
+            new_y = self.transform(self.yLeft, I)
+            marker.setValue(mz, I)  # avoids sending signal
+            self.replot()
 
     def do_finish_zoom_view(self, dx, dy):
         dx = (-1,) + dx  # adding direction to tuple dx
@@ -562,7 +563,10 @@ class MzPlot(ModifiedCurvePlot):
         all_peaks = []
         for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.resample_config):
             ms_level = min(pm.getMsLevels())
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            if rtmin < rtmax and mzmin < mzmax:
+                peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            else:
+                continue
             curve = self.curves[i]
             curve.set_data(peaks[:, 0], peaks[:, 1])
             all_peaks.append(peaks)
