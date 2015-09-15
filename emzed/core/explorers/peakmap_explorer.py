@@ -49,6 +49,21 @@ from ...gui.file_dialogs import askForSave, askForSingleFile
 from emzed_dialog import EmzedDialog
 
 
+def smooth(data, mzmax, mzmin):
+    dmz = mzmax - mzmin
+    # above dmz > 100.0 we will have n == 2, for dmz < .0 we have n == 4, inbetween
+    # we do linear inerpolation:
+    dmz_max = 200.0
+    dmz_min = .001
+    smax = 5.0
+    smin = 2.0
+    n = round(smax - (dmz - dmz_min) / (dmz_max - dmz_min) * (smax - smin))
+    n = max(smin, min(smax, n))
+    mask = np.ones((n, n), dtype=np.uint32)
+    smoothed = convolve2d(data, mask, mode="full") # / np.sum(mask)
+    return smoothed
+
+
 SIG_HISTORY_CHANGED = SIGNAL('plot_history_changed(PyQt_PyObject)')
 
 
@@ -146,18 +161,8 @@ class PeakMapImageBase(object):
             pm = self.peakmaps[idx].getDominatingPeakmap()
             data = sample_image(pm, rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
 
+            smoothed = smooth(data, mzmax, mzmin)
             # enlarge single pixels depending on the mz range in the image:
-            dmz = mzmax - mzmin
-            # above dmz > 100.0 we will have n == 2, for dmz < .0 we have n == 4, inbetween
-            # we do linear inerpolation:
-            dmz_max = 100.0
-            dmz_min = 1.0
-            smax = 4.0
-            smin = 2.0
-            n = round(smax - (dmz - dmz_min) / (dmz_max - dmz_min) * (smax - smin))
-            n = max(smin, min(smax, n))
-            mask = np.ones((n, n))
-            smoothed = convolve2d(data, mask, mode="full") 
 
         # turn up/down
         smoothed = smoothed[::-1, :]
@@ -307,13 +312,16 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
         image = self.compute_image(0, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
         image2 = self.compute_image(1, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
 
-        self.data = np.zeros_like(image, dtype=np.uint32)[::-1, :]
+        smoothed = smooth(image, mzmax, mzmin)
+        smoothed2 = smooth(image2, mzmax, mzmin)
+
+        self.data = np.zeros_like(smoothed, dtype=np.uint32)[::-1, :]
         self.data[:] = 255 << 24  # alpha = 1.0
         # add image as rgb(255, 255, 0)
-        self.data += image * 256.0 * 256
-        self.data += image * 256.0
+        self.data += smoothed * 256 * 256
+        self.data += smoothed * 256
         # add image2 as rgb(0, 0, 256)
-        self.data += image2
+        self.data += smoothed2
 
         self.bounds = QRectF(rtmin, mzmin, rtmax - rtmin, mzmax - mzmin)
 
