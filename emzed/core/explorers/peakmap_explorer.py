@@ -5,6 +5,8 @@ import types
 import math
 import numpy as np
 
+from scipy.signal import convolve2d
+
 from PyQt4.QtGui import (QDialog, QGridLayout, QSlider, QLabel, QCheckBox,
                          QComboBox, QLineEdit, QDoubleValidator, QFrame,
                          QHBoxLayout, QPushButton, QMenuBar, QAction, QMenu,
@@ -66,12 +68,22 @@ def set_y_axis_scale_draw(widget):
     widget.plot.setAxisScaleDraw(widget.plot.yLeft, drawer)
 
 
+def full_mz_range(pm):
+    mzranges = [s.mzRange() for s in pm.spectra]
+    mzranges = [r for r in mzranges if r != (None, None)]
+    if len(mzranges) == 0:
+        return (None, None)
+    mzmin = min(mzmin for (mzmin, mzmax) in mzranges if mzmin is not None)
+    mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
+    return mzmin, mzmax
+
+
 class PeakMapImageBase(object):
 
     def __init__(self, peakmaps):
         self.peakmaps = peakmaps
         rtmins, rtmaxs = zip(*[pm.rtRange() for pm in peakmaps])
-        mzmins, mzmaxs = zip(*[pm.mzRange() for pm in peakmaps])
+        mzmins, mzmaxs = zip(*[full_mz_range(pm) for pm in peakmaps])
         self.rtmin = min(rtmins)
         self.rtmax = max(rtmaxs)
         self.mzmin = min(mzmins)
@@ -129,10 +141,23 @@ class PeakMapImageBase(object):
         else:
             # optimized:
             # one additional row / col as we loose one row and col during smoothing:
-            data = sample_image(self.peakmaps[idx], rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
 
-            # enlarge single pixels to 2 x 2 pixels:
-            smoothed = data[:-1, :-1] + data[:-1, 1:] + data[1:, :-1] + data[1:, 1:]
+            # sample_image only works on level1, therefore we have to use getDominatingPeakmap()
+            pm = self.peakmaps[idx].getDominatingPeakmap()
+            data = sample_image(pm, rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
+
+            # enlarge single pixels depending on the mz range in the image:
+            dmz = mzmax - mzmin
+            # above dmz > 100.0 we will have n == 2, for dmz < .0 we have n == 4, inbetween
+            # we do linear inerpolation:
+            dmz_max = 100.0
+            dmz_min = 1.0
+            smax = 4.0
+            smin = 2.0
+            n = round(smax - (dmz - dmz_min) / (dmz_max - dmz_min) * (smax - smin))
+            n = max(smin, min(smax, n))
+            mask = np.ones((n, n))
+            smoothed = convolve2d(data, mask, mode="full") 
 
         # turn up/down
         smoothed = smoothed[::-1, :]
@@ -551,6 +576,9 @@ class ModifiedImagePlot(ImagePlot):
         if mzmin == mzmax:
             mzmin *= (1.0 - 1e-5)  # - 10 ppm
             mzmax *= (1.0 + 1e-5)  # + 10 ppm
+        if rtmin == rtmax:
+            rtmin += -.1
+            rtmax += .1
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "bottom", "right")
         self.set_plot_limits(rtmin, rtmax, mzmin, mzmax, "top", "left")
 
@@ -840,10 +868,10 @@ def create_table_widget(table, parent):
 
 def get_range(peakmap, peakmap2):
     rtmin, rtmax = peakmap.rtRange()
-    mzmin, mzmax = peakmap.mzRange()
+    mzmin, mzmax = full_mz_range(peakmap)
     if peakmap2 is not None:
         rtmin2, rtmax2 = peakmap2.rtRange()
-        mzmin2, mzmax2 = peakmap2.mzRange()
+        mzmin2, mzmax2 = full_mz_range(peakmap2)
         rtmin = min(rtmin, rtmin2)
         rtmax = max(rtmax, rtmax2)
         mzmin = min(mzmin, mzmin2)
@@ -1077,17 +1105,59 @@ class PeakMapExplorer(EmzedDialog):
 
     def setup(self, peakmap, peakmap2=None, table=None):
         self.table = table
-        self.process_peakmap(peakmap, peakmap2)
 
-        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
+        def collect_precursor_mz(pm):
+            for s in pm:
+                if s.precursors:
+                    if s.msLevel > 1:
+                        yield s.precursors[0][0]
+
+        self.ms_levels = set(peakmap.getMsLevels())
+        self.precursor_mz = set(collect_precursor_mz(peakmap))
+        if peakmap2 is not None:
+            self.ms_levels &= set(peakmap2.getMsLevels())
+            self.precursor_mz &= set(collect_precursor_mz(peakmap2))
+
+        self.ms_levels = sorted(self.ms_levels)
+        self.precursor_mz = sorted(self.precursor_mz)
+
         self.setup_table_widgets()
         self.setup_input_widgets()
+
+        self.setup_ms2_widgets()
+        self.full_pm = peakmap
+        self.full_pm2 = peakmap2
+        self.dual_mode = self.full_pm2 is not None
+
+        self.setup_for_ms_level(min(self.ms_levels))
+        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
+
         self.setup_plot_widgets()
         self.setup_menu_bar()
         self.setup_layout()
         self.connect_signals_and_slots()
         self.setup_initial_values()
         self.plot_peakmap()
+
+    def setup_for_ms_level(self, ms_level):
+        self.process_peakmap(ms_level)
+        self.precursor_mz_min.setEnabled(ms_level > 1)
+        self.precursor_mz_max.setEnabled(ms_level > 1)
+        self.precursor.setEnabled(ms_level > 1)
+        self.current_ms_level = ms_level
+
+    def setup_ms2_widgets(self):
+        self.precursor.clear()
+        self.precursor.addItem("- use range -")
+        for mz in self.precursor_mz:
+            self.precursor.addItem("%.5f" % mz)
+
+        for level in self.ms_levels:
+            self.ms_level.addItem(str(level))
+
+        if self.precursor_mz:
+            self.precursor_mz_min.setText("%.5f" % min(self.precursor_mz))
+            self.precursor_mz_max.setText("%.5f" % max(self.precursor_mz))
 
     def setup_table_widgets(self):
         if self.table is not None:
@@ -1121,13 +1191,26 @@ class PeakMapExplorer(EmzedDialog):
         menu.addAction(self.help_action)
         self.menu_bar.addMenu(menu)
 
-    def process_peakmap(self, peakmap, peakmap2):
+    def process_peakmap(self, ms_level, pre_mz_min=None, pre_mz_max=None):
 
-        self.peakmap = peakmap.getDominatingPeakmap()
-        self.dual_mode = peakmap2 is not None
-        self.peakmap2 = peakmap2
+        peakmap = self.full_pm.filter(lambda s: s.msLevel == ms_level)
+        if ms_level > 1 and pre_mz_min is not None:
+            peakmap = peakmap.filter(lambda s: s.precursors[0][0] >= pre_mz_min)
+        if ms_level > 1 and pre_mz_max is not None:
+            peakmap = peakmap.filter(lambda s: s.precursors[0][0] <= pre_mz_max)
+
+        if self.full_pm2 is not None:
+            peakmap2 = self.full_pm2.filter(lambda s: s.msLevel == ms_level)
+
+        self.peakmap = peakmap
         if self.dual_mode:
-            self.peakmap2 = peakmap2.getDominatingPeakmap()
+            self.peakmap2 = peakmap2
+        else:
+            self.peakmap2 = None
+
+        for i, msl in enumerate(self.ms_levels):
+            if msl == ms_level:
+                self.ms_level.setCurrentIndex(i)
 
         self.setWindowTitle()
 
@@ -1175,6 +1258,20 @@ class PeakMapExplorer(EmzedDialog):
         self.imax_slider.setMaximum(100)
         self.imax_slider.setSliderPosition(1000)
         self.imax_input = QLineEdit(self)
+
+        self.imax_input.setValidator(QDoubleValidator())
+        self.imin_input.setValidator(QDoubleValidator())
+
+        self.ms_level_label = QLabel("Choose MS Level:", self)
+        self.ms_level = QComboBox(self)
+        self.precursor_label = QLabel("Choose Precursor:", self)
+        self.precursor = QComboBox(self)
+
+        self.precursor_range_label = QLabel("MZ Range Precursor:")
+        self.precursor_mz_min = QLineEdit(self)
+        self.precursor_mz_min.setValidator(QDoubleValidator())
+        self.precursor_mz_max = QLineEdit(self)
+        self.precursor_mz_max.setValidator(QDoubleValidator())
 
         self.rt_range_label = QLabel("Retention Time [minutes]:", self)
         self.rtmin_input = QLineEdit(self)
@@ -1299,6 +1396,20 @@ class PeakMapExplorer(EmzedDialog):
         controls_layout.setMargin(5)
 
         row = 0
+        controls_layout.addWidget(self.ms_level_label, row, 0)
+        controls_layout.addWidget(self.ms_level, row, 1)
+
+        row += 1
+        controls_layout.addWidget(self.precursor_label, row, 0)
+        controls_layout.addWidget(self.precursor, row, 1)
+
+        row += 1
+        controls_layout.addWidget(self.precursor_range_label, row, 0, 1, 2)
+        row += 1
+        controls_layout.addWidget(self.precursor_mz_min, row, 0)
+        controls_layout.addWidget(self.precursor_mz_max, row, 1)
+
+        row += 1
         controls_layout.addWidget(self.rt_range_label, row, 0, 1, 2)
 
         row += 1
@@ -1338,6 +1449,12 @@ class PeakMapExplorer(EmzedDialog):
 
         self.connect(self.imin_slider, SIGNAL("valueChanged(int)"), self.imin_slider_changed)
         self.connect(self.imax_slider, SIGNAL("valueChanged(int)"), self.imax_slider_changed)
+
+        self.connect(self.ms_level, SIGNAL("activated(int)"), self.ms_level_chosen)
+        self.connect(self.precursor, SIGNAL("activated(int)"), self.precursor_chosen)
+        self.connect(self.precursor_mz_min, SIGNAL("returnPressed()"), self.set_precursor_range)
+        self.connect(self.precursor_mz_max, SIGNAL("returnPressed()"), self.set_precursor_range)
+
 
         self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.set_image_range)
         self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.set_image_range)
@@ -1411,7 +1528,7 @@ class PeakMapExplorer(EmzedDialog):
                                 )
         if path is not None:
             setattr(self, attribute, loadPeakMap(path))
-            self.process_peakmap(self.peakmap, self.peakmap2)
+            self.process_peakmap()
             self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
             self.setup_initial_values()
             self.setWindowTitle()
@@ -1504,7 +1621,7 @@ class PeakMapExplorer(EmzedDialog):
             mzmin, mzmax = evt.get_axis_limits("left")
         else:
             rtmin, rtmax = self.peakmap.rtRange()
-            mzmin, mzmax = self.peakmap.mzRange()
+            mzmin, mzmax = full_range(self.peakmap)
 
         rts, chroma = self.peakmap.chromatogram(mzmin, mzmax, rtmin, rtmax)
         if self.dual_mode:
@@ -1531,6 +1648,42 @@ class PeakMapExplorer(EmzedDialog):
     def log_changed(self, is_log):
         self.peakmap_plotter.set_logarithmic_scale(is_log)
         self.peakmap_plotter.replot()
+
+    @protect_signal_handler
+    def ms_level_chosen(self, value):
+        ms_level = self.ms_levels[value]
+        if ms_level != self.current_ms_level:
+            self.setup_for_ms_level(ms_level)
+            self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
+            self.peakmap_plotter.replot()
+            self.plot_peakmap()
+
+    @protect_signal_handler
+    def precursor_chosen(self, item):
+        if item > 0:
+            mz_pre = self.precursor_mz[item - 1]
+            self.precursor_mz_min.setText("%.5f" % (mz_pre - 0.01))
+            self.precursor_mz_max.setText("%.5f" % (mz_pre + 0.01))
+            self.process_peakmap(self.current_ms_level, mz_pre - 0.01, mz_pre + 0.01)
+            self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
+            self.peakmap_plotter.replot()
+            self.plot_peakmap()
+        else:
+            self.set_precursor_range()
+
+    @protect_signal_handler
+    def set_precursor_range(self):
+        try:
+            pre_mz_min = float(self.precursor_mz_min.text())
+            pre_mz_max = float(self.precursor_mz_max.text())
+        except ValueError:
+            return
+        self.precursor.setCurrentIndex(0)
+        self.process_peakmap(self.current_ms_level, pre_mz_min, pre_mz_max)
+        self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
+        self.peakmap_plotter.replot()
+        self.plot_peakmap()
+
 
     @protect_signal_handler
     def gamma_changed(self, value):
@@ -1671,6 +1824,8 @@ def inspectPeakMap(peakmap, peakmap2=None, table=None, modal=True, parent=None, 
     """
     allows the visual inspection of a peakmap
     """
+
+    peakmap = peakmap.cleaned()
 
     if len(peakmap) == 0:
         raise Exception("empty peakmap")

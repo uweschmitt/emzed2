@@ -716,6 +716,14 @@ class PeakMap(object):
         """only supported for peakmap proxies to save space if possible"""
         pass
 
+    def cleaned(self):
+        """ removes empty spectra """
+        spectra = [s for s in self.spectra if len(s.peaks) > 0]
+        meta = self.meta.copy()
+        if "unique_id" in meta:
+            del meta["unique_id"]
+        return PeakMap(spectra, meta=meta)
+
 
 class PeakMapProxy(PeakMap):
 
