@@ -163,8 +163,7 @@ class PubChemDB(object):
             self.table = self._emptyTable()
 
     def _emptyTable(self):
-        return Table(PubChemDB.colNames, PubChemDB.colTypes,
-                     PubChemDB.colFormats, [], "PubChem")
+        return Table(PubChemDB.colNames, PubChemDB.colTypes, PubChemDB.colFormats, [], "PubChem")
 
     def __len__(self):
         return len(self.table)

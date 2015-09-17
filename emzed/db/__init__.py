@@ -6,7 +6,10 @@ def _db_path(master_folder):
     import os.path
     FILE_NAME = "pubchem.table"
     version_str = "tables_of_version_%d.%d.%d" % Table._latest_internal_update_with_version
-    path = os.path.join(master_folder, version_str, FILE_NAME)
+    folder = os.path.join(master_folder, version_str)
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    path = os.path.join(folder, FILE_NAME)
     return path
 
 
