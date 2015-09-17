@@ -36,17 +36,20 @@ except:
     pkg_resources.require('dill')
     import dill
 
-try:
-    import pyreadline
-except:
-    from setuptools.command import easy_install
-    import pkg_resources
-    easy_install.main( ['pyreadline'] )
-    pkg_resources.require('pyreadline')
+import sys
+
+if sys.platform != "linux2":
+
+    try:
+        import pyreadline
+    except:
+        from setuptools.command import easy_install
+        import pkg_resources
+        easy_install.main( ['pyreadline'] )
+        pkg_resources.require('pyreadline')
 
 os.environ["QT_API"] = "pyqt"
 
-import sys
 import os.path as osp
 import platform
 import re

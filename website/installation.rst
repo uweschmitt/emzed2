@@ -73,7 +73,9 @@ name may sligthly differ (for example `python2.7-matplotlib` insteas of `python-
    are difficult to build. *PyQt4* should be installed globally too::
 
     $ sudo apt-get install python2.7
-    $ sudo apt-get install python2.7-numpy python2.7-scipy python-matplotlib python-qt4
+    $ sudo apt-get install python-numpy python-scipy python-matplotlib python-qt4
+    $ sudo apt-get install python-pandas python-scikits-learn
+    $ sudo apt-get install libncurses-dev
     $ sudo apt-get install python-qwt5-qt4
     $ sudo apt-get install python-virtualenv
 

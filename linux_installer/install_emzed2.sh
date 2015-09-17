@@ -73,10 +73,10 @@ function install_emzed_and_related_packages {
     try_and_halt_if_error source $1/bin/activate
     try_and_halt_if_error easy_install pyopenms
     try_and_halt_if_error pip install cython
-    try_and_halt_if_error pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
-    try_and_halt_if_error pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
+    try_and_halt_if_error pip install guidata==1.6.1 --allow-external guidata --allow-unverified guidata
+    try_and_halt_if_error pip install guiqwt==2.3.1 --allow-external guiqwt --allow-unverified guiqwt
     try_and_halt_if_error pip install sphinx
-    try_and_halt_if_error pip install ipython==0.10
+    try_and_halt_if_error easy_install ipython==0.10
     try_and_halt_if_error pip install emzed
 }
 
