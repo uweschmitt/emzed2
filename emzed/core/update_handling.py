@@ -132,7 +132,7 @@ class Updater(object):
         try:
             info, offer_update = self.impl.query_update_info(limit)
         except Exception, e:
-            info = e.message
+            info = str(e)
             offer_update = False
         return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
@@ -143,7 +143,7 @@ class Updater(object):
         except BaseException, e:
             import traceback
             traceback.print_exc()
-            return False, e.message
+            return False, str(e)
         return self._finalize_update()
 
     def do_update(self, limit=None):
@@ -153,7 +153,7 @@ class Updater(object):
         except BaseException, e:
             import traceback
             traceback.print_exc()
-            return False, e.message
+            return False, str(e)
         return self._finalize_update()
 
     def _finalize_update(self):
@@ -178,7 +178,7 @@ class Updater(object):
             # is readable ?
             os.listdir(exchange_folder)
         except BaseException, e:
-            return None, e.message
+            return None, str(e)
         try:
             is_newer = self.impl.check_for_newer_version_on_exchange_folder(exchange_folder)
         except:
@@ -196,13 +196,13 @@ class Updater(object):
             # is readable ?
             os.listdir(exchange_folder)
         except BaseException, e:
-            return False, e.message
+            return False, str(e)
         try:
             message = self.impl.update_from_exchange_folder(exchange_folder)
             self._update_latest_update_ts(time.time())
             self.impl.touch_data_home_files()
         except Exception, e:
-            return False, e.message
+            return False, str(e)
         return True, message
 
 

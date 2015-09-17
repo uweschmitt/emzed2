@@ -87,7 +87,7 @@ def patch_dicteditorutils():
             try:
                 return trunc(value.meta.get("source", ""))
             except Exception, e:
-                return "exception: "+e.message
+                return "exception: %s" % e
 
         if isinstance(value, list) and\
            all(isinstance(ii, Table) for ii in value):
@@ -107,7 +107,7 @@ def patch_dicteditorutils():
                 try:
                     res = os.path.basename(value.meta.get("source", ""))
                 except Exception, e:
-                    return "exception: "+e.message
+                    return "exception: %s" % e
             return trunc(res)
 
         if numpy.number in getattr(type(value), "__mro__", []):

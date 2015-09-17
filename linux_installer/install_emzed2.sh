@@ -73,10 +73,11 @@ function install_emzed_and_related_packages {
     try_and_halt_if_error source $1/bin/activate
     try_and_halt_if_error easy_install pyopenms
     try_and_halt_if_error pip install cython
-    try_and_halt_if_error pip install guidata
-    try_and_halt_if_error pip install guiqwt
+    try_and_halt_if_error pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
+    try_and_halt_if_error pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
     try_and_halt_if_error pip install sphinx
-    try_and_halt_if_error pip install -r http://emzed.ethz.ch/downloads/requirements.txt
+    try_and_halt_if_error pip install ipython==0.10
+    try_and_halt_if_error pip install emzed
 }
 
 function create_shortcut {
@@ -124,7 +125,7 @@ fi
 
 YES_NO=""
 while [ ! "$YES_NO" = "y" ]; do
-    echo -n "are you shure to install to $INSTALL_FOLDER ? [y/n]: "
+    echo -n "are you sure to install to $INSTALL_FOLDER ? [y/n]: "
     read YES_NO
 
     if [ "$YES_NO" = "n" ]; then

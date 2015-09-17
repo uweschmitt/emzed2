@@ -66,12 +66,16 @@ Installation on 64 bit Windows
 Installation on Ubuntu or Debian
 ~~~~~~~~~~
 
-1. First, you should install *numpy*, *scipy* and *matplotlib* globally as they are difficult to build. *PyQt4* should be installed globally too::
+The following instructions are for Ubuntu 14 (server version), for other distributions the package
+name may sligthly differ (for example `python2.7-matplotlib` insteas of `python-matplotlib`):
+
+1. First, you should install *numpy*, *scipy* and *matplotlib* globally as they
+   are difficult to build. *PyQt4* should be installed globally too::
 
     $ sudo apt-get install python2.7
-    $ sudo apt-get install python2.7-numpy python2.7-scipy python2.7-matplotlib python2.7-qt4
+    $ sudo apt-get install python2.7-numpy python2.7-scipy python-matplotlib python-qt4
     $ sudo apt-get install python-qwt5-qt4
-    $ sudo apt-get install python2.7-virtualenv
+    $ sudo apt-get install python-virtualenv
 
 2. For the final installation download the installation script from
    http://emzed.ethz.ch/downloads/install_emzed2.sh.
@@ -117,12 +121,13 @@ manually as described now:
         ....
         $ cd emzed2
         $ source bin/activate
-        (emzed2)$ easy_install pyopenms
+        (emzed2)$ easy_install pyopenms==2.0
         (emzed2)$ pip install cython
-        (emzed2)$ pip install guidata
-        (emzed2)$ pip install guiqwt
+        (emzed2)$ pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
+        (emzed2)$ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
         (emzed2)$ pip install sphinx
-        (emzed2)$ pip install -r http://emzed.ethz.ch/downloads/requirements.txt
+        (emzed2)$ pip install ipython==0.10
+        (emzed2)$ pip install emzed
         (emzed2)$ deactivate
 
    Now you should be able to start *emzed workbench*::
@@ -140,6 +145,3 @@ Getting the latest development version of emzed
 ``git`` you can check out the latest version using::
 
     git clone git://github.com/uweschmitt/emzed2.git
-
-
-

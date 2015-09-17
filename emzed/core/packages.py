@@ -258,7 +258,7 @@ def delete_from_emzed_store(pkg_name, version_string, secret=""):
     try:
         files = client.list_files(url, user, folder)
     except requests.HTTPError, e:
-        print e.message
+        print str(e)
         print
         print "MAYBE USER %s IS NOT KNOWN OR SECRET %r IS NOT VALID" % (user, secret)
         print
@@ -320,7 +320,7 @@ def upload_to_emzed_store(pkg_folder, secret=""):
                     try:
                         client.upload_file(url, user, password, path, fp)
                     except requests.HTTPError, e:
-                        print e.message
+                        print str(e)
                         print
                         print "MAYBE USER %s IS UNKNOWN OR PASSWORD DOES NOT MATCH" % user
                         print
@@ -388,7 +388,7 @@ def list_packages_from_emzed_store(secret=""):
         try:
             packages = client.list_files(url, user, folder)
         except requests.HTTPError, e:
-            print e.message
+            print str(e)
             print
             print "MAYBE USER %s IS UNKNOWN OR SECRET '%s' IS INVALID" % (user, secret)
             print

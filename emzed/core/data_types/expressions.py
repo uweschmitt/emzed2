@@ -896,7 +896,7 @@ class BaseExpression(object):
                     result = att(*args)
                 except Exception, e:
                     args = ", ".join([str(ai) for ai in args])
-                    message = "calling %s(%s) raised error %s" % (name, args, e.message)
+                    message = "calling %s(%s) raised error %s" % (name, args, str(e))
                     raise e.__class__, message
             results.append(result)
         return ColumnByValuesExpression(results)
