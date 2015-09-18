@@ -8,7 +8,7 @@ version = (2, 19, 5)
 
 
 install_requires = ["emzed_optimizations",
-                    "guidata<=1.6.1",
+                    "guidata<=1.6.2",
                     "guiqwt<=2.3.2",
                     "requests",
                     "ipython==0.10",
