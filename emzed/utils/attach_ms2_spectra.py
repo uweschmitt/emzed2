@@ -30,7 +30,7 @@ class LookupMS2(object):
                 print("%d%%" % (10 * n + 10), end=" ")
                 sys.stdout.flush()
                 last_n = n
-            if spec.msLevel == 2:
+            if spec.msLevel == 2 and spec.precursors:
                 rt = spec.rt
                 mz = spec.precursors[0][0]
                 i0 = int(mz / dmz)

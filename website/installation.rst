@@ -63,11 +63,12 @@ Installation on 64 bit Windows
 
 
 
-Installation on Ubuntu or Debian
+Installation on Ubuntu Linux
 ~~~~~~~~~~
 
-The following instructions are for Ubuntu 14 (server version), for other distributions the package
-name may sligthly differ (for example `python2.7-matplotlib` insteas of `python-matplotlib`):
+The following package names are for Ubuntu 14.04 LTS**, for other distributions the names
+may sligthly differ (for example `python2.7-matplotlib` instead of `python-matplotlib`).
+If needed you can eg use `$ apt-cache search matplotlib` to lookup exact names on your machine.
 
 1. First, you should install *numpy*, *scipy* and *matplotlib* globally as they
    are difficult to build. *PyQt4* should be installed globally too::
@@ -128,7 +129,7 @@ manually as described now:
         (emzed2)$ pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
         (emzed2)$ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
         (emzed2)$ pip install sphinx
-        (emzed2)$ pip install ipython==0.10
+        (emzed2)$ easy_innstall ipython==0.10
         (emzed2)$ pip install emzed
         (emzed2)$ deactivate
 
