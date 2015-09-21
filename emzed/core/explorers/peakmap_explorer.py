@@ -49,6 +49,14 @@ from ...gui.file_dialogs import askForSave, askForSingleFile
 from emzed_dialog import EmzedDialog
 
 
+def read_float(widget):
+    try:
+        value = float(widget.text())
+        return value
+    except ValueError:
+        return None
+
+
 def smooth(data, mzmax, mzmin):
     dmz = mzmax - mzmin
     # above dmz > 100.0 we will have n == 2, for dmz < .0 we have n == 4, inbetween
@@ -1232,12 +1240,16 @@ class PeakMapExplorer(EmzedDialog):
         self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
 
     def set_range_value_fields(self, rtmin, rtmax, mzmin, mzmax):
+        is_ppm = self.dmz_is_ppm.isChecked()
         self.rtmin_input.setText("%.2f" % (rtmin / 60.0))
         self.rtmax_input.setText("%.2f" % (rtmax / 60.0))
         self.mzmin_input.setText("%.5f" % mzmin)
         self.mzmax_input.setText("%.5f" % mzmax)
         self.mz_middle_input.setText("%.5f" % ((mzmax + mzmin) / 2.0))
-        self.dmz_input.setText("%.5f" % ((mzmax - mzmin) / 2.0))
+        if is_ppm:
+            self.dmz_input.setText("%.1f" % ((mzmax - mzmin) / (mzmax + mzmin) * 1e6))
+        else:
+            self.dmz_input.setText("%.5f" % ((mzmax - mzmin) / 2.0))
 
     def setup_input_widgets(self):
         self.log_label = QLabel("Logarithmic Scale:", self)
@@ -1287,7 +1299,9 @@ class PeakMapExplorer(EmzedDialog):
         self.rtmax_input = QLineEdit(self)
         self.rtmax_input.setValidator(QDoubleValidator())
 
-        self.mz_middle_label = QLabel("Mass To Charge center + width [Da]:", self)
+        self.mz_middle_label = QLabel("Mass To Charge center + width:", self)
+        self.dmz_is_ppm_label = QLabel("width in ppm ?")
+        self.dmz_is_ppm = QCheckBox(self)
         self.mz_middle_input = QLineEdit(self)
         self.mz_middle_input.setValidator(QDoubleValidator())
         self.dmz_input = QLineEdit(self)
@@ -1404,42 +1418,44 @@ class PeakMapExplorer(EmzedDialog):
         controls_layout.setMargin(5)
 
         row = 0
-        controls_layout.addWidget(self.ms_level_label, row, 0)
-        controls_layout.addWidget(self.ms_level, row, 1)
+        controls_layout.addWidget(self.ms_level_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.ms_level, row, 2, 1, 2)
 
         row += 1
-        controls_layout.addWidget(self.precursor_label, row, 0)
-        controls_layout.addWidget(self.precursor, row, 1)
+        controls_layout.addWidget(self.precursor_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.precursor, row, 2, 1, 2)
 
         row += 1
-        controls_layout.addWidget(self.precursor_range_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.precursor_range_label, row, 0, 1, 4)
         row += 1
-        controls_layout.addWidget(self.precursor_mz_min, row, 0)
-        controls_layout.addWidget(self.precursor_mz_max, row, 1)
+        controls_layout.addWidget(self.precursor_mz_min, row, 0, 1, 2)
+        controls_layout.addWidget(self.precursor_mz_max, row, 2, 1, 2)
 
         row += 1
-        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 4)
 
         row += 1
-        controls_layout.addWidget(self.rtmin_input, row, 0)
-        controls_layout.addWidget(self.rtmax_input, row, 1)
+        controls_layout.addWidget(self.rtmin_input, row, 0, 1, 2)
+        controls_layout.addWidget(self.rtmax_input, row, 2, 1, 2)
 
         row += 1
         controls_layout.addWidget(self.mz_middle_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.dmz_is_ppm_label, row, 2, 1, 1)
+        controls_layout.addWidget(self.dmz_is_ppm, row, 3)
 
         row += 1
-        controls_layout.addWidget(self.mz_middle_input, row, 0)
-        controls_layout.addWidget(self.dmz_input, row, 1)
+        controls_layout.addWidget(self.mz_middle_input, row, 0, 1, 2)
+        controls_layout.addWidget(self.dmz_input, row, 2, 1, 2)
 
         row += 1
-        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 2)
+        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 4)
 
         row += 1
-        controls_layout.addWidget(self.mzmin_input, row, 0)
-        controls_layout.addWidget(self.mzmax_input, row, 1)
+        controls_layout.addWidget(self.mzmin_input, row, 0, 1, 2)
+        controls_layout.addWidget(self.mzmax_input, row, 2, 1, 2)
 
         row += 1
-        controls_layout.addWidget(self.history_list, row, 0, 1, 2)
+        controls_layout.addWidget(self.history_list, row, 0, 1, 4)
 
         frame2 = QFrame(self)
         frame2.setLineWidth(1)
@@ -1471,6 +1487,7 @@ class PeakMapExplorer(EmzedDialog):
 
         self.connect(self.mz_middle_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
         self.connect(self.dmz_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
+        self.connect(self.dmz_is_ppm, SIGNAL("stateChanged(int)"), self.dmz_mode_changed)
 
         self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
 
@@ -1681,11 +1698,11 @@ class PeakMapExplorer(EmzedDialog):
 
     @protect_signal_handler
     def set_precursor_range(self):
-        try:
-            pre_mz_min = float(self.precursor_mz_min.text())
-            pre_mz_max = float(self.precursor_mz_max.text())
-        except ValueError:
+        pre_mz_min = read_float(self.precursor_mz_min)
+        pre_mz_max = read_float(self.precursor_mz_max)
+        if pre_mz_min is None or pre_mz_max is None:
             return
+
         self.precursor.setCurrentIndex(0)
         self.process_peakmap(self.current_ms_level, pre_mz_min, pre_mz_max)
         self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
@@ -1705,10 +1722,8 @@ class PeakMapExplorer(EmzedDialog):
     # ---- handle intensity text field edits
 
     def _i_edited(self, inp, setter, slider):
-        txt = inp.text()
-        try:
-            abs_value = float(txt)
-        except ValueError:
+        abs_value = read_float(inp)
+        if abs_value is None:
             return
         setter(abs_value)
 
@@ -1759,48 +1774,61 @@ class PeakMapExplorer(EmzedDialog):
         return
 
     def _read_rt_values(self):
-        rtmin = self.rtmin_input.text()
-        rtmax = self.rtmax_input.text()
-        try:
-            rtmin = float(rtmin)
-            rtmax = float(rtmax)
-        except ValueError:
+        rtmin = read_float(self.rtmin_input)
+        rtmax = read_float(self.rtmax_input)
+        if rtmin is None or rtmax is None:
             guidata.qapplication().beep()
             return self.rtmin, self.rtmax
         return rtmin, rtmax
 
     @protect_signal_handler
     def set_image_range(self):
-        mzmin = self.mzmin_input.text()
-        mzmax = self.mzmax_input.text()
         rtmin, rtmax = self._read_rt_values()
-        try:
-            mzmin = float(mzmin)
-            mzmax = float(mzmax)
-        except ValueError:
+        mzmin = read_float(self.mzmin_input)
+        mzmax = read_float(self.mzmax_input)
+        if mzmin is None or mzmax is None:
             guidata.qapplication().beep()
             return
         mzmean = (mzmin + mzmax) / 2.0
         dmz = (mzmax - mzmin) / 2.0
+        is_ppm = self.dmz_is_ppm.isChecked()
+        if is_ppm:
+            dmz = dmz / mzmean * 1e6
+            self.dmz_input.setText("%.1f" % dmz)
+        else:
+            self.dmz_input.setText("%.5f" % dmz)
         self.mz_middle_input.setText("%.5f" % mzmean)
-        self.dmz_input.setText("%.5f" % dmz)
         self.update_image_range(rtmin, rtmax, mzmin, mzmax)
 
     @protect_signal_handler
     def set_image_range_from_center(self):
-        middle = str(self.mz_middle_input.text())
-        dmz = str(self.dmz_input.text())
-        try:
-            middle = float(middle)
-            dmz = float(dmz)
-        except ValueError:
+        middle = read_float(self.mz_middle_input)
+        dmz = read_float(self.dmz_input)
+        if middle is None or dmz is None:
             return
+
+        is_ppm = self.dmz_is_ppm.isChecked()
+        if is_ppm:
+            dmz = dmz * middle * 1e-6
+
         mzmin = middle - dmz
         mzmax = middle + dmz
-        self.mzmin_input.setText("%.6f" % mzmin)
-        self.mzmax_input.setText("%.6f" % mzmax)
+        # self.mzmin_input.setText("%.6f" % mzmin)
+        # self.mzmax_input.setText("%.6f" % mzmax)
         rtmin, rtmax = self._read_rt_values()
         self.update_image_range(rtmin, rtmax, mzmin, mzmax)
+
+    @protect_signal_handler
+    def dmz_mode_changed(self, is_ppm):
+        is_ppm = bool(is_ppm)   # current we receive int values 0 or 2 from qt
+        mz_middle = read_float(self.mz_middle_input)
+        dmz = read_float(self.dmz_input)
+        if is_ppm:
+            # dalton -> ppm
+            dmz = "%.1f" % (1e6 * dmz / mz_middle)
+        else:
+            dmz = "%.5f" % (dmz * mz_middle * 1e-6)
+        self.dmz_input.setText(dmz)
 
     @protect_signal_handler
     def update_image_range(self, rtmin, rtmax, mzmin, mzmax):
