@@ -890,6 +890,7 @@ class TableExplorer(EmzedDialog):
 
         curves = []
         smoothed_curves = []
+        baselines = []
         mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
 
         if self.hasEIConly:
@@ -925,9 +926,11 @@ class TableExplorer(EmzedDialog):
                     rtmaxs.append(rtmax)
                 curves.extend(eics)
                 if self.isIntegrated:
-                    smootheds = self.model.getSmoothedEics(idx, allrts)
+                    smootheds = self.model.getSmoothedEics(idx)
+                    baseline = self.model.getBaselines(idx, allrts)
                     if smootheds is not None:
                         smoothed_curves.extend(smootheds)
+                        baselines.append(baseline)
 
         rtmin = min(rtmins) if rtmins else None
         rtmax = max(rtmaxs) if rtmaxs else None
@@ -943,6 +946,8 @@ class TableExplorer(EmzedDialog):
 
         curves += smoothed_curves
         configs += configsForSmootheds(smoothed_curves)
+
+        curves += baselines
 
         self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
 

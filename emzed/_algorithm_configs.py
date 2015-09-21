@@ -33,6 +33,7 @@ peakIntegrators = [ ( "std",  SGIntegrator(window_size=11, order=2) ) ,
                     ( "trapez", TrapezIntegrator() ) ,
                     ( "max", MaxIntegrator() ) ,
                     ( "emg_exact", SimplifiedEMGIntegrator() ) ,
+                    ( "emg_with_baseline", SimplifiedEMGIntegrator(fit_baseline=True) ) ,
                     ( "no_integration", NoIntegration() ) ,
                    ]
 

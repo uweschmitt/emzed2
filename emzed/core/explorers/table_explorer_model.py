@@ -353,6 +353,18 @@ class TableModel(QAbstractTableModel):
             allsmoothed.append(data)
         return allsmoothed
 
+    def getBaselines(self, data_row_idx):
+        baselines = []
+        for p in self.table.supportedPostfixes(self.integrationColNames()):
+            values = self.getIntegrationValues(data_row_idx, p)
+            method = values["method" + p]
+            params = values["params" + p]
+            integrator = dict(_algorithm_configs.peakIntegrators).get(method)
+            if method is not None:
+                baseline = integrator.getBaseline(params)
+            baselines.append(baseline)
+        return baselines
+
     def getPeakmaps(self, data_row_idx):
         peakMaps = []
         for p in self.table.supportedPostfixes(["peakmap"]):

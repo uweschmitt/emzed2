@@ -45,6 +45,9 @@ class BaseIntegrator(object):
     def getSmoothed(self, *a):
         pass
 
+    def getBaseLine(self, params):
+        pass
+
     def trapez(self, x, y):
         """ needed by some sub classes """
         area = 0.5 * (np.dot(y[:-1], x[1:]) - np.dot(y[1:], x[:-1]) + x[-1] * y[-1] - x[0] * y[0])

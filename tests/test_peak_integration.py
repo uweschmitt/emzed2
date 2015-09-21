@@ -204,6 +204,9 @@ def testPeakIntegration(regtest):
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_exact"]
     run(integrator, regtest)
 
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_with_baseline"]
+    run(integrator, regtest)
+
     integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
     run(integrator, regtest)
 
