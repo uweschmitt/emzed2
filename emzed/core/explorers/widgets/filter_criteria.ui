@@ -22,6 +22,9 @@
    </property>
    <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="flat">
+      <bool>true</bool>
+     </property>
      <layout class="QHBoxLayout" name="horizontalLayout"/>
     </widget>
    </item>

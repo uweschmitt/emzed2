@@ -474,12 +474,18 @@ class TableExplorer(EmzedDialog):
 
         vsplitter.addWidget(self.layoutToolWidgets())  # 3
 
+        self.filter_widgets_box = QScrollArea(self)
         self.filter_widgets_container = QStackedWidget(self)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
 
-        self.filter_widgets_container.setVisible(False)
-        vsplitter.addWidget(self.filter_widgets_container)  # 4
+        self.filter_widgets_box.setVisible(False)
+        self.filter_widgets_box.setWidget(self.filter_widgets_container)  # 4
+        self.filter_widgets_box.setWidgetResizable(True)
+        self.filter_widgets_box.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.filter_widgets_box.setMinimumSize(QSize(self.filter_widgets_box.sizeHint().width(), 120))
+        self.filter_widgets_box.setFrameStyle(QFrame.Plain)
+        vsplitter.addWidget(self.filter_widgets_box)
 
         di = 1 if extra is not None else 0
 
@@ -691,7 +697,7 @@ class TableExplorer(EmzedDialog):
         self.filters_enabled = not self.filters_enabled
         for model in self.models:
             model.setFiltersEnabled(self.filters_enabled)
-        self.filter_widgets_container.setVisible(self.filters_enabled)
+        self.filter_widgets_box.setVisible(self.filters_enabled)
         self.restrict_to_filtered_button.setEnabled(self.filters_enabled)
         self.remove_filtered_button.setEnabled(self.filters_enabled)
         if self.filters_enabled:

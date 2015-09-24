@@ -31,6 +31,7 @@ class Ui_FilterCriteria(object):
         self.verticalLayout.setMargin(3)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.groupBox = QtGui.QGroupBox(FilterCriteria)
+        self.groupBox.setFlat(True)
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
         self.horizontalLayout = QtGui.QHBoxLayout(self.groupBox)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
