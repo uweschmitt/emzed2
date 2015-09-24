@@ -223,6 +223,20 @@ class EmzedTableView(QTableView):
                     if row is not None:
                         ix = self.model().index(row, column)
                         self.setCurrentIndex(ix)
+        elif evt.key() in (Qt.Key_Up, Qt.Key_Down):
+            row = self.currentIndex().row()
+            column = self.currentIndex().column()
+            if evt.key() == Qt.Key_Up:
+                row -= 1
+            else:
+                row += 1
+            row = min(max(row, 0), self.model().rowCount() - 1)
+            ix = self.model().index(row, column)
+            self.setCurrentIndex(ix)
+            self.selectRow(row)
+            self.verticalHeader().sectionClicked.emit(row)
+            # skip event handling:
+            return
         return super(EmzedTableView, self).keyPressEvent(evt)
 
 
@@ -629,6 +643,11 @@ class TableExplorer(EmzedDialog):
         if isUrl(content):
             QDesktopServices.openUrl(QUrl(content))
 
+    @protect_signal_handler
+    def cell_pressed(self, index):
+        self.tableView.selectRow(index.row())
+        self.tableView.verticalHeader().sectionClicked.emit(index.row())
+
     def connectSignals(self):
         for i, action in enumerate(self.chooseTableActions):
 
@@ -648,6 +667,8 @@ class TableExplorer(EmzedDialog):
             handler = protect_signal_handler(handler)
             self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
             self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
+
+            view.pressed.connect(self.cell_pressed)
 
             self.connect_additional_widgets(model)
 
