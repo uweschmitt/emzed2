@@ -8,9 +8,8 @@ from PyQt4.QtCore import *
 
 import guidata
 
-from guiqwt.shapes import PolygonShape, RectangleShape
+from guiqwt.shapes import PolygonShape
 from guiqwt.styles import ShapeParam
-from guiqwt.builder import make
 
 from plotting_widgets import RtPlotter, MzPlotter
 
@@ -59,6 +58,56 @@ def create_peak_fit_shape(rts, iis, baseline, color):
     return None
 
 
+def eic_curves(model):
+    rtmins, rtmaxs, curves = [], [], []
+    for idx in model.selected_data_rows:
+        eics, rtmin, rtmax, allrts = model.getEICs(idx)
+        if rtmin is not None:
+            rtmins.append(rtmin)
+        if rtmax is not None:
+            rtmaxs.append(rtmax)
+        curves.extend(eics)
+    return min(rtmins), max(rtmaxs), curves
+
+
+def time_series(model):
+    rtmins, rtmaxs, curves = [], [], []
+    for idx in model.selected_data_rows:
+        # filter valid time series
+        tsi = [tsi for tsi in model.getTimeSeries(idx) if tsi is not None]
+        # extract all valid x values from all time series
+        xi = [xi for ts in tsi for xi in ts.x if xi is not None]
+        if xi:
+            rtmins.append(min(xi))
+            rtmaxs.append(max(xi))
+            curves.extend(tsi)
+    return min(rtmins), max(rtmaxs), curves
+
+
+def chromatograms(model, is_integrated):
+    curves = []
+    fit_shapes = []
+    mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
+    for idx in model.selected_data_rows:
+        eics, mzmin, mzmax, rtmin, rtmax, allrts = model.extractEICs(idx)
+        if mzmin is not None:
+            mzmins.append(mzmin)
+        if rtmin is not None:
+            rtmins.append(rtmin)
+        if mzmax is not None:
+            mzmaxs.append(mzmax)
+        if rtmax is not None:
+            rtmaxs.append(rtmax)
+        if is_integrated:
+            fitted_shapes = model.getFittedPeakshapes(idx, allrts)
+            # make sure that eics and fit shapes are in sync (needed for coloring):
+            assert len(eics) == len(fitted_shapes)
+            curves.extend(eics)
+            fit_shapes.extend(fitted_shapes)
+        else:
+            curves.extend(eics)
+    return min(rtmins), max(rtmaxs), min(mzmins), max(mzmaxs), curves, fit_shapes
+
 
 def button(txt=None, parent=None):
     btn = QPushButton(parent=parent)
@@ -79,14 +128,20 @@ def getColors(i, light=False):
 
 
 def turn_light(color):
-    rgb = [int(color[i:i+2], 16) for i in range(1, 6, 2)]
+    rgb = [int(color[i:i + 2], 16) for i in range(1, 6, 2)]
     rgb_light = [min(ii + 50, 255) for ii in rgb]
     return "#" + "".join("%02x" % v for v in rgb_light)
 
 
-def configsForEics(eics, is_time_series):
+def configsForEics(eics):
     n = len(eics)
-    w = 1.5 if is_time_series else 1.5
+    w = 1.5
+    return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
+
+
+def configsForTimeSeries(eics):
+    n = len(eics)
+    w = 1.5
     return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
 
 
@@ -256,7 +311,7 @@ class TableExplorer(EmzedDialog):
                     fmtter = t.colFormatters[i]
                     try:
                         txt = fmtter(0.0)
-                    except:
+                    except Exception:
                         txt = ""
                     if txt.endswith("m"):
                         ch = ChooseTimeRange(name, t)
@@ -898,6 +953,7 @@ class TableExplorer(EmzedDialog):
             self.setupSpectrumChooser()
 
     def setupSpectrumChooser(self):
+        self.choose_spec.blockSignals(True)
         self.choose_spec.clear()
 
         spectra = []
@@ -927,87 +983,36 @@ class TableExplorer(EmzedDialog):
 
         if labels:
             self.choose_spec.setCurrentRow(0)
+        self.choose_spec.blockSignals(False)
 
     def updatePlots(self, reset=False):
 
-        curves = []
-        mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
-
-        def eic_curves(model):
-            curves = []
-            for idx in model.selected_data_rows:
-                eics, rtmin, rtmax, allrts = model.getEICs(idx)
-                if rtmin is not None:
-                    rtmins.append(rtmin)
-                if rtmax is not None:
-                    rtmaxs.append(rtmax)
-                curves.extend(eics)
-            return rtmins, rtmaxs, curves, []
-
-        def time_series(model):
-            curves = []
-            for idx in model.selected_data_rows:
-                # filter valid time series
-                tsi = [tsi for tsi in model.getTimeSeries(idx) if tsi is not None]
-                # extract all valid x values from all time series
-                xi = [xi for ts in tsi for xi in ts.x if xi is not None]
-                if xi:
-                    rtmins.append(min(xi))
-                    rtmaxs.append(max(xi))
-                    curves.extend(tsi)
-            return rtmins, rtmaxs, curves, []
-
-        def chromatograms(model):
-            curves = []
-            fit_shapes = []
-            for idx in model.selected_data_rows:
-                eics, mzmin, mzmax, rtmin, rtmax, allrts = model.extractEICs(idx)
-                if mzmin is not None:
-                    mzmins.append(mzmin)
-                if rtmin is not None:
-                    rtmins.append(rtmin)
-                if mzmax is not None:
-                    mzmaxs.append(mzmax)
-                if rtmax is not None:
-                    rtmaxs.append(rtmax)
-                if self.isIntegrated:
-                    fitted_shapes = model.getFittedPeakshapes(idx, allrts)
-                    # make sure that eics and fit shapes are in sync (needed for coloring):
-                    assert len(eics) == len(fitted_shapes)
-                    curves.extend(eics)
-                    fit_shapes.extend(fitted_shapes)
-                else:
-                    curves.extend(eics)
-            return rtmins, rtmaxs, curves, fit_shapes
+        mzmin = mzmax = rtmin = rtmax = None
+        fit_shapes = []
 
         if self.hasEIConly:
-            rtmins, rtmaxs, curves, fit_shapes = eic_curves(self.model)
+            rtmin, rtmax, curves = eic_curves(self.model)
+            configs = configsForEics(curves)
 
         elif self.hasTimeSeries:
-            rtmins, rtmaxs, curves, fit_shapes = time_series(self.model)
+            rtmin, rtmax, curves = time_series(self.model)
+            configs = configsForTimeSeries(curves)
             self.plotMz(limits_from_rows=True)
         else:
-            rtmins, rtmaxs, curves, fit_shapes = chromatograms(self.model)
-
-        rtmin = min(rtmins) if rtmins else None
-        rtmax = max(rtmaxs) if rtmaxs else None
-        mzmin = min(mzmins) if mzmins else None
-        mzmax = max(mzmaxs) if mzmaxs else None
+            rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.isIntegrated)
+            configs = configsForEics(curves)
 
         if not reset:
             if not self.hasTimeSeries:
                 rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
             xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
 
-        configs = configsForEics(curves, self.hasTimeSeries)
-
         self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
 
         for ((rts, iis), baseline), config in zip(fit_shapes, configs):
             if baseline is None:
-                baseline = 1e-3   # makes plotting faster...
+                baseline = 0.0
 
-            print(max(iis))
             eic_color = config["color"]
             color = turn_light(eic_color)
             shape = create_peak_fit_shape(rts, iis, baseline, color)
@@ -1036,7 +1041,6 @@ class TableExplorer(EmzedDialog):
         limits = (mzmin, mzmax) if reset_ else None
         if not self.hasEIConly and not self.hasTimeSeries:
             self.plotMz(resetLimits=limits)
-
 
     @protect_signal_handler
     def spectrumChosen(self):
