@@ -336,34 +336,22 @@ class TableModel(QAbstractTableModel):
                 return row
         return None
 
-    def getSmoothedEics(self, data_row_idx, rts):
-        allsmoothed = []
-        for p in self.table.supportedPostfixes(self.integrationColNames()):
-            values = self.getIntegrationValues(data_row_idx, p)
-            method = values["method" + p]
-            params = values["params" + p]
-            integrator = dict(_algorithm_configs.peakIntegrators).get(method)
-            data = ([], [])
-            if method is not None:
-                try:
-                    data = integrator.getSmoothed(rts, params)
-                except:
-                    # maybe overflow or something like this
-                    pass
-            allsmoothed.append(data)
-        return allsmoothed
-
-    def getBaselines(self, data_row_idx):
-        baselines = []
+    def getFittedPeakshapes(self, data_row_idx, rts):
+        shapes = []
         for p in self.table.supportedPostfixes(self.integrationColNames()):
             values = self.getIntegrationValues(data_row_idx, p)
             method = values["method" + p]
             params = values["params" + p]
             integrator = dict(_algorithm_configs.peakIntegrators).get(method)
             if method is not None:
-                baseline = integrator.getBaseline(params)
-            baselines.append(baseline)
-        return baselines
+                # data is a tuple with two onedim numpy arrays:
+                data = integrator.getSmoothed(rts, params)
+                # baslein is a numerical value or None
+                baseline = integrator.getBaseline(rts, params)
+            else:
+                data = baseline = None
+            shapes.append((data, baseline))
+        return shapes
 
     def getPeakmaps(self, data_row_idx):
         peakMaps = []

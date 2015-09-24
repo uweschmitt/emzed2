@@ -81,9 +81,11 @@ t2.dropColumns("mzmin", "mzmax")
 t2.addColumn("peakmap", pm)
 t2.setTitle("incomplete peak table")
 
+ti.sortBy("area", ascending=False)
+
 # t2 = emzed.utils.integrate(t2)
 
-emzed.gui.inspect((t, ti, t1, t2))
+emzed.gui.inspect((ti, t, t1, t2))
 
 
 

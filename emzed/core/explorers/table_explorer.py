@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
 
+import numpy as np
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 import guidata
+
+from guiqwt.shapes import PolygonShape, RectangleShape
+from guiqwt.styles import ShapeParam
+from guiqwt.builder import make
 
 from plotting_widgets import RtPlotter, MzPlotter
 
@@ -24,6 +30,36 @@ from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseVa
 from ...gui.file_dialogs import askForSave
 
 
+def create_peak_fit_shape(rts, iis, baseline, color):
+    rts = np.array(rts)
+    iis = np.array(iis)
+    perm = np.argsort(rts)
+    rts = rts[perm][:, None]  # column vector
+    iis = iis[perm][:, None]
+    points = np.hstack((rts, iis))  # we need two columns not two rows
+    points = points[points[:, 1] >= baseline]
+    if len(points):
+        rt0 = points[0][0]
+        rt1 = points[-1][0]
+        points = np.vstack(((rt0, baseline), points, (rt1, baseline)))
+        shape = PolygonShape(points, closed=True)
+        shape.set_selectable(False)
+        shape.set_movable(False)
+        shape.set_resizable(False)
+        shape.set_rotatable(False)
+        param = ShapeParam()
+        param.fill.alpha = 0.3
+        param.fill.color = color
+        # we set params this way because guiqwt has a bug if we use the shapeparam arg in
+        # PolygonShapes __init__:
+        param.update_shape(shape)
+        shape.pen = QPen(Qt.NoPen)
+
+        return shape
+    return None
+
+
+
 def button(txt=None, parent=None):
     btn = QPushButton(parent=parent)
     if txt is not None:
@@ -36,11 +72,16 @@ def button(txt=None, parent=None):
 def getColors(i, light=False):
     colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
     c = colors[i % len(colors)]
+    color = "#" + "".join("%02x" % v for v in c)
     if light:
-        c = tuple([min(ii + 50, 255) for ii in c])
+        color = turn_light(color)
+    return color
 
-    # create hex string  "#rrggbb":
-    return "#" + "".join("%02x" % v for v in c)
+
+def turn_light(color):
+    rgb = [int(color[i:i+2], 16) for i in range(1, 6, 2)]
+    rgb_light = [min(ii + 50, 255) for ii in rgb]
+    return "#" + "".join("%02x" % v for v in rgb_light)
 
 
 def configsForEics(eics, is_time_series):
@@ -49,8 +90,9 @@ def configsForEics(eics, is_time_series):
     return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
 
 
-def configsForSmootheds(smootheds):
+def configs_for_fitted_peakshapes(smootheds):
     n = len(smootheds)
+    return [dict(shade=0.75, linewidth=3, color=getColors(i, light=True)) for i in range(n)]
     return [dict(shade=0.35, linestyle="NoPen", color=getColors(i, light=True)) for i in range(n)]
 
 
@@ -889,33 +931,37 @@ class TableExplorer(EmzedDialog):
     def updatePlots(self, reset=False):
 
         curves = []
-        smoothed_curves = []
-        baselines = []
         mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
 
-        if self.hasEIConly:
-            for idx in self.model.selected_data_rows:
-                eics, rtmin, rtmax, allrts = self.model.getEICs(idx)
+        def eic_curves(model):
+            curves = []
+            for idx in model.selected_data_rows:
+                eics, rtmin, rtmax, allrts = model.getEICs(idx)
                 if rtmin is not None:
                     rtmins.append(rtmin)
                 if rtmax is not None:
                     rtmaxs.append(rtmax)
                 curves.extend(eics)
+            return rtmins, rtmaxs, curves, []
 
-        elif self.hasTimeSeries:
-            for idx in self.model.selected_data_rows:
+        def time_series(model):
+            curves = []
+            for idx in model.selected_data_rows:
                 # filter valid time series
-                tsi = [tsi for tsi in self.model.getTimeSeries(idx) if tsi is not None]
+                tsi = [tsi for tsi in model.getTimeSeries(idx) if tsi is not None]
                 # extract all valid x values from all time series
                 xi = [xi for ts in tsi for xi in ts.x if xi is not None]
                 if xi:
                     rtmins.append(min(xi))
                     rtmaxs.append(max(xi))
                     curves.extend(tsi)
-            self.plotMz(limits_from_rows=True)
-        else:
-            for idx in self.model.selected_data_rows:
-                eics, mzmin, mzmax, rtmin, rtmax, allrts = self.model.extractEICs(idx)
+            return rtmins, rtmaxs, curves, []
+
+        def chromatograms(model):
+            curves = []
+            fit_shapes = []
+            for idx in model.selected_data_rows:
+                eics, mzmin, mzmax, rtmin, rtmax, allrts = model.extractEICs(idx)
                 if mzmin is not None:
                     mzmins.append(mzmin)
                 if rtmin is not None:
@@ -924,13 +970,24 @@ class TableExplorer(EmzedDialog):
                     mzmaxs.append(mzmax)
                 if rtmax is not None:
                     rtmaxs.append(rtmax)
-                curves.extend(eics)
                 if self.isIntegrated:
-                    smootheds = self.model.getSmoothedEics(idx)
-                    baseline = self.model.getBaselines(idx, allrts)
-                    if smootheds is not None:
-                        smoothed_curves.extend(smootheds)
-                        baselines.append(baseline)
+                    fitted_shapes = model.getFittedPeakshapes(idx, allrts)
+                    # make sure that eics and fit shapes are in sync (needed for coloring):
+                    assert len(eics) == len(fitted_shapes)
+                    curves.extend(eics)
+                    fit_shapes.extend(fitted_shapes)
+                else:
+                    curves.extend(eics)
+            return rtmins, rtmaxs, curves, fit_shapes
+
+        if self.hasEIConly:
+            rtmins, rtmaxs, curves, fit_shapes = eic_curves(self.model)
+
+        elif self.hasTimeSeries:
+            rtmins, rtmaxs, curves, fit_shapes = time_series(self.model)
+            self.plotMz(limits_from_rows=True)
+        else:
+            rtmins, rtmaxs, curves, fit_shapes = chromatograms(self.model)
 
         rtmin = min(rtmins) if rtmins else None
         rtmax = max(rtmaxs) if rtmaxs else None
@@ -944,12 +1001,18 @@ class TableExplorer(EmzedDialog):
 
         configs = configsForEics(curves, self.hasTimeSeries)
 
-        curves += smoothed_curves
-        configs += configsForSmootheds(smoothed_curves)
-
-        curves += baselines
-
         self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
+
+        for ((rts, iis), baseline), config in zip(fit_shapes, configs):
+            if baseline is None:
+                baseline = 1e-3   # makes plotting faster...
+
+            print(max(iis))
+            eic_color = config["color"]
+            color = turn_light(eic_color)
+            shape = create_peak_fit_shape(rts, iis, baseline, color)
+            if shape is not None:
+                self.rt_plotter.widget.plot.add_item(shape)
 
         # allrts are sorted !
         if rtmin is not None and rtmax is not None:

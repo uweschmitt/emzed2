@@ -189,11 +189,35 @@ def testNoIntegration():
     assert result.get("rmse") is None
     assert result.get("params") is None
     assert result.get("eic") is None
+    assert result.get("baseline") is None
 
     rts = range(0, 600)
-    x,y = integrator.getSmoothed(rts, result.get("params"))
-    assert x==[]
-    assert y==[]
+    x, y = integrator.getSmoothed(rts, result.get("params"))
+    assert x == []
+    assert y == []
+
+
+def test_with_baseline(regtest):
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_with_baseline"]
+    rts = np.arange(0.0, 10.0, 0.1)
+    chromo = np.exp(-(rts - 5.0) ** 2 / 3.0) * 20
+    a, b, params = integrator.integrator(rts, chromo, rts, chromo)
+    __, chrneu = integrator.getSmoothed(rts, params)
+    print("emg with baseline", file=regtest)
+    for i, pi in enumerate(params):
+        print("param %d = %.3f" % (i, pi), file=regtest)
+
+    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez_with_baseline"]
+    rts = np.arange(0.0, 10.0, 0.1)
+    chromo = np.exp(-(rts - 5.0) ** 2 / 3.0) * 20
+    a, b, params = integrator.integrator(rts[30:-30], chromo[30:-30], rts, chromo)
+    __, chrneu = integrator.getSmoothed(rts, params)
+    print("trapez with baseline", file=regtest)
+    print("mean rt=%.3f" % params[0].mean(), file=regtest)
+    print("std  rt=%.3f" % params[0].std(), file=regtest)
+    print("mean ii=%.3f" % params[1].mean(), file=regtest)
+    print("std  ii=%.3f" % params[1].std(), file=regtest)
+    print("baseline=%.3f" % params[2], file=regtest)
 
 
 def testPeakIntegration(regtest):
@@ -284,7 +308,6 @@ def test_integrate_empty_table(path, regtest):
     # test with and without unicode:
     ft = io.loadTable(path("data/features.table"))
     ft = ft[:0]
-    print(file=regtest)
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
     print(ft, file=regtest)

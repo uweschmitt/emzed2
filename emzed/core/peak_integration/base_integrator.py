@@ -28,14 +28,15 @@ class BaseIntegrator(object):
 
         rts, chromatogram = self.peakMap.chromatogram(mzmin, mzmax, rtmin, rtmax, msLevel)
         if len(rts) == 0:
-            return dict(area=0.0, rmse=0.0, params=None, eic=None)
+            return dict(area=0.0, rmse=0.0, params=None, eic=None, baseline=None)
 
         eic = self.peakMap.chromatogram(mzmin, mzmax, rtmin - eic_widening, rtmax + eic_widening)
         allrts, fullchrom = eic
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
+        baseline = self.getBaseline(rts, params)
 
-        return dict(area=area, rmse=rmse, params=params, eic=eic)
+        return dict(area=area, rmse=rmse, params=params, eic=eic, baseline=baseline)
 
     @abc.abstractmethod
     def integrator(self, allrts, fullchrom, rts, chrom):
@@ -45,7 +46,7 @@ class BaseIntegrator(object):
     def getSmoothed(self, *a):
         pass
 
-    def getBaseLine(self, params):
+    def getBaseline(self, rtvalues, params):
         pass
 
     def trapez(self, x, y):

@@ -126,6 +126,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
         rmses = []
         paramss = []
         eics = []
+        baselines = []
         for i, row in enumerate(ftable.rows):
             if showProgress:
                 # integer div here !
@@ -145,7 +146,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
             peakmap = ftable.getValue(row, "peakmap" + postfix)
             if rtmin is None or rtmax is None or mzmin is None or mzmax is None\
                     or peakmap is None:
-                area = rmse = params = eic = None
+                area = rmse = params = eic = baseline = None
             else:
                 integrator.setPeakMap(peakmap)
                 result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel, eic_widening)
@@ -154,17 +155,22 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
                 rmse = result["rmse"]
                 params = result["params"]
                 eic = result["eic"]
+                baseline = result["baseline"]
 
             areas.append(area)
             rmses.append(rmse)
             paramss.append(params)
             eics.append(eic)
+            baselines.append(baseline)
 
         resultTable._updateColumnWithoutNameCheck("method" + postfix,
                                                   integratorid, str, "%s",
                                                   insertBefore="peakmap" + postfix)
 
         resultTable._updateColumnWithoutNameCheck("area" + postfix, areas, float,
+                                                  "%.2e", insertBefore="peakmap" + postfix)
+
+        resultTable._updateColumnWithoutNameCheck("baseline" + postfix, baselines, float,
                                                   "%.2e", insertBefore="peakmap" + postfix)
 
         resultTable._updateColumnWithoutNameCheck("rmse" + postfix, rmses, float,

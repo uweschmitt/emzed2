@@ -3,6 +3,7 @@ import numpy as np
 import scipy.optimize as opt
 import math
 
+
 class SimplifiedEMGIntegrator(BaseIntegrator):
 
     def __init__(self, **kw):
@@ -12,7 +13,7 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
 
     def __str__(self):
         info = "default" if self.xtol is None else "%.2e" % self.xtol
-        return "SimplifiedEMGIntegrator, xtol=%s" %  info
+        return "SimplifiedEMGIntegrator, xtol=%s" % info
 
     @staticmethod
     def _fun_eval(param, rts, sqrt_two_pi=math.sqrt(math.pi), sqrt_2=math.sqrt(2.0), exp=np.exp):
@@ -32,7 +33,7 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         return h * w / s * sqrt_two_pi * nominator / denominator
 
     @staticmethod
-    def _fun_eval_baseline(param, rts, sqrt_two_pi=math.sqrt(math.pi), sqrt_2=math.sqrt(2.0), exp=np.exp):
+    def _fun_eval_baseline(param, rts):
         h, z, w, s, beta = param
         return SimplifiedEMGIntegrator._fun_eval((h, z, w, s), rts) + beta
 
@@ -57,48 +58,70 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         imax = np.argmax(chromatogram)
         h = chromatogram[imax]
         z = rts[imax]
-        w = s = 5.0
+        w = s = 1.0
         rts = np.array(rts)
 
-        if self.fit_baseline:
-            param = (h, z, w, s, 0)
-            err = SimplifiedEMGIntegrator._err_baseline
-            fun = SimplifiedEMGIntegrator._fun_eval_baseline
-        else:
-            param = (h, z, w, s)
-            err = SimplifiedEMGIntegrator._err
-            fun = SimplifiedEMGIntegrator._fun_eval
+        param = (h, z, w, s)
+        err = SimplifiedEMGIntegrator._err
+        fun = SimplifiedEMGIntegrator._fun_eval
+
+        # we use usual emg model as start model if fit with baseline is requested.
 
         if self.xtol is None:
             param, ok = opt.leastsq(err, param, args=(rts, chromatogram), ftol=0.005)
         else:
             param, ok = opt.leastsq(err, param, args=(rts, chromatogram), xtol=self.xtol)
 
-        w = param[1]
+        fitted_baseline = False
+        if self.fit_baseline:
+            # no we try to fit the model incl. baseline:
+            h = param[0]
+            param_bl = np.hstack((param, h / 2.0))  # start with max / 2. baseline
+            err = SimplifiedEMGIntegrator._err_baseline
+            if self.xtol is None:
+                param_bl, ok_bl = opt.leastsq(err, param_bl, args=(rts, chromatogram), ftol=0.005)
+            else:
+                param_bl, ok_bl = opt.leastsq(err, param_bl, args=(rts, chromatogram), xtol=self.xtol)
+            beta = param_bl[-1]
+            if beta >= 0 and ok_bl:  # success:
+                param = param_bl
+                ok = ok_bl
+                fun = SimplifiedEMGIntegrator._fun_eval_baseline
+                fitted_baseline = True
 
+        w = param[1]
         if ok not in [1, 2, 3, 4] or w <= 0:  # failed
             area = 0.0
-            rmse = 1.0/math.sqrt(len(rts))*np.linalg.norm(chromatogram)
-            param = np.array((0., 0., 0., 0.)) # these params generate area=0
+            rmse = 1.0 / math.sqrt(len(rts)) * np.linalg.norm(chromatogram)
+            param = np.zeros_like(param)
         else:
             smoothed = fun(param, allrts)
+            fitted = fun(param, rts)
             isnan = np.isnan(smoothed)
-            if np.any(isnan):
-                print isnan
-            smoothed[isnan]=0.0
-            area = self.trapez(allrts, smoothed)
-            rmse = 1/math.sqrt(len(allrts)) * np.linalg.norm(smoothed - fullchromatogram)
+            smoothed[isnan] = 0.0
+            if fitted_baseline:
+                beta = param[-1]
+                ix = smoothed > beta
+                sm_sel = smoothed[ix]
+                rt_sel = allrts[ix]
+                if len(rt_sel):
+                    area = self.trapez(rt_sel, sm_sel) - (max(rt_sel) - min(rt_sel)) * beta
+                else:
+                    area = 0.0
+            else:
+                area = self.trapez(allrts, smoothed)
+            rmse = 1 / math.sqrt(len(rts)) * np.linalg.norm(fitted - chromatogram)
 
         return area, rmse, param
 
     def getSmoothed(self, rtvalues, params):
-        if self.fit_baseline:
+        if len(params) == 5:
             fun = SimplifiedEMGIntegrator._fun_eval_baseline
         else:
             fun = SimplifiedEMGIntegrator._fun_eval
         return rtvalues, fun(params, np.array(rtvalues))
 
-    def getBaseline(self, rtvalues, params):
+    def getBaseline(self, rtvalues, param):
         if self.fit_baseline:
-            return rtvalues, params[-1] * len(rtvalues)
+            return param[-1]
         return None

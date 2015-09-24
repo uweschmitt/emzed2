@@ -1,0 +1,11 @@
+emg with baseline
+param 0 = 40.041
+param 1 = 4.292
+param 2 = 0.831
+param 3 = 0.978
+trapez with baseline
+mean rt=4.950
+std  rt=2.887
+mean ii=6.140
+std  ii=7.010
+baseline=0.005
