@@ -30,6 +30,8 @@ def check(peaks, peakmap, regtest, mode):
 
     def mz_range(spectra):
         mzs = [mz for s in spectra for mz in s.peaks[:, 0]]
+        if not mzs:
+            return None
         return max(mzs) - min(mzs)
 
     def energy(spectra):
@@ -48,6 +50,24 @@ def test_mode_is_intersection(peaks, peakmap, regtest):
 
 
 def test_mode_is_union(peaks, peakmap, regtest):
+    check(peaks, peakmap, regtest, "union")
+
+
+def test_mode_is_union_no_overlap(peaks, peakmap, regtest):
+    Spectrum = emzed.core.data_types.Spectrum
+    PeakMap = emzed.core.data_types.PeakMap
+
+    # we create an artificial peakmap with non overlapping ms2 spectra
+    spectra = []
+    for s in peakmap:
+        if s.msLevel == 2:
+            n = s.peaks.shape[0]
+            peaks1 = s.peaks[:n/2, :]
+            peaks2 = s.peaks[n/2 + 1:, :]
+            spectra.append(Spectrum(peaks1, s.rt, 2, s.polarity, s.precursors))
+            spectra.append(Spectrum(peaks2, s.rt, 2, s.polarity, s.precursors))
+
+    peakmap = PeakMap(spectra)
     check(peaks, peakmap, regtest, "union")
 
 

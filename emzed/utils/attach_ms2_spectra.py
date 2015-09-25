@@ -90,6 +90,9 @@ def _determine_scaling_factors(mz_vecs, intensity_vecs, alignments, common):
         iiv = intensity_vecs[0]
         intensities.append([iiv[ii] for ii in common])
 
+    if not intensities:
+        return None
+
     # we collected in reverse order, this is we slice with stepsize -1:
     intensities = np.vstack(intensities)[::-1]
 
@@ -142,7 +145,10 @@ def _merge(spectra, mz_tolerance=1.3e-3, only_common_peaks=False, verbose=True):
         return _final_spectrum(peaks, spectra)
 
     scalings = _determine_scaling_factors(mz_vecs, intensity_vecs, alignments, common)
-    peaks = _overlay(mz_vecs, intensity_vecs, scalings, mz_tolerance, verbose, len(common))
+    if scalings is not None:
+        peaks = _overlay(mz_vecs, intensity_vecs, scalings, mz_tolerance, verbose, len(common))
+    else:
+        peaks = [np.empty((0, 2))]
     return _final_spectrum(peaks, spectra)
 
 
@@ -248,6 +254,7 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
     all_spectra = []
     last_n = 0
     num_spectra = []
+    infos = []
     for i, row in enumerate(peak_table):
         n = int(10.0 * i / len(peak_table))
         if n != last_n:
@@ -256,12 +263,19 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
             if verbose:
                 print()  # else we mix other output with this counting output in one line
             last_n = n
-        spectra = lookup.find_spectra(row.mzmin, row.mzmax, row.rtmin, row.rtmax)
-        num_spectra.append(len(spectra))
-        spectra = _merge_spectra(spectra, mode, mz_tolerance, verbose)
-        all_spectra.append(spectra)
+        ms2_spectra = lookup.find_spectra(row.mzmin, row.mzmax, row.rtmin, row.rtmax)
+        num_spectra.append(len(ms2_spectra))
+        merged_spectra = _merge_spectra(ms2_spectra, mode, mz_tolerance, verbose)
+
+        empty_result = merged_spectra is None or not any(len(s.peaks) for s in merged_spectra)
+        if ms2_spectra and empty_result:
+            infos.append("%s(failed)" % mode)
+        else:
+            infos.append(mode)
+        all_spectra.append(merged_spectra)
     peak_table.addColumn("spectra_ms2", all_spectra, type_=list)
     peak_table.addColumn("num_spectra_ms2", num_spectra, type_=int)
+    peak_table.addColumn("ms2_extraction_info", infos, type_=str)
     num_ms2_added = peak_table.spectra_ms2.countNotNone()
     print()
     if num_ms2_added == 0:
