@@ -194,16 +194,18 @@ class IntegrateAction(TableAction):
             mzmax = args["mzmax" + postfix]
             res = integrator.integrate(mzmin, mzmax, self.rtmin, self.rtmax, msLevel=None)
 
-            area = res["area"]
-            rmse = res["rmse"]
-            params = res["params"]
-            eic = res["eic"]
+            area = res.get("area")
+            rmse = res.get("rmse")
+            params = res.get("params")
+            eic = res.get("eic")
+            baseline = res.get("baseline")
 
         else:
             area = None
             rmse = None
             params = None
             eic = None
+            baseline = None
 
         # var 'row' is a Bunch, so we have to get the row from direct access
         # to table.rows:
@@ -218,6 +220,7 @@ class IntegrateAction(TableAction):
         table.setValue(row, "rmse" + postfix, rmse)
         table.setValue(row, "params" + postfix, params)
         table.setValue(row, "eic" + postfix, eic)
+        table.setValue(row, "baseline" + postfix, baseline)
         self.notifyGUI()
         return True
 

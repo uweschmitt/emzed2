@@ -298,7 +298,7 @@ class TableModel(QAbstractTableModel):
         return any(n.startswith("spectra") for n in self.table.getColNames())
 
     def integrationColNames(self):
-        return ["area", "rmse", "method", "params"]
+        return ["area", "rmse", "method", "params", "baseline"]
 
     def getIntegrationValues(self, data_row_idx, p):
         get = lambda nn: self.table.getValue(self.table.rows[data_row_idx], nn + p)
@@ -586,7 +586,3 @@ class TableModel(QAbstractTableModel):
             if name not in names_to_hide:
                 col_indices.append(ix)
         self._set_visible_cols(col_indices)
-
-
-
-
