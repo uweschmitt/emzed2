@@ -428,6 +428,8 @@ class TableModel(QAbstractTableModel):
         selected_value = t.getValue(t.rows[data_row_idx], col_name)
         selected_data_rows = [i for i, row in enumerate(t.rows)
                               if t.getValue(row, col_name) == selected_value]
+        # view might be filtered, so only select what we can see:
+        selected_data_rows = [i for i in selected_data_rows if i in self.dataRowToWidgetRow]
         return self.transform_row_idx_model_to_widget(selected_data_rows)
 
     def transform_row_idx_widget_to_model(self, row_idxs):
