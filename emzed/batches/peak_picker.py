@@ -1,5 +1,4 @@
 def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
-
     """ import runPeakPickerHiRes.
     runs peakPickerHiRes from openMs in batch mode.
     - input files are map files (mzXML, mxML, mzData),
@@ -18,7 +17,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
     If you have a single config this one is used automatically.
 
     Examples:
-    
+
     - runPeakPickerHiRes()
        asks for source files and target directory
        asks for config if multiple algorithm_configs are defined
@@ -50,9 +49,8 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
        runs peak picking with modified parameter
     """
 
-
     from ..core.batch_runner import BatchRunner
-    from .. import _algorithm_configs
+    from .. import algorithm_configs
     from .. import io
     import os.path
     from ..core import peak_picking
@@ -72,13 +70,13 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
                 print "reading FAILED"
                 return None
 
-            picked = self.pp.pickPeakMap(pm, showProgress = True)
+            picked = self.pp.pickPeakMap(pm, showProgress=True)
             return picked
 
         def write(self, result, destinationDir, path):
             basename, ext = os.path.splitext(os.path.basename(path))
-            savePath = os.path.join(destinationDir, basename+"_centroided.mzML")
+            savePath = os.path.join(destinationDir, basename * "_centroided.mzML")
             print "save to ", savePath
             io.storePeakMap(result, savePath)
 
-    return P(_algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.peakPickerHiResConfig, False).run(pattern, destination, configid, **params)

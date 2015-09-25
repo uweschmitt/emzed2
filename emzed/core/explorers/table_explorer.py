@@ -407,8 +407,8 @@ class TableExplorer(EmzedDialog):
     def setupIntegrationWidgets(self):
         self.intLabel = QLabel("Integration")
         self.chooseIntMethod = QComboBox()
-        from ... import _algorithm_configs
-        for name, _ in _algorithm_configs.peakIntegrators:
+        from ... import algorithm_configs
+        for name, _ in algorithm_configs.peakIntegrators:
             self.chooseIntMethod.addItem(name)
 
         self.choosePostfix = QComboBox()

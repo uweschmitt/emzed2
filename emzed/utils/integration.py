@@ -2,7 +2,7 @@
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
-        min_size_for_parallel_execution=500, eic_widening=30):
+              min_size_for_parallel_execution=500, eic_widening=30):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -79,7 +79,8 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         for i in range(n_cpus):
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
-            args.append((subt, supportedPostfixes, integratorid, msLevel, show_progress, eic_widening))
+            args.append(
+                (subt, supportedPostfixes, integratorid, msLevel, show_progress, eic_widening))
             all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
@@ -90,7 +91,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         # them:
         for t, pms in zip(tables, all_pms):
             t.replaceColumn("peakmap", pms, type_=ftable.getColType("peakmap"),
-                                            format_=ftable.getColFormat("peakmap"))
+                            format_=ftable.getColFormat("peakmap"))
 
         pool.close()
 
@@ -110,7 +111,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
 
 def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress, eic_widening)):
-    from .._algorithm_configs import peakIntegrators
+    from ..algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
 

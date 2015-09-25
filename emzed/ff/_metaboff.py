@@ -20,11 +20,11 @@ class _ParamHandler(object):
 
         common_params = pyopenms.Param()
         common_params.setValue("noise_threshold_int", 10.0,
-                "Intensity threshold below which peaks are regarded as noise.")
+                               "Intensity threshold below which peaks are regarded as noise.")
         common_params.setValue("chrom_peak_snr", 3.0,
-                            "Minimum signal-to-noise a mass trace should have")
+                               "Minimum signal-to-noise a mass trace should have")
         common_params.setValue("chrom_fwhm", 5.0,
-                           "Expected chromatographic peak width (in seconds).")
+                               "Expected chromatographic peak width (in seconds).")
 
         ffm_params = pyopenms.FeatureFindingMetabo().getDefaults()
         ffm_params.remove("chrom_fwhm")
@@ -58,7 +58,6 @@ class _ParamHandler(object):
         ffm_params.remove("chrom_peak_snr")
 
         return mtd_params, epdet_params, ffm_params, params
-
 
     @staticmethod
     def setup_doc_string():
@@ -113,7 +112,7 @@ class _ParamHandler(object):
 
 
 def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
-    from .._algorithm_configs import metaboFFConfigs
+    from ..algorithm_configs import metaboFFConfigs
 
     config_params = dict()
 
@@ -137,7 +136,7 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
     start_at = time.time()
 
     (mtd_params, epdet_params,
-           ffm_params, all_params) = _ParamHandler.update_params(config_params)
+     ffm_params, all_params) = _ParamHandler.update_params(config_params)
 
     def dump_param(prefix, all_params=all_params):
         sub_params = all_params.copy(prefix)
@@ -200,8 +199,7 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
             final_mass_traces = splitted_mass_traces
 
         info("%d SPLITTED MASS TRACES AFTER ELUTION PEAK DETECTION",
-                len(final_mass_traces))
-
+             len(final_mass_traces))
 
         ffm = pyopenms.FeatureFindingMetabo()
         ffm.setParameters(ffm_params)
@@ -213,11 +211,11 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
         for i, feature in enumerate(feature_map):
             convex_hulls = feature.getConvexHulls()
             quality = feature.getOverallQuality()
-            width   = feature.getWidth()
-            z  = feature.getCharge()
+            width = feature.getWidth()
+            z = feature.getCharge()
             mz = feature.getMZ()
             rt = feature.getRT()
-            I  = feature.getIntensity()
+            I = feature.getIntensity()
             for convex_hull in convex_hulls:
                 bb = convex_hull.getBoundingBox()
                 rtmin, mzmin = bb.minPosition()
@@ -227,11 +225,11 @@ def metaboFeatureFinder(peak_map, config_id=None, ms_level=None, **kw):
                 rows.append(row)
 
     tab = Table(["feature_id", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax",
-                    "intensity", "quality", "fwhm", "z"],
+                 "intensity", "quality", "fwhm", "z"],
                 [int, float, float, float, float, float, float, float, float,
                     float, int],
                 ["%d", "%10.5f", "%10.5f", "%10.5f", formatSeconds, formatSeconds,
-                    formatSeconds, "%.2e", "%.2e", formatSeconds, "%d" ],
+                    formatSeconds, "%.2e", "%.2e", formatSeconds, "%d"],
                 rows)
 
     tab.addConstantColumn("peakmap", peak_map, PeakMap, None)

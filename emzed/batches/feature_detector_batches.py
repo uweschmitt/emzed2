@@ -1,6 +1,7 @@
 
 from ..core import batch_runner
 
+
 class FD(batch_runner.BatchRunner):
 
     def process(self, path):
@@ -65,7 +66,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
     :download:`Docs from XCMS library <../emzed/core/r_connect/centwave.txt>`
     """
 
-    from .. import _algorithm_configs
+    from .. import algorithm_configs
     from ..core.r_connect import CentwaveFeatureDetector
 
     class P(FD):
@@ -73,7 +74,7 @@ def runCentwave(pattern=None, destination=None, configid="std", **params):
         def setup(self, config):
             self.det = CentwaveFeatureDetector(**config)
 
-    return P(_algorithm_configs.centwaveConfig, True).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.centwaveConfig, True).run(pattern, destination, configid, **params)
 
 
 def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
@@ -120,20 +121,18 @@ def runMatchedFilter(pattern=None, destination=None, configid="std", **params):
     """
 
     from ..core.r_connect import MatchedFilterFeatureDetector
-    from .. import _algorithm_configs
+    from .. import algorithm_configs
 
     class P(FD):
 
         def setup(self, config):
             self.det = MatchedFilterFeatureDetector(**config)
 
-    return P(_algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid,
-                                                               **params)
-
+    return P(algorithm_configs.matchedFilterConfig, True).run(pattern, destination, configid,
+                                                              **params)
 
 
 def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **params):
-
     """runs *MetaboFeatureFinding* from *OpenMS* in batch mode.
 
     - *pattern* is a used for file globbing, eg "/data/experiment1/\*.mzML", allowed are
@@ -176,7 +175,7 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
     For the available parameter settings see :py:func:`~emzed.ff.runMetaboFeatureFinder`.
     """
 
-    from .. import _algorithm_configs
+    from .. import algorithm_configs
 
     class P(FD):
 
@@ -204,4 +203,4 @@ def runMetaboFeatureFinder(pattern=None, destination=None, configid="std", **par
         def setup(self, config):
             self._ff_config = config
 
-    return P(_algorithm_configs.metaboFFConfigs, True).run(pattern, destination, configid, **params)
+    return P(algorithm_configs.metaboFFConfigs, True).run(pattern, destination, configid, **params)

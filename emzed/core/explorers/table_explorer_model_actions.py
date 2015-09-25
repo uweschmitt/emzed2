@@ -4,7 +4,7 @@ from __future__ import print_function
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from ... import _algorithm_configs
+from ... import algorithm_configs
 
 
 class TableAction(object):
@@ -175,7 +175,7 @@ class IntegrateAction(TableAction):
                            postfix=postfix)
 
     def do(self):
-        integrator = dict(_algorithm_configs.peakIntegrators).get(self.method)
+        integrator = dict(algorithm_configs.peakIntegrators).get(self.method)
         table = self.model.table
         # returns Bunch which sublcasses dict
         args = table.getValues(table.rows[self.data_row_idx])

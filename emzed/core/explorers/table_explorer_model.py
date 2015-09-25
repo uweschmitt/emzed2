@@ -13,7 +13,7 @@ import os
 import re
 from datetime import datetime
 
-from ... import _algorithm_configs
+from ... import algorithm_configs
 
 
 from .table_explorer_model_actions import *
@@ -346,7 +346,7 @@ class TableModel(QAbstractTableModel):
             values = self.getIntegrationValues(data_row_idx, p)
             method = values["method" + p]
             params = values["params" + p]
-            integrator = dict(_algorithm_configs.peakIntegrators).get(method)
+            integrator = dict(algorithm_configs.peakIntegrators).get(method)
             if method is not None:
                 # data is a tuple with two onedim numpy arrays:
                 data = integrator.getSmoothed(rts, params)
