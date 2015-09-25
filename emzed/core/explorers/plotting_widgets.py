@@ -64,8 +64,8 @@ class PlotterBase(object):
     def reset_x_limits(self, xmin=None, xmax=None, fac=1.2):
         self.widget.plot.reset_x_limits(xmin, xmax, fac)
 
-    def reset_y_limits(self, ymin=None, ymax=None, fac=1.2):
-        self.widget.plot.reset_y_limits(ymin, ymax, fac)
+    def reset_y_limits(self, ymin=None, ymax=None, fac=1.2, xmin=None, xmax=None):
+        self.widget.plot.reset_y_limits(ymin, ymax, fac, xmin, xmax)
 
     def set_limit(self, ix, value):
         self.widget.plot.set_limit(ix, value)

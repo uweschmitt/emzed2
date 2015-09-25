@@ -277,13 +277,15 @@ class ModifiedCurvePlot(CurvePlot):
         if xmin is not None and xmax is not None:
             self.update_plot_xlimits(xmin, xmax)
 
-    def reset_y_limits(self, ymin=None, ymax=None, fac=1.2):
+    def reset_y_limits(self, ymin=None, ymax=None, fac=1.2, xmin=None, xmax=None):
         yvals = []
-        # xmin, xmax, _, _ = self.get_plot_limits()
-
         for item in self.items:
             if isinstance(item, CurveItem):
                 x, y = item.get_data()
+                xy = zip(x, y)
+                xy = [(xi, yi) for (xi, yi) in xy if xmin is None or xi >= xmin]
+                xy = [(xi, yi) for (xi, yi) in xy if xmax is None or xi <= xmax]
+                x, y = zip(*xy)  # unzip
                 yvals.extend(y)
         if ymin is None:
             if len(yvals) > 0:
