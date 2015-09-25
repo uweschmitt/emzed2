@@ -720,6 +720,7 @@ class TableExplorer(EmzedDialog):
 
         hide_names = [n for (n, col_idx, visible) in dlg.column_settings if not visible]
         self.update_hidden_columns(hide_names)
+        self.model.save_preset_hidden_column_names()
 
     def update_hidden_columns(self, hide_names):
         self.model.hide_columns(hide_names)
@@ -827,6 +828,10 @@ class TableExplorer(EmzedDialog):
 
         hidden = self.model.table.meta.get("hide_in_explorer", ())
         self.update_hidden_columns(hidden)
+        try:
+            self.model.load_preset_hidden_column_names()
+        except Exception:
+            pass
 
         self.setupModelDependendLook()
         if self.isIntegrated:

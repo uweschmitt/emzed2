@@ -8,6 +8,7 @@ from ..data_types.table import create_row_class
 
 import guidata
 
+import hashlib
 import os
 import re
 from datetime import datetime
@@ -16,6 +17,8 @@ from ... import _algorithm_configs
 
 
 from .table_explorer_model_actions import *
+
+from ..config import folders
 
 
 def isUrl(what):
@@ -49,6 +52,7 @@ class TableModel(QAbstractTableModel):
 
         self.selected_data_rows = []
         self.counter_for_calls_to_sort = 0
+        self.load_preset_hidden_column_names()
 
     def set_selected_data_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
@@ -537,6 +541,42 @@ class TableModel(QAbstractTableModel):
         self.beginResetModel()
         self.widgetColToDataCol = dict(enumerate(col_indices))
         self.endResetModel()
+
+    def _settings_path(self):
+        folder = folders.getEmzedFolder()
+        digest = hashlib.md5()
+        for name in self.table.getColNames():
+            digest.update(name)
+        file_name = "table_view_setting_%s.txt" % digest.hexdigest()
+        path = os.path.join(folder, file_name)
+        return path
+
+    def save_preset_hidden_column_names(self):
+        path = self._settings_path()
+        names = self.table.getColNames()
+        try:
+            with open(path, "w") as fp:
+                for i, j in self.widgetColToDataCol.items():
+                    print >> fp, i, names[j]
+        except IOError, e:
+            print str(e)
+
+    def load_preset_hidden_column_names(self):
+        path = self._settings_path()
+        if os.path.exists(path):
+            dd = {}
+            names = self.table.getColNames()
+            try:
+                with open(path, "r") as fp:
+                    for line in fp:
+                        i, name = line.strip().split()
+                        if name in names:
+                            dd[int(i)] = names.index(name)
+                self.beginResetModel()
+                self.widgetColToDataCol = dd
+                self.endResetModel()
+            except (IOError, ValueError), e:
+                print(str(e))
 
     def hide_columns(self, names_to_hide):
         names = self.table.getColNames()
