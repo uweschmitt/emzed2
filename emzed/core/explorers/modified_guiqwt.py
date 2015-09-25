@@ -262,6 +262,18 @@ class ModifiedCurvePlot(CurvePlot):
         limits[ix] = value
         self.set_plot_limits(*limits)
 
+    def seen_yvals(self, xmin, xmax):
+        yvals = []
+        for item in self.items:
+            if isinstance(item, CurveItem):
+                x, y = item.get_data()
+                xy = zip(x, y)
+                xy = [(xi, yi) for (xi, yi) in xy if xmin is None or xi >= xmin]
+                xy = [(xi, yi) for (xi, yi) in xy if xmax is None or xi <= xmax]
+                x, y = zip(*xy)  # unzip
+                yvals.extend(y)
+        return yvals
+
     def reset_x_limits(self, xmin=None, xmax=None, fac=1.0):
         xvals = []
         for item in self.items:
@@ -277,16 +289,10 @@ class ModifiedCurvePlot(CurvePlot):
         if xmin is not None and xmax is not None:
             self.update_plot_xlimits(xmin, xmax)
 
-    def reset_y_limits(self, ymin=None, ymax=None, fac=1.2, xmin=None, xmax=None):
-        yvals = []
-        for item in self.items:
-            if isinstance(item, CurveItem):
-                x, y = item.get_data()
-                xy = zip(x, y)
-                xy = [(xi, yi) for (xi, yi) in xy if xmin is None or xi >= xmin]
-                xy = [(xi, yi) for (xi, yi) in xy if xmax is None or xi <= xmax]
-                x, y = zip(*xy)  # unzip
-                yvals.extend(y)
+    def reset_y_limits(self, ymin=None, ymax=None, fac=1.1, xmin=None, xmax=None):
+
+        yvals = self.seen_yvals(xmin, xmax)
+
         if ymin is None:
             if len(yvals) > 0:
                 ymin = min(yvals) / fac
@@ -321,6 +327,7 @@ class RtPlot(ModifiedCurvePlot):
               boundaries of selection tool
     """
 
+
     @protect_signal_handler
     def do_space_pressed(self, filter, evt):
         """ zoom to limits of snapping selection tool """
@@ -329,7 +336,16 @@ class RtPlot(ModifiedCurvePlot):
         if item._min != item._max:
             min_neu = min(item._min, item._max)
             max_neu = max(item._min, item._max)
+            range_ = max_neu - min_neu
+            max_neu += 0.1 * range_
+            min_neu -= 0.1 * range_
             self.update_plot_xlimits(min_neu, max_neu)
+
+            yvals = self.seen_yvals(min_neu, max_neu)
+            if yvals:
+                ymax = max(yvals)
+                if ymax > 0:
+                    self.update_plot_ylimits(0, ymax * 1.1)
 
     @protect_signal_handler
     def do_enter_pressed(self, filter, evt):

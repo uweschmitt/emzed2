@@ -1066,7 +1066,7 @@ class TableExplorer(EmzedDialog):
                 self.rt_plotter.setYAxisLimits(ymin, ymax)
                 self.rt_plotter.updateAxes()
             else:
-                self.rt_plotter.reset_y_limits(fac=1.2, xmin=rtmin - w, xmax=rtmax + w)
+                self.rt_plotter.reset_y_limits(fac=1.1, xmin=rtmin - w, xmax=rtmax + w)
 
         if self.hasTimeSeries and reset:
             self.rt_plotter.reset_x_limits(fac=1.0)
