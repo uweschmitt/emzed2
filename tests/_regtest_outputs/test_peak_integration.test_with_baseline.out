@@ -1,7 +1,7 @@
 emg with baseline
-param 0 = 40.041
+param 0 = 40.001
 param 1 = 4.292
-param 2 = 0.831
+param 2 = 0.832
 param 3 = 0.978
 trapez with baseline
 mean rt=4.950
