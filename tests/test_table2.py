@@ -588,17 +588,60 @@ def test_replace_dunder_coloumn():
     t.print_()
 
 
-def test_multi_sort():
-    t = emzed.utils.toTable("z", [1, 3, 2])
-    t.addColumn("y", [1, 2, 2])
+def test_multi_sort(regtest):
+    t = emzed.utils.toTable("x", [1, 2, 2, 4])
+    t.addColumn("y", [1, 1, 2, 2])
+    t.addColumn("z", [1, 1, 1, 2])
 
+    print(t, file=regtest)
+
+    print("x then y", file=regtest)
+    t.sortBy(["x", "y"])
+    print(t, file=regtest)
+
+    print("x then z", file=regtest)
+    t.sortBy(["x", "z"])
+    print(t, file=regtest)
+
+    print("y then z", file=regtest)
     t.sortBy(["y", "z"])
-    assert t.y.values == (1, 2, 2,)
-    assert t.z.values == (1, 2, 3,)
+    print(t, file=regtest)
 
-    t.sortBy(["y", "z"], ascending=False)
-    assert t.y.values == (2, 2, 1,)
-    assert t.z.values == (3, 2, 1,)
+    print("y then x", file=regtest)
+    t.sortBy(["y", "x"])
+    print(t, file=regtest)
+
+    print("z then x", file=regtest)
+    t.sortBy(["z", "x"])
+    print(t, file=regtest)
+
+    print("z then y", file=regtest)
+    t.sortBy(["z", "y"])
+    print(t, file=regtest)
+
+    print("x then y (desc)", file=regtest)
+    t.sortBy(["x", "y"], (True, False))
+    print(t, file=regtest)
+
+    print("x then z (desc)", file=regtest)
+    t.sortBy(["x", "z"], (True, False))
+    print(t, file=regtest)
+
+    print("y then z (desc)", file=regtest)
+    t.sortBy(["y", "z"], (True, False))
+    print(t, file=regtest)
+
+    print("y then x (desc)", file=regtest)
+    t.sortBy(["y", "x"], (True, False))
+    print(t, file=regtest)
+
+    print("z then x (desc)", file=regtest)
+    t.sortBy(["z", "x"], (True, False))
+    print(t, file=regtest)
+
+    print("z then y (desc)", file=regtest)
+    t.sortBy(["z", "y"], (True, False))
+    print(t, file=regtest)
 
 
 def test_collapse(regtest):

@@ -818,20 +818,36 @@ class Table(object):
         if isinstance(colNames, basestring):
             colNames = [colNames]
 
+        if ascending in (True, False):
+            ascending = [ascending] * len(colNames)
+
+        assert len(colNames) == len(ascending)
+
         idxs = [self.colIndizes[name] for name in colNames]
 
-        decorated = [([row[idx] for idx in idxs], i)
-                     for (i, row) in enumerate(self.rows)]
-        decorated.sort(reverse=not ascending)
-        permutation = [i for (_, i) in decorated]
+        def compare(item1, item2):
+            __, row1 = item1
+            __, row2 = item2
+            for i, ai in zip(idxs, ascending):
+                v1 = row1[i]
+                v2 = row2[i]
+                if v1 != v2:
+                    if ai:
+                        return -1 if v1 < v2 else +1
+                    else:
+                        return -1 if v1 > v2 else +1
+            return 0
 
-        self._applyRowPermutation(permutation)
+        decorated = list(enumerate(self.rows))
+        decorated.sort(cmp=compare)
+        perm, __ = zip(*decorated)
+        self._applyRowPermutation(perm)
 
         if ascending:
             self.primaryIndex = {colNames[0]: True}
         else:
             self.primaryIndex = {}
-        return permutation
+        return perm
 
     def _applyRowPermutation(self, permutation):
         self.rows = [self.rows[permutation[i]]
