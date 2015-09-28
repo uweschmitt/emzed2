@@ -243,14 +243,14 @@ def testActions():
     assert model.table.rows[1] == t_orig.rows[1]
 
 
-    action = SortTableAction(model, 0, 0, Qt.AscendingOrder)
+    action = SortTableAction(model, [("mz", True)])
     action.do()
     assert model.table.mz.values == ( None, 1.0, 2.0)
     action.undo()
     assert model.table.mz.values == t_orig.mz.values
 
 
-    action = SortTableAction(model, 0, 0, Qt.DescendingOrder)
+    action = SortTableAction(model, [("mz", False)])
     action.do()
     assert model.table.mz.values == ( 2.0, 1.0, None)
     action.undo()

@@ -18,7 +18,7 @@ class TableAction(object):
         self.memory = None
 
     def undo(self):
-        assert self.memory is not None
+        pass
 
     def beginDelete(self, idx, idx2=None):
         if idx2 is None:
@@ -96,18 +96,14 @@ class SortTableAction(TableAction):
 
     actionName = "sort table"
 
-    def __init__(self, model, dataColIdx, colIdx, order):
-        super(SortTableAction, self).__init__(model, dataColIdx=dataColIdx, colIdx=colIdx,
-                                              order=order)
-        self.toview = dict(sortByColumn=colIdx, ascending=(order == Qt.AscendingOrder))
+    def __init__(self, model, sort_data):
+        super(SortTableAction, self).__init__(model, sort_data=sort_data)
+        self.toview = dict(sortByColumn=sort_data)
 
     def do(self):
         table = self.model.table
-        ascending = self.order == Qt.AscendingOrder
-        colName = table._colNames[self.dataColIdx]
-        # 'memory' is the permutation which sorted the table rows
-        # sortBy returns this permutation:
-        self.memory = table.sortBy(colName, ascending)
+        names, ascending = zip(*self.sort_data)
+        self.memory = table.sortBy(names, ascending)
         return True
 
     def undo(self):

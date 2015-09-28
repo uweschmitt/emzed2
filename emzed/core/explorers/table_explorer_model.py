@@ -31,7 +31,8 @@ class TableModel(QAbstractTableModel):
     WHITE = QColor(255, 255, 255)
 
     DATA_CHANGE = pyqtSignal(object, object)
-
+    SORT_TRIGGERED = pyqtSignal(str, bool)
+ 
     def __init__(self, table, view):
         parent = view
         super(TableModel, self).__init__(parent)
@@ -190,6 +191,12 @@ class TableModel(QAbstractTableModel):
                     except Exception:
                         guidata.qapplication().beep()
                         return False
+                elif expectedType == bool:
+                    if value.lower() in ("true", "false"):
+                        value = (value.lower() == "true")
+                    else:
+                        guidata.qapplication().beep()
+                        return False
                 else:
                     try:
                         value = expectedType(value)
@@ -271,10 +278,22 @@ class TableModel(QAbstractTableModel):
         if self.counter_for_calls_to_sort > 2:
             if len(self.widgetColToDataCol):
                 dataColIdx = self.widgetColToDataCol[colIdx]
-                self.beginResetModel()
-                self.runAction(SortTableAction, dataColIdx, colIdx, order)
-                self.current_sort_col_idx = colIdx
-                self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
+                name = self.table._colNames[dataColIdx]
+                self.sort_by([(name, "asc" if order == Qt.AscendingOrder else "desc")])
+                self.SORT_TRIGGERED.emit(name, order == Qt.AscendingOrder)
+
+    def widget_col(self, col_name):
+        data_col_idx = self.table._colNames.index(col_name)
+        for widget_col, data_col in self.widgetColToDataCol.items():
+            if data_col == data_col_idx:
+                return widget_col
+
+    def sort_by(self, sort_data):
+        cn = self.table._colNames
+        data_cols = [(name, order.startswith("asc")) for (name, order) in sort_data]
+        self.beginResetModel()
+        self.runAction(SortTableAction, data_cols)
+        self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
         self.beginResetModel()

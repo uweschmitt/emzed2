@@ -206,24 +206,7 @@ class EmzedTableView(QTableView):
 
     @protect_signal_handler
     def keyPressEvent(self, evt):
-        if (evt.modifiers(), evt.key()) == (Qt.ControlModifier, Qt.Key_F):
-            if self.model.selectedIndexes():
-                column = self.model.selectedIndexes()[0].column()
-            else:
-                column = self.model().current_sort_col_idx
-
-            # some columns are invisible, so we need a lookup:
-            col_name = self.model().getShownColumnName(column)
-            look_for, ok = QInputDialog.getText(self, "Search Column %s" % col_name,
-                                                "Lookup Column %s for :" % col_name)
-            if ok:
-                look_for = unicode(look_for).strip()
-                if look_for:
-                    row = self.model().lookup(look_for, col_name)
-                    if row is not None:
-                        ix = self.model().index(row, column)
-                        self.setCurrentIndex(ix)
-        elif evt.key() in (Qt.Key_Up, Qt.Key_Down):
+        if evt.key() in (Qt.Key_Up, Qt.Key_Down):
             row = self.currentIndex().row()
             column = self.currentIndex().column()
             if evt.key() == Qt.Key_Up:
@@ -432,6 +415,19 @@ class TableExplorer(EmzedDialog):
 
         self.filter_on_button = button("Enable row filtering")
 
+        self.sort_label = QLabel("sort by:", parent=self)
+
+        self.sort_fields_widgets = []
+        self.sort_order_widgets = []
+        for i in range(3):
+            w = QComboBox(parent=self)
+            w.setMinimumWidth(150)
+            self.sort_fields_widgets.append(w)
+            w = QComboBox(parent=self)
+            w.addItems(["asc", "desc"])
+            w.setMaximumWidth(70)
+            self.sort_order_widgets.append(w)
+
         self.restrict_to_filtered_button = button("Restrict to filter result")
         self.remove_filtered_button = button("Remove filter result")
         self.export_table_button = button("Export table")
@@ -565,6 +561,16 @@ class TableExplorer(EmzedDialog):
         column += 1
         layout.addWidget(self.choose_visible_columns_button, row, column, alignment=Qt.AlignLeft)
 
+        h_layout = QHBoxLayout()
+        h_layout.addWidget(self.sort_label)
+
+        for sort_field_w, sort_order_w in zip(self.sort_fields_widgets, self.sort_order_widgets):
+            h_layout.addWidget(sort_field_w)
+            h_layout.addWidget(sort_order_w)
+
+        column += 1
+        layout.addLayout(h_layout, row, column, alignment=Qt.AlignLeft)
+
         row = 1
         column = 0
         layout.addWidget(self.filter_on_button, row, column, alignment=Qt.AlignLeft)
@@ -692,6 +698,27 @@ class TableExplorer(EmzedDialog):
         self.restrict_to_filtered_button.clicked.connect(self.restrict_to_filtered)
         self.export_table_button.clicked.connect(self.export_table)
 
+        for sort_field_w in self.sort_fields_widgets:
+            sort_field_w.currentIndexChanged.connect(self.sort_fields_changed)
+
+        for sort_order_w in self.sort_order_widgets:
+            sort_order_w.currentIndexChanged.connect(self.sort_fields_changed)
+
+    @protect_signal_handler
+    def sort_fields_changed(self, __):
+        sort_data = [(str(f0.currentText()),
+                      str(f1.currentText())) for f0, f1 in zip(self.sort_fields_widgets,
+                                                               self.sort_order_widgets)]
+        sort_data = [(f0, f1) for (f0, f1) in sort_data if f0 != "-" and f0 != ""]
+        if sort_data:
+            self.model.sort_by(sort_data)
+            main_name, main_order = sort_data[0]
+            idx = self.model.widget_col(main_name)
+            header = self.tableView.horizontalHeader()
+            header.blockSignals(True)
+            header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
+            header.blockSignals(False)
+
     @protect_signal_handler
     def filter_toggle(self, *a):
         self.filters_enabled = not self.filters_enabled
@@ -726,6 +753,7 @@ class TableExplorer(EmzedDialog):
         self.model.hide_columns(hide_names)
         self.set_delegates()
         self.setup_choose_group_column_widget(hide_names)
+        self.setup_sort_fields(hide_names)
         self.current_filter_widget.hide_filters(hide_names)
         self.model.table.meta["hide_in_explorer"] = hide_names
 
@@ -794,6 +822,27 @@ class TableExplorer(EmzedDialog):
                              protect_signal_handler(self.model.redoLastAction))
 
         self.model.DATA_CHANGE.connect(self.set_window_title)
+        self.model.SORT_TRIGGERED.connect(self.sort_by_click_in_header)
+
+    @protect_signal_handler
+    def sort_by_click_in_header(self, name, is_ascending):
+
+        for f in self.sort_fields_widgets:
+            f.blockSignals(True)
+        for f in self.sort_order_widgets:
+            f.blockSignals(True)
+
+        main_widget = self.sort_fields_widgets[0]
+        idx = main_widget.findText(name)
+        main_widget.setCurrentIndex(idx)
+        self.sort_order_widgets[0].setCurrentIndex(bool(is_ascending))
+        for i in range(1, len(self.sort_fields_widgets)):
+            self.sort_fields_widgets[i].setCurrentIndex(0)
+
+        for f in self.sort_fields_widgets:
+            f.blockSignals(False)
+        for f in self.sort_order_widgets:
+            f.blockSignals(False)
 
     def group_column_selected(self, idx):
         self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -851,6 +900,7 @@ class TableExplorer(EmzedDialog):
             self.choosePostfix.setVisible(False)
 
         self.setup_choose_group_column_widget([])
+        self.setup_sort_fields([])
         self.connectModelSignals()
         self.updateMenubar()
         self.set_window_title(self.model.table)
@@ -869,10 +919,37 @@ class TableExplorer(EmzedDialog):
             idx = all_choices.index(before)
             self.chooseGroupColumn.setCurrentIndex(idx)
 
+    def setup_sort_fields(self, hidden_names):
+        before = []
+        for field in self.sort_fields_widgets:
+            if field.currentIndex() >= 0:
+                before.append(str(field.currentText()))
+            else:
+                before.append(None)
+            field.clear()
+
+        t = self.model.table
+        candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
+        visible_names = [n for n in candidates if n not in hidden_names]
+
+        all_choices = ["-"] + visible_names
+
+        for field in self.sort_fields_widgets:
+            field.addItems(all_choices)
+
+        for choice_before, field in zip(before, self.sort_fields_widgets):
+            if choice_before is not None and choice_before in all_choices:
+                idx = all_choices.index(choice_before)
+                field.setCurrentIndex(idx)
+
     @protect_signal_handler
     def handle_model_reset(self):
         for name in self.model.table.getColNames():
             self.current_filter_widget.update(name)
+
+    def reset_sort_fields(self):
+        for field in self.sort_fields_widgets:
+            field.setCurrentIndex(0)
 
     @protect_signal_handler
     def dataChanged(self, ix1, ix2, src):
@@ -898,6 +975,8 @@ class TableExplorer(EmzedDialog):
                     self.updatePlots(reset=False)
                 else:
                     self.updatePlots(reset=True)
+
+        self.reset_sort_fields()
 
     @protect_signal_handler
     def abort(self):
