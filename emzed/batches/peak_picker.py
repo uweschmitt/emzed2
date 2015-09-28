@@ -75,7 +75,7 @@ def runPeakPickerHiRes(pattern=None, destination=None, configid=None, **params):
 
         def write(self, result, destinationDir, path):
             basename, ext = os.path.splitext(os.path.basename(path))
-            savePath = os.path.join(destinationDir, basename * "_centroided.mzML")
+            savePath = os.path.join(destinationDir, basename + "_centroided.mzML")
             print "save to ", savePath
             io.storePeakMap(result, savePath)
 
