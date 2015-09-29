@@ -823,6 +823,9 @@ class Table(object):
 
         assert len(colNames) == len(ascending)
 
+        if not len(self):
+            return []   # empty permutation
+
         idxs = [self.colIndizes[name] for name in colNames]
 
         def compare(item1, item2):
