@@ -56,9 +56,10 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
             return 0.0, rmse, (0.0, rts[0], 1.0, 0.0)
 
         imax = np.argmax(chromatogram)
-        h = chromatogram[imax]
+        h = chromatogram[imax] * 2
         z = rts[imax]
-        w = s = 1.0
+        w = 0.2
+        s = 0.3
         rts = np.array(rts)
 
         param = (h, z, w, s)
