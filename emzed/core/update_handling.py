@@ -264,19 +264,17 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         # is started from a dir which has emzed as sub dir:
         temp_dir = tempfile.mkdtemp()
         try:
-            print subprocess.check_output("easy_install -vUN %s %s emzed" % (user_flag, extra_args),
-                                        shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
+            print subprocess.check_output("pip uninstall -y emzed",
+                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
+            print subprocess.check_output("pip install --upgrade %s %s emzed" % (user_flag, extra_args),
+                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
             print e.output
-        #exit_code = subprocess.call(["easy_install", "-vUN", user_flag, extra_args, "emzed"],
-                                    #shell=False, cwd=temp_dir)
         # try to cleanup, failure does not matter
         try:
             os.rmdir(temp_dir)
         except:
             pass
-
-        assert exit_code == 0, "exit code from easy_install is %d" % exit_code
 
     def upload_to_exchange_folder(self, exchange_folder):
         pass
