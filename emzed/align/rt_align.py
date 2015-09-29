@@ -162,6 +162,7 @@ def _computeTransformation(algo, refMap, fm, numBreakpoints):
     # function ! in this case you have no access to the calculated
     # transformations.
     import pyopenms
+    is_v2 = pyopenms.__version__.startswith("2.0.")
     # ts = []
     # index is 1-based, so 1 refers to refMap when calling
     # alignFeatureMaps below:
@@ -172,9 +173,14 @@ def _computeTransformation(algo, refMap, fm, numBreakpoints):
     else:
         algo.align(fm, trafo)
         model_params = pyopenms.Param()
-        pyopenms.TransformationModelBSpline.getDefaultParameters(model_params)
-
-        model_params.setValue("num_breakpoints", numBreakpoints, "", [])
+        if is_v2:
+            model_params.setValue("num_nodes", numBreakpoints, "", [])
+            model_params.setValue("wavelength", 0.0, "", [])
+            model_params.setValue("boundary_condition", 2, "", [])
+            model_params.setValue("extrapolate", "bspline", "", [])
+        else:
+            pyopenms.TransformationModelBSpline.getDefaultParameters(model_params)
+            model_params.setValue("num_breakpoints", numBreakpoints, "", [])
         trafo.fitModel("b_spline", model_params)
 
         # from here on used:
