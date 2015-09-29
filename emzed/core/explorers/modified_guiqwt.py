@@ -368,15 +368,22 @@ class RtPlot(ModifiedCurvePlot):
             self.replot()
 
     def move_selection_bounds(self, evt, filter_, selector):
-        shift_pressed = evt.modifiers() == Qt.ShiftModifier
-        alt_pressed = evt.modifiers() == Qt.AltModifier
+        shift_pressed = evt.modifiers() & Qt.ShiftModifier
+        alt_pressed = evt.modifiers() & Qt.AltModifier
+        ctrl_pressed = evt.modifiers() & Qt.ControlModifier
 
         item = self.get_unique_item(SnappingRangeSelection)
         neu1 = neu0 = None
-        if not alt_pressed:
-            neu1 = selector(item.get_neighbour_xvals(item._max))
-        if not shift_pressed:
-            neu0 = selector(item.get_neighbour_xvals(item._min))
+
+        n_iter = 5 if ctrl_pressed else 1
+
+        neu1 = item._max
+        neu0 = item._min
+        for _ in range(n_iter):
+            if not alt_pressed:
+                neu1 = selector(item.get_neighbour_xvals(neu1))
+            if not shift_pressed:
+                neu0 = selector(item.get_neighbour_xvals(neu0))
 
         _min, _max = sorted((item._min, item._max))
         if neu0 is not None and (neu0 <= _max or neu0 == neu1):
@@ -543,8 +550,6 @@ class MzPlot(ModifiedCurvePlot):
 
     @protect_signal_handler
     def do_c_pressed(self, filter, evt):
-        self.current_peak
-        self.c_call_back
         self.c_call_back(self.current_peak)
 
     @protect_signal_handler

@@ -945,7 +945,9 @@ def create_chromatogram_widget(image_plot):
     cursor_info = RtCursorInfo()
     label = make.info_label("TR", [cursor_info], title="None")
     label.labelparam.label = ""
+    label.labelparam.font.size = 12
     label.setVisible(1)
+    label.labelparam.update_label(label)
     plot.rt_label = label
 
     # we hack label_cb for updating legend:
@@ -974,6 +976,8 @@ def create_peakmap_labels(plot):
     rect_marker = RectangleShape()
     rect_label = make.info_label("TR", [PeakmapCursorRangeInfo(rect_marker)], title=None)
     rect_label.labelparam.label = ""
+    rect_label.labelparam.font.size = 12
+    rect_label.labelparam.update_label(rect_label)
     rect_label.setVisible(1)
     plot.rect_label = rect_label
     plot.add_item(rect_label)
@@ -1762,7 +1766,7 @@ class PeakMapExplorer(EmzedDialog):
         if value > self.imax_slider.value():
             self.imax_slider.setSliderPosition(value)
         self._i_slider_changed(
-            value, self.imin_slider, self.peakmap_plottter.set_imin, self.imin_input)
+            value, self.imin_slider, self.peakmap_plotter.set_imin, self.imin_input)
         return
 
     @protect_signal_handler

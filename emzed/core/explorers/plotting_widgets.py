@@ -38,10 +38,10 @@ class RtRangeSelectionInfo(ObjectInfo):
     def get_text(self):
         rtmin, rtmax = sorted(self.range_.get_range())
         if rtmin != rtmax:
-            return u"RT: %s ... %s" % (formatSeconds(rtmin),
+            return u"<pre>RT: %s ... %s</pre>" % (formatSeconds(rtmin),
                                        formatSeconds(rtmax))
         else:
-            return u"RT: %s" % formatSeconds(rtmin)
+            return u"<pre>RT: %s</pre>" % formatSeconds(rtmin)
 
 
 class PlotterBase(object):
@@ -91,7 +91,7 @@ class RtCursorInfo(ObjectInfo):
             except:
                 txt = ""
         else:
-            txt = "%.2fm" % (rt / 60.0)
+            txt = "<pre>%.2fm</pre>" % (rt / 60.0)
         return txt
 
 
@@ -122,6 +122,8 @@ class RtPlotter(PlotterBase):
         self.cursor_info = RtCursorInfo(marker)
         label = make.info_label("T", [self.cursor_info], title=None)
         label.labelparam.label = ""
+        label.labelparam.font.size = 12
+        label.labelparam.update_label(label)
         self.label = label
 
         self.minRTRangeSelected = None
@@ -248,6 +250,8 @@ class RtPlotter(PlotterBase):
 
         cc = make.info_label("TR", [RtRangeSelectionInfo(range_)], title=None)
         cc.labelparam.label = ""
+        cc.labelparam.font.size = 12
+        cc.labelparam.update_label(cc)
         self.widget.plot.add_item(cc)
 
     def getRangeSelectionLimits(self):
@@ -333,9 +337,13 @@ class MzPlotter(PlotterBase):
         line.setVisible(0)
 
         setupCommonStyle(line, marker)
+        line.shapeparam.line.color = "#555555"
+        line.shapeparam.update_shape(line)
 
         label = make.info_label("TR", [MzCursorInfo(marker, line)], title=None)
         label.labelparam.label = ""
+        label.labelparam.font.size = 12
+        label.labelparam.update_label(label)
 
         self.marker = marker
         self.label = label
