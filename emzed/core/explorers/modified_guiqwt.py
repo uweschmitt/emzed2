@@ -1,4 +1,5 @@
-from exceptions import Exception
+import datetime
+
 from PyQt4.QtCore import Qt, QPoint
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
@@ -264,6 +265,10 @@ class ModifiedCurvePlot(CurvePlot):
 
     def seen_yvals(self, xmin, xmax):
         yvals = []
+        if isinstance(xmin, datetime.datetime):
+            xmin = xmin.toordinal()
+        if isinstance(xmax, datetime.datetime):
+            xmax = xmax.toordinal()
         for item in self.items:
             if isinstance(item, CurveItem):
                 x, y = item.get_data()

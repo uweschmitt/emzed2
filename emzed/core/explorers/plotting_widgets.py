@@ -20,6 +20,28 @@ from helpers import protect_signal_handler
 from emzed_optimizations.sample import sample_peaks
 
 
+def find_datetime_split_pos(datetimes):
+    if len(datetimes) == 0:
+        return None
+    dtstrs = [str(dt).split(".")[0] for dt in datetimes if dt is not None]
+    date_time_tuples = [dtstr.split(" ") for dtstr in dtstrs]
+    dates, times = zip(*date_time_tuples)
+    if len(set(times)) == 1:
+        return 1
+    return 2
+
+
+def format_datetime_value(pos, dt):
+    if isinstance(dt, (int, long, float)):
+        dt = datetime.fromordinal(int(dt))
+    dt = str(dt)
+    if pos is None:
+        return dt
+    dtstr = dt.split(".")[0]
+    date_time_str = " ".join(dtstr.split(" ")[:pos])
+    return date_time_str
+
+
 def getColor(i):
     colors = "bgrkm"
     return colors[i % len(colors)]
@@ -137,11 +159,13 @@ class RtPlotter(PlotterBase):
         a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
         self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
 
-    def set_ts_x_axis_labels(self):
+    def set_ts_x_axis_labels(self, data):
         # todo: refactor as helper
+        all_ts = [tsi for ts in data for tsi in ts.x]
+        pos = find_datetime_split_pos(all_ts)
         a = QwtScaleDraw()
         # render tic labels in modfied format:
-        label = lambda self, v: QwtText("") # QwtText(str(v))
+        label = lambda self, v, pos=pos: QwtText(format_datetime_value(pos, v)) # QwtText(str(v))
         a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
         self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
 
@@ -161,7 +185,7 @@ class RtPlotter(PlotterBase):
         self.widget.plot.del_all_items()
 
         if is_time_series:
-            self.set_ts_x_axis_labels()
+            self.set_ts_x_axis_labels(data)
             self.widget.plot.set_axis_title("bottom", "time")
         else:
             self.set_rt_x_axis_labels()
