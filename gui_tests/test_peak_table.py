@@ -39,7 +39,7 @@ for i in range(len(t) / 2):
     x = range(10 + i) + [None, None] + range(10 + i, 20 + i)
     y = [100 + 100 * math.sin(0.3 * (xi + i)) if xi is not None else None for xi in x]
     x = [None if xi is None else datetime.datetime(2015, 1 + xi / 20, 1 + xi % 20)  for xi in x]
-    ts = TimeSeries(x,y)
+    ts = TimeSeries(x,y, label="mz=%.2f" % (123123.3434/(i + 7)))
     tsi.append(ts)
     tsi.append(ts)
 

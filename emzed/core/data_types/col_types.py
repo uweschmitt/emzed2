@@ -46,11 +46,12 @@ class Blob(object):
 
 class TimeSeries(object):
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, label=None):
         assert len(x) == len(y)
         self.x = list(x)  # no numpy arrays here
         self.y = list(y)
         self._unique_id = None
+        self.label = label
 
     def __str__(self):
         try:

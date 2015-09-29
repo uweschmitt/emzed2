@@ -100,6 +100,7 @@ class PlotterBase(object):
 
 
 class RtCursorInfo(ObjectInfo):
+
     def __init__(self, marker):
         ObjectInfo.__init__(self)
         self.marker = marker
@@ -109,9 +110,9 @@ class RtCursorInfo(ObjectInfo):
         rt = self.marker.xValue()
         if self.is_time_series:
             try:
-                txt = str(datetime.fromordinal(int(rt)))
+                txt = "<pre>%s</pre>" % (datetime.fromordinal(int(rt)))
             except:
-                txt = ""
+                return ""
         else:
             txt = "<pre>%.2fm</pre>" % (rt / 60.0)
         return txt
@@ -145,6 +146,7 @@ class RtPlotter(PlotterBase):
         label = make.info_label("T", [self.cursor_info], title=None)
         label.labelparam.label = ""
         label.labelparam.font.size = 12
+        label.labelparam.border.color = "#ffffff"
         label.labelparam.update_label(label)
         self.label = label
 
@@ -190,7 +192,9 @@ class RtPlotter(PlotterBase):
         else:
             self.set_rt_x_axis_labels()
             self.widget.plot.set_axis_title("bottom", "RT")
-        # self.widget.plot.set_antialiasing(True)
+
+        labels = set()
+        legend_items = []
         if is_time_series:
             seen = set()
             for i, ts in enumerate(data):
@@ -204,17 +208,17 @@ class RtPlotter(PlotterBase):
                     config = configs[i]
                 if config is None:
                     config = dict(color=getColor(i))
-                if titles:
-                    title = titles[i]
-                else:
-                    title = ""
-                for (x, y) in ts.segments():
+                title = ts.label
+                labels.add(title)
+                for j, (x, y) in enumerate(ts.segments()):
                     x = [xi.toordinal() if isinstance(xi, datetime) else xi for xi in x]
                     allrts.extend(x)
-                    curve = make.curve(x, y, title=title, **config)
+                    curve = make.curve(x, y, title="<pre>%s</pre>" % title, **config)
                     curve.__class__ = ModifiedCurveItem
                     self.widget.plot.add_item(curve)
                     self.cursor_info.is_time_series = True
+                    if j == 0:
+                        legend_items.append(curve)
         else:
             seen = set()
             for i, (rts, chromatogram) in enumerate(data):
@@ -229,9 +233,10 @@ class RtPlotter(PlotterBase):
                 if config is None:
                     config = dict(color=getColor(i))
                 if titles:
-                    title = titles[i]
+                    title = "<pre>%s</pre>" % titles[i]
                 else:
                     title = ""
+                labels.add(title)
                 curve = make.curve(rts, chromatogram, title=title, **config)
                 curve.__class__ = ModifiedCurveItem
                 allrts.extend(rts)
@@ -245,8 +250,14 @@ class RtPlotter(PlotterBase):
             self.marker.rts = allrts
             self.marker.attach(self.widget.plot)
             self.widget.plot.add_item(self.marker)
-        if titles is not None:
-            self.widget.plot.add_item(make.legend("TL"))
+
+        labels -= set((None,))
+        labels -= set(("",))
+        if labels:
+            legend = make.legend("TL", restrict_items=legend_items)
+            legend.labelparam.font.size = 12
+            legend.labelparam.update_label(legend)
+            self.widget.plot.add_item(legend)
         if not is_time_series:
             self.addRangeSelector(allrts)
 
