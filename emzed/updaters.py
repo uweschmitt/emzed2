@@ -160,6 +160,7 @@ def _interactive_update():
     dlg = UpdateDialog(script)
     dlg.exec_()
 
+    at_least_one_sucess = False
     for id_ in dlg.get_updates_to_run():
         updater = registry.get(id_)
         ok, msg = updater.do_update(None)
@@ -167,6 +168,12 @@ def _interactive_update():
             print
             print "UPDATE FAILED:", msg
             print
+        else:
+            at_least_one_sucess = True
+    if at_least_one_sucess:
+        import emzed.gui
+        emzed.gui.showInformation("please restart emzed to activate updates")
+
 
 
 def interactive_update():
