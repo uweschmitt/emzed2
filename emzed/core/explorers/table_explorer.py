@@ -1116,7 +1116,7 @@ class TableExplorer(EmzedDialog):
         if not reset:
             if not self.hasTimeSeries:
                 rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-            xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
+            xmin, xmax, ymin, ymax = self.rt_plotter.get_limits()
 
         self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
 
@@ -1137,18 +1137,18 @@ class TableExplorer(EmzedDialog):
                 w = 30.0  # seconds
             if not self.hasTimeSeries:
                 self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-                self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
+                self.rt_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
             self.rt_plotter.replot()
 
             if not reset:
-                self.rt_plotter.setXAxisLimits(xmin, xmax)
-                self.rt_plotter.setYAxisLimits(ymin, ymax)
+                self.rt_plotter.set_rt_axis_limits(xmin, xmax)
+                self.rt_plotter.set_intensity_axis_limits(ymin, ymax)
                 self.rt_plotter.updateAxes()
             else:
-                self.rt_plotter.reset_y_limits(fac=1.1, xmin=rtmin - w, xmax=rtmax + w)
+                self.rt_plotter.reset_intensity_limits(fac=1.1, xmin=rtmin - w, xmax=rtmax + w)
 
         if self.hasTimeSeries and reset:
-            self.rt_plotter.reset_x_limits(fac=1.0)
+            self.rt_plotter.reset_rt_limits(fac=1.0)
 
         reset_ = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset_ else None

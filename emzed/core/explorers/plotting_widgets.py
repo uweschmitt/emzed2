@@ -1,6 +1,3 @@
-import guiqwt
-# assert guiqwt.__version__ == "2.1.5", guiqwt.__version__
-
 from guiqwt.plot import CurveWidget, PlotManager
 from guiqwt.builder import make
 from guiqwt.label import ObjectInfo
@@ -47,37 +44,18 @@ def getColor(i):
     return colors[i % len(colors)]
 
 
-def formatSeconds(seconds):
-    return "%.2fm" % (seconds / 60.0)
-
-
-class RtRangeSelectionInfo(ObjectInfo):
-
-    def __init__(self, range_):
-        ObjectInfo.__init__(self)
-        self.range_ = range_
-
-    def get_text(self):
-        rtmin, rtmax = sorted(self.range_.get_range())
-        if rtmin != rtmax:
-            return u"<pre>RT: %s ... %s</pre>" % (formatSeconds(rtmin),
-                                       formatSeconds(rtmax))
-        else:
-            return u"<pre>RT: %s</pre>" % formatSeconds(rtmin)
-
-
 class PlotterBase(object):
 
     def __init__(self, xlabel, ylabel):
         self.widget = CurveWidget(xlabel=xlabel, ylabel=ylabel)
 
-    def setXAxisLimits(self, xmin, xmax):
+    def set_rt_axis_limits(self, xmin, xmax):
         self.widget.plot.update_plot_xlimits(xmin, xmax)
 
     def updateAxes(self):
         self.widget.plot.updateAxes()
 
-    def setYAxisLimits(self, ymin, ymax):
+    def set_intensity_axis_limits(self, ymin, ymax):
         self.widget.plot.update_plot_ylimits(ymin, ymax)
 
     def setMinimumSize(self, a, b):
@@ -89,39 +67,21 @@ class PlotterBase(object):
     def reset_y_limits(self, ymin=None, ymax=None, fac=1.1, xmin=None, xmax=None):
         self.widget.plot.reset_y_limits(ymin, ymax, fac, xmin, xmax)
 
-    def set_limit(self, ix, value):
+    def _x_set_limit(self, ix, value):
         self.widget.plot.set_limit(ix, value)
 
-    def getLimits(self):
+    def get_limits(self):
         return self.widget.plot.get_plot_limits()
 
     def replot(self):
         self.widget.plot.replot()
 
 
-class RtCursorInfo(ObjectInfo):
-
-    def __init__(self, marker):
-        ObjectInfo.__init__(self)
-        self.marker = marker
-        self.is_time_series = False
-
-    def get_text(self):
-        rt = self.marker.xValue()
-        if self.is_time_series:
-            try:
-                txt = "<pre>%s</pre>" % (datetime.fromordinal(int(rt)))
-            except:
-                return ""
-        else:
-            txt = "<pre>%.2fm</pre>" % (rt / 60.0)
-        return txt
-
-
 class RtPlotter(PlotterBase):
 
-    def __init__(self, rangeSelectionCallback=None):
-        super(RtPlotter, self).__init__("RT", "I")
+    def __init__(self, parent=None, rangeSelectionCallback=None):
+
+        PlotterBase.__init__(self, "RT", "I")
 
         self.rangeSelectionCallback = rangeSelectionCallback
 
@@ -132,7 +92,7 @@ class RtPlotter(PlotterBase):
         self.pm.add_plot(widget.plot)
 
         t = self.pm.add_tool(RtSelectionTool)
-        self.addTool(RtSelectionTool)
+        t.activate()
         self.pm.set_default_tool(t)
 
         marker = Marker(label_cb=self.widget.plot.label_info,
@@ -153,7 +113,7 @@ class RtPlotter(PlotterBase):
         self.minRTRangeSelected = None
         self.maxRTRangeSelected = None
 
-    def set_rt_x_axis_labels(self):
+    def _set_rt_x_axis_labels(self):
         # todo: refactor as helper
         a = QwtScaleDraw()
         # render tic labels in modfied format:
@@ -161,7 +121,7 @@ class RtPlotter(PlotterBase):
         a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
         self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
 
-    def set_ts_x_axis_labels(self, data):
+    def _set_ts_x_axis_labels(self, data):
         # todo: refactor as helper
         all_ts = [tsi for ts in data for tsi in ts.x]
         pos = find_datetime_split_pos(all_ts)
@@ -171,11 +131,9 @@ class RtPlotter(PlotterBase):
         a.label = new.instancemethod(label, self.widget.plot, QwtScaleDraw)
         self.widget.plot.setAxisScaleDraw(self.widget.plot.xBottom, a)
 
-    def addTool(self, tool):
-        t = self.pm.add_tool(tool)
-        t.activate()
 
     def reset(self):
+        """empties plot"""
         self.plot([])
         self.marker.rts = [0]
         self.replot()
@@ -187,10 +145,10 @@ class RtPlotter(PlotterBase):
         self.widget.plot.del_all_items()
 
         if is_time_series:
-            self.set_ts_x_axis_labels(data)
+            self._set_ts_x_axis_labels(data)
             self.widget.plot.set_axis_title("bottom", "time")
         else:
-            self.set_rt_x_axis_labels()
+            self._set_rt_x_axis_labels()
             self.widget.plot.set_axis_title("bottom", "RT")
 
         labels = set()
@@ -259,12 +217,12 @@ class RtPlotter(PlotterBase):
             legend.labelparam.update_label(legend)
             self.widget.plot.add_item(legend)
         if not is_time_series:
-            self.addRangeSelector(allrts)
+            self._add_range_selector(allrts)
 
     def setEnabled(self, enabled):
         self.widget.plot.setVisible(enabled)
 
-    def addRangeSelector(self, rtvalues):
+    def _add_range_selector(self, rtvalues):
 
         self.rtvalues = rtvalues
         self.minRTRangeSelected = 0
@@ -278,10 +236,11 @@ class RtPlotter(PlotterBase):
         # you have to register item to plot before you can register the
         # rtSelectionHandler:
         self.widget.plot.add_item(range_)
-        self.widget.disconnect(range_.plot(), SIG_RANGE_CHANGED,
-                               self.rangeSelectionHandler)
-        self.widget.connect(range_.plot(), SIG_RANGE_CHANGED,
-                            self.rangeSelectionHandler)
+        range_.SIG_RANGE_CHANGED.connect(self._range_selection_handler)
+        #self.widget.disconnect(range_.plot(), SIG_RANGE_CHANGED,
+                               #self._range_selection_handler)
+        #self.widget.connect(range_.plot(), SIG_RANGE_CHANGED,
+                            #self._range_selection_handler)
 
         cc = make.info_label("TR", [RtRangeSelectionInfo(range_)], title=None)
         cc.labelparam.label = ""
@@ -298,177 +257,17 @@ class RtPlotter(PlotterBase):
         self.minRTRangeSelected = xleft
         self.maxRTRangeSelected = xright
         # left and right bar of range marker
-        self.range_.move_point_to(0, (xleft, 0), emitsignal=False)
+        self.range_.move_point_to(0, (xleft, 0))
         self.range_.move_point_to(1, (xright, 0))
-        # calls self.rangeSelectionHandler !
         self.rangeSelectionCallback = saved
 
     @protect_signal_handler
-    def rangeSelectionHandler(self, obj, left, right):
+    def _range_selection_handler(self, obj, left, right):
         min_, max_ = sorted((left, right))
         self.minRTRangeSelected = min_
         self.maxRTRangeSelected = max_
         if self.rangeSelectionCallback is not None:
             self.rangeSelectionCallback()
 
-
-class MzCursorInfo(ObjectInfo):
-    def __init__(self, marker, line):
-        ObjectInfo.__init__(self)
-        self.marker = marker
-        self.line = line
-
-    def get_text(self):
-        mz, I = self.marker.xValue(), self.marker.yValue()
-        txt = "mz=%.6f<br/>I=%.1e" % (mz, I)
-        if self.line.isVisible():
-            _, _, mz2, I2 = self.line.get_rect()
-            mean = (mz + mz2) / 2.0
-            txt += "<br/><br/>dmz=%.6f<br/>rI=%.3e<br/>mean=%.6f" % (mz2 - mz, I2 / I, mean)
-
-        return "<pre>%s</pre>" % txt
-
-
-class MzPlotter(PlotterBase):
-
-    def __init__(self, c_callback=None, image_plot=None):
-        super(MzPlotter, self).__init__("m/z", "I")
-
-        self.c_callback = c_callback
-
-        widget = self.widget
-
-        # inject mofified behaviour of wigets plot attribute:
-        widget.plot.__class__ = MzPlot
-        widget.plot.register_c_callback(self.handle_c_pressed)
-        widget.plot.image_plot = image_plot
-        self.setHalfWindowWidth(0.05)
-        self.centralMz = None
-
-        # todo: refactor as helper
-        a = QwtScaleDraw()
-        label = lambda self, x: QwtText("%s" % x)
-        a.label = new.instancemethod(label, widget.plot, QwtScaleDraw)
-        widget.plot.setAxisScaleDraw(widget.plot.xBottom, a)
-
-        self.pm = PlotManager(widget)
-        self.pm.add_plot(widget.plot)
-        self.curve = make.curve([], [], color='b', curvestyle="Sticks")
-        # inject modified behaviour:
-        self.curve.__class__ = ModifiedCurveItem
-
-        self.widget.plot.add_item(self.curve)
-
-        t = self.pm.add_tool(MzSelectionTool)
-        self.pm.set_default_tool(t)
-        t.activate()
-
-        marker = Marker(label_cb=widget.plot.label_info,
-                        constraint_cb=widget.plot.on_plot)
-        marker.attach(self.widget.plot)
-
-        line = make.segment(0, 0, 0, 0)
-        line.__class__ = ModifiedSegment
-        line.setVisible(0)
-
-        setupCommonStyle(line, marker)
-        line.shapeparam.line.color = "#555555"
-        line.shapeparam.update_shape(line)
-
-        label = make.info_label("TR", [MzCursorInfo(marker, line)], title=None)
-        label.labelparam.label = ""
-        label.labelparam.font.size = 12
-        label.labelparam.update_label(label)
-
-        self.marker = marker
-        self.label = label
-        self.line = line
-
-    def setHalfWindowWidth(self, w2):
-        self.widget.plot.set_half_window_width(w2)
-
-    def setCentralMz(self, mz):
-        self.widget.plot.set_central_mz(mz)
-
-    def handle_c_pressed(self, p):
-        if self.c_callback:
-            self.c_callback(p)
-
-    def plot_spectra(self, all_peaks, labels):
-        self.widget.plot.del_all_items()
-        self.widget.plot.add_item(self.marker)
-        self.widget.plot.add_item(make.legend("TL"))
-        self.widget.plot.add_item(self.label)
-
-        for i, (peaks, label) in enumerate(zip(all_peaks, labels)):
-            config = dict(color=getColor(i))
-            curve = make.curve([], [], title=label, curvestyle="Sticks", **config)
-            curve.set_data(peaks[:, 0], peaks[:, 1])
-            curve.__class__ = ModifiedCurveItem
-            self.widget.plot.add_item(curve)
-            #self.widget.plot.curves.append(curve)
-            self.widget.plot.resample_config = []
-
-        self.widget.plot.add_item(self.line)
-        if len(all_peaks):
-            self.widget.plot.all_peaks = np.vstack(all_peaks)
-        else:
-            self.widget.plot.all_peaks = np.zeros((0, 2))
-
-
-    def plot(self, data, configs=None, titles=None):
-        """ do not forget to call replot() after calling this function ! """
-        self.widget.plot.del_all_items()
-        self.widget.plot.add_item(self.marker)
-        if titles is not None:
-            self.widget.plot.add_item(make.legend("TL"))
-        self.widget.plot.add_item(self.label)
-
-        all_peaks = []
-        self.widget.plot.resample_config = []
-        self.widget.plot.curves = []
-        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
-            ms_level = min(pm.getMsLevels())
-            if rtmin is None and rtmax is None:
-                rtmin, rtmax = pm.rtRange()
-            elif rtmin is None:
-                rtmin, __ = pm.rtRange()
-            elif rtmax is None:
-                __, rtmax = pm.rtRange()
-            if mzmin is None and mzmax is None:
-                mzmin, mzmax = pm.mzRange(ms_level)
-            elif mzmin is None:
-                mzmin, __ = pm.mzRange(ms_level)
-            elif mzmax is None:
-                __, mzmax = pm.mzRange(ms_level)
-            if npeaks is None:
-                npeaks = 3000
-
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-            all_peaks.append(peaks)
-            config = configs[i] if configs is not None else None
-            if config is None:
-                config = dict(color=getColor(i))
-            if titles is not None:
-                title = titles[i]
-            else:
-                title = u""
-            curve = make.curve([], [], title=title, curvestyle="Sticks", **config)
-            curve.set_data(peaks[:, 0], peaks[:, 1])
-            curve.__class__ = ModifiedCurveItem
-            self.widget.plot.add_item(curve)
-            self.widget.plot.curves.append(curve)
-            self.widget.plot.resample_config.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
-        self.widget.plot.add_item(self.line)
-        if len(all_peaks):
-            self.widget.plot.all_peaks = np.vstack(all_peaks)
-        else:
-            self.widget.plot.all_peaks = np.zeros((0, 2))
-
-
-    def resetAxes(self):
-        self.widget.plot.reset_x_limits()
-
-    def reset(self):
-        self.plot(np.ndarray((0, 2)))
-        self.replot()
+    reset_rt_limits = PlotterBase.reset_x_limits
+    reset_intensity_limits = PlotterBase.reset_y_limits

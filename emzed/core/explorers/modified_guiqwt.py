@@ -1,6 +1,6 @@
 import datetime
 
-from PyQt4.QtCore import Qt, QPoint
+from PyQt4.QtCore import Qt, QPoint, pyqtSignal, QObject
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
 from guiqwt.events import ObjectHandler, KeyEventMatch, QtDragHandler
@@ -18,7 +18,7 @@ from helpers import protect_signal_handler
 from emzed_optimizations import sample_peaks
 
 
-class ModifiedCurveItem(CurveItem):
+class UnselectableCurveItem(CurveItem):
     """ modification(s):
           selection (which plots a square at each (x,y) ) is turned off
     """
@@ -30,7 +30,7 @@ class ModifiedCurveItem(CurveItem):
 class RtSelectionTool(InteractiveTool):
     """
         modified event handling:
-            - enter, space, backspace, lift crsr and right crsr keys trigger handlers in baseplot
+            - enter, space, backspace, left crsr and right crsr keys trigger handlers in baseplot
     """
     TITLE = "Rt Selection"
     ICON = "selection.png"
@@ -137,7 +137,7 @@ class MzSelectionTool(InteractiveTool):
         return start_state
 
 
-class ModifiedCurvePlot(CurvePlot):
+class PositiveValuedCurvePlot(CurvePlot):
     """ modifications:
             - zooming preserves x asix at bottom of plot
             - panning is only in x direction
@@ -240,6 +240,9 @@ class ModifiedCurvePlot(CurvePlot):
         self.replot()
         self.emit(SIG_PLOT_AXIS_CHANGED, self)
 
+
+class ExtendedCurvePlot(CurvePlot):
+
     @protect_signal_handler
     def do_backspace_pressed(self, filter, evt):
         """ reset axes of plot """
@@ -324,7 +327,7 @@ class ModifiedCurvePlot(CurvePlot):
         self.replot()
 
 
-class RtPlot(ModifiedCurvePlot):
+class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     """ modified behavior:
             - space zooms to selected rt range
             - enter puts range marker to middle of currenct rt plot view
@@ -360,8 +363,12 @@ class RtPlot(ModifiedCurvePlot):
         mid = (xmin + xmax) / 2.0
 
         item = self.get_unique_item(SnappingRangeSelection)
-        item.move_point_to(0, (mid, 0), None, emitsignal=False)
-        item.move_point_to(1, (mid, 0), None)
+
+        # move_point_to always emits both limits, so we block the first signalling:
+        item.blockSignals(True)
+        item.move_point_to(0, (mid, 0))
+        item.blockSignals(False)
+        item.move_point_to(1, (mid, 0))
         filter.plot.replot()
 
     @protect_signal_handler
@@ -378,33 +385,39 @@ class RtPlot(ModifiedCurvePlot):
         ctrl_pressed = evt.modifiers() & Qt.ControlModifier
 
         item = self.get_unique_item(SnappingRangeSelection)
-        neu1 = neu0 = None
 
         n_iter = 5 if ctrl_pressed else 1
 
-        neu1 = item._max
-        neu0 = item._min
+        new_max = item._max
+        new_min = item._min
         for _ in range(n_iter):
             if not alt_pressed:
-                neu1 = selector(item.get_neighbour_xvals(neu1))
+                new_max = selector(item.get_neighbour_xvals(new_max))
+                if new_max is None:
+                    break
             if not shift_pressed:
-                neu0 = selector(item.get_neighbour_xvals(neu0))
+                new_min = selector(item.get_neighbour_xvals(new_min))
+                if new_min is None:
+                    break
 
-        _min, _max = sorted((item._min, item._max))
-        if neu0 is not None and (neu0 <= _max or neu0 == neu1):
-            item.move_point_to(0, (neu0, 0), True)
-        if neu1 is not None and (neu1 >= _min or neu0 == neu1):
-            item.move_point_to(1, (neu1, 0), True)
+        if new_min is not None and new_max is not None:
+            # move_point_to always emits both limits, so we block the first signalling:
+            item.blockSignals(True)
+            item.move_point_to(0, (new_min, 0))
+            item.blockSignals(False)
+            item.move_point_to(1, (new_max, 0))
 
         filter_.plot.replot()
 
     @protect_signal_handler
     def do_left_pressed(self, filter_, evt):
-        self.move_selection_bounds(evt, filter_, lambda (a, b): a)
+        self.move_selection_bounds(evt, filter_,
+                                   lambda (left_neighbour, right_neighbour): left_neighbour)
 
     @protect_signal_handler
     def do_right_pressed(self, filter_, evt):
-        self.move_selection_bounds(evt, filter_, lambda (a, b): b)
+        self.move_selection_bounds(evt, filter_,
+                                   lambda (left_neighbour, right_neighbour): right_neighbour)
 
     def label_info(self, x, y):
         # label next to cursor turned off:
@@ -423,7 +436,7 @@ class RtPlot(ModifiedCurvePlot):
         return self.current_peak
 
 
-class MzPlot(ModifiedCurvePlot):
+class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
     """ modifications:
             - showing marker at peak next to mouse cursor
@@ -478,31 +491,32 @@ class MzPlot(ModifiedCurvePlot):
 
     def do_backspace_pressed(self, filter, evt):
         """ reset axes of plot """
-        all_peaks = []
-        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.resample_config):
-            ms_level = min(pm.getMsLevels())
-            if rtmin is None and rtmax is None:
-                rtmin, rtmax = pm.rtRange()
-            elif rtmin is None:
-                rtmin, __ = pm.rtRange()
-            elif rtmax is None:
-                __, rtmax = pm.rtRange()
-            if mzmin is None and mzmax is None:
-                mzmin, mzmax = pm.mzRange(ms_level)
-            elif mzmin is None:
-                mzmin, __ = pm.mzRange(ms_level)
-            elif mzmax is None:
-                __, mzmax = pm.mzRange(ms_level)
-            if npeaks is None:
-                npeaks = 3000
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-            curve = self.curves[i]
-            curve.set_data(peaks[:, 0], peaks[:, 1])
-            all_peaks.append(peaks)
-        if len(all_peaks):
-            self.all_peaks = np.vstack(all_peaks)
-        else:
-            self.all_peaks = np.zeros((0, 2))
+        if self.resample_config:
+            all_peaks = []
+            for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.resample_config):
+                ms_level = min(pm.getMsLevels())
+                if rtmin is None and rtmax is None:
+                    rtmin, rtmax = pm.rtRange()
+                elif rtmin is None:
+                    rtmin, __ = pm.rtRange()
+                elif rtmax is None:
+                    __, rtmax = pm.rtRange()
+                if mzmin is None and mzmax is None:
+                    mzmin, mzmax = pm.mzRange(ms_level)
+                elif mzmin is None:
+                    mzmin, __ = pm.mzRange(ms_level)
+                elif mzmax is None:
+                    __, mzmax = pm.mzRange(ms_level)
+                if npeaks is None:
+                    npeaks = 3000
+                peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+                curve = self.curves[i]
+                curve.set_data(peaks[:, 0], peaks[:, 1])
+                all_peaks.append(peaks)
+            if len(all_peaks):
+                self.all_peaks = np.vstack(all_peaks)
+            else:
+                self.all_peaks = np.zeros((0, 2))
         self.reset_x_limits()
 
     def next_peak_to(self, mz, I=None):
@@ -620,7 +634,7 @@ class MzPlot(ModifiedCurvePlot):
         self.replot()
 
 
-class ModifiedSegment(SegmentShape):
+class MesaurementLine(SegmentShape):
     """
         This is plottet as a line
         modifications are:
@@ -634,7 +648,7 @@ class ModifiedSegment(SegmentShape):
         and the end point of this line to (x2, y2)
         """
         # the original shape has a extra point in the middle
-        # of the line, which is the last tuple, I moved this point to the beginning:
+        # of the line, which is the last tuple, I moved this point to the starting point:
 
         self.set_points([(x1, y1), (x2, y2), (x1, y1)])
 
@@ -677,24 +691,43 @@ class SnappingRangeSelection(XRangeSelection):
             - snaps to given rt-values which are in general not equally spaced
     """
 
-    def __init__(self, min_, max_, xvals):
-        super(SnappingRangeSelection, self).__init__(min_, max_)
+    class _X(QObject):
+        SIG_RANGE_CHANGED = pyqtSignal(float, float)
 
-    def move_local_point_to(self, hnd, pos, ctrl=None):
-        """ had to rewrite this function as the orginal does not give
-            the ctrl parameter value to self.move_point_to method
-        """
-        val = self.plot().invTransform(self.xAxis(), pos.x())
-        self.move_point_to(hnd, (val, 0), ctrl)
+    def __init__(self, min_, max_):
+        XRangeSelection.__init__(self, min_, max_)
+        self._can_move = False  # moving entire shape disabled, but handles are still movable
+
+        # we have to trick a bit because pyqtSignal must be attributes of a derived class of
+        # QObject and adding QObject as an additional base class does not work somehow:
+        self._x = SnappingRangeSelection._X()
+        self.SIG_RANGE_CHANGED = self._x.SIG_RANGE_CHANGED
+
+        p = self.shapeparam
+        p.fill = "#aaaaaa"
+        p.line.color = "#888888"
+        p.sel_line.color = "#888888"
+        p.symbol.color = "gray"
+        p.symbol.facecolor = "gray"
+        p.symbol.alpha = 0.5
+        p.sel_symbol.color = "gray"
+        p.sel_symbol.facecolor = "gray"
+        p.sel_symbol.alpha = 0.5
+        p.sel_symbol.size = 8
+        p.symbol.size = 8
+        p.update_range(self)
+
+    def blockSignals(self, do_block):
+        self._x.blockSignals(do_block)
 
     def get_xvals(self):
         xvals = []
         for item in self.plot().get_items():
             if isinstance(item, CurveItem):
-                xvals.append(np.array(item.get_data()[0]))
-        return np.sort(np.hstack(xvals))
+                xvals.extend(np.array(item.get_data()[0]))
+        return np.sort(np.unique(xvals))
 
-    def move_point_to(self, hnd, pos, ctrl=True, emitsignal=True):
+    def move_point_to(self, hnd, pos):
         xvals = self.get_xvals()
         x, y = pos
 
@@ -705,21 +738,19 @@ class SnappingRangeSelection(XRangeSelection):
             imin = np.argmin(np.fabs(val - xvals))
             x = xvals[imin]
 
-        if self._min == self._max and not ctrl:
+        if hnd == 0:
             self._min = x
+        elif hnd == 1:
             self._max = x
-        else:
-            if hnd == 0:
-                self._min = x
-            elif hnd == 1:
-                self._max = x
-            elif hnd == 2:
-                move = val - (self._max + self._min) / 2
-                self._min += move
-                self._max += move
+        elif hnd == 2:
+            move = val - (self._max + self._min) / 2
+            new_min = self._min + move
+            new_max = self._max + move
+            if min(xvals) <= new_min <= max(xvals) and min(xvals) <= new_max <= max(xvals):
+                self._min = new_min
+                self._max = new_max
 
-        if emitsignal:
-            self.plot().emit(SIG_RANGE_CHANGED, self, self._min, self._max)
+        self.SIG_RANGE_CHANGED.emit(self._min, self._max)
 
     def get_neighbour_xvals(self, x):
         """ used for moving boundaries """
@@ -727,11 +758,7 @@ class SnappingRangeSelection(XRangeSelection):
         xvals = self.get_xvals()
         imin = np.argmin(np.fabs(x - xvals))
         if imin == 0:
-            return xvals[0], xvals[1]
+            return None, xvals[1]
         if imin == len(xvals) - 1:
-            return xvals[imin - 1], xvals[imin]
+            return xvals[imin - 1], None
         return xvals[imin - 1], xvals[imin + 1]
-
-    def move_shape(self, old_pos, new_pos):
-        # disabled, that is: do nothing !
-        return
