@@ -8,6 +8,7 @@ from collections import defaultdict
 import warnings
 import zlib
 
+from emzed_optimizations.sample import sample_peaks
 
 OPTIMIZATIONS_INSTALLED = False
 try:
@@ -723,6 +724,15 @@ class PeakMap(object):
         if "unique_id" in meta:
             del meta["unique_id"]
         return PeakMap(spectra, meta=meta)
+
+    def sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level):
+        """
+        creates binned spectrum from given range. returns matrix with two columns,
+        the first column corresponds to the mz bins and the second to the max intensity per bin.
+        is used for plotting spectra on different zoom levels
+        """
+        peaks = sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level)
+        return peaks
 
 
 class PeakMapProxy(PeakMap):

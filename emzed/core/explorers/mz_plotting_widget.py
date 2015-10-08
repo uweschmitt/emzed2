@@ -12,19 +12,14 @@ from guiqwt.shapes import Marker
 
 import numpy as np
 
-from modified_guiqwt import MzPlot, UnselectableCurveItem, MzSelectionTool, MesaurementLine
+from modified_guiqwt import MzPlot, MzSelectionTool
+from modified_guiqwt import make_measurement_line, make_unselectable_curve
+
 from config import setupCommonStyle
 from eic_plotting_widget import getColor
 
-from emzed_optimizations.sample import sample_peaks
 
-"""
-todo: - explore and impmement needed api
-      - use it with peakmaps
-      - implement signal stuff
-      - cleanup
-      - build miminal dialog !
-"""
+from modified_guiqwt import patch_inner_plot_object
 
 
 class MzCursorInfo(ObjectInfo):
@@ -40,6 +35,9 @@ class MzCursorInfo(ObjectInfo):
         if self.line.isVisible():
             _, _, mz2, I2 = self.line.get_rect()
             mean = (mz + mz2) / 2.0
+            # to avoid zero division:
+            if I == 0:
+                I == 1
             txt += "<br/><br/>dmz=%.6f<br/>rI=%.3e<br/>mean=%.6f" % (mz2 - mz, I2 / I, mean)
 
         return "<pre>%s</pre>" % txt
@@ -50,24 +48,20 @@ class MzPlottingWidget(CurveWidget):
     def __init__(self, parent=None):
         super(MzPlottingWidget, self).__init__(parent, xlabel="mz", ylabel="I")
 
-        # inject mofified behaviour of wigets plot attribute:
-        self.plot.__class__ = MzPlot
-        # self.plot.register_c_callback(self.handle_c_pressed)
-        # self.plot.image_plot = image_plot
-        self.setHalfWindowWidth(0.05)
+        patch_inner_plot_object(self, MzPlot)
         self.plot.centralMz = None
 
-        # todo: refactor as helper
+        def label(self, x):
+            # label with full precision:
+            return QwtText(str(x))
+
         a = QwtScaleDraw()
-        label = lambda self, x: QwtText("%s" % x)
         a.label = new.instancemethod(label, self.plot, QwtScaleDraw)
         self.plot.setAxisScaleDraw(self.plot.xBottom, a)
 
         self.pm = PlotManager(self)
         self.pm.add_plot(self.plot)
-        self.curve = make.curve([], [], color='b', curvestyle="Sticks")
-        # inject modified behaviour:
-        self.curve.__class__ = UnselectableCurveItem
+        self.curve = make_unselectable_curve([], [], color="b", curvestyle="Sticks")
 
         self.plot.add_item(self.curve)
 
@@ -78,8 +72,7 @@ class MzPlottingWidget(CurveWidget):
         marker = Marker(label_cb=self.plot.label_info, constraint_cb=self.plot.on_plot)
         marker.attach(self.plot)
 
-        line = make.segment(0, 0, 0, 0)
-        line.__class__ = MesaurementLine
+        line = make_measurement_line()
         line.setVisible(0)
 
         setupCommonStyle(line, marker)
@@ -95,16 +88,6 @@ class MzPlottingWidget(CurveWidget):
         self.label = label
         self.line = line
 
-    def setHalfWindowWidth(self, w2):
-        self.plot.set_half_window_width(w2)
-
-    def setCentralMz(self, mz):
-        self.plot.set_central_mz(mz)
-
-    def handle_c_pressed(self, p):
-        if self.c_callback:
-            self.c_callback(p)
-
     def plot_spectra(self, all_peaks, labels):
         self.plot.del_all_items()
         self.plot.add_item(self.marker)
@@ -113,9 +96,8 @@ class MzPlottingWidget(CurveWidget):
 
         for i, (peaks, label) in enumerate(zip(all_peaks, labels)):
             config = dict(color=getColor(i))
-            curve = make.curve([], [], title=label, curvestyle="Sticks", **config)
+            curve = make_unselectable_curve([], [], title=label, curvestyle="Sticks", **config)
             curve.set_data(peaks[:, 0], peaks[:, 1])
-            curve.__class__ = UnselectableCurveItem
             self.plot.add_item(curve)
             self.plot.resample_config = []
 
@@ -125,60 +107,40 @@ class MzPlottingWidget(CurveWidget):
         else:
             self.plot.all_peaks = np.zeros((0, 2))
 
-    def plot(self, data, configs=None, titles=None):
-        """ do not forget to call replot() after calling this function ! """
+    def _setup_configs_and_titles(self, configs, titles, n):
+        configs = configs if configs is not None else [None] * n
+        titles = titles if titles is not None else [""] * n
+
+        def default(i):
+            return dict(color=getColor(i))
+        configs = [ci if ci is not None else default(i) for (i, ci) in enumerate(configs)]
+        return configs, titles
+
+    def plot_peakmaps(self, peakmap_ranges, configs=None, titles=None):
+
+        has_titles = titles is not None
+        configs, titles = self._setup_configs_and_titles(configs, titles, len(peakmap_ranges))
+
         self.plot.del_all_items()
         self.plot.add_item(self.marker)
-        if titles is not None:
+        if has_titles:
             self.plot.add_item(make.legend("TL"))
         self.plot.add_item(self.label)
 
-        all_peaks = []
-        self.plot.resample_config = []
-        self.plot.curves = []
-        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(data):
-            ms_level = min(pm.getMsLevels())
-            if rtmin is None and rtmax is None:
-                rtmin, rtmax = pm.rtRange()
-            elif rtmin is None:
-                rtmin, __ = pm.rtRange()
-            elif rtmax is None:
-                __, rtmax = pm.rtRange()
-            if mzmin is None and mzmax is None:
-                mzmin, mzmax = pm.mzRange(ms_level)
-            elif mzmin is None:
-                mzmin, __ = pm.mzRange(ms_level)
-            elif mzmax is None:
-                __, mzmax = pm.mzRange(ms_level)
-            if npeaks is None:
-                npeaks = 3000
-
-            peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-            all_peaks.append(peaks)
-            config = configs[i] if configs is not None else None
-            if config is None:
-                config = dict(color=getColor(i))
-            if titles is not None:
-                title = titles[i]
-            else:
-                title = u""
-            curve = make.curve([], [], title=title, curvestyle="Sticks", **config)
-            curve.set_data(peaks[:, 0], peaks[:, 1])
-            curve.__class__ = UnselectableCurveItem
-            self.plot.add_item(curve)
-            self.plot.curves.append(curve)
-            self.plot.resample_config.append((pm, rtmin, rtmax, mzmin, mzmax, npeaks))
+        self.plot.plot_peakmap_ranges(peakmap_ranges, configs, titles)
         self.plot.add_item(self.line)
-        if len(all_peaks):
-            self.plot.all_peaks = np.vstack(all_peaks)
-        else:
-            self.plot.all_peaks = np.zeros((0, 2))
+
+    def set_cursor_pos(self, mz):
+        self.plot.set_mz(mz)
 
     def resetAxes(self):
         self.plot.reset_x_limits()
 
+    def reset_x_limits(self, xmin=None, xmax=None, fac=1.1):
+        self.plot.reset_x_limits(xmin, xmax, fac)
+
     def reset(self):
-        self.plot(np.ndarray((0, 2)))
+        self.plot.del_all_items()
         self.replot()
 
     def replot(self):
@@ -186,3 +148,13 @@ class MzPlottingWidget(CurveWidget):
 
     def set_visible(self, visible):
         self.plot.setVisible(visible)
+
+    def updateAxes(self):
+        self.plot.updateAxes()
+
+    def shrink_and_replot(self):
+        self.plot.replot()
+        self.plot.reset_x_limits()
+        self.plot.reset_y_limits()
+        self.plot.updateAxes()
+        self.plot.replot()
