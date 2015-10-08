@@ -11,7 +11,8 @@ import guidata
 from guiqwt.shapes import PolygonShape
 from guiqwt.styles import ShapeParam
 
-from plotting_widgets import RtPlotter, MzPlotter
+from eic_plotting_widget import EicPlottingWidget
+from mz_plotting_widget import MzPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack
 
@@ -28,34 +29,6 @@ from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseVa
 
 from ...gui.file_dialogs import askForSave
 
-
-def create_peak_fit_shape(rts, iis, baseline, color):
-    rts = np.array(rts)
-    iis = np.array(iis)
-    perm = np.argsort(rts)
-    rts = rts[perm][:, None]  # column vector
-    iis = iis[perm][:, None]
-    points = np.hstack((rts, iis))  # we need two columns not two rows
-    points = points[points[:, 1] >= baseline]
-    if len(points):
-        rt0 = points[0][0]
-        rt1 = points[-1][0]
-        points = np.vstack(((rt0, baseline), points, (rt1, baseline)))
-        shape = PolygonShape(points, closed=True)
-        shape.set_selectable(False)
-        shape.set_movable(False)
-        shape.set_resizable(False)
-        shape.set_rotatable(False)
-        param = ShapeParam()
-        param.fill.alpha = 0.3
-        param.fill.color = color
-        # we set params this way because guiqwt has a bug if we use the shapeparam arg in
-        # PolygonShapes __init__:
-        param.update_shape(shape)
-        shape.pen = QPen(Qt.NoPen)
-
-        return shape
-    return None
 
 
 def eic_curves(model):
@@ -373,14 +346,14 @@ class TableExplorer(EmzedDialog):
 
     def setupPlottingWidgets(self):
         self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g"))
-        self.rt_plotter = RtPlotter(rangeSelectionCallback=self.plotMz)
-        self.rt_plotter.setMinimumSize(300, 100)
-        self.mz_plotter = MzPlotter()
+        self.eic_plotter = EicPlottingWidget()
+        self.eic_plotter.setMinimumSize(300, 100)
+        self.mz_plotter = MzPlottingWidget()
         self.mz_plotter.setMinimumSize(300, 100)
         pol = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         pol.setVerticalStretch(5)
-        self.rt_plotter.widget.setSizePolicy(pol)
-        self.mz_plotter.widget.setSizePolicy(pol)
+        self.eic_plotter.setSizePolicy(pol)
+        self.mz_plotter.setSizePolicy(pol)
 
         self.spec_label = QLabel("plot spectra:")
         self.choose_spec = QListWidget()
@@ -540,8 +513,8 @@ class TableExplorer(EmzedDialog):
         self.middleFrame = QFrame()
         self.middleFrame.setLayout(middleLayout)
 
-        plot_widgets = self.setup_plot_widgets([self.rt_plotter.widget, self.middleFrame,
-                                                self.mz_plotter.widget])
+        plot_widgets = self.setup_plot_widgets([self.eic_plotter, self.middleFrame,
+                                                self.mz_plotter])
 
         for widget in plot_widgets:
             hsplitter.addWidget(widget)
@@ -621,29 +594,29 @@ class TableExplorer(EmzedDialog):
         self.choose_spec.clear()
 
         if hasFeatures:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.resetPlots()
         elif self.hasEIConly:
-            self.rt_plotter.setEnabled(True)
-            self.rt_plotter.widget.setVisible(True)
-            self.mz_plotter.widget.setVisible(False)
+            self.eic_plotter.setEnabled(True)
+            self.eic_plotter.setVisible(True)
+            self.mz_plotter.setVisible(False)
             self.resetPlots()
         elif self.hasTimeSeries:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.mz_plotter.setEnabled(True)
-            self.rt_plotter.widget.setVisible(True)
-            self.mz_plotter.widget.setVisible(True)
+            self.eic_plotter.setVisible(True)
+            self.mz_plotter.setVisible(True)
             self.resetPlots()
         else:
-            self.rt_plotter.widget.setVisible(False)
-            self.mz_plotter.widget.setVisible(False)
+            self.eic_plotter.setVisible(False)
+            self.mz_plotter.setVisible(False)
 
     def setPlotVisibility(self, doShow):
-        self.rt_plotter.widget.setVisible(doShow)
-        self.mz_plotter.widget.setVisible(doShow)
+        self.eic_plotter.setVisible(doShow)
+        self.mz_plotter.setVisible(doShow)
 
     def resetPlots(self):
-        self.rt_plotter.reset()
+        self.eic_plotter.reset()
         self.mz_plotter.reset()
 
     def setIntegrationPanelVisiblity(self, doShow):
@@ -703,6 +676,8 @@ class TableExplorer(EmzedDialog):
 
         for sort_order_w in self.sort_order_widgets:
             sort_order_w.currentIndexChanged.connect(self.sort_fields_changed)
+
+        self.eic_plotter.SELECTED_RANGE_CHANGED.connect(self.eic_selection_changed)
 
     @protect_signal_handler
     def sort_fields_changed(self, __):
@@ -1020,7 +995,7 @@ class TableExplorer(EmzedDialog):
         # For better readibilty we put single quotes around the postfix
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
-        rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
+        rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
         for data_row_idx in self.model.selected_data_rows:
             self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
 
@@ -1051,15 +1026,15 @@ class TableExplorer(EmzedDialog):
         self.model.set_selected_data_rows(to_select)
 
         if self.hasFeatures:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
         elif self.hasEIConly:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
         elif self.hasTimeSeries:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
 
@@ -1115,20 +1090,18 @@ class TableExplorer(EmzedDialog):
 
         if not reset:
             if not self.hasTimeSeries:
-                rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-            xmin, xmax, ymin, ymax = self.rt_plotter.get_limits()
+                rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
+            xmin, xmax, ymin, ymax = self.eic_plotter.get_limits()
 
-        self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
+        self.eic_plotter.reset()
+        self.eic_plotter.add_eics(curves, configs=configs, labels=None)
 
         for ((rts, iis), baseline), config in zip(fit_shapes, configs):
             if baseline is None:
                 baseline = 0.0
-
             eic_color = config["color"]
             color = turn_light(eic_color)
-            shape = create_peak_fit_shape(rts, iis, baseline, color)
-            if shape is not None:
-                self.rt_plotter.widget.plot.add_item(shape)
+            self.eic_plotter.add_eic_filled(rts, iis, baseline, color)
 
         # allrts are sorted !
         if rtmin is not None and rtmax is not None:
@@ -1136,19 +1109,19 @@ class TableExplorer(EmzedDialog):
             if w == 0:
                 w = 30.0  # seconds
             if not self.hasTimeSeries:
-                self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-                self.rt_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
-            self.rt_plotter.replot()
+                self.eic_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
+                self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
+            self.eic_plotter.replot()
 
             if not reset:
-                self.rt_plotter.set_rt_axis_limits(xmin, xmax)
-                self.rt_plotter.set_intensity_axis_limits(ymin, ymax)
-                self.rt_plotter.updateAxes()
+                self.eic_plotter.set_rt_axis_limits(xmin, xmax)
+                self.eic_plotter.set_intensity_axis_limits(ymin, ymax)
+                self.eic_plotter.updateAxes()
             else:
-                self.rt_plotter.reset_intensity_limits(fac=1.1, xmin=rtmin - w, xmax=rtmax + w)
+                self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
         if self.hasTimeSeries and reset:
-            self.rt_plotter.reset_rt_limits(fac=1.0)
+            self.eic_plotter.reset_rt_limits(fac=1.0)
 
         reset_ = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset_ else None
@@ -1168,38 +1141,38 @@ class TableExplorer(EmzedDialog):
         else:
             self.plotMz()
 
-    def plotMz(self, resetLimits=None, limits_from_rows=False):
+    def eic_selection_changed(self, rtmin, rtmax):
+        self.plotMz(resetLimits=None)
+
+    def plotMz(self, resetLimits=None):
         """ this one is used from updatePlots and the rangeselectors
             callback """
         peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        mzmin = mzmax = None
-        if not limits_from_rows:
-            rtmin = self.rt_plotter.minRTRangeSelected
-            rtmax = self.rt_plotter.maxRTRangeSelected
-            if resetLimits:
-                mzmin, mzmax = resetLimits
-                data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
-            else:
-                data = []
-                for pm in peakmaps:
-                    mzmin, mzmax = pm.mzRange()
-                    data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+        if not peakmaps:
+            return
+
+        rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
+        if resetLimits:
+            mzmin, mzmax = resetLimits
+            data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
         else:
-            windows = [wi for idx in self.model.selected_data_rows for wi in self.model.getEICWindows(idx)]
-            data = [(pm,) + tuple(w) + (3000,) for (pm, w) in zip(peakmaps, windows)]
-            if data:
-                mzmin = min(wi[2] for wi in windows)
-                mzmax = max(wi[3] for wi in windows)
+            data = []
+            mzs = []
+            for pm in peakmaps:
+                mzmin, mzmax = pm.mzRange()
+                mzs.append(mzmin)
+                mzs.append(mzmax)
+                data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+            mzmin = min(mzs)
+            mzmax = max(mzs)
 
         configs = configsForSpectra(len(peakmaps))
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
         titles = map(repr, postfixes)
 
-        if data:
-            self.mz_plotter.plot(data, configs, titles if len(titles) > 1 else None)
-            if mzmin is not None and mzmax is not None:
-                self.mz_plotter.reset_x_limits(mzmin, mzmax)
-            self.mz_plotter.replot()
+        self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
+        self.mz_plotter.reset_x_limits(mzmin, mzmax)
+        self.mz_plotter.replot()
 
 
 def inspect(what, offerAbortOption=False, modal=True, parent=None):
