@@ -1,24 +1,40 @@
 import datetime
 
-from PyQt4.QtCore import Qt, QPoint, pyqtSignal, QObject
+from PyQt4.QtCore import Qt, pyqtSignal, QObject
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
 from guiqwt.events import ObjectHandler, KeyEventMatch, QtDragHandler
-from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING,
-                            SIG_RANGE_CHANGED, SIG_PLOT_AXIS_CHANGED)
+from guiqwt.signals import (SIG_MOVE, SIG_START_TRACKING, SIG_STOP_NOT_MOVING, SIG_STOP_MOVING)
 
 from guiqwt.events import ZoomHandler, PanHandler, MoveHandler
 
 from guiqwt.tools import InteractiveTool
+from guiqwt.builder import make
 
 from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
 import numpy as np
 
 from helpers import protect_signal_handler
-from emzed_optimizations import sample_peaks
+
+
+def patch_inner_plot_object(widget, plot_clz):
+    # we overwrite some methods of the given object:
+    widget.plot.__class__ = plot_clz
+
+    # we attach a signal (pyqtSignal is only usable for subclasses of QObject, and
+    # deriving from QObject does not work with multiple inheritance, so we have to apply
+    # some trickery):
+    class _Q(QObject):
+        CURSOR_MOVED = pyqtSignal(float)
+        VIEW_RANGE_CHANGED = pyqtSignal(float, float)
+
+    widget._q = _Q()
+    widget.CURSOR_MOVED = widget.plot.CURSOR_MOVED = widget._q.CURSOR_MOVED
+    widget.VIEW_RANGE_CHANGED = widget.plot.VIEW_RANGE_CHANGED = widget._q.VIEW_RANGE_CHANGED
 
 
 class UnselectableCurveItem(CurveItem):
+
     """ modification(s):
           selection (which plots a square at each (x,y) ) is turned off
     """
@@ -27,7 +43,20 @@ class UnselectableCurveItem(CurveItem):
         return False
 
 
+def make_unselectable_curve(*a, **kw):
+    curve = make.curve(*a, **kw)
+    curve.__class__ = UnselectableCurveItem
+    return curve
+
+
+def make_measurement_line():
+    line = make.segment(0, 0, 0, 0)
+    line.__class__ = MesaurementLine
+    return line
+
+
 class RtSelectionTool(InteractiveTool):
+
     """
         modified event handling:
             - enter, space, backspace, left crsr and right crsr keys trigger handlers in baseplot
@@ -42,12 +71,9 @@ class RtSelectionTool(InteractiveTool):
         start_state = filter.new_state()
         # Bouton gauche :
         ObjectHandler(filter, Qt.LeftButton, start_state=start_state)
-        # ObjectHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier,
-                      # start_state=start_state, multiselection=True)
 
         filter.add_event(start_state,
                          KeyEventMatch((Qt.Key_Enter, Qt.Key_Return,)),
-
                          baseplot.do_enter_pressed, start_state)
 
         filter.add_event(start_state,
@@ -82,6 +108,7 @@ class RtSelectionTool(InteractiveTool):
 
 
 class MzSelectionTool(InteractiveTool):
+
     """
        modified event handling:
            - space and backspac keys trigger handlers in baseplot
@@ -108,10 +135,6 @@ class MzSelectionTool(InteractiveTool):
                          KeyEventMatch((Qt.Key_Backspace, Qt.Key_Escape)),
                          baseplot.do_backspace_pressed, start_state)
 
-        filter.add_event(start_state,
-                         KeyEventMatch((Qt.Key_C,)),
-                         baseplot.do_c_pressed, start_state)
-
         self.connect(handler, SIG_MOVE, baseplot.move_in_drag_mode)
         self.connect(handler, SIG_START_TRACKING, baseplot.start_drag_mode)
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
@@ -123,6 +146,7 @@ class MzSelectionTool(InteractiveTool):
 
         # Bouton droit
         class ZoomHandlerWithStopingEvent(ZoomHandler):
+
             def stop_moving(self, filter_, event):
                 x_state, y_state = self.get_move_state(filter_, event.pos())
                 filter_.plot.do_finish_zoom_view(x_state, y_state)
@@ -138,11 +162,21 @@ class MzSelectionTool(InteractiveTool):
 
 
 class PositiveValuedCurvePlot(CurvePlot):
+
     """ modifications:
             - zooming preserves x asix at bottom of plot
             - panning is only in x direction
             - handler for backspace, called by RtSelectionTool and MzSelectionTool
     """
+
+    def _x_range(self):
+        xvals = []
+        for item in self.get_items_of_class(CurveItem):
+            xi, __ = item.get_data()
+            xvals.extend(xi)
+        if not xvals:
+            return None, None
+        return min(xvals), max(xvals)
 
     @protect_signal_handler
     def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
@@ -174,6 +208,8 @@ class PositiveValuedCurvePlot(CurvePlot):
 
         axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
 
+        xmin, xmax = self._x_range()
+
         for (direction, x1, x0, start, width), axis_id in axes_to_update:
             lbound, hbound = self.get_axis_limits(axis_id)
             if not lock_aspect_ratio:
@@ -197,14 +233,25 @@ class PositiveValuedCurvePlot(CurvePlot):
                 vmin = 0
                 if vmax < 0:
                     vmax = -vmax
-
+            else:
+                if xmin is not None:
+                    if vmin < xmin:
+                        vmin = xmin
+                        vmax = xmax
+                if xmax is not None:
+                    if vmax > xmax:
+                        vmin = xmin
+                        vmax = xmax
+                final_xmin = vmin
+                final_xmax = vmax
             self.set_axis_limits(axis_id, vmin, vmax)
 
         self.setAutoReplot(auto)
         # the signal MUST be emitted after replot, otherwise
         # we receiver won't see the new bounds (don't know why?)
         self.replot()
-        self.emit(SIG_PLOT_AXIS_CHANGED, self)
+        # self.emit(SIG_PLOT_AXIS_CHANGED, self)
+        self.VIEW_RANGE_CHANGED.emit(final_xmin, final_xmax)
 
     @protect_signal_handler
     def do_pan_view(self, dx, dy):
@@ -220,6 +267,8 @@ class PositiveValuedCurvePlot(CurvePlot):
         axes_to_update = self.get_axes_to_update(dx, dy)
         axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
 
+        # tofix: compute range of overall spectrum, not range of shown peaks:
+        xmin, xmax = self._x_range()
         for (x1, x0, _start, _width), axis_id in axes_to_update:
             lbound, hbound = self.get_axis_limits(axis_id)
             i_lbound = self.transform(axis_id, lbound)
@@ -232,13 +281,22 @@ class PositiveValuedCurvePlot(CurvePlot):
                 vmin = 0
                 if vmax < 0:
                     vmax = -vmax
+            if axis_id not in axis_ids_vertical:
+                if xmin is not None:
+                    if vmin < xmin:
+                        return
+                if xmax is not None:
+                    if vmax > xmax:
+                        return
+                final_xmin = vmin
+                final_xmax = vmax
             self.set_axis_limits(axis_id, vmin, vmax)
 
         self.setAutoReplot(auto)
         # the signal MUST be emitted after replot, otherwise
         # we receiver won't see the new bounds (don't know why?)
         self.replot()
-        self.emit(SIG_PLOT_AXIS_CHANGED, self)
+        self.VIEW_RANGE_CHANGED.emit(final_xmin, final_xmax)
 
 
 class ExtendedCurvePlot(CurvePlot):
@@ -278,8 +336,9 @@ class ExtendedCurvePlot(CurvePlot):
                 xy = zip(x, y)
                 xy = [(xi, yi) for (xi, yi) in xy if xmin is None or xi >= xmin]
                 xy = [(xi, yi) for (xi, yi) in xy if xmax is None or xi <= xmax]
-                x, y = zip(*xy)  # unzip
-                yvals.extend(y)
+                if xy:
+                    x, y = zip(*xy)  # unzip
+                    yvals.extend(y)
         return yvals
 
     def reset_x_limits(self, xmin=None, xmax=None, fac=1.0):
@@ -316,6 +375,7 @@ class ExtendedCurvePlot(CurvePlot):
     def update_plot_xlimits(self, xmin, xmax):
         _, _, ymin, ymax = self.get_plot_limits()
         self.set_plot_limits(xmin, xmax, ymin, ymax)
+        self.VIEW_RANGE_CHANGED.emit(xmin, xmax)
         self.setAxisAutoScale(self.yLeft)  # y-achse
         self.updateAxes()
         self.replot()
@@ -327,7 +387,8 @@ class ExtendedCurvePlot(CurvePlot):
         self.replot()
 
 
-class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
+class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
+
     """ modified behavior:
             - space zooms to selected rt range
             - enter puts range marker to middle of currenct rt plot view
@@ -335,12 +396,17 @@ class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
               boundaries of selection tool
     """
 
+    # we use this class by patching, so we do not call __init__, instead we set defaults as
+    # follows
+    rts = None
 
     @protect_signal_handler
     def do_space_pressed(self, filter, evt):
         """ zoom to limits of snapping selection tool """
 
         item = self.get_unique_item(SnappingRangeSelection)
+        if item is None:
+            return
         if item._min != item._max:
             min_neu = min(item._min, item._max)
             max_neu = max(item._min, item._max)
@@ -354,6 +420,7 @@ class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
                 ymax = max(yvals)
                 if ymax > 0:
                     self.update_plot_ylimits(0, ymax * 1.1)
+        self.filter.state = self.filter.start_state
 
     @protect_signal_handler
     def do_enter_pressed(self, filter, evt):
@@ -363,6 +430,8 @@ class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         mid = (xmin + xmax) / 2.0
 
         item = self.get_unique_item(SnappingRangeSelection)
+        if item is None:
+            return
 
         # move_point_to always emits both limits, so we block the first signalling:
         item.blockSignals(True)
@@ -423,16 +492,25 @@ class RtPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         # label next to cursor turned off:
         return None
 
+    def set_rts(self, rts):
+        self.rts = np.array(rts)
+
+    def set_rt(self, rt):
+        # sets cursor
+        marker = self.get_unique_item(Marker)
+        marker.setXValue(rt)
+        self.replot()
+
     @protect_signal_handler
     def on_plot(self, x, y):
         """ callback for marker: determine marked point based on cursors coordinates """
-        marker = self.get_unique_item(Marker)
-        rts = np.array(marker.rts)
-        if len(rts) == 0:
+        rts = self.rts
+        if rts is None or len(rts) == 0:
             return x, y
         distances = np.abs(x - rts)
         imin = np.argmin(distances)
         self.current_peak = rts[imin], 0
+        self.CURSOR_MOVED.emit(rts[imin])
         return self.current_peak
 
 
@@ -444,11 +522,13 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             - showing information about current peak and distances if in drag mode
     """
 
-    # as we have constructor, we provide default values here:
-    data = []
+    # as this class is used in patching we do not call __init__, so we set some defaults
+    # here:
+    peakmap_ranges = ()
     latest_mzmin = None
     latest_mzmax = None
-    image_plot   = None
+    image_plot = None
+    visible_peaks = ()
 
     def label_info(self, x, y):
         # label next to cursor turned off:
@@ -460,14 +540,14 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         self.current_peak = self.next_peak_to(x, y)
         if self.image_plot is not None:
             self.image_plot.set_mz(self.current_peak[0])
+        self.CURSOR_MOVED.emit(float(self.current_peak[0]))
         return self.current_peak
 
     def set_mz(self, mz):
+        # set cursor position
         mz, I = self.next_peak_to(mz)
         if mz is not None and I is not None:
             marker = self.get_unique_item(Marker)
-            new_x = self.transform(self.xBottom, mz)
-            new_y = self.transform(self.yLeft, I)
             marker.setValue(mz, I)  # avoids sending signal
             self.replot()
 
@@ -486,63 +566,42 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
                 mzmins.append(mzmin)
                 mzmaxs.append(mzmax)
 
-        self.update_plot_xlimits(min(mzmins), max(mzmaxs), rescale_y=False)
+        mzmin = min(mzmins)
+        mzmax = max(mzmaxs)
+        self.update_plot_xlimits(mzmin, mzmax, rescale_y=False)
         self.replot()
 
-    def do_backspace_pressed(self, filter, evt):
-        """ reset axes of plot """
-        if self.resample_config:
-            all_peaks = []
-            for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.resample_config):
-                ms_level = min(pm.getMsLevels())
-                if rtmin is None and rtmax is None:
-                    rtmin, rtmax = pm.rtRange()
-                elif rtmin is None:
-                    rtmin, __ = pm.rtRange()
-                elif rtmax is None:
-                    __, rtmax = pm.rtRange()
-                if mzmin is None and mzmax is None:
-                    mzmin, mzmax = pm.mzRange(ms_level)
-                elif mzmin is None:
-                    mzmin, __ = pm.mzRange(ms_level)
-                elif mzmax is None:
-                    __, mzmax = pm.mzRange(ms_level)
-                if npeaks is None:
-                    npeaks = 3000
-                peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-                curve = self.curves[i]
-                curve.set_data(peaks[:, 0], peaks[:, 1])
-                all_peaks.append(peaks)
-            if len(all_peaks):
-                self.all_peaks = np.vstack(all_peaks)
-            else:
-                self.all_peaks = np.zeros((0, 2))
-        self.reset_x_limits()
+    def set_visible_peaks(self, peaks):
+        if peaks is None or len(peaks) == 0:
+            peaks = np.zeros((0, 2))
+        else:
+            peaks = np.vstack(peaks)
+        self.visible_peaks = peaks
 
     def next_peak_to(self, mz, I=None):
-        if self.all_peaks.shape[0] == 0:
+        if len(self.visible_peaks) == 0:
             return mz, I
         if I is None:
-            distances  = (self.all_peaks[:, 0] - mz)**2
+            distances = (self.visible_peaks[:, 0] - mz) ** 2
             imin = np.argmin(distances)
         else:
-            peaks = self.all_peaks - np.array((mz, I))
+            peaks = self.visible_peaks - np.array((mz, I))
 
             # scale according to zooms axis proportions:
             mzmin, mzmax, Imin, Imax = self.get_plot_limits()
             peaks /= np.array((mzmax - mzmin, Imax - Imin))
-            # find minimal distacne
+            # find minimal distance
             distances = peaks[:, 0] ** 2 + peaks[:, 1] ** 2
             imin = np.argmin(distances)
-        return self.all_peaks[imin]
-
+        return self.visible_peaks[imin]
 
     @protect_signal_handler
     def do_move_marker(self, evt):
         marker = self.get_unique_item(Marker)
-        marker.move_local_point_to(0, evt.pos())
-        marker.setVisible(True)
-        self.replot()
+        if marker:
+            marker.move_local_point_to(0, evt.pos())
+            marker.setVisible(True)
+            self.replot()
 
     @protect_signal_handler
     def do_space_pressed(self, filter, evt):
@@ -555,21 +614,7 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         else:
             mz = self.centralMz
 
-        self.update_plot_xlimits(mz - self.halfWindowWidth,
-                                 mz + self.halfWindowWidth)
-
-    def set_half_window_width(self, w2):
-        self.halfWindowWidth = w2
-
-    def set_central_mz(self, mz):
-        self.centralMz = mz
-
-    def register_c_callback(self, cb):
-        self.c_call_back = cb
-
-    @protect_signal_handler
-    def do_c_pressed(self, filter, evt):
-        self.c_call_back(self.current_peak)
+        self.update_plot_xlimits(mz - 0.5, mz + 0.5)
 
     @protect_signal_handler
     def start_drag_mode(self, filter_, evt):
@@ -595,27 +640,62 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         line.setVisible(0)
         self.replot()
 
+    def _extract_peaks(self, mz_limits=None):
+        for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.peakmap_ranges):
+            ms_level = min(pm.getMsLevels())
+
+            rtmin_pm, rtmax_pm = pm.rtRange()
+            rtmin = rtmin if rtmin is not None else rtmin_pm
+            rtmax = rtmax if rtmax is not None else rtmax_pm
+
+            if mz_limits is not None:
+                mzmin, mzmax = mz_limits
+            else:
+                if mzmin is None or mzmax is None:
+                    mzmin_pm, mzmax_pm = pm.mzRange(ms_level)
+                mzmin = mzmin if mzmin is not None else mzmin_pm
+                mzmax = mzmax if mzmax is not None else mzmax_pm
+
+            npeaks = npeaks or 3000
+
+            peaks = pm.sample_peaks(rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            yield i, peaks
+
+    def plot_peakmap_ranges(self, peakmap_ranges, configs, titles):
+        collected_peaks = []
+        self.sticks = []
+        self.peakmap_ranges = peakmap_ranges
+        for i, peaks in self._extract_peaks():
+            collected_peaks.append(peaks)
+            config = configs[i]
+            title = titles[i]
+            curve = make_unselectable_curve([], [], title=title, curvestyle="Sticks", **config)
+            curve.set_data(peaks[:, 0], peaks[:, 1])
+            self.add_item(curve)
+            self.sticks.append(curve)
+
+        self.set_visible_peaks(collected_peaks)
+
     def resample_peaks(self, mzmin, mzmax):
         if mzmin == self.latest_mzmin and mzmax == self.latest_mzmax:
             return
-        if not self.resample_config:
-            return
         self.latest_mzmin = mzmin
         self.latest_mzmax = mzmax
-        all_peaks = []
-        for i, (pm, rtmin, rtmax, __, __, npeaks) in enumerate(self.resample_config):
-            ms_level = min(pm.getMsLevels())
-            if rtmin < rtmax and mzmin < mzmax:
-                peaks = sample_peaks(pm, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
-            else:
-                continue
-            curve = self.curves[i]
+        self._update_sticks(mz_limits=(mzmin, mzmax))
+
+    def _update_sticks(self, mz_limits):
+        collected_peaks = []
+        for i, peaks in self._extract_peaks(mz_limits):
+            collected_peaks.append(peaks)
+            curve = self.sticks[i]
             curve.set_data(peaks[:, 0], peaks[:, 1])
-            all_peaks.append(peaks)
-        if len(all_peaks):
-            self.all_peaks = np.vstack(all_peaks)
-        else:
-            self.all_peaks = np.zeros((0, 2))
+            collected_peaks.append(peaks)
+        self.set_visible_peaks(collected_peaks)
+
+    def do_backspace_pressed(self, filter, evt):
+        """ reset axes of plot """
+        self._update_sticks(mz_limits=None)
+        self.reset_x_limits()
 
     def update_plot_xlimits(self, xmin, xmax, rescale_y=True):
         _, _, ymin, ymax = self.get_plot_limits()
@@ -623,6 +703,7 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         self.resample_peaks(xmin, xmax)
         if rescale_y:
             self.setAxisAutoScale(self.yLeft)  # y-achse
+        self.VIEW_RANGE_CHANGED.emit(xmin, xmax)
         self.updateAxes()
         self.replot()
 
@@ -635,6 +716,7 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
 
 class MesaurementLine(SegmentShape):
+
     """
         This is plottet as a line
         modifications are:
@@ -692,7 +774,7 @@ class SnappingRangeSelection(XRangeSelection):
     """
 
     class _X(QObject):
-        SIG_RANGE_CHANGED = pyqtSignal(float, float)
+        SELECTED_RANGE_CHANGED = pyqtSignal(float, float)
 
     def __init__(self, min_, max_):
         XRangeSelection.__init__(self, min_, max_)
@@ -701,7 +783,7 @@ class SnappingRangeSelection(XRangeSelection):
         # we have to trick a bit because pyqtSignal must be attributes of a derived class of
         # QObject and adding QObject as an additional base class does not work somehow:
         self._x = SnappingRangeSelection._X()
-        self.SIG_RANGE_CHANGED = self._x.SIG_RANGE_CHANGED
+        self.SELECTED_RANGE_CHANGED = self._x.SELECTED_RANGE_CHANGED
 
         p = self.shapeparam
         p.fill = "#aaaaaa"
@@ -737,6 +819,8 @@ class SnappingRangeSelection(XRangeSelection):
             val, y = pos
             imin = np.argmin(np.fabs(val - xvals))
             x = xvals[imin]
+        else:
+            val = x
 
         if hnd == 0:
             self._min = x
@@ -746,16 +830,22 @@ class SnappingRangeSelection(XRangeSelection):
             move = val - (self._max + self._min) / 2
             new_min = self._min + move
             new_max = self._max + move
-            if min(xvals) <= new_min <= max(xvals) and min(xvals) <= new_max <= max(xvals):
+            if len(xvals):
+                if min(xvals) <= new_min <= max(xvals) and min(xvals) <= new_max <= max(xvals):
+                    self._min = new_min
+                    self._max = new_max
+            else:
                 self._min = new_min
                 self._max = new_max
 
-        self.SIG_RANGE_CHANGED.emit(self._min, self._max)
+        self.SELECTED_RANGE_CHANGED.emit(self._min, self._max)
 
     def get_neighbour_xvals(self, x):
         """ used for moving boundaries """
 
         xvals = self.get_xvals()
+        if not len(xvals):
+            return x, None
         imin = np.argmin(np.fabs(x - xvals))
         if imin == 0:
             return None, xvals[1]
