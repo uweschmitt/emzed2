@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from PyQt4 import QtCore, QtGui
 
-from _spectra_selector import SpectraSelector as _SpectraSelector
+from _spectra_selector import _SpectraSelector
 
 
 class SpectraSelector(_SpectraSelector):
@@ -13,61 +13,63 @@ class SpectraSelector(_SpectraSelector):
 
     def __init__(self, parent=None):
         super(SpectraSelector, self).__init__(parent)
-        self.setup()
+        self._setup()
         self.setEnabled(False)
 
-    def setup(self):
-        self.ms_level.activated.connect(self.ms_level_chosen)
-        self.precursor.activated.connect(self.precursor_chosen)
-        self.precursor_min.editingFinished.connect(self.precursor_range_updated)
-        self.precursor_max.editingFinished.connect(self.precursor_range_updated)
+    def _setup(self):
+        self._ms_level.activated.connect(self._ms_level_chosen)
+        self._precursor.activated.connect(self._precursor_chosen)
+        self._precursor_min.editingFinished.connect(self._precursor_range_updated)
+        self._precursor_max.editingFinished.connect(self._precursor_range_updated)
+        self._precursor_min.setValidator(QtGui.QDoubleValidator())
+        self._precursor_max.setValidator(QtGui.QDoubleValidator())
 
     def set_data(self, ms_levels, precursor_mz_values):
-        self.ms_level.clear()
+        self._ms_level.clear()
         for ms_level in ms_levels:
-            self.ms_level.addItem(str(ms_level))
+            self._ms_level.addItem(str(ms_level))
 
-        self.precursor.clear()
-        self.precursor.addItem("-use range-")
+        self._precursor.clear()
+        self._precursor.addItem("-use range-")
         for precursor_mz_value in precursor_mz_values:
-            self.precursor.addItem("%.5f" % precursor_mz_value)
+            self._precursor.addItem("%.5f" % precursor_mz_value)
         self.setEnabled(True)
 
-        self.ms_levels = ms_levels
-        self.precursor_mz_values = precursor_mz_values
-        self.ms_level_chosen(0)
-        self.precursor_chosen(0)
+        self._ms_levels = ms_levels
+        self._precursor_mz_values = precursor_mz_values
+        self._ms_level_chosen(0)
+        self._precursor_chosen(0)
 
-    def ms_level_chosen(self, idx):
-        ms_level = self.ms_levels[idx]
-        self.set_dependend_fields(ms_level)
+    def _ms_level_chosen(self, idx):
+        ms_level = self._ms_levels[idx]
+        self._set_dependend_fields(ms_level)
         self.MS_LEVEL_CHOSEN.emit(ms_level)
 
-    def precursor_chosen(self, idx):
+    def _precursor_chosen(self, idx):
         if idx == 0:
-            mz_min = min(self.precursor_mz_values)
-            mz_max = max(self.precursor_mz_values)
+            mz_min = min(self._precursor_mz_values)
+            mz_max = max(self._precursor_mz_values)
         else:
-            precursor_mz = self.precursor_mz_values[idx - 1]
+            precursor_mz = self._precursor_mz_values[idx - 1]
             mz_min = precursor_mz - 0.01
             mz_max = precursor_mz + 0.01
         self.PRECURSOR_RANGE_CHANGED.emit(mz_min, mz_max)
-        self.precursor_min.setText("%.5f" % mz_min)
-        self.precursor_max.setText("%.5f" % mz_max)
+        self._precursor_min.setText("%.5f" % mz_min)
+        self._precursor_max.setText("%.5f" % mz_max)
 
-    def precursor_range_updated(self):
+    def _precursor_range_updated(self):
         try:
-            mz_min = float(self.precursor_min.text())
-            mz_max = float(self.precursor_max.text())
+            mz_min = float(self._precursor_min.text())
+            mz_max = float(self._precursor_max.text())
         except ValueError:
             return
         self.PRECURSOR_RANGE_CHANGED.emit(mz_min, mz_max)
 
-    def set_dependend_fields(self, ms_level):
+    def _set_dependend_fields(self, ms_level):
         flag = ms_level > 1
-        self.precursor.setEnabled(flag)
-        self.precursor_min.setEnabled(flag)
-        self.precursor_max.setEnabled(flag)
+        self._precursor.setEnabled(flag)
+        self._precursor_min.setEnabled(flag)
+        self._precursor_max.setEnabled(flag)
 
 
 if __name__ == "__main__":
