@@ -2,7 +2,7 @@
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
-              min_size_for_parallel_execution=500, eic_widening=30):
+              min_size_for_parallel_execution=500):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -13,8 +13,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             n_cpus = 0 means "use all cpu cores"
             n_cpus = -1 means "use all but one cpu cores", etc
 
-        eic_widinening uses rt limits rtmin - eic_widening .. rtmax + eic_widening
-        for extracting an EIC (which is useful for plotting)
     """
     from ..core.data_types.table import Table, PeakMap
 
@@ -70,8 +68,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print
 
     if n_cpus == 1:
-        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
-                             eic_widening))
+        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,))
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
@@ -80,7 +77,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
             args.append(
-                (subt, supportedPostfixes, integratorid, msLevel, show_progress, eic_widening))
+                (subt, supportedPostfixes, integratorid, msLevel, show_progress))
             all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
@@ -110,7 +107,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     return result
 
 
-def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress, eic_widening)):
+def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)):
     from ..algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
@@ -150,7 +147,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,
                 area = rmse = params = eic = baseline = None
             else:
                 integrator.setPeakMap(peakmap)
-                result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel, eic_widening)
+                result = integrator.integrate(mzmin, mzmax, rtmin, rtmax, msLevel)
                 # take existing values which are not integration realated:
                 area = result["area"]
                 rmse = result["rmse"]
