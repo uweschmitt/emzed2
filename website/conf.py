@@ -49,14 +49,14 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 
 # The encoding of source files.
-source_encoding = 'latin-1'
+source_encoding = 'utf-8'
 
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'emzed'
-copyright = u'2012-2014, Uwe Schmitt & Patrick Kiefer'
+copyright = u'2012-2015, Uwe Schmitt & Patrick Kiefer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
