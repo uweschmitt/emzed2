@@ -30,7 +30,7 @@ class BaseIntegrator(object):
         if len(rts) == 0:
             return dict(area=0.0, rmse=0.0, params=None, eic=None, baseline=None)
 
-        eic = self.peakMap.chromatogram(mzmin, mzmax)  # , rtmin - eic_widening, rtmax + eic_widening)
+        eic = self.peakMap.chromatogram(mzmin, mzmax)
         allrts, fullchrom = eic
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)

@@ -123,6 +123,6 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
         return rtvalues, fun(params, np.array(rtvalues))
 
     def getBaseline(self, rtvalues, param):
-        if self.fit_baseline:
+        if len(parm) == 5:
             return param[-1]
         return None
