@@ -71,7 +71,7 @@ def smooth(data, mzmax, mzmin):
     n = round(smax - (dmz - dmz_min) / (dmz_max - dmz_min) * (smax - smin))
     n = max(smin, min(smax, n))
     mask = np.ones((n, n), dtype=np.uint32)
-    smoothed = convolve2d(data, mask, mode="same")
+    smoothed = convolve2d(data, mask, mode="full")
     return smoothed
 
 
@@ -226,7 +226,6 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
         NX = x2 - x1
         NY = y2 - y1
         rtmin, mzmax, rtmax, mzmin = srcRect
-
         self.data = self.compute_image(0, NX, NY, rtmin, rtmax, mzmin, mzmax)
 
         # draw

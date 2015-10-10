@@ -10,7 +10,7 @@ from dialog_builder_items import *
 # order of the previous two imports is importang, see remark above  ##########################
 
 from ..core.explorers.inspectors import inspect #, inspectPeakMap, inspectChromatograms
-from ..core.explorers import inspectChromatograms
+# from ..core.explorers import inspectChromatograms
 
 
 def inspectPeakMap(*a, **kw):

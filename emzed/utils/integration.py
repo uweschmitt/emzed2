@@ -2,7 +2,7 @@
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
-              min_size_for_parallel_execution=500, eic_widening=30):
+              min_size_for_parallel_execution=500, eic_widening=200):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 

@@ -169,6 +169,9 @@ class PositiveValuedCurvePlot(CurvePlot):
             - handler for backspace, called by RtSelectionTool and MzSelectionTool
     """
 
+    overall_x_min = None
+    overall_x_max = None
+
     def _x_range(self):
         xvals = []
         for item in self.get_items_of_class(CurveItem):
@@ -234,14 +237,14 @@ class PositiveValuedCurvePlot(CurvePlot):
                 if vmax < 0:
                     vmax = -vmax
             else:
-                if xmin is not None:
-                    if vmin < xmin:
-                        vmin = xmin
-                        vmax = xmax
-                if xmax is not None:
-                    if vmax > xmax:
-                        vmin = xmin
-                        vmax = xmax
+                if self.overall_x_min is not None:
+                    if vmin < self.overall_x_min:
+                        vmin = self.overall_x_min
+                        vmax = self.overall_x_max
+                if self.overall_x_max is not None:
+                    if vmax > self.overall_x_max:
+                        vmin = self.overall_x_min
+                        vmax = self.overall_x_max
                 final_xmin = vmin
                 final_xmax = vmax
             self.set_axis_limits(axis_id, vmin, vmax)
@@ -268,7 +271,6 @@ class PositiveValuedCurvePlot(CurvePlot):
         axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
 
         # tofix: compute range of overall spectrum, not range of shown peaks:
-        xmin, xmax = self._x_range()
         for (x1, x0, _start, _width), axis_id in axes_to_update:
             lbound, hbound = self.get_axis_limits(axis_id)
             i_lbound = self.transform(axis_id, lbound)
@@ -282,11 +284,11 @@ class PositiveValuedCurvePlot(CurvePlot):
                 if vmax < 0:
                     vmax = -vmax
             if axis_id not in axis_ids_vertical:
-                if xmin is not None:
-                    if vmin < xmin:
+                if self.overall_x_min is not None:
+                    if vmin < self.overall_x_min:
                         return
-                if xmax is not None:
-                    if vmax > xmax:
+                if self.overall_x_max is not None:
+                    if vmax > self.overall_x_max:
                         return
                 final_xmin = vmin
                 final_xmax = vmax
@@ -529,6 +531,8 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     latest_mzmax = None
     image_plot = None
     visible_peaks = ()
+    overall_x_min = 0
+    overall_x_max = 1000
 
     def label_info(self, x, y):
         # label next to cursor turned off:

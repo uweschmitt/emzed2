@@ -86,7 +86,7 @@ ti.sortBy("area", ascending=False)
 
 # t2 = emzed.utils.integrate(t2)
 
-emzed.gui.inspect((t1, ti, t, t1, t2))
+emzed.gui.inspect((t, t1, ti, t, t1, t2))
 
 
 

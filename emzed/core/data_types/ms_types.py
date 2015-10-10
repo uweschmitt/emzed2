@@ -731,6 +731,10 @@ class PeakMap(object):
         the first column corresponds to the mz bins and the second to the max intensity per bin.
         is used for plotting spectra on different zoom levels
         """
+        assert n_bins > 0
+        assert ms_level > 0
+        if rtmin >= rtmax or mzmin >= mzmax:
+            return np.zeros((n_bins, 2), dtype=float)
         peaks = sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level)
         return peaks
 

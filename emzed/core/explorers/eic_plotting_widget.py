@@ -183,6 +183,10 @@ class EicPlottingWidget(CurveWidget):
     def set_cursor_pos(self, rt):
         self.plot.set_rt(rt)
 
+    def set_overall_range(self, rtmin, rtmax):
+        self.plot.overall_x_min = rtmin
+        self.plot.overall_x_max = rtmax
+
     def add_eics(self, data, labels=None, configs=None):
         """ do not forget to call replot() after calling this function ! """
         allrts = list()
@@ -289,9 +293,7 @@ class EicPlottingWidget(CurveWidget):
         self.del_all_items()
         self.replot()
 
-    def shrink_and_replot(self):
-        self.plot.replot()
-        self.plot.reset_x_limits()
+    def shrink_and_replot(self, rtmin, rtmax):
+        self.reset_rt_limits(rtmin, rtmax)
         self.plot.reset_y_limits()
-        self.plot.updateAxes()
         self.plot.replot()

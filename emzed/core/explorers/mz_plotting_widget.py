@@ -116,6 +116,10 @@ class MzPlottingWidget(CurveWidget):
         configs = [ci if ci is not None else default(i) for (i, ci) in enumerate(configs)]
         return configs, titles
 
+    def set_overall_range(self, mzmin, mzmax):
+        self.plot.overall_x_min = mzmin
+        self.plot.overall_x_max = mzmax
+
     def plot_peakmaps(self, peakmap_ranges, configs=None, titles=None):
 
         has_titles = titles is not None
@@ -136,7 +140,7 @@ class MzPlottingWidget(CurveWidget):
     def resetAxes(self):
         self.plot.reset_x_limits()
 
-    def reset_x_limits(self, xmin=None, xmax=None, fac=1.1):
+    def reset_mz_limits(self, xmin=None, xmax=None, fac=1.1):
         self.plot.reset_x_limits(xmin, xmax, fac)
 
     def reset(self):
@@ -152,9 +156,7 @@ class MzPlottingWidget(CurveWidget):
     def updateAxes(self):
         self.plot.updateAxes()
 
-    def shrink_and_replot(self):
-        self.plot.replot()
-        self.plot.reset_x_limits()
+    def shrink_and_replot(self, mzmin, mzmax):
+        self.reset_mz_limits(mzmin, mzmax)
         self.plot.reset_y_limits()
-        self.plot.updateAxes()
         self.plot.replot()

@@ -31,6 +31,8 @@ from ...gui.file_dialogs import askForSave, askForSingleFile
 from emzed_dialog import EmzedDialog
 
 from .widgets.image_scaling_widget import ImageScalingWidget
+from .widgets.spectra_selector_widget import SpectraSelectorWidget
+from .widgets.view_range_widget import ViewRangeWidget
 
 
 grey_line = dict(linewidth=1.5, color="#666666")
@@ -178,13 +180,15 @@ class PeakMapExplorer(EmzedDialog):
 
         self.setup_table_widgets()
         self.setup_input_widgets()
+        self.history_list = QComboBox(self)
 
         self.setup_ms2_widgets()
         self.full_pm = peakmap
         self.full_pm2 = peakmap2
         self.dual_mode = self.full_pm2 is not None
 
-        self.setup_for_ms_level(min(self.ms_levels))
+        self.current_ms_level = self.ms_levels[0]
+        self.process_peakmap(self.current_ms_level)
         self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
 
         self.setup_plot_widgets()
@@ -194,25 +198,8 @@ class PeakMapExplorer(EmzedDialog):
         self.setup_initial_values()
         self.plot_peakmap()
 
-    def setup_for_ms_level(self, ms_level):
-        self.process_peakmap(ms_level)
-        self.precursor_mz_min.setEnabled(ms_level > 1)
-        self.precursor_mz_max.setEnabled(ms_level > 1)
-        self.precursor.setEnabled(ms_level > 1)
-        self.current_ms_level = ms_level
-
     def setup_ms2_widgets(self):
-        self.precursor.clear()
-        self.precursor.addItem("- use range -")
-        for mz in self.precursor_mz:
-            self.precursor.addItem("%.5f" % mz)
-
-        for level in self.ms_levels:
-            self.ms_level.addItem(str(level))
-
-        if self.precursor_mz:
-            self.precursor_mz_min.setText("%.5f" % min(self.precursor_mz))
-            self.precursor_mz_max.setText("%.5f" % max(self.precursor_mz))
+        self.spectra_selector_widget.set_data(self.ms_levels, self.precursor_mz)
 
     def setup_table_widgets(self):
         if self.table is not None:
@@ -265,7 +252,7 @@ class PeakMapExplorer(EmzedDialog):
 
         for i, msl in enumerate(self.ms_levels):
             if msl == ms_level:
-                self.ms_level.setCurrentIndex(i)
+                pass # TODO self.ms_level.setCurrentIndex(i)
 
         self.setWindowTitle()
 
@@ -275,57 +262,12 @@ class PeakMapExplorer(EmzedDialog):
         self.image_scaling_widget.set_max_intensity(imax)
         self.image_scaling_widget.set_gamma(self.gamma)
 
-        self.set_range_value_fields(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
-
-    def set_range_value_fields(self, rtmin, rtmax, mzmin, mzmax):
-        is_ppm = self.dmz_is_ppm.isChecked()
-        self.rtmin_input.setText("%.2f" % (rtmin / 60.0))
-        self.rtmax_input.setText("%.2f" % (rtmax / 60.0))
-        self.mzmin_input.setText("%.5f" % mzmin)
-        self.mzmax_input.setText("%.5f" % mzmax)
-        self.mz_middle_input.setText("%.5f" % ((mzmax + mzmin) / 2.0))
-        if is_ppm:
-            self.dmz_input.setText("%.1f" % ((mzmax - mzmin) / (mzmax + mzmin) * 1e6))
-        else:
-            self.dmz_input.setText("%.5f" % ((mzmax - mzmin) / 2.0))
+        self.view_range_widget.set_view_range(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
 
     def setup_input_widgets(self):
         self.image_scaling_widget = ImageScalingWidget(self)
-
-
-        self.ms_level_label = QLabel("Choose MS Level:", self)
-        self.ms_level = QComboBox(self)
-        self.precursor_label = QLabel("Choose Precursor:", self)
-        self.precursor = QComboBox(self)
-
-        self.precursor_range_label = QLabel("MZ Range Precursor:")
-        self.precursor_mz_min = QLineEdit(self)
-        self.precursor_mz_min.setValidator(QDoubleValidator())
-        self.precursor_mz_max = QLineEdit(self)
-        self.precursor_mz_max.setValidator(QDoubleValidator())
-
-        self.rt_range_label = QLabel("Retention Time [minutes]:", self)
-        self.rtmin_input = QLineEdit(self)
-        self.rtmin_input.setValidator(QDoubleValidator())
-        self.rtmax_input = QLineEdit(self)
-        self.rtmax_input.setValidator(QDoubleValidator())
-
-        self.mz_middle_label = QLabel("Mass To Charge center + width:", self)
-        self.dmz_is_ppm_label = QLabel("width in ppm ?")
-        self.dmz_is_ppm = QCheckBox(self)
-        self.mz_middle_input = QLineEdit(self)
-        self.mz_middle_input.setValidator(QDoubleValidator())
-        self.dmz_input = QLineEdit(self)
-        self.dmz_input.setValidator(QDoubleValidator())
-        self.dmz_input.setText("0.001")
-
-        self.mz_range_label = QLabel("Mass to Charge range [Da]:", self)
-        self.mzmin_input = QLineEdit(self)
-        self.mzmin_input.setValidator(QDoubleValidator())
-        self.mzmax_input = QLineEdit(self)
-        self.mzmax_input.setValidator(QDoubleValidator())
-
-        self.history_list = QComboBox(self)
+        self.spectra_selector_widget = SpectraSelectorWidget(self)
+        self.view_range_widget = ViewRangeWidget(self)
 
     def setup_plot_widgets(self):
         self.peakmap_plotter = PeakMapPlottingWidget()
@@ -335,6 +277,10 @@ class PeakMapExplorer(EmzedDialog):
 
         self.peakmap_plotter.set_logarithmic_scale(1)
         self.peakmap_plotter.set_gamma(self.gamma)
+
+        self.eic_plotter.set_overall_range(self.rtmin, self.rtmax)
+        self.mz_plotter.set_overall_range(self.mzmin, self.mzmax)
+
 
     def setup_layout(self):
         outer_layout = QVBoxLayout()
@@ -359,13 +305,13 @@ class PeakMapExplorer(EmzedDialog):
 
         # SECOND COLUMN of h_splittier holds controlx boxes + mz plot #######################
 
-        frame2 = self.layout_control_boxes()
-
         v_splitter2 = QSplitter(self)
         v_splitter2.setOrientation(Qt.Vertical)
 
         v_splitter2.addWidget(self.image_scaling_widget)
-        v_splitter2.addWidget(frame2)
+        v_splitter2.addWidget(self.spectra_selector_widget)
+        v_splitter2.addWidget(self.view_range_widget)
+        v_splitter2.addWidget(self.history_list)
         v_splitter2.addWidget(self.mz_plotter)
 
         v_splitter2.setStretchFactor(0, 1)
@@ -395,59 +341,6 @@ class PeakMapExplorer(EmzedDialog):
         self.setLayout(outer_layout)
         outer_layout.setStretch(1, 99)
 
-    def layout_control_boxes(self):
-
-        controls_layout = QGridLayout()
-        controls_layout.setSpacing(5)
-        controls_layout.setMargin(5)
-
-        row = 0
-        controls_layout.addWidget(self.ms_level_label, row, 0, 1, 2)
-        controls_layout.addWidget(self.ms_level, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.precursor_label, row, 0, 1, 2)
-        controls_layout.addWidget(self.precursor, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.precursor_range_label, row, 0, 1, 4)
-        row += 1
-        controls_layout.addWidget(self.precursor_mz_min, row, 0, 1, 2)
-        controls_layout.addWidget(self.precursor_mz_max, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.rt_range_label, row, 0, 1, 4)
-
-        row += 1
-        controls_layout.addWidget(self.rtmin_input, row, 0, 1, 2)
-        controls_layout.addWidget(self.rtmax_input, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.mz_middle_label, row, 0, 1, 2)
-        controls_layout.addWidget(self.dmz_is_ppm_label, row, 2, 1, 1)
-        controls_layout.addWidget(self.dmz_is_ppm, row, 3)
-
-        row += 1
-        controls_layout.addWidget(self.mz_middle_input, row, 0, 1, 2)
-        controls_layout.addWidget(self.dmz_input, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.mz_range_label, row, 0, 1, 4)
-
-        row += 1
-        controls_layout.addWidget(self.mzmin_input, row, 0, 1, 2)
-        controls_layout.addWidget(self.mzmax_input, row, 2, 1, 2)
-
-        row += 1
-        controls_layout.addWidget(self.history_list, row, 0, 1, 4)
-
-        frame2 = QFrame(self)
-        frame2.setLineWidth(1)
-        frame2.setFrameStyle(QFrame.Box | QFrame.Plain)
-        frame2.setLayout(controls_layout)
-
-        return frame2
-
     def connect_signals_and_slots(self):
         self.image_scaling_widget.USE_LOG_SCALE.connect(self.use_logscale)
         self.image_scaling_widget.GAMMA_CHANGED.connect(self.gamma_changed)
@@ -455,19 +348,10 @@ class PeakMapExplorer(EmzedDialog):
         self.image_scaling_widget.IMIN_CHANGED.connect(self.set_image_min)
         self.image_scaling_widget.IMAX_CHANGED.connect(self.set_image_max)
 
-        self.connect(self.ms_level, SIGNAL("activated(int)"), self.ms_level_chosen)
-        self.connect(self.precursor, SIGNAL("activated(int)"), self.precursor_chosen)
-        self.connect(self.precursor_mz_min, SIGNAL("returnPressed()"), self.set_precursor_range)
-        self.connect(self.precursor_mz_max, SIGNAL("returnPressed()"), self.set_precursor_range)
+        self.spectra_selector_widget.MS_LEVEL_CHOSEN.connect(self.ms_level_chosen)
+        self.spectra_selector_widget.PRECURSOR_RANGE_CHANGED.connect(self.set_precursor_range)
 
-        self.connect(self.rtmin_input, SIGNAL("returnPressed()"), self.set_image_range)
-        self.connect(self.rtmax_input, SIGNAL("returnPressed()"), self.set_image_range)
-        self.connect(self.mzmin_input, SIGNAL("returnPressed()"), self.set_image_range)
-        self.connect(self.mzmax_input, SIGNAL("returnPressed()"), self.set_image_range)
-
-        self.connect(self.mz_middle_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
-        self.connect(self.dmz_input, SIGNAL("returnPressed()"), self.set_image_range_from_center)
-        self.connect(self.dmz_is_ppm, SIGNAL("stateChanged(int)"), self.dmz_mode_changed)
+        self.view_range_widget.RANGE_CHANGED.connect(self.update_image_range)
 
         self.connect(self.history_list, SIGNAL("activated(int)"), self.history_item_selected)
 
@@ -524,16 +408,31 @@ class PeakMapExplorer(EmzedDialog):
         self.peakmap_plotter.set_cursor_rt(rt)
 
     def eic_view_range_changed(self, rtmin, rtmax):
-        self.peakmap_plotter.blockSignals(True)
+        """
+        we want to avoid the loop   EIC_RANGE_CHANGED -> VIEW_RANGE_CHANGED -> EIC_RANGE_CHANGED
+        and we do not want to fully block emitting of VIEW_RANGE_CHANGED.
+        so self.peakmap_plotter.blockSignals() does not work here, instead we "cut" the last
+        connection here:
+        """
+        self.eic_plotter.VIEW_RANGE_CHANGED.disconnect()
+        self.in_change = True
         self.peakmap_plotter.set_rt_limits(rtmin, rtmax)
-        self.peakmap_plotter.blockSignals(False)
         self.peakmap_plotter.replot()
+        self.in_change = False
+        self.eic_plotter.VIEW_RANGE_CHANGED.connect(self.eic_view_range_changed)
 
     def mz_view_range_changed(self, mzmin, mzmax):
-        self.peakmap_plotter.blockSignals(True)
+        """
+        we want to avoid the loop  MZ_RANGE_CHANGED -> VIEW_RANGE_CHANGED -> MZ_RANGE_CHANGED
+        and we do not want to fully block emitting of VIEW_RANGE_CHANGED.
+        so self.peakmap_plotter.blockSignals() does not work here, instead we "cut" the last
+        connection here:
+        """
+        self.mz_plotter.VIEW_RANGE_CHANGED.disconnect()
         self.peakmap_plotter.set_mz_limits(mzmin, mzmax)
         self.peakmap_plotter.blockSignals(False)
         self.peakmap_plotter.replot()
+        self.mz_plotter.VIEW_RANGE_CHANGED.connect(self.mz_view_range_changed)
 
     def mz_cursor_moved(self, mz):
         self.peakmap_plotter.set_cursor_mz(mz)
@@ -552,14 +451,16 @@ class PeakMapExplorer(EmzedDialog):
         self.peakmap_plotter.replot()
 
     def update_peakmap_projection_views(self, rtmin, rtmax, mzmin, mzmax):
-        rts, chroma = self.peakmap.chromatogram(mzmin, mzmax, rtmin, rtmax)
+
+        rts, chroma = self.peakmap.chromatogram(mzmin, mzmax)
         self.eic_plotter.del_all_items()
         if self.dual_mode:
             rts2, chroma2 = self.peakmap2.chromatogram(mzmin, mzmax, rtmin, rtmax)
             self.eic_plotter.add_eics([(rts, chroma), (rts2, chroma2)], configs=[blue_line, yellow_line])
         else:
             self.eic_plotter.add_eics([(rts, chroma)], configs=[grey_line])
-        self.eic_plotter.shrink_and_replot()
+
+        self.eic_plotter.shrink_and_replot(rtmin, rtmax)
 
         if self.dual_mode:
             data = [(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000),
@@ -569,8 +470,8 @@ class PeakMapExplorer(EmzedDialog):
         else:
             self.mz_plotter.plot_peakmaps([(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)])
 
-        self.mz_plotter.shrink_and_replot()
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
+        self.mz_plotter.shrink_and_replot(mzmin, mzmax)
+        self.view_range_widget.set_view_range(rtmin, rtmax, mzmin, mzmax)
 
     def _handle_history_action(self, action):
         item = action()
@@ -707,35 +608,16 @@ class PeakMapExplorer(EmzedDialog):
         self.peakmap_plotter.replot()
 
     @protect_signal_handler
-    def ms_level_chosen(self, value):
-        ms_level = self.ms_levels[value]
+    def ms_level_chosen(self, ms_level):
         if ms_level != self.current_ms_level:
-            self.setup_for_ms_level(ms_level)
+            self.current_ms_level = ms_level
+            self.process_peakmap(ms_level)
             self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
             self.peakmap_plotter.replot()
             self.plot_peakmap()
 
     @protect_signal_handler
-    def precursor_chosen(self, item):
-        if item > 0:
-            mz_pre = self.precursor_mz[item - 1]
-            self.precursor_mz_min.setText("%.5f" % (mz_pre - 0.01))
-            self.precursor_mz_max.setText("%.5f" % (mz_pre + 0.01))
-            self.process_peakmap(self.current_ms_level, mz_pre - 0.01, mz_pre + 0.01)
-            self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
-            self.peakmap_plotter.replot()
-            self.plot_peakmap()
-        else:
-            self.set_precursor_range()
-
-    @protect_signal_handler
-    def set_precursor_range(self):
-        pre_mz_min = read_float(self.precursor_mz_min)
-        pre_mz_max = read_float(self.precursor_mz_max)
-        if pre_mz_min is None or pre_mz_max is None:
-            return
-
-        self.precursor.setCurrentIndex(0)
+    def set_precursor_range(self, pre_mz_min, pre_mz_max):
         self.process_peakmap(self.current_ms_level, pre_mz_min, pre_mz_max)
         self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
         self.peakmap_plotter.replot()
@@ -745,63 +627,6 @@ class PeakMapExplorer(EmzedDialog):
     def gamma_changed(self, value):
         self.peakmap_plotter.set_gamma(value)
         self.peakmap_plotter.replot()
-
-    def _read_rt_values(self):
-        rtmin = read_float(self.rtmin_input)
-        rtmax = read_float(self.rtmax_input)
-        if rtmin is None or rtmax is None:
-            guidata.qapplication().beep()
-            return self.rtmin, self.rtmax
-        return rtmin, rtmax
-
-    @protect_signal_handler
-    def set_image_range(self):
-        rtmin, rtmax = self._read_rt_values()
-        mzmin = read_float(self.mzmin_input)
-        mzmax = read_float(self.mzmax_input)
-        if mzmin is None or mzmax is None:
-            guidata.qapplication().beep()
-            return
-        mzmean = (mzmin + mzmax) / 2.0
-        dmz = (mzmax - mzmin) / 2.0
-        is_ppm = self.dmz_is_ppm.isChecked()
-        if is_ppm:
-            dmz = dmz / mzmean * 1e6
-            self.dmz_input.setText("%.1f" % dmz)
-        else:
-            self.dmz_input.setText("%.5f" % dmz)
-        self.mz_middle_input.setText("%.5f" % mzmean)
-        self.update_image_range(rtmin, rtmax, mzmin, mzmax)
-
-    @protect_signal_handler
-    def set_image_range_from_center(self):
-        middle = read_float(self.mz_middle_input)
-        dmz = read_float(self.dmz_input)
-        if middle is None or dmz is None:
-            return
-
-        is_ppm = self.dmz_is_ppm.isChecked()
-        if is_ppm:
-            dmz = dmz * middle * 1e-6
-
-        mzmin = middle - dmz
-        mzmax = middle + dmz
-        # self.mzmin_input.setText("%.6f" % mzmin)
-        # self.mzmax_input.setText("%.6f" % mzmax)
-        rtmin, rtmax = self._read_rt_values()
-        self.update_image_range(rtmin, rtmax, mzmin, mzmax)
-
-    @protect_signal_handler
-    def dmz_mode_changed(self, is_ppm):
-        is_ppm = bool(is_ppm)   # current we receive int values 0 or 2 from qt
-        mz_middle = read_float(self.mz_middle_input)
-        dmz = read_float(self.dmz_input)
-        if is_ppm:
-            # dalton -> ppm
-            dmz = "%.1f" % (1e6 * dmz / mz_middle)
-        else:
-            dmz = "%.5f" % (dmz * mz_middle * 1e-6)
-        self.dmz_input.setText(dmz)
 
     @protect_signal_handler
     def update_image_range(self, rtmin, rtmax, mzmin, mzmax):
@@ -820,8 +645,7 @@ class PeakMapExplorer(EmzedDialog):
         rtmin, rtmax = sorted((rtmin, rtmax))
         mzmin, mzmax = sorted((mzmin, mzmax))
 
-        self.set_range_value_fields(rtmin, rtmax, mzmin, mzmax)
-        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, add_to_history=True)
+        self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax)
 
     def plot_peakmap(self):
         self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, self.mzmin, self.mzmax)

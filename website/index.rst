@@ -96,7 +96,6 @@ Website Navigation
 
     :maxdepth: 2
 
-    more
     installation
     credits
     getting_started

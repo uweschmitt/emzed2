@@ -1171,7 +1171,7 @@ class TableExplorer(EmzedDialog):
         titles = map(repr, postfixes)
 
         self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
-        self.mz_plotter.reset_x_limits(mzmin, mzmax)
+        self.mz_plotter.reset_mz_limits(mzmin, mzmax)
         self.mz_plotter.replot()
 
 
