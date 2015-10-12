@@ -162,6 +162,66 @@ class ButtonDelegate(QItemDelegate):
             self.view.setIndexWidget(index, button)
 
 
+class CheckBoxDelegate(QItemDelegate):
+
+    """
+    A delegate that places a fully functioning QPushButton in every
+    cell of the column to which it's applied
+
+    we have to distinguis view and parent here: using the view as parent does not work
+    in connection with modal dialogs opened in the click handler !
+    """
+
+    def __init__(self, view, parent):
+        QItemDelegate.__init__(self, parent)
+        self.view = view
+
+
+    """
+    def createEditor(self, parent, style, index):
+
+        model = self.view.model()
+        is_true = bool(model.cell_value(index))
+        box = QCheckBox("", parent)
+        box.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
+        return box
+
+    def setEditorData(self, widget, index):
+        is_true = bool(index.model().data(index, Qt.EditRole))
+        print("data is", is_true)
+        widget.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
+
+
+    def setModelData(self, widget, model, index):
+        is_true = widget.checkState() == Qt.Checked
+        print("set", is_true)
+        model.setData(index, QVariant("True" if is_true else "False"), Qt.EditRole)
+
+    def updateEditorGeometry(self, widget, style_option, index):
+        widget.setGeometry(style_option.rect)
+            """
+
+    def paint(self, painter, option, index):
+        if not self.view.indexWidget(index):
+            # we find the mode using the view, as the current model might change if one explores
+            # more than one table wit the table explorer:
+            model = self.view.model()
+            is_true = bool(model.cell_value(index))
+            label = model.data(index)
+            row = model.row(index)
+
+            parent = self.parent()   # this is the table explorer
+
+            def handler(check_state):
+                is_true = bool(check_state)
+                model.set_cell_value(index, is_true)
+
+            box = QCheckBox("", self.parent())
+            box.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
+            box.stateChanged.connect(handler)
+            self.view.setIndexWidget(index, box)
+
+
 class EmzedTableView(QTableView):
 
     def __init__(self, dialog):
@@ -277,15 +337,18 @@ class TableExplorer(EmzedDialog):
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
+        cb = CheckBoxDelegate(self.tableView, self)
         types = self.model.table.getColTypes()
         for i, j in self.model.widgetColToDataCol.items():
             if types[j] == CallBack:
                 self.tableView.setItemDelegateForColumn(i, bd)
+            elif types[i] == bool:
+                self.tableView.setItemDelegateForColumn(i, cb)
 
     def remove_delegates(self):
         types = self.model.table.getColTypes()
         for i, j in self.model.widgetColToDataCol.items():
-            if types[j] == CallBack:
+            if types[j] in (bool, CallBack):
                 self.tableView.setItemDelegateForColumn(i, None)
 
     def setupTableViewFor(self, model):

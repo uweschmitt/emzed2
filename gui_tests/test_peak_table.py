@@ -88,5 +88,7 @@ ti.sortBy("area", ascending=False)
 
 emzed.gui.inspect((t, t1, ti, t, t1, t2))
 
+print(t)
+
 
 
