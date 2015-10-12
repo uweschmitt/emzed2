@@ -24,8 +24,12 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
+"""
 from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
                       ChooseTimeRange, StringFilterPattern, ColumnMultiSelectDialog)
+                      """
+
+from .widgets import FilterCriteriaWidget
 
 from ...gui.file_dialogs import askForSave
 
@@ -264,48 +268,16 @@ class TableExplorer(EmzedDialog):
     def setupTableViews(self):
         self.tableViews = []
         self.filterWidgets = []
+        self.filters_enabled = False
         for i, model in enumerate(self.models):
             self.tableViews.append(self.setupTableViewFor(model))
             self.filterWidgets.append(self.setupFilterWidgetFor(model))
 
     def setupFilterWidgetFor(self, model):
         t = model.table
-        w = FilterCriteria(self)
-        for i, (fmt, name, type_) in enumerate(zip(t.getColFormats(),
-                                                   t.getColNames(),
-                                                   t.getColTypes())):
-            if fmt is not None:
-                ch = None
-                col = t.getColumn(name)
-                if type_ == float:
-                    fmtter = t.colFormatters[i]
-                    try:
-                        txt = fmtter(0.0)
-                    except Exception:
-                        txt = ""
-                    if txt.endswith("m"):
-                        ch = ChooseTimeRange(name, t)
-                    else:
-                        ch = ChooseFloatRange(name, t)
-                elif type_ in (bool, str, unicode, basestring, int):
-                    distinct_values = sorted(set(col.values))
-                    if len(distinct_values) <= 15:
-                        ch = ChooseValue(name, t)
-                    else:
-                        if type_ == int:
-                            ch = ChooseIntRange(name, t)
-                        elif type_ in (str, unicode, basestring):
-                            ch = StringFilterPattern(name, t)
-                if ch is not None:
-                    w.addChooser(ch)
-        if w.number_of_choosers() > 0:
-            w.add_stretch(1)
-            self.filters_enabled = False
-            w.setVisible(False)
-            w.LIMITS_CHANGED.connect(model.limits_changed)
-            return w
-        else:
-            return None
+        w = FilterCriteriaWidget(self)
+        w.configure(t)
+        return w
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
@@ -443,18 +415,18 @@ class TableExplorer(EmzedDialog):
 
         vsplitter.addWidget(self.layoutToolWidgets())  # 3
 
-        self.filter_widgets_box = QScrollArea(self)
+        # self.filter_widgets_box = QScrollArea(self)
         self.filter_widgets_container = QStackedWidget(self)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
 
-        self.filter_widgets_box.setVisible(False)
-        self.filter_widgets_box.setWidget(self.filter_widgets_container)  # 4
-        self.filter_widgets_box.setWidgetResizable(True)
-        self.filter_widgets_box.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.filter_widgets_box.setMinimumSize(QSize(self.filter_widgets_box.sizeHint().width(), 120))
-        self.filter_widgets_box.setFrameStyle(QFrame.Plain)
-        vsplitter.addWidget(self.filter_widgets_box)
+        self.filter_widgets_container.setVisible(False)
+        # self.filter_widgets_box.setWidget(self.filter_widgets_container)  # 4
+        # self.filter_widgets_box.setWidgetResizable(True)
+        # self.filter_widgets_box.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # self.filter_widgets_box.setMinimumSize(QSize(self.filter_widgets_box.sizeHint().width(), 120))
+        self.filter_widgets_container.setFrameStyle(QFrame.Plain)
+        vsplitter.addWidget(self.filter_widgets_container)
 
         di = 1 if extra is not None else 0
 
@@ -699,7 +671,7 @@ class TableExplorer(EmzedDialog):
         self.filters_enabled = not self.filters_enabled
         for model in self.models:
             model.setFiltersEnabled(self.filters_enabled)
-        self.filter_widgets_box.setVisible(self.filters_enabled)
+        self.filter_widgets_container.setVisible(self.filters_enabled)
         self.restrict_to_filtered_button.setEnabled(self.filters_enabled)
         self.remove_filtered_button.setEnabled(self.filters_enabled)
         if self.filters_enabled:

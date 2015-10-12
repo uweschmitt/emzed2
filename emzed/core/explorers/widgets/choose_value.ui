@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>211</width>
+    <width>111</width>
     <height>45</height>
    </rect>
   </property>
@@ -39,6 +39,9 @@
        <horstretch>1</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="text">
+      <string>placeholder</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

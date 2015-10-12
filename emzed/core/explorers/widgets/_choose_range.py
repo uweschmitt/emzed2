@@ -25,13 +25,13 @@ except AttributeError:
 class Ui_ChooseRange(object):
     def setupUi(self, ChooseRange):
         ChooseRange.setObjectName(_fromUtf8("ChooseRange"))
-        ChooseRange.resize(143, 70)
+        ChooseRange.resize(162, 70)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ChooseRange.sizePolicy().hasHeightForWidth())
         ChooseRange.setSizePolicy(sizePolicy)
-        ChooseRange.setMaximumSize(QtCore.QSize(200, 16777215))
+        ChooseRange.setMaximumSize(QtCore.QSize(120, 16777215))
         self.gridLayout = QtGui.QGridLayout(ChooseRange)
         self.gridLayout.setMargin(3)
         self.gridLayout.setSpacing(3)
@@ -40,6 +40,10 @@ class Ui_ChooseRange(object):
         self.label_upper_bound.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.label_upper_bound.setObjectName(_fromUtf8("label_upper_bound"))
         self.gridLayout.addWidget(self.label_upper_bound, 2, 0, 1, 1)
+        self.label_lower_bound = QtGui.QLabel(ChooseRange)
+        self.label_lower_bound.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_lower_bound.setObjectName(_fromUtf8("label_lower_bound"))
+        self.gridLayout.addWidget(self.label_lower_bound, 1, 0, 1, 1)
         self.upper_bound = QtGui.QLineEdit(ChooseRange)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -49,10 +53,6 @@ class Ui_ChooseRange(object):
         self.upper_bound.setMinimumSize(QtCore.QSize(100, 0))
         self.upper_bound.setObjectName(_fromUtf8("upper_bound"))
         self.gridLayout.addWidget(self.upper_bound, 2, 2, 1, 3)
-        self.label_lower_bound = QtGui.QLabel(ChooseRange)
-        self.label_lower_bound.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
-        self.label_lower_bound.setObjectName(_fromUtf8("label_lower_bound"))
-        self.gridLayout.addWidget(self.label_lower_bound, 1, 0, 1, 1)
         self.lower_bound = QtGui.QLineEdit(ChooseRange)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
@@ -80,6 +80,7 @@ class Ui_ChooseRange(object):
         ChooseRange.setWindowTitle(_translate("ChooseRange", "Form", None))
         self.label_upper_bound.setText(_translate("ChooseRange", "max:", None))
         self.label_lower_bound.setText(_translate("ChooseRange", "min:", None))
+        self.column_name.setText(_translate("ChooseRange", "placeholder", None))
 
 
 class ChooseRange(QtGui.QWidget, Ui_ChooseRange):
