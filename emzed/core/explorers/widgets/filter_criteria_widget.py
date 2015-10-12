@@ -239,10 +239,14 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
             return
         self.setEnabled(True)
 
-    def hide_filters(self, hide_names):
-        pass
+    def hide_filters(self, names):
+        for c in self._choosers:
+            c.setVisible(c.name not in names)
 
-
+    def update(self, name):
+        for chooser in self._choosers:
+            if chooser.name == name:
+                chooser.update()
 
 
 if __name__ == "__main__":

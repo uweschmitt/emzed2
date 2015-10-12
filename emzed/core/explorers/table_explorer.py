@@ -24,15 +24,10 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
-"""
-from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
-                      ChooseTimeRange, StringFilterPattern, ColumnMultiSelectDialog)
-                      """
 
-from .widgets import FilterCriteriaWidget
+from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
 
 from ...gui.file_dialogs import askForSave
-
 
 
 def eic_curves(model):
@@ -277,6 +272,7 @@ class TableExplorer(EmzedDialog):
         t = model.table
         w = FilterCriteriaWidget(self)
         w.configure(t)
+        w.LIMITS_CHANGED.connect(model.limits_changed)
         return w
 
     def set_delegates(self):
@@ -421,10 +417,6 @@ class TableExplorer(EmzedDialog):
             self.filter_widgets_container.addWidget(w)
 
         self.filter_widgets_container.setVisible(False)
-        # self.filter_widgets_box.setWidget(self.filter_widgets_container)  # 4
-        # self.filter_widgets_box.setWidgetResizable(True)
-        # self.filter_widgets_box.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # self.filter_widgets_box.setMinimumSize(QSize(self.filter_widgets_box.sizeHint().width(), 120))
         self.filter_widgets_container.setFrameStyle(QFrame.Plain)
         vsplitter.addWidget(self.filter_widgets_container)
 
@@ -661,10 +653,11 @@ class TableExplorer(EmzedDialog):
             self.model.sort_by(sort_data)
             main_name, main_order = sort_data[0]
             idx = self.model.widget_col(main_name)
-            header = self.tableView.horizontalHeader()
-            header.blockSignals(True)
-            header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
-            header.blockSignals(False)
+            if idx is not None:
+                header = self.tableView.horizontalHeader()
+                header.blockSignals(True)
+                header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
+                header.blockSignals(False)
 
     @protect_signal_handler
     def filter_toggle(self, *a):
@@ -687,6 +680,11 @@ class TableExplorer(EmzedDialog):
     def choose_visible_columns(self, *a):
         self.remove_delegates()
         col_names, is_currently_visible = self.model.columnames_with_visibility()
+        if not col_names:
+            return
+
+        # zip, sort and unzip then:
+        col_names, is_currently_visible = zip(*sorted(zip(col_names, is_currently_visible)))
         dlg = ColumnMultiSelectDialog(col_names, is_currently_visible)
         dlg.exec_()
         if dlg.column_settings is None:
@@ -696,13 +694,14 @@ class TableExplorer(EmzedDialog):
         self.update_hidden_columns(hide_names)
         self.model.save_preset_hidden_column_names()
 
-    def update_hidden_columns(self, hide_names):
-        self.model.hide_columns(hide_names)
+    def update_hidden_columns(self, hidden_names):
+        self.model.hide_columns(hidden_names)
         self.set_delegates()
-        self.setup_choose_group_column_widget(hide_names)
-        self.setup_sort_fields(hide_names)
-        self.current_filter_widget.hide_filters(hide_names)
-        self.model.table.meta["hide_in_explorer"] = hide_names
+        self.setup_choose_group_column_widget(hidden_names)
+        self.setup_sort_fields(hidden_names)
+        self.current_filter_widget.hide_filters(hidden_names)
+        self.model.table.meta["hide_in_explorer"] = hidden_names
+        self.setup_sort_fields(hidden_names)
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -825,7 +824,9 @@ class TableExplorer(EmzedDialog):
         hidden = self.model.table.meta.get("hide_in_explorer", ())
         self.update_hidden_columns(hidden)
         try:
-            self.model.load_preset_hidden_column_names()
+            shown = self.model.load_preset_hidden_column_names()
+            hidden = list(set(self.model.table.getColNames()) - shown)
+            self.update_hidden_columns(hidden)
         except Exception:
             pass
 
@@ -846,8 +847,8 @@ class TableExplorer(EmzedDialog):
         if len(self.choosePostfix) == 1:
             self.choosePostfix.setVisible(False)
 
-        self.setup_choose_group_column_widget([])
-        self.setup_sort_fields([])
+        self.setup_choose_group_column_widget(hidden)
+        self.setup_sort_fields(hidden)
         self.connectModelSignals()
         self.updateMenubar()
         self.set_window_title(self.model.table)
@@ -860,7 +861,7 @@ class TableExplorer(EmzedDialog):
         t = self.model.table
         candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
         visible_names = [n for n in candidates if n not in hidden_names]
-        all_choices = ["- manual multi select -"] + visible_names
+        all_choices = ["- manual multi select -"] + sorted(visible_names)
         self.chooseGroupColumn.addItems(all_choices)
         if before is not None and before in all_choices:
             idx = all_choices.index(before)
@@ -873,7 +874,6 @@ class TableExplorer(EmzedDialog):
                 before.append(str(field.currentText()))
             else:
                 before.append(None)
-            field.clear()
 
         t = self.model.table
         candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
@@ -882,6 +882,7 @@ class TableExplorer(EmzedDialog):
         all_choices = ["-"] + visible_names
 
         for field in self.sort_fields_widgets:
+            field.clear()
             field.addItems(all_choices)
 
         for choice_before, field in zip(before, self.sort_fields_widgets):

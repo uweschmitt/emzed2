@@ -169,7 +169,6 @@ class TableModel(QAbstractTableModel):
         return Qt.ItemFlags(default | Qt.ItemIsEditable)
 
     def setData(self, index, value, role=Qt.EditRole):
-        assert isinstance(value, QVariant)
         ridx, cidx = self.table_index(index)
         if index.isValid() and 0 <= index.row() < self.rowCount():
             expectedType = self.table._colTypes[cidx]
@@ -585,6 +584,7 @@ class TableModel(QAbstractTableModel):
     def load_preset_hidden_column_names(self):
         path = self._settings_path()
         if os.path.exists(path):
+            shown = set()
             dd = {}
             names = self.table.getColNames()
             try:
@@ -593,11 +593,13 @@ class TableModel(QAbstractTableModel):
                         i, name = line.strip().split()
                         if name in names:
                             dd[int(i)] = names.index(name)
+                            shown.add(name)
                 self.beginResetModel()
                 self.widgetColToDataCol = dd
                 self.endResetModel()
             except (IOError, ValueError), e:
                 print(str(e))
+            return shown
 
     def hide_columns(self, names_to_hide):
         names = self.table.getColNames()
