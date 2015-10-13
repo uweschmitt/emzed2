@@ -95,10 +95,9 @@ class TableModel(QAbstractTableModel):
         return value
 
     def set_cell_value(self, index, value):
-        self.beginResetModel()
         ridx, cidx = self.table_index(index)
         self.table.rows[ridx][cidx] = value
-        self.endResetModel()
+        self.dataChanged.emit(index, index)
 
     def row(self, index):
         ridx, cidx = self.table_index(index)

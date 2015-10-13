@@ -164,42 +164,9 @@ class ButtonDelegate(QItemDelegate):
 
 class CheckBoxDelegate(QItemDelegate):
 
-    """
-    A delegate that places a fully functioning QPushButton in every
-    cell of the column to which it's applied
-
-    we have to distinguis view and parent here: using the view as parent does not work
-    in connection with modal dialogs opened in the click handler !
-    """
-
     def __init__(self, view, parent):
         QItemDelegate.__init__(self, parent)
         self.view = view
-
-
-    """
-    def createEditor(self, parent, style, index):
-
-        model = self.view.model()
-        is_true = bool(model.cell_value(index))
-        box = QCheckBox("", parent)
-        box.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
-        return box
-
-    def setEditorData(self, widget, index):
-        is_true = bool(index.model().data(index, Qt.EditRole))
-        print("data is", is_true)
-        widget.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
-
-
-    def setModelData(self, widget, model, index):
-        is_true = widget.checkState() == Qt.Checked
-        print("set", is_true)
-        model.setData(index, QVariant("True" if is_true else "False"), Qt.EditRole)
-
-    def updateEditorGeometry(self, widget, style_option, index):
-        widget.setGeometry(style_option.rect)
-            """
 
     def paint(self, painter, option, index):
         if not self.view.indexWidget(index):
@@ -207,10 +174,6 @@ class CheckBoxDelegate(QItemDelegate):
             # more than one table wit the table explorer:
             model = self.view.model()
             is_true = bool(model.cell_value(index))
-            label = model.data(index)
-            row = model.row(index)
-
-            parent = self.parent()   # this is the table explorer
 
             def handler(check_state):
                 is_true = bool(check_state)
@@ -239,19 +202,21 @@ class EmzedTableView(QTableView):
     @protect_signal_handler
     def keyPressEvent(self, evt):
         if evt.key() in (Qt.Key_Up, Qt.Key_Down):
-            row = self.currentIndex().row()
-            column = self.currentIndex().column()
-            if evt.key() == Qt.Key_Up:
-                row -= 1
-            else:
-                row += 1
-            row = min(max(row, 0), self.model().rowCount() - 1)
-            ix = self.model().index(row, column)
-            self.setCurrentIndex(ix)
-            self.selectRow(row)
-            self.verticalHeader().sectionClicked.emit(row)
-            # skip event handling:
-            return
+            rows = set(idx.row() for idx in self.selectedIndexes())
+            if rows:
+                min_row = min(rows)
+                max_row = max(rows)
+                if evt.key() == Qt.Key_Up:
+                    row = min_row - 1
+                else:
+                    row = max_row + 1
+                row = min(max(row, 0), self.model().rowCount() - 1)
+                ix = self.model().index(row, 0)
+                self.setCurrentIndex(ix)
+                self.selectRow(row)
+                self.verticalHeader().sectionClicked.emit(row)
+                # skip event handling:
+                return
         return super(EmzedTableView, self).keyPressEvent(evt)
 
 
