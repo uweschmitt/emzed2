@@ -343,9 +343,7 @@ class TableExplorer(EmzedDialog):
     def setupPlottingWidgets(self):
         self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g"))
         self.eic_plotter = EicPlottingWidget()
-        self.eic_plotter.setMinimumSize(300, 100)
         self.mz_plotter = MzPlottingWidget()
-        self.mz_plotter.setMinimumSize(300, 100)
         pol = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         pol.setVerticalStretch(5)
         self.eic_plotter.setSizePolicy(pol)
@@ -369,11 +367,11 @@ class TableExplorer(EmzedDialog):
 
     def setupToolWidgets(self):
 
-        self.chooseGroubLabel = QLabel("Expand selection by:", parent=self)
+        self.chooseGroubLabel = QLabel("Expand selection:", parent=self)
         self.chooseGroupColumn = QComboBox(parent=self)
-        self.chooseGroupColumn.setMinimumWidth(200)
+        self.chooseGroupColumn.setMinimumWidth(150)
 
-        self.choose_visible_columns_button = button("Choose visible columns")
+        self.choose_visible_columns_button = button("Visible columns")
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
@@ -382,7 +380,7 @@ class TableExplorer(EmzedDialog):
         # self.dummy = QPushButton()
         # self.dummy.setVisible(False)
 
-        self.filter_on_button = button("Enable row filtering")
+        self.filter_on_button = button("Filter rows")
 
         self.sort_label = QLabel("sort by:", parent=self)
 
@@ -390,11 +388,11 @@ class TableExplorer(EmzedDialog):
         self.sort_order_widgets = []
         for i in range(3):
             w = QComboBox(parent=self)
-            w.setMinimumWidth(150)
+            w.setMinimumWidth(100)
             self.sort_fields_widgets.append(w)
             w = QComboBox(parent=self)
             w.addItems(["asc", "desc"])
-            w.setMaximumWidth(70)
+            w.setMaximumWidth(60)
             self.sort_order_widgets.append(w)
 
         self.restrict_to_filtered_button = button("Restrict to filter result")
@@ -486,7 +484,7 @@ class TableExplorer(EmzedDialog):
         hsplitter.setOpaqueResize(False)
 
         middleLayout = QVBoxLayout()
-        middleLayout.setSpacing(10)
+        middleLayout.setSpacing(5)
         middleLayout.setMargin(5)
         middleLayout.addWidget(self.intLabel)
         middleLayout.addWidget(self.chooseIntMethod)

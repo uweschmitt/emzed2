@@ -169,8 +169,8 @@ class ChromatogramExplorer(EmzedDialog):
         self.rt_plotter = RtPlotter(self.plotMz)
         self.mz_plotter = MzPlotter(self.handleCPressed)
 
-        self.rt_plotter.setMinimumSize(600, 300)
-        self.mz_plotter.setMinimumSize(600, 300)
+        self.rt_plotter.setMinimumSize(200, 200)
+        self.mz_plotter.setMinimumSize(200, 200)
 
         self.mz_plotter.setHalfWindowWidth(0.05)
 

@@ -297,3 +297,16 @@ class EicPlottingWidget(CurveWidget):
         self.reset_rt_limits(rtmin, rtmax)
         self.plot.reset_y_limits()
         self.plot.replot()
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt4 import QtGui
+    app = QtGui.QApplication(sys.argv)
+    def dump(*a):
+        print(*a)
+
+    widget = EicPlottingWidget()
+    widget.show()
+    sys.exit(app.exec_())
+

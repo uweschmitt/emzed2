@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_ChooseRange(object):
     def setupUi(self, ChooseRange):
         ChooseRange.setObjectName(_fromUtf8("ChooseRange"))
-        ChooseRange.resize(162, 70)
+        ChooseRange.resize(120, 70)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
