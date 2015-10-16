@@ -11,7 +11,8 @@ import guidata
 from guiqwt.shapes import PolygonShape
 from guiqwt.styles import ShapeParam
 
-from plotting_widgets import RtPlotter, MzPlotter
+from eic_plotting_widget import EicPlottingWidget
+from mz_plotting_widget import MzPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack
 
@@ -23,39 +24,10 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
-from .widgets import (FilterCriteria, ChooseFloatRange, ChooseIntRange, ChooseValue,
-                      ChooseTimeRange, StringFilterPattern, ColumnMultiSelectDialog)
+
+from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
 
 from ...gui.file_dialogs import askForSave
-
-
-def create_peak_fit_shape(rts, iis, baseline, color):
-    rts = np.array(rts)
-    iis = np.array(iis)
-    perm = np.argsort(rts)
-    rts = rts[perm][:, None]  # column vector
-    iis = iis[perm][:, None]
-    points = np.hstack((rts, iis))  # we need two columns not two rows
-    points = points[points[:, 1] >= baseline]
-    if len(points):
-        rt0 = points[0][0]
-        rt1 = points[-1][0]
-        points = np.vstack(((rt0, baseline), points, (rt1, baseline)))
-        shape = PolygonShape(points, closed=True)
-        shape.set_selectable(False)
-        shape.set_movable(False)
-        shape.set_resizable(False)
-        shape.set_rotatable(False)
-        param = ShapeParam()
-        param.fill.alpha = 0.3
-        param.fill.color = color
-        # we set params this way because guiqwt has a bug if we use the shapeparam arg in
-        # PolygonShapes __init__:
-        param.update_shape(shape)
-        shape.pen = QPen(Qt.NoPen)
-
-        return shape
-    return None
 
 
 def eic_curves(model):
@@ -190,6 +162,29 @@ class ButtonDelegate(QItemDelegate):
             self.view.setIndexWidget(index, button)
 
 
+class CheckBoxDelegate(QItemDelegate):
+
+    def __init__(self, view, parent):
+        QItemDelegate.__init__(self, parent)
+        self.view = view
+
+    def paint(self, painter, option, index):
+        if not self.view.indexWidget(index):
+            # we find the mode using the view, as the current model might change if one explores
+            # more than one table wit the table explorer:
+            model = self.view.model()
+            is_true = bool(model.cell_value(index))
+
+            def handler(check_state):
+                is_true = bool(check_state)
+                model.set_cell_value(index, is_true)
+
+            box = QCheckBox("", self.parent())
+            box.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
+            box.stateChanged.connect(handler)
+            self.view.setIndexWidget(index, box)
+
+
 class EmzedTableView(QTableView):
 
     def __init__(self, dialog):
@@ -207,19 +202,21 @@ class EmzedTableView(QTableView):
     @protect_signal_handler
     def keyPressEvent(self, evt):
         if evt.key() in (Qt.Key_Up, Qt.Key_Down):
-            row = self.currentIndex().row()
-            column = self.currentIndex().column()
-            if evt.key() == Qt.Key_Up:
-                row -= 1
-            else:
-                row += 1
-            row = min(max(row, 0), self.model().rowCount() - 1)
-            ix = self.model().index(row, column)
-            self.setCurrentIndex(ix)
-            self.selectRow(row)
-            self.verticalHeader().sectionClicked.emit(row)
-            # skip event handling:
-            return
+            rows = set(idx.row() for idx in self.selectedIndexes())
+            if rows:
+                min_row = min(rows)
+                max_row = max(rows)
+                if evt.key() == Qt.Key_Up:
+                    row = min_row - 1
+                else:
+                    row = max_row + 1
+                row = min(max(row, 0), self.model().rowCount() - 1)
+                ix = self.model().index(row, 0)
+                self.setCurrentIndex(ix)
+                self.selectRow(row)
+                self.verticalHeader().sectionClicked.emit(row)
+                # skip event handling:
+                return
         return super(EmzedTableView, self).keyPressEvent(evt)
 
 
@@ -291,60 +288,32 @@ class TableExplorer(EmzedDialog):
     def setupTableViews(self):
         self.tableViews = []
         self.filterWidgets = []
+        self.filters_enabled = False
         for i, model in enumerate(self.models):
             self.tableViews.append(self.setupTableViewFor(model))
             self.filterWidgets.append(self.setupFilterWidgetFor(model))
 
     def setupFilterWidgetFor(self, model):
         t = model.table
-        w = FilterCriteria(self)
-        for i, (fmt, name, type_) in enumerate(zip(t.getColFormats(),
-                                                   t.getColNames(),
-                                                   t.getColTypes())):
-            if fmt is not None:
-                ch = None
-                col = t.getColumn(name)
-                if type_ == float:
-                    fmtter = t.colFormatters[i]
-                    try:
-                        txt = fmtter(0.0)
-                    except Exception:
-                        txt = ""
-                    if txt.endswith("m"):
-                        ch = ChooseTimeRange(name, t)
-                    else:
-                        ch = ChooseFloatRange(name, t)
-                elif type_ in (bool, str, unicode, basestring, int):
-                    distinct_values = sorted(set(col.values))
-                    if len(distinct_values) <= 15:
-                        ch = ChooseValue(name, t)
-                    else:
-                        if type_ == int:
-                            ch = ChooseIntRange(name, t)
-                        elif type_ in (str, unicode, basestring):
-                            ch = StringFilterPattern(name, t)
-                if ch is not None:
-                    w.addChooser(ch)
-        if w.number_of_choosers() > 0:
-            w.add_stretch(1)
-            self.filters_enabled = False
-            w.setVisible(False)
-            w.LIMITS_CHANGED.connect(model.limits_changed)
-            return w
-        else:
-            return None
+        w = FilterCriteriaWidget(self)
+        w.configure(t)
+        w.LIMITS_CHANGED.connect(model.limits_changed)
+        return w
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
+        cb = CheckBoxDelegate(self.tableView, self)
         types = self.model.table.getColTypes()
         for i, j in self.model.widgetColToDataCol.items():
             if types[j] == CallBack:
                 self.tableView.setItemDelegateForColumn(i, bd)
+            elif types[i] == bool:
+                self.tableView.setItemDelegateForColumn(i, cb)
 
     def remove_delegates(self):
         types = self.model.table.getColTypes()
         for i, j in self.model.widgetColToDataCol.items():
-            if types[j] == CallBack:
+            if types[j] in (bool, CallBack):
                 self.tableView.setItemDelegateForColumn(i, None)
 
     def setupTableViewFor(self, model):
@@ -373,14 +342,12 @@ class TableExplorer(EmzedDialog):
 
     def setupPlottingWidgets(self):
         self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g"))
-        self.rt_plotter = RtPlotter(rangeSelectionCallback=self.plotMz)
-        self.rt_plotter.setMinimumSize(300, 100)
-        self.mz_plotter = MzPlotter()
-        self.mz_plotter.setMinimumSize(300, 100)
+        self.eic_plotter = EicPlottingWidget()
+        self.mz_plotter = MzPlottingWidget()
         pol = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         pol.setVerticalStretch(5)
-        self.rt_plotter.widget.setSizePolicy(pol)
-        self.mz_plotter.widget.setSizePolicy(pol)
+        self.eic_plotter.setSizePolicy(pol)
+        self.mz_plotter.setSizePolicy(pol)
 
         self.spec_label = QLabel("plot spectra:")
         self.choose_spec = QListWidget()
@@ -400,11 +367,11 @@ class TableExplorer(EmzedDialog):
 
     def setupToolWidgets(self):
 
-        self.chooseGroubLabel = QLabel("Expand selection by:", parent=self)
+        self.chooseGroubLabel = QLabel("Expand selection:", parent=self)
         self.chooseGroupColumn = QComboBox(parent=self)
-        self.chooseGroupColumn.setMinimumWidth(200)
+        self.chooseGroupColumn.setMinimumWidth(150)
 
-        self.choose_visible_columns_button = button("Choose visible columns")
+        self.choose_visible_columns_button = button("Visible columns")
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
@@ -413,7 +380,7 @@ class TableExplorer(EmzedDialog):
         # self.dummy = QPushButton()
         # self.dummy.setVisible(False)
 
-        self.filter_on_button = button("Enable row filtering")
+        self.filter_on_button = button("Filter rows")
 
         self.sort_label = QLabel("sort by:", parent=self)
 
@@ -421,11 +388,11 @@ class TableExplorer(EmzedDialog):
         self.sort_order_widgets = []
         for i in range(3):
             w = QComboBox(parent=self)
-            w.setMinimumWidth(150)
+            w.setMinimumWidth(100)
             self.sort_fields_widgets.append(w)
             w = QComboBox(parent=self)
             w.addItems(["asc", "desc"])
-            w.setMaximumWidth(70)
+            w.setMaximumWidth(60)
             self.sort_order_widgets.append(w)
 
         self.restrict_to_filtered_button = button("Restrict to filter result")
@@ -470,18 +437,14 @@ class TableExplorer(EmzedDialog):
 
         vsplitter.addWidget(self.layoutToolWidgets())  # 3
 
-        self.filter_widgets_box = QScrollArea(self)
+        # self.filter_widgets_box = QScrollArea(self)
         self.filter_widgets_container = QStackedWidget(self)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
 
-        self.filter_widgets_box.setVisible(False)
-        self.filter_widgets_box.setWidget(self.filter_widgets_container)  # 4
-        self.filter_widgets_box.setWidgetResizable(True)
-        self.filter_widgets_box.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.filter_widgets_box.setMinimumSize(QSize(self.filter_widgets_box.sizeHint().width(), 120))
-        self.filter_widgets_box.setFrameStyle(QFrame.Plain)
-        vsplitter.addWidget(self.filter_widgets_box)
+        self.filter_widgets_container.setVisible(False)
+        self.filter_widgets_container.setFrameStyle(QFrame.Plain)
+        vsplitter.addWidget(self.filter_widgets_container)
 
         di = 1 if extra is not None else 0
 
@@ -521,7 +484,7 @@ class TableExplorer(EmzedDialog):
         hsplitter.setOpaqueResize(False)
 
         middleLayout = QVBoxLayout()
-        middleLayout.setSpacing(10)
+        middleLayout.setSpacing(5)
         middleLayout.setMargin(5)
         middleLayout.addWidget(self.intLabel)
         middleLayout.addWidget(self.chooseIntMethod)
@@ -540,8 +503,8 @@ class TableExplorer(EmzedDialog):
         self.middleFrame = QFrame()
         self.middleFrame.setLayout(middleLayout)
 
-        plot_widgets = self.setup_plot_widgets([self.rt_plotter.widget, self.middleFrame,
-                                                self.mz_plotter.widget])
+        plot_widgets = self.setup_plot_widgets([self.eic_plotter, self.middleFrame,
+                                                self.mz_plotter])
 
         for widget in plot_widgets:
             hsplitter.addWidget(widget)
@@ -621,29 +584,29 @@ class TableExplorer(EmzedDialog):
         self.choose_spec.clear()
 
         if hasFeatures:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.resetPlots()
         elif self.hasEIConly:
-            self.rt_plotter.setEnabled(True)
-            self.rt_plotter.widget.setVisible(True)
-            self.mz_plotter.widget.setVisible(False)
+            self.eic_plotter.setEnabled(True)
+            self.eic_plotter.setVisible(True)
+            self.mz_plotter.setVisible(False)
             self.resetPlots()
         elif self.hasTimeSeries:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.mz_plotter.setEnabled(True)
-            self.rt_plotter.widget.setVisible(True)
-            self.mz_plotter.widget.setVisible(True)
+            self.eic_plotter.setVisible(True)
+            self.mz_plotter.setVisible(True)
             self.resetPlots()
         else:
-            self.rt_plotter.widget.setVisible(False)
-            self.mz_plotter.widget.setVisible(False)
+            self.eic_plotter.setVisible(False)
+            self.mz_plotter.setVisible(False)
 
     def setPlotVisibility(self, doShow):
-        self.rt_plotter.widget.setVisible(doShow)
-        self.mz_plotter.widget.setVisible(doShow)
+        self.eic_plotter.setVisible(doShow)
+        self.mz_plotter.setVisible(doShow)
 
     def resetPlots(self):
-        self.rt_plotter.reset()
+        self.eic_plotter.reset()
         self.mz_plotter.reset()
 
     def setIntegrationPanelVisiblity(self, doShow):
@@ -704,6 +667,8 @@ class TableExplorer(EmzedDialog):
         for sort_order_w in self.sort_order_widgets:
             sort_order_w.currentIndexChanged.connect(self.sort_fields_changed)
 
+        self.eic_plotter.SELECTED_RANGE_CHANGED.connect(self.eic_selection_changed)
+
     @protect_signal_handler
     def sort_fields_changed(self, __):
         sort_data = [(str(f0.currentText()),
@@ -714,17 +679,18 @@ class TableExplorer(EmzedDialog):
             self.model.sort_by(sort_data)
             main_name, main_order = sort_data[0]
             idx = self.model.widget_col(main_name)
-            header = self.tableView.horizontalHeader()
-            header.blockSignals(True)
-            header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
-            header.blockSignals(False)
+            if idx is not None:
+                header = self.tableView.horizontalHeader()
+                header.blockSignals(True)
+                header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
+                header.blockSignals(False)
 
     @protect_signal_handler
     def filter_toggle(self, *a):
         self.filters_enabled = not self.filters_enabled
         for model in self.models:
             model.setFiltersEnabled(self.filters_enabled)
-        self.filter_widgets_box.setVisible(self.filters_enabled)
+        self.filter_widgets_container.setVisible(self.filters_enabled)
         self.restrict_to_filtered_button.setEnabled(self.filters_enabled)
         self.remove_filtered_button.setEnabled(self.filters_enabled)
         if self.filters_enabled:
@@ -740,6 +706,11 @@ class TableExplorer(EmzedDialog):
     def choose_visible_columns(self, *a):
         self.remove_delegates()
         col_names, is_currently_visible = self.model.columnames_with_visibility()
+        if not col_names:
+            return
+
+        # zip, sort and unzip then:
+        col_names, is_currently_visible = zip(*sorted(zip(col_names, is_currently_visible)))
         dlg = ColumnMultiSelectDialog(col_names, is_currently_visible)
         dlg.exec_()
         if dlg.column_settings is None:
@@ -749,13 +720,14 @@ class TableExplorer(EmzedDialog):
         self.update_hidden_columns(hide_names)
         self.model.save_preset_hidden_column_names()
 
-    def update_hidden_columns(self, hide_names):
-        self.model.hide_columns(hide_names)
+    def update_hidden_columns(self, hidden_names):
+        self.model.hide_columns(hidden_names)
         self.set_delegates()
-        self.setup_choose_group_column_widget(hide_names)
-        self.setup_sort_fields(hide_names)
-        self.current_filter_widget.hide_filters(hide_names)
-        self.model.table.meta["hide_in_explorer"] = hide_names
+        self.setup_choose_group_column_widget(hidden_names)
+        self.setup_sort_fields(hidden_names)
+        self.current_filter_widget.hide_filters(hidden_names)
+        self.model.table.meta["hide_in_explorer"] = hidden_names
+        self.setup_sort_fields(hidden_names)
 
     @protect_signal_handler
     def remove_filtered(self, *a):
@@ -878,7 +850,9 @@ class TableExplorer(EmzedDialog):
         hidden = self.model.table.meta.get("hide_in_explorer", ())
         self.update_hidden_columns(hidden)
         try:
-            self.model.load_preset_hidden_column_names()
+            shown = self.model.load_preset_hidden_column_names()
+            hidden = list(set(self.model.table.getColNames()) - shown)
+            self.update_hidden_columns(hidden)
         except Exception:
             pass
 
@@ -899,8 +873,8 @@ class TableExplorer(EmzedDialog):
         if len(self.choosePostfix) == 1:
             self.choosePostfix.setVisible(False)
 
-        self.setup_choose_group_column_widget([])
-        self.setup_sort_fields([])
+        self.setup_choose_group_column_widget(hidden)
+        self.setup_sort_fields(hidden)
         self.connectModelSignals()
         self.updateMenubar()
         self.set_window_title(self.model.table)
@@ -913,7 +887,7 @@ class TableExplorer(EmzedDialog):
         t = self.model.table
         candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
         visible_names = [n for n in candidates if n not in hidden_names]
-        all_choices = ["- manual multi select -"] + visible_names
+        all_choices = ["- manual multi select -"] + sorted(visible_names)
         self.chooseGroupColumn.addItems(all_choices)
         if before is not None and before in all_choices:
             idx = all_choices.index(before)
@@ -926,7 +900,6 @@ class TableExplorer(EmzedDialog):
                 before.append(str(field.currentText()))
             else:
                 before.append(None)
-            field.clear()
 
         t = self.model.table
         candidates = [n for (n, f) in zip(t.getColNames(), t.getColFormats()) if f is not None]
@@ -935,6 +908,7 @@ class TableExplorer(EmzedDialog):
         all_choices = ["-"] + visible_names
 
         for field in self.sort_fields_widgets:
+            field.clear()
             field.addItems(all_choices)
 
         for choice_before, field in zip(before, self.sort_fields_widgets):
@@ -1020,7 +994,7 @@ class TableExplorer(EmzedDialog):
         # For better readibilty we put single quotes around the postfix
         # entry in the QComboBox which we have to remove now:
         postfix = str(self.choosePostfix.currentText()).strip("'")
-        rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
+        rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
         for data_row_idx in self.model.selected_data_rows:
             self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
 
@@ -1051,15 +1025,15 @@ class TableExplorer(EmzedDialog):
         self.model.set_selected_data_rows(to_select)
 
         if self.hasFeatures:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
         elif self.hasEIConly:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
         elif self.hasTimeSeries:
-            self.rt_plotter.setEnabled(True)
+            self.eic_plotter.setEnabled(True)
             self.updatePlots(reset=True)
             self.setupSpectrumChooser()
 
@@ -1100,35 +1074,39 @@ class TableExplorer(EmzedDialog):
 
         mzmin = mzmax = rtmin = rtmax = None
         fit_shapes = []
+        time_series = []
 
         if self.hasEIConly:
             rtmin, rtmax, curves = eic_curves(self.model)
             configs = configsForEics(curves)
 
         elif self.hasTimeSeries:
-            rtmin, rtmax, curves = time_series(self.model)
-            configs = configsForTimeSeries(curves)
-            self.plotMz(limits_from_rows=True)
+            rtmin, rtmax, time_series = time_series(self.model)
+            ts_configs = configsForTimeSeries(time_series)
+            # self.plotMz(limits_from_rows=True)
         else:
             rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.isIntegrated)
             configs = configsForEics(curves)
 
         if not reset:
             if not self.hasTimeSeries:
-                rtmin, rtmax = self.rt_plotter.getRangeSelectionLimits()
-            xmin, xmax, ymin, ymax = self.rt_plotter.getLimits()
+                rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
+            xmin, xmax, ymin, ymax = self.eic_plotter.get_limits()
 
-        self.rt_plotter.plot(curves, self.hasTimeSeries, configs=configs, titles=None, withmarker=True)
+        self.eic_plotter.reset()
+        self.eic_plotter.add_eics(curves, configs=configs, labels=None)
+
+        self.ts_plotter.setVisible(len(time_series) > 0)
+        if time_series:
+            self.ts_plotter.reset()
+            self.ts_plotter.add_time_series(time_series, ts_configs)
 
         for ((rts, iis), baseline), config in zip(fit_shapes, configs):
             if baseline is None:
                 baseline = 0.0
-
             eic_color = config["color"]
             color = turn_light(eic_color)
-            shape = create_peak_fit_shape(rts, iis, baseline, color)
-            if shape is not None:
-                self.rt_plotter.widget.plot.add_item(shape)
+            self.eic_plotter.add_eic_filled(rts, iis, baseline, color)
 
         # allrts are sorted !
         if rtmin is not None and rtmax is not None:
@@ -1136,19 +1114,19 @@ class TableExplorer(EmzedDialog):
             if w == 0:
                 w = 30.0  # seconds
             if not self.hasTimeSeries:
-                self.rt_plotter.setRangeSelectionLimits(rtmin, rtmax)
-                self.rt_plotter.setXAxisLimits(rtmin - w, rtmax + w)
-            self.rt_plotter.replot()
+                self.eic_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
+                self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
+            self.eic_plotter.replot()
 
             if not reset:
-                self.rt_plotter.setXAxisLimits(xmin, xmax)
-                self.rt_plotter.setYAxisLimits(ymin, ymax)
-                self.rt_plotter.updateAxes()
+                self.eic_plotter.set_rt_axis_limits(xmin, xmax)
+                self.eic_plotter.set_intensity_axis_limits(ymin, ymax)
+                self.eic_plotter.updateAxes()
             else:
-                self.rt_plotter.reset_y_limits(fac=1.1, xmin=rtmin - w, xmax=rtmax + w)
+                self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
         if self.hasTimeSeries and reset:
-            self.rt_plotter.reset_x_limits(fac=1.0)
+            self.eic_plotter.reset_rt_limits(fac=1.0)
 
         reset_ = reset and mzmin is not None and mzmax is not None
         limits = (mzmin, mzmax) if reset_ else None
@@ -1168,38 +1146,38 @@ class TableExplorer(EmzedDialog):
         else:
             self.plotMz()
 
+    def eic_selection_changed(self, rtmin, rtmax):
+        self.plotMz(resetLimits=None)
+
     def plotMz(self, resetLimits=None, limits_from_rows=False):
         """ this one is used from updatePlots and the rangeselectors
             callback """
         peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        mzmin = mzmax = None
-        if not limits_from_rows:
-            rtmin = self.rt_plotter.minRTRangeSelected
-            rtmax = self.rt_plotter.maxRTRangeSelected
-            if resetLimits:
-                mzmin, mzmax = resetLimits
-                data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
-            else:
-                data = []
-                for pm in peakmaps:
-                    mzmin, mzmax = pm.mzRange()
-                    data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+        if not peakmaps:
+            return
+
+        rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
+        if resetLimits:
+            mzmin, mzmax = resetLimits
+            data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
         else:
-            windows = [wi for idx in self.model.selected_data_rows for wi in self.model.getEICWindows(idx)]
-            data = [(pm,) + tuple(w) + (3000,) for (pm, w) in zip(peakmaps, windows)]
-            if data:
-                mzmin = min(wi[2] for wi in windows)
-                mzmax = max(wi[3] for wi in windows)
+            data = []
+            mzs = []
+            for pm in peakmaps:
+                mzmin, mzmax = pm.mzRange()
+                mzs.append(mzmin)
+                mzs.append(mzmax)
+                data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+            mzmin = min(mzs)
+            mzmax = max(mzs)
 
         configs = configsForSpectra(len(peakmaps))
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
         titles = map(repr, postfixes)
 
-        if data:
-            self.mz_plotter.plot(data, configs, titles if len(titles) > 1 else None)
-            if mzmin is not None and mzmax is not None:
-                self.mz_plotter.reset_x_limits(mzmin, mzmax)
-            self.mz_plotter.replot()
+        self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
+        self.mz_plotter.reset_mz_limits(mzmin, mzmax)
+        self.mz_plotter.replot()
 
 
 def inspect(what, offerAbortOption=False, modal=True, parent=None):
