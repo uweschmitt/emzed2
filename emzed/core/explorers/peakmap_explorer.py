@@ -314,9 +314,11 @@ class PeakMapExplorer(EmzedDialog):
         v_splitter2.addWidget(self.history_list)
         v_splitter2.addWidget(self.mz_plotter)
 
-        v_splitter2.setStretchFactor(0, 1)
-        v_splitter2.setStretchFactor(1, 1)
-        v_splitter2.setStretchFactor(2, 2)
+        v_splitter2.setStretchFactor(0, 0)
+        v_splitter2.setStretchFactor(1, 0)
+        v_splitter2.setStretchFactor(2, 0)
+        v_splitter2.setStretchFactor(3, 0)
+        v_splitter2.setStretchFactor(4, 1)
 
         h_splitter.addWidget(v_splitter2)
         h_splitter.setStretchFactor(1, 1)
@@ -565,12 +567,12 @@ class PeakMapExplorer(EmzedDialog):
         needed = ["rtmin", "rtmax", "mzmin", "mzmax"]
         if all(n in row for n in needed):
             rtmin, rtmax, mzmin, mzmax = [row.get(ni) for ni in needed]
-            self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax, True)
+            self.peakmap_plotter.set_limits(rtmin, rtmax, mzmin, mzmax)
         else:
             needed = ["mzmin", "mzmax"]
             if all(n in row for n in needed):
                 mzmin, mzmax = [row.get(ni) for ni in needed]
-                self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, mzmin, mzmax, True)
+                self.peakmap_plotter.set_limits(self.rtmin, self.rtmax, mzmin, mzmax)
 
     @protect_signal_handler
     def cell_clicked(self, item):

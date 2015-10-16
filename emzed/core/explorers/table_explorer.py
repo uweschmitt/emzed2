@@ -13,6 +13,7 @@ from guiqwt.styles import ShapeParam
 
 from eic_plotting_widget import EicPlottingWidget
 from mz_plotting_widget import MzPlottingWidget
+from ts_plotting_widget import TimeSeriesPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack
 
@@ -341,13 +342,17 @@ class TableExplorer(EmzedDialog):
         return menu
 
     def setupPlottingWidgets(self):
-        self.plotconfigs = (None, dict(shade=0.35, linewidth=1, color="g"))
+
         self.eic_plotter = EicPlottingWidget()
         self.mz_plotter = MzPlottingWidget()
+        self.ts_plotter = TimeSeriesPlottingWidget()
+
         pol = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         pol.setVerticalStretch(5)
+
         self.eic_plotter.setSizePolicy(pol)
         self.mz_plotter.setSizePolicy(pol)
+        self.ts_plotter.setSizePolicy(pol)
 
         self.spec_label = QLabel("plot spectra:")
         self.choose_spec = QListWidget()
@@ -503,7 +508,7 @@ class TableExplorer(EmzedDialog):
         self.middleFrame = QFrame()
         self.middleFrame.setLayout(middleLayout)
 
-        plot_widgets = self.setup_plot_widgets([self.eic_plotter, self.middleFrame,
+        plot_widgets = self.setup_plot_widgets([self.ts_plotter, self.eic_plotter, self.middleFrame,
                                                 self.mz_plotter])
 
         for widget in plot_widgets:
@@ -1074,15 +1079,16 @@ class TableExplorer(EmzedDialog):
 
         mzmin = mzmax = rtmin = rtmax = None
         fit_shapes = []
+        time_series = []
 
         if self.hasEIConly:
             rtmin, rtmax, curves = eic_curves(self.model)
             configs = configsForEics(curves)
 
         elif self.hasTimeSeries:
-            rtmin, rtmax, curves = time_series(self.model)
-            configs = configsForTimeSeries(curves)
-            self.plotMz(limits_from_rows=True)
+            rtmin, rtmax, time_series = time_series(self.model)
+            ts_configs = configsForTimeSeries(time_series)
+            # self.plotMz(limits_from_rows=True)
         else:
             rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.isIntegrated)
             configs = configsForEics(curves)
@@ -1094,6 +1100,11 @@ class TableExplorer(EmzedDialog):
 
         self.eic_plotter.reset()
         self.eic_plotter.add_eics(curves, configs=configs, labels=None)
+
+        self.ts_plotter.setVisible(len(time_series) > 0)
+        if time_series:
+            self.ts_plotter.reset()
+            self.ts_plotter.add_time_series(time_series, ts_configs)
 
         for ((rts, iis), baseline), config in zip(fit_shapes, configs):
             if baseline is None:
@@ -1143,7 +1154,7 @@ class TableExplorer(EmzedDialog):
     def eic_selection_changed(self, rtmin, rtmax):
         self.plotMz(resetLimits=None)
 
-    def plotMz(self, resetLimits=None):
+    def plotMz(self, resetLimits=None, limits_from_rows=False):
         """ this one is used from updatePlots and the rangeselectors
             callback """
         peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]

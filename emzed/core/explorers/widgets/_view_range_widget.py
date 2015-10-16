@@ -22,14 +22,19 @@ except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-class Ui_ViewRangeWidget(object):
+class Ui__ViewRangeWidget(object):
     def setupUi(self, _ViewRangeWidget):
         _ViewRangeWidget.setObjectName(_fromUtf8("_ViewRangeWidget"))
-        _ViewRangeWidget.setGeometry(QtCore.QRect(0, 0, 387, 138))
+        _ViewRangeWidget.resize(387, 138)
         self._gridLayout = QtGui.QGridLayout(_ViewRangeWidget)
         self._gridLayout.setMargin(0)
         self._gridLayout.setObjectName(_fromUtf8("_gridLayout"))
         self._frame = QtGui.QFrame(_ViewRangeWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self._frame.sizePolicy().hasHeightForWidth())
+        self._frame.setSizePolicy(sizePolicy)
         self._frame.setMinimumSize(QtCore.QSize(387, 0))
         self._frame.setFrameShape(QtGui.QFrame.StyledPanel)
         self._frame.setFrameShadow(QtGui.QFrame.Raised)
@@ -59,6 +64,11 @@ class Ui_ViewRangeWidget(object):
         self._rt_max.setObjectName(_fromUtf8("_rt_max"))
         self._gridLayout_2.addWidget(self._rt_max, 1, 1, 1, 1)
         self._label_2 = QtGui.QLabel(self._frame)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self._label_2.sizePolicy().hasHeightForWidth())
+        self._label_2.setSizePolicy(sizePolicy)
         self._label_2.setMinimumSize(QtCore.QSize(181, 0))
         self._label_2.setObjectName(_fromUtf8("_label_2"))
         self._gridLayout_2.addWidget(self._label_2, 2, 0, 1, 1)
@@ -77,6 +87,11 @@ class Ui_ViewRangeWidget(object):
         self._mz_width.setObjectName(_fromUtf8("_mz_width"))
         self._gridLayout_2.addWidget(self._mz_width, 3, 1, 1, 1)
         self._label_4 = QtGui.QLabel(self._frame)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self._label_4.sizePolicy().hasHeightForWidth())
+        self._label_4.setSizePolicy(sizePolicy)
         self._label_4.setMinimumSize(QtCore.QSize(181, 0))
         self._label_4.setObjectName(_fromUtf8("_label_4"))
         self._gridLayout_2.addWidget(self._label_4, 4, 0, 1, 1)
@@ -96,14 +111,14 @@ class Ui_ViewRangeWidget(object):
         QtCore.QMetaObject.connectSlotsByName(_ViewRangeWidget)
 
     def retranslateUi(self, _ViewRangeWidget):
-        _ViewRangeWidget.setWindowTitle(_translate("ViewRangeWidget", "Form", None))
-        self._label.setText(_translate("ViewRangeWidget", "Retention time range [minutes]", None))
-        self._label_2.setText(_translate("ViewRangeWidget", "m/z center and half width", None))
-        self._use_ppm.setText(_translate("ViewRangeWidget", "use ppm ?", None))
-        self._label_4.setText(_translate("ViewRangeWidget", "m/z range", None))
+        _ViewRangeWidget.setWindowTitle(_translate("_ViewRangeWidget", "Form", None))
+        self._label.setText(_translate("_ViewRangeWidget", "Retention time range [minutes]", None))
+        self._label_2.setText(_translate("_ViewRangeWidget", "m/z center and half width", None))
+        self._use_ppm.setText(_translate("_ViewRangeWidget", "use ppm ?", None))
+        self._label_4.setText(_translate("_ViewRangeWidget", "m/z range", None))
 
 
-class _ViewRangeWidget(QtGui.QWidget, Ui_ViewRangeWidget):
+class _ViewRangeWidget(QtGui.QWidget, Ui__ViewRangeWidget):
     def __init__(self, parent=None, f=QtCore.Qt.WindowFlags()):
         QtGui.QWidget.__init__(self, parent, f)
 
@@ -114,7 +129,7 @@ if __name__ == "__main__":
     import sys
     app = QtGui.QApplication(sys.argv)
     _ViewRangeWidget = QtGui.QWidget()
-    ui = Ui_ViewRangeWidget()
+    ui = Ui__ViewRangeWidget()
     ui.setupUi(_ViewRangeWidget)
     _ViewRangeWidget.show()
     sys.exit(app.exec_())

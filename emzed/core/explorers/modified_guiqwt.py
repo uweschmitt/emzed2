@@ -1,5 +1,7 @@
 import datetime
 
+import numpy as np
+
 from PyQt4.QtCore import Qt, pyqtSignal, QObject
 from PyQt4.QtGui import QPainter
 from guiqwt.curve import CurvePlot, CurveItem
@@ -12,7 +14,6 @@ from guiqwt.tools import InteractiveTool
 from guiqwt.builder import make
 
 from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
-import numpy as np
 
 from helpers import protect_signal_handler
 
@@ -55,6 +56,28 @@ def make_measurement_line():
     return line
 
 
+class ImprovedPanHandler(PanHandler):
+
+    def __init__(self, filter, btn, mods=Qt.NoModifier, start_state=0):
+        super(ImprovedPanHandler, self).__init__(filter, btn, mods, start_state)
+        # additionally we reset state machine if mouse is release anyhow !
+        filter.add_event(self.state0, filter.mouse_release(btn),
+                         self.stop_notmoving, start_state)
+        filter.add_event(self.state1, filter.mouse_release(btn),
+                         self.stop_moving, start_state)
+
+
+class ImprovedZoomHandler(ZoomHandler):
+
+    def __init__(self, filter, btn, mods=Qt.NoModifier, start_state=0):
+        super(ImprovedZoomHandler, self).__init__(filter, btn, mods, start_state)
+        # additionally we reset state machine if mouse is release anyhow !
+        filter.add_event(self.state0, filter.mouse_release(btn),
+                         self.stop_notmoving, start_state)
+        filter.add_event(self.state1, filter.mouse_release(btn),
+                         self.stop_moving, start_state)
+
+
 class RtSelectionTool(InteractiveTool):
 
     """
@@ -93,12 +116,12 @@ class RtSelectionTool(InteractiveTool):
                          baseplot.do_backspace_pressed, start_state)
 
         # Bouton du milieu
-        PanHandler(filter, Qt.MidButton, start_state=start_state)
-        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
+        ImprovedPanHandler(filter, Qt.MidButton, start_state=start_state)
+        ImprovedPanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
         # Bouton droit
-        ZoomHandler(filter, Qt.RightButton, start_state=start_state)
-        ZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
+        ImprovedZoomHandler(filter, Qt.RightButton, start_state=start_state)
+        ImprovedZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)
@@ -140,12 +163,19 @@ class MzSelectionTool(InteractiveTool):
         self.connect(handler, SIG_STOP_NOT_MOVING, baseplot.stop_drag_mode)
         self.connect(handler, SIG_STOP_MOVING, baseplot.stop_drag_mode)
 
+        """
+        filter.add_event(self.state0, filter.mouse_release(btn),
+                         self.stop_notmoving, start_state)
+        filter.add_event(self.state1, filter.mouse_release(btn),
+                         self.stop_moving, start_state)
+        """
+
         # Bouton du milieu
-        PanHandler(filter, Qt.MidButton, start_state=start_state)
-        PanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
+        ImprovedPanHandler(filter, Qt.MidButton, start_state=start_state)
+        ImprovedPanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
         # Bouton droit
-        class ZoomHandlerWithStopingEvent(ZoomHandler):
+        class ZoomHandlerWithStopingEvent(ImprovedZoomHandler):
 
             def stop_moving(self, filter_, event):
                 x_state, y_state = self.get_move_state(filter_, event.pos())
@@ -286,9 +316,11 @@ class PositiveValuedCurvePlot(CurvePlot):
             if axis_id not in axis_ids_vertical:
                 if self.overall_x_min is not None:
                     if vmin < self.overall_x_min:
+                        self.setAutoReplot(auto)
                         return
                 if self.overall_x_max is not None:
                     if vmax > self.overall_x_max:
+                        self.setAutoReplot(auto)
                         return
                 final_xmin = vmin
                 final_xmax = vmax
@@ -422,7 +454,6 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
                 ymax = max(yvals)
                 if ymax > 0:
                     self.update_plot_ylimits(0, ymax * 1.1)
-        self.filter.state = self.filter.start_state
 
     @protect_signal_handler
     def do_enter_pressed(self, filter, evt):
