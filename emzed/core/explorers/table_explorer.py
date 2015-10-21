@@ -499,6 +499,7 @@ class TableExplorer(EmzedDialog):
 
         self.middleFrame = QFrame()
         self.middleFrame.setLayout(middleLayout)
+        self.middleFrame.setMaximumWidth(250)
 
         plot_widgets = self.setup_plot_widgets([self.ts_plotter, self.eic_plotter, self.middleFrame,
                                                 self.mz_plotter])
