@@ -8,3 +8,4 @@ from filter_widget import (FilterCriteria, ChooseValue, ChooseFloatRange, Choose
 
 from column_selection_dialog import ColumnMultiSelectDialog
 from filter_criteria_widget import FilterCriteriaWidget
+from integration_widget import IntegrationWidget

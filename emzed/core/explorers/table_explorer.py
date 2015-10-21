@@ -25,8 +25,7 @@ from inspectors import has_inspector, inspector
 
 from emzed_dialog import EmzedDialog
 
-
-from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
+from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog, IntegrationWidget
 
 from ...gui.file_dialogs import askForSave
 
@@ -43,7 +42,14 @@ def eic_curves(model):
     return min(rtmins), max(rtmaxs), curves
 
 
-def time_series(model):
+"""
+todo: eic only table, peak_table, integrated_peak_table, peak_table + ts,
+peak_table + integrated + ts
+ts only !
+"""
+
+
+def time_series_curves(model):
     rtmins, rtmaxs, curves = [], [], []
     for idx in model.selected_data_rows:
         # filter valid time series
@@ -303,13 +309,13 @@ class TableExplorer(EmzedDialog):
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
-        cb = CheckBoxDelegate(self.tableView, self)
+        # cb = CheckBoxDelegate(self.tableView, self)
         types = self.model.table.getColTypes()
         for i, j in self.model.widgetColToDataCol.items():
             if types[j] == CallBack:
                 self.tableView.setItemDelegateForColumn(i, bd)
-            elif types[i] == bool:
-                self.tableView.setItemDelegateForColumn(i, cb)
+            #elif types[i] == bool:
+                #self.tableView.setItemDelegateForColumn(i, cb)
 
     def remove_delegates(self):
         types = self.model.table.getColTypes()
@@ -360,15 +366,10 @@ class TableExplorer(EmzedDialog):
         self.choose_spec.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
     def setupIntegrationWidgets(self):
-        self.intLabel = QLabel("Integration")
-        self.chooseIntMethod = QComboBox()
-        from ... import algorithm_configs
-        for name, _ in algorithm_configs.peakIntegrators:
-            self.chooseIntMethod.addItem(name)
 
-        self.choosePostfix = QComboBox()
-
-        self.reintegrateButton = button("Integrate")
+        self.integration_widget = IntegrationWidget(self)
+        names = [name for (name, __) in algorithm_configs.peakIntegrators]
+        self.integration_widget.set_integration_methods(names)
 
     def setupToolWidgets(self):
 
@@ -474,10 +475,7 @@ class TableExplorer(EmzedDialog):
         return hbox
 
     def enable_integration_widgets(self, flag=True):
-        self.intLabel.setEnabled(flag)
-        self.chooseIntMethod.setEnabled(flag)
-        self.choosePostfix.setEnabled(flag)
-        self.reintegrateButton.setEnabled(flag)
+        self.integration_widget.setEnabled(flag)
 
     def enable_spec_chooser_widgets(self, flag=True):
         self.spec_label.setEnabled(flag)
@@ -491,19 +489,13 @@ class TableExplorer(EmzedDialog):
         middleLayout = QVBoxLayout()
         middleLayout.setSpacing(5)
         middleLayout.setMargin(5)
-        middleLayout.addWidget(self.intLabel)
-        middleLayout.addWidget(self.chooseIntMethod)
-        middleLayout.addWidget(self.choosePostfix)
-        middleLayout.addWidget(self.reintegrateButton)
+        middleLayout.addWidget(self.integration_widget)
         middleLayout.addStretch()
 
         middleLayout.addWidget(self.spec_label)
         middleLayout.addWidget(self.choose_spec)
         middleLayout.addStretch()
         middleLayout.addStretch()
-
-        middleLayout.setAlignment(self.chooseIntMethod, Qt.AlignTop)
-        middleLayout.setAlignment(self.reintegrateButton, Qt.AlignTop)
 
         self.middleFrame = QFrame()
         self.middleFrame.setLayout(middleLayout)
@@ -563,59 +555,33 @@ class TableExplorer(EmzedDialog):
         title = "%d out of %d rows from %s" % (len(visible), len(table), model_title)
         self.setWindowTitle(title)
 
-    def setupModelDependendLook(self):
+    def setup_model_dependent_look(self):
+
         hasFeatures = self.model.hasFeatures()
         isIntegrated = self.model.isIntegrated()
-        self.hasFeatures = hasFeatures
-        self.isIntegrated = isIntegrated
-        self.hasEIConly = False
-        self.hasTimeSeries = False
-        self.hasExtraSpectra = self.model.hasExtraSpectra()
-        if self.model.hasTimeSeries():
-            # overrides everything !
-            self.hasTimeSeries = True
-            isIntegrated = self.isIntegrated = False
-            self.hasFeatures = hasFeatures = True
-        elif not self.hasFeatures and not self.isIntegrated and self.model.hasEIC():
-            self.hasEIConly = True
+        hasEIC = self.model.hasEIC()
+        hasTimeSeries = self.model.hasTimeSeries()
+        hasSpectra = self.model.hasSpectra()
 
-        self.setPlotVisibility(hasFeatures)
-        self.enable_integration_widgets(isIntegrated)
-        self.enable_spec_chooser_widgets(hasFeatures or self.hasExtraSpectra)
+        self.eic_only_mode = hasEIC and not hasFeatures  # includes: not isIntegrated !
+        self.has_chromatograms = hasFeatures
+        self.allow_integration = isIntegrated
+        self.has_time_series = hasTimeSeries
+        self.has_spectra = hasSpectra
 
-        show_middle = isIntegrated or hasFeatures or self.hasExtraSpectra
-        self.middleFrame.setVisible(show_middle)
+        self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
+        self.mz_plotter.setVisible(self.has_chromatograms or self.has_spectra)
+        self.ts_plotter.setVisible(self.has_time_series)
+
+        self.enable_integration_widgets(self.allow_integration)
+        self.enable_spec_chooser_widgets(self.has_spectra or self.has_chromatograms)
+
+        self.enable_integration_widgets(self.allow_integration)
+        self.enable_spec_chooser_widgets(self.has_chromatograms or self.has_spectra)
+
+        self.middleFrame.setVisible(self.allow_integration or self.has_spectra)
 
         self.choose_spec.clear()
-
-        if hasFeatures:
-            self.eic_plotter.setEnabled(True)
-            self.resetPlots()
-        elif self.hasEIConly:
-            self.eic_plotter.setEnabled(True)
-            self.eic_plotter.setVisible(True)
-            self.mz_plotter.setVisible(False)
-            self.resetPlots()
-        elif self.hasTimeSeries:
-            self.eic_plotter.setEnabled(True)
-            self.mz_plotter.setEnabled(True)
-            self.eic_plotter.setVisible(True)
-            self.mz_plotter.setVisible(True)
-            self.resetPlots()
-        else:
-            self.eic_plotter.setVisible(False)
-            self.mz_plotter.setVisible(False)
-
-    def setPlotVisibility(self, doShow):
-        self.eic_plotter.setVisible(doShow)
-        self.mz_plotter.setVisible(doShow)
-
-    def resetPlots(self):
-        self.eic_plotter.reset()
-        self.mz_plotter.reset()
-
-    def setIntegrationPanelVisiblity(self, doShow):
-        self.middleFrame.setVisible(doShow)
 
     @protect_signal_handler
     def handleClick(self, index, model):
@@ -652,7 +618,7 @@ class TableExplorer(EmzedDialog):
 
             self.connect_additional_widgets(model)
 
-        self.connect(self.reintegrateButton, SIGNAL("clicked()"), self.doIntegrate)
+        self.integration_widget.TRIGGER_INTEGRATION.connect(self.do_integrate)
         self.choose_spec.itemSelectionChanged.connect(self.spectrumChosen)
 
         if self.offerAbortOption:
@@ -861,8 +827,8 @@ class TableExplorer(EmzedDialog):
         except Exception:
             pass
 
-        self.setupModelDependendLook()
-        if self.isIntegrated:
+        self.setup_model_dependent_look()
+        if self.allow_integration:
             self.model.setNonEditable("method", ["area", "rmse", "method", "params"])
 
         for col_name in self.model.table.getColNames():
@@ -870,13 +836,9 @@ class TableExplorer(EmzedDialog):
             if t in (list, tuple, object, dict, set) or t is None or has_inspector(t):
                 self.model.addNonEditable(col_name)
 
-        self.choosePostfix.clear()
         mod = self.model
-        for p in mod.table.supportedPostfixes(mod.integrationColNames()):
-            self.choosePostfix.addItem(repr(p))
-
-        if len(self.choosePostfix) == 1:
-            self.choosePostfix.setVisible(False)
+        postfixes = mod.table.supportedPostfixes(mod.integrationColNames())
+        self.integration_widget.set_postfixes(postfixes)
 
         self.setup_choose_group_column_widget(hidden)
         self.setup_sort_fields(hidden)
@@ -947,13 +909,13 @@ class TableExplorer(EmzedDialog):
         for name in self.model.table.getColNames()[minc:maxc + 1]:
             self.current_filter_widget.update(name)
 
-        if self.hasFeatures:
+        if self.has_chromatograms:
             # minr, maxr = sorted((ix1.row(), ix2.row()))
             if any(minr <= index <= maxr for index in self.model.selected_data_rows):
                 if isinstance(src, IntegrateAction):
-                    self.updatePlots(reset=False)
+                    self.plot_chromatograms(reset=False)
                 else:
-                    self.updatePlots(reset=True)
+                    self.plot_chromatograms(reset=True)
 
         self.reset_sort_fields()
 
@@ -992,13 +954,10 @@ class TableExplorer(EmzedDialog):
             self.model.redoLastAction()
 
     @protect_signal_handler
-    def doIntegrate(self):
+    def do_integrate(self, method, postfix):
         # QString -> Python str:
-        method = str(self.chooseIntMethod.currentText())
-        # Again QString -> Python str.
-        # For better readibilty we put single quotes around the postfix
-        # entry in the QComboBox which we have to remove now:
-        postfix = str(self.choosePostfix.currentText()).strip("'")
+        method = str(method)
+        postfix = str(postfix)
         rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
         for data_row_idx in self.model.selected_data_rows:
             self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
@@ -1006,55 +965,61 @@ class TableExplorer(EmzedDialog):
     @protect_signal_handler
     def rowClicked(self, widget_row_idx):
 
+        self.select_rows_in_group(widget_row_idx)
+        self.setup_spectrum_chooser()
+
+        if self.eic_only_mode:
+            self.plot_eics_only()
+        if self.has_chromatograms:
+            self.plot_chromatograms()
+        if self.has_time_series:
+            self.plot_time_series()
+
+
+
+    def select_rows_in_group(self, widget_row_idx):
+
         group_by_idx = self.chooseGroupColumn.currentIndex()
 
         # first entry is "manual selection"
         if group_by_idx == 0:
             to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
-        else:
-            col_name = str(self.chooseGroupColumn.currentText())
-            widget_rows = self.model.rows_with_same_value(col_name, widget_row_idx)
-            to_select = widget_rows[:200]  # avoid to many rows
+            self.model.set_selected_data_rows(to_select)
+            return
 
-            # expand selection
-            mode_before = self.tableView.selectionMode()
-            scrollbar_before = self.tableView.verticalScrollBar().value()
+        col_name = str(self.chooseGroupColumn.currentText())
+        widget_rows = self.model.rows_with_same_value(col_name, widget_row_idx)
+        to_select = widget_rows[:200]  # avoid to many rows
 
-            self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
-            for i in to_select:
-                if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
-                    self.tableView.selectRow(i)
-            self.tableView.setSelectionMode(mode_before)
-            self.tableView.verticalScrollBar().setValue(scrollbar_before)
+        # expand selection
+        mode_before = self.tableView.selectionMode()
+        scrollbar_before = self.tableView.verticalScrollBar().value()
+
+        self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
+        for i in to_select:
+            if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
+                self.tableView.selectRow(i)
+        self.tableView.setSelectionMode(mode_before)
+        self.tableView.verticalScrollBar().setValue(scrollbar_before)
 
         self.model.set_selected_data_rows(to_select)
 
-        if self.hasFeatures:
-            self.eic_plotter.setEnabled(True)
-            self.updatePlots(reset=True)
-            self.setupSpectrumChooser()
-        elif self.hasEIConly:
-            self.eic_plotter.setEnabled(True)
-            self.updatePlots(reset=True)
-            self.setupSpectrumChooser()
-        elif self.hasTimeSeries:
-            self.eic_plotter.setEnabled(True)
-            self.updatePlots(reset=True)
-            self.setupSpectrumChooser()
-
-    def setupSpectrumChooser(self):
-        self.choose_spec.blockSignals(True)
+    def setup_spectrum_chooser(self):
         self.choose_spec.clear()
 
         spectra = []
         labels = []
 
-        if self.hasFeatures:
+        if self.has_chromatograms:
             labels.append("spectra from peak")
-            spectra.append(None)
+            spectra.append(None)   # place holder as ms1 spec is computed from peakmap on demand !
+            self.first_spec_in_choser_is_ms1 = True
+        else:
+            self.first_spec_in_choser_is_ms1 = False
 
+        num_extra_spectra = 0
         for idx in self.model.selected_data_rows:
-            pf, s = self.model.getExtraSpectra(idx)
+            pf, s = self.model.getMS2Spectra(idx)
             for pfi, si in zip(pf, s):
                 if si is not None:
                     for sii in si:
@@ -1064,47 +1029,42 @@ class TableExplorer(EmzedDialog):
                             label += " pre=(%.5f, %.2e)" % (mz, I)
                         labels.append(label)
                         spectra.append(sii)
+                        num_extra_spectra += 1
 
-        self.spectra_from_chooser = spectra
+        self.spectra_listed_in_chooser = spectra
         self.choose_spec.setVisible(len(spectra) > 0)
 
         for label in labels:
             self.choose_spec.addItem(label)
 
-        if labels:
+        if self.first_spec_in_choser_is_ms1:
             self.choose_spec.setCurrentRow(0)
-        self.choose_spec.blockSignals(False)
+        else:
+            self.choose_spec.selectAll()
 
-    def updatePlots(self, reset=False):
+    def plot_time_series(self):
+        rtmin, rtmax, time_series = time_series_curves(self.model)
+        ts_configs = configsForTimeSeries(time_series)
+        self.ts_plotter.del_all_items()
+        self.ts_plotter.reset()
+        self.ts_plotter.add_time_series(time_series, ts_configs)
+        self.ts_plotter.replot()
 
-        mzmin = mzmax = rtmin = rtmax = None
-        fit_shapes = []
-        time_series = []
-
-        if self.hasEIConly:
+    def plot_eics_only(self):
+        if self.eic_only_mode:
             rtmin, rtmax, curves = eic_curves(self.model)
             configs = configsForEics(curves)
+            self.eic_plotter.reset()
+            self.eic_plotter.add_eics(curves, configs=configs, labels=None)
+            self.eic_plotter.replot()
 
-        elif self.hasTimeSeries:
-            rtmin, rtmax, time_series = time_series(self.model)
-            ts_configs = configsForTimeSeries(time_series)
-            # self.plotMz(limits_from_rows=True)
-        else:
-            rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.isIntegrated)
-            configs = configsForEics(curves)
+    def plot_chromatograms(self, reset=True):
 
-        if not reset:
-            if not self.hasTimeSeries:
-                rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
-            xmin, xmax, ymin, ymax = self.eic_plotter.get_limits()
+        self.eic_plotter.del_all_items()
+        rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.allow_integration)
+        configs = configsForEics(curves)
 
-        self.eic_plotter.reset()
-        self.eic_plotter.add_eics(curves, configs=configs, labels=None)
-
-        self.ts_plotter.setVisible(len(time_series) > 0)
-        if time_series:
-            self.ts_plotter.reset()
-            self.ts_plotter.add_time_series(time_series, ts_configs)
+        self.eic_plotter.add_eics(curves, configs=configs)
 
         for ((rts, iis), baseline), config in zip(fit_shapes, configs):
             if baseline is None:
@@ -1118,63 +1078,62 @@ class TableExplorer(EmzedDialog):
             w = rtmax - rtmin
             if w == 0:
                 w = 30.0  # seconds
-            if not self.hasTimeSeries:
+            if reset:
                 self.eic_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
-                self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
-            self.eic_plotter.replot()
+            self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
 
-            if not reset:
-                self.eic_plotter.set_rt_axis_limits(xmin, xmax)
-                self.eic_plotter.set_intensity_axis_limits(ymin, ymax)
-                self.eic_plotter.updateAxes()
-            else:
-                self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
+            self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
-        if self.hasTimeSeries and reset:
-            self.eic_plotter.reset_rt_limits(fac=1.0)
+        self.eic_plotter.replot()
 
-        reset_ = reset and mzmin is not None and mzmax is not None
-        limits = (mzmin, mzmax) if reset_ else None
-        if not self.hasEIConly and not self.hasTimeSeries:
-            self.plotMz(resetLimits=limits)
+        reset = reset and mzmin is not None and mzmax is not None
+        limits = (mzmin, mzmax) if reset else None
 
     @protect_signal_handler
     def spectrumChosen(self):
-        spectra = [self.spectra_from_chooser[idx.row()] for idx in self.choose_spec.selectedIndexes()]
+        spectra = [self.spectra_listed_in_chooser[idx.row()] for idx in self.choose_spec.selectedIndexes()]
         labels = [str(item.data(0).toString()) for item in self.choose_spec.selectedItems()]
-        data = [(l, s) for (l, s) in zip(labels, spectra) if s is not None and l is not None]
-        if data:
-            labels, spectra = zip(*data)
+        ms2_data = [(l, s) for (l, s) in zip(labels, spectra) if s is not None and l is not None]
+        if ms2_data:
+            labels, spectra = zip(*ms2_data)  # unzip, works only if ms2_data is not empty
             self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)
             self.mz_plotter.resetAxes()
             self.mz_plotter.replot()
         else:
-            self.plotMz()
+            self.plot_ms1_spectra()
 
     def eic_selection_changed(self, rtmin, rtmax):
-        self.plotMz(resetLimits=None)
-
-    def plotMz(self, resetLimits=None, limits_from_rows=False):
-        """ this one is used from updatePlots and the rangeselectors
-            callback """
-        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        if not peakmaps:
+        if not self.first_spec_in_choser_is_ms1:
             return
+        self.choose_spec.setCurrentRow(0)
+        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        windows = []
+        for idx in self.model.selected_data_rows:
+            for (__, __, mzmin, mzmax) in self.model.getEICWindows(idx):
+                window = (rtmin, rtmax, mzmin, mzmax)
+                windows.append(window)
+        self.plot_spectra_from_peakmaps(peakmaps, windows)
 
-        rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
-        if resetLimits:
-            mzmin, mzmax = resetLimits
-            data = [(pm, rtmin, rtmax, mzmin, mzmax, 3000) for pm in peakmaps]
-        else:
-            data = []
-            mzs = []
-            for pm in peakmaps:
-                mzmin, mzmax = pm.mzRange()
-                mzs.append(mzmin)
-                mzs.append(mzmax)
-                data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
-            mzmin = min(mzs)
-            mzmax = max(mzs)
+    def plot_ms1_spectra(self):
+        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        windows = [w for idx in self.model.selected_data_rows for w in self.model.getEICWindows(idx)]
+        self.plot_spectra_from_peakmaps(peakmaps, windows)
+
+    def plot_ms2_spectra(self, spectra, labels):
+        self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)
+        self.mz_plotter.resetAxes()
+        self.mz_plotter.replot()
+
+    def plot_spectra_from_peakmaps(self, peakmaps, windows):
+
+        data = []
+        mzs = []
+        for (rtmin, rtmax, mzmin, mzmax), pm in zip(windows, peakmaps):
+            mzs.append(mzmin)
+            mzs.append(mzmax)
+            data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+        mzmin = min(mzs)
+        mzmax = max(mzs)
 
         configs = configsForSpectra(len(peakmaps))
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())

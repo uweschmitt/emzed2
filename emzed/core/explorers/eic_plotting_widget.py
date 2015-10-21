@@ -82,6 +82,9 @@ def getColor(i):
     return colors[i % len(colors)]
 
 
+def formatSeconds(t):
+    return "%.1fm" % (t / 60.0)
+
 
 class RangeSelectionInfo(ObjectInfo):
 

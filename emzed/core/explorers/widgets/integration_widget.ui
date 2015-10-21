@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>158</width>
-    <height>93</height>
+    <width>267</width>
+    <height>187</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,10 +32,13 @@
       </size>
      </property>
      <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+      <enum>QFrame::WinPanel</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
+      <enum>QFrame::Sunken</enum>
+     </property>
+     <property name="lineWidth">
+      <number>1</number>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="margin">
@@ -43,16 +46,39 @@
       </property>
       <item>
        <widget class="QLabel" name="_label">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <property name="text">
          <string>Peak area computation</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="_methods"/>
+       <widget class="QComboBox" name="_methods">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="_postfixes">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="_compute_button">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <property name="text">
          <string>Update area</string>
         </property>

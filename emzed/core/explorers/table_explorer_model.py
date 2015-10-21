@@ -315,9 +315,10 @@ class TableModel(QAbstractTableModel):
         return self.checkForAny("eic")
 
     def hasTimeSeries(self):
-        return any(t is TimeSeries for t in self.table.getColTypes())
+        return self.checkForAny("time_series")
+        #return any(t is TimeSeries for t in self.table.getColTypes())
 
-    def hasExtraSpectra(self):
+    def hasSpectra(self):
         return any(n.startswith("spectra") for n in self.table.getColNames())
 
     def integrationColNames(self):
@@ -401,17 +402,18 @@ class TableModel(QAbstractTableModel):
         return windows
 
     def getTimeSeries(self, data_row_idx):
-        ts = []
-        cols = [i for (i, t) in enumerate(self.table.getColTypes()) if t is TimeSeries]
-        row = self.table.rows[data_row_idx]
-        return [row[c] for c in cols]
+        time_series = []
+        for p in self.table.supportedPostfixes(["time_series",]):
+            ts = self.table.getValue(self.table.rows[data_row_idx], "time_series" + p)
+            time_series.append(ts)
+        return time_series
 
-    def getExtraSpectra(self, data_row_idx):
+    def getMS2Spectra(self, data_row_idx):
         spectra = []
         postfixes = []
-        for p in self.table.supportedPostfixes(("spectra",)):
+        for p in self.table.supportedPostfixes(("spectra_ms2",)):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            specs = values["spectra" + p]
+            specs = values["spectra_ms2" + p]
             spectra.append(specs)
             postfixes.append(p)
         return postfixes, spectra
