@@ -119,9 +119,14 @@ class EicPlottingWidget(CurveWidget):
     def __init__(self, parent=None, with_range=True):
         super(EicPlottingWidget, self).__init__(parent, xlabel="RT", ylabel="I")
         patch_inner_plot_object(self, EicPlot)
-        self._setup_plot(with_range)
+        self._with_range = with_range
+        self._setup_plot()
 
-    def _setup_plot(self, with_range):
+    def enable_range(self, flag):
+        self._with_range = flag
+        self._setup_range_selector()
+
+    def _setup_plot(self):
         self.pm = PlotManager(self)
         self.pm.add_plot(self.plot)
 
@@ -130,7 +135,7 @@ class EicPlottingWidget(CurveWidget):
         self.pm.set_default_tool(t)
 
         self._setup_cursor()
-        self._setup_range_selector(with_range)
+        self._setup_range_selector()
         self._setup_label()
         self._setup_axes()
 
@@ -153,9 +158,9 @@ class EicPlottingWidget(CurveWidget):
 
         self.cursor_info = RtCursorInfo(marker)
 
-    def _setup_range_selector(self, with_range):
+    def _setup_range_selector(self):
 
-        if not with_range:
+        if not self._with_range:
             self.range_ = None
             return
 

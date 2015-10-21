@@ -569,6 +569,7 @@ class TableExplorer(EmzedDialog):
         self.has_spectra = hasSpectra
 
         self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
+        self.eic_plotter.enable_range(not self.eic_only_mode)
         self.mz_plotter.setVisible(self.has_chromatograms or self.has_spectra)
         self.ts_plotter.setVisible(self.has_time_series)
 
@@ -1125,12 +1126,16 @@ class TableExplorer(EmzedDialog):
 
     def plot_spectra_from_peakmaps(self, peakmaps, windows):
 
+        if not peakmaps or not windows:
+            return
+
         data = []
         mzs = []
         for (rtmin, rtmax, mzmin, mzmax), pm in zip(windows, peakmaps):
             mzs.append(mzmin)
             mzs.append(mzmax)
             data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+
         mzmin = min(mzs)
         mzmax = max(mzs)
 
