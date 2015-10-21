@@ -2213,7 +2213,7 @@ class Table(object):
         if kw:
             assert "efficient" in kw, "only allowed keyword argument is 'efficient'"
 
-        efficient = kw.get("efficient", False)
+        efficient = kw.get("efficient", True)
 
         master_names = list(col_names) + ["collapsed"]
         master_types = [self.getColType(n) for n in col_names] + [Table]

@@ -655,7 +655,7 @@ def test_collapse(regtest):
     t.addColumn("b", [3, 4, 5])
     print(1, t, file=regtest)
 
-    t2 = t.collapse("id")
+    t2 = t.collapse("id", efficient=False)
     t2.sortBy("id")
     assert len(t2) == 2
     assert t2.getColNames() == ["id", "collapsed"]
@@ -667,7 +667,7 @@ def test_collapse(regtest):
     assert subs[1].getColNames() == ["id", "a", "b"]
     assert len(subs[1]) == 1
 
-    t2 = t.collapse("id", "a")
+    t2 = t.collapse("id", "a", efficient=False)
     assert len(t2) == 3
     assert t2.getColNames() == ["id", "a", "collapsed"]
     assert t2.getColTypes() == [int, int, t.__class__]
