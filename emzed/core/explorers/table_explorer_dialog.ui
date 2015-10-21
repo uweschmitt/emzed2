@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>_TableExporerDialog</class>
+ <widget class="QDialog" name="_TableExporerDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>777</width>
+    <height>531</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="2" rowspan="3">
+    <widget class="MzPlottingWidget" name="mz_plotter" native="true"/>
+   </item>
+   <item row="0" column="0" rowspan="3">
+    <widget class="EicPlottingWidget" name="eic_plotter" native="true"/>
+   </item>
+   <item row="1" column="1">
+    <widget class="ChooseSpectraWidget" name="choose_spectra_widget" native="true"/>
+   </item>
+   <item row="2" column="1">
+    <spacer name="_verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="0" column="1">
+    <widget class="IntegrationWidget" name="integration_widget" native="true">
+     <zorder>eic_plotter</zorder>
+    </widget>
+   </item>
+   <item row="3" column="0" colspan="3">
+    <widget class="QTableView" name="tableView"/>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>EicPlottingWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">eic_plotting_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MzPlottingWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">mz_plotting_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>IntegrationWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">widgets/integration_widget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ChooseSpectraWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">widgets/choose_spectra_widget</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

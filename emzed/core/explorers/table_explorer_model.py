@@ -94,6 +94,11 @@ class TableModel(QAbstractTableModel):
         value = self.table.rows[ridx][cidx]
         return value
 
+    def set_cell_value(self, index, value):
+        ridx, cidx = self.table_index(index)
+        self.table.rows[ridx][cidx] = value
+        self.dataChanged.emit(index, index)
+
     def row(self, index):
         ridx, cidx = self.table_index(index)
         row = create_row_class(self.table)(self.table.rows[ridx])
@@ -169,7 +174,6 @@ class TableModel(QAbstractTableModel):
         return Qt.ItemFlags(default | Qt.ItemIsEditable)
 
     def setData(self, index, value, role=Qt.EditRole):
-        assert isinstance(value, QVariant)
         ridx, cidx = self.table_index(index)
         if index.isValid() and 0 <= index.row() < self.rowCount():
             expectedType = self.table._colTypes[cidx]
@@ -311,9 +315,10 @@ class TableModel(QAbstractTableModel):
         return self.checkForAny("eic")
 
     def hasTimeSeries(self):
-        return any(t is TimeSeries for t in self.table.getColTypes())
+        return self.checkForAny("time_series")
+        #return any(t is TimeSeries for t in self.table.getColTypes())
 
-    def hasExtraSpectra(self):
+    def hasSpectra(self):
         return any(n.startswith("spectra") for n in self.table.getColNames())
 
     def integrationColNames(self):
@@ -397,17 +402,18 @@ class TableModel(QAbstractTableModel):
         return windows
 
     def getTimeSeries(self, data_row_idx):
-        ts = []
-        cols = [i for (i, t) in enumerate(self.table.getColTypes()) if t is TimeSeries]
-        row = self.table.rows[data_row_idx]
-        return [row[c] for c in cols]
+        time_series = []
+        for p in self.table.supportedPostfixes(["time_series",]):
+            ts = self.table.getValue(self.table.rows[data_row_idx], "time_series" + p)
+            time_series.append(ts)
+        return time_series
 
-    def getExtraSpectra(self, data_row_idx):
+    def getMS2Spectra(self, data_row_idx):
         spectra = []
         postfixes = []
-        for p in self.table.supportedPostfixes(("spectra",)):
+        for p in self.table.supportedPostfixes(("spectra_ms2",)):
             values = self.table.getValues(self.table.rows[data_row_idx])
-            specs = values["spectra" + p]
+            specs = values["spectra_ms2" + p]
             spectra.append(specs)
             postfixes.append(p)
         return postfixes, spectra
@@ -585,6 +591,7 @@ class TableModel(QAbstractTableModel):
     def load_preset_hidden_column_names(self):
         path = self._settings_path()
         if os.path.exists(path):
+            shown = set()
             dd = {}
             names = self.table.getColNames()
             try:
@@ -593,11 +600,13 @@ class TableModel(QAbstractTableModel):
                         i, name = line.strip().split()
                         if name in names:
                             dd[int(i)] = names.index(name)
+                            shown.add(name)
                 self.beginResetModel()
                 self.widgetColToDataCol = dd
                 self.endResetModel()
             except (IOError, ValueError), e:
                 print(str(e))
+            return shown
 
     def hide_columns(self, names_to_hide):
         names = self.table.getColNames()

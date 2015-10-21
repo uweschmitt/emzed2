@@ -950,7 +950,7 @@ class Table(object):
         if not os.path.splitext(path)[1].upper() == ".CSV":
             raise Exception("%s has wrong file type extension" % path)
 
-        with open(path, "w") as fp:
+        with open(path, "wb") as fp:   # binary is needed for correct line endings on win
             writer = csv.writer(fp, delimiter=";")
             if as_printed:
                 colNames = self.getVisibleCols()

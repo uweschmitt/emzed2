@@ -86,7 +86,26 @@ ti.sortBy("area", ascending=False)
 
 # t2 = emzed.utils.integrate(t2)
 
-emzed.gui.inspect((t1, ti, t, t1, t2))
+# eic only
+t_feat_and_ms2 = ti.copy()
+t_feat_and_ms2.dropColumns("method", "area", "params")
+t_feat_and_ms2.setTitle("feat and ms2")
+
+t_feat_only = t_feat_and_ms2.copy()
+t_feat_only.dropColumns("spectra_ms2")
+t_feat_only.setTitle("feat only")
+
+t_eic_only = t_feat_and_ms2.copy()
+t_eic_only.dropColumns("peakmap", "spectra_ms2")
+t_eic_only.setTitle("eic only")
+
+t_integrated = ti
+t_integrated.setTitle("integrated")
+
+
+emzed.gui.inspect((t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2))
+
+print(t)
 
 
 

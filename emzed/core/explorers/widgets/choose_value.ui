@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>211</width>
+    <width>111</width>
     <height>45</height>
    </rect>
   </property>
@@ -35,10 +35,13 @@
    <item>
     <widget class="QLabel" name="column_name">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>1</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="text">
+      <string>placeholder</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

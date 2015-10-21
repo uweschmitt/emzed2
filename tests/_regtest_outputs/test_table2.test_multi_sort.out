@@ -1,0 +1,116 @@
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+x then y
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+x then z
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+y then z
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+y then x
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+z then x
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+z then y
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+2        2        1
+4        2        2
+
+x then y (desc)
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        2        1
+2        1        1
+4        2        2
+
+x then z (desc)
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        2        1
+2        1        1
+4        2        2
+
+y then z (desc)
+x        y        z
+int      int      int
+------   ------   ------
+1        1        1
+2        1        1
+4        2        2
+2        2        1
+
+y then x (desc)
+x        y        z
+int      int      int
+------   ------   ------
+2        1        1
+1        1        1
+4        2        2
+2        2        1
+
+z then x (desc)
+x        y        z
+int      int      int
+------   ------   ------
+2        1        1
+2        2        1
+1        1        1
+4        2        2
+
+z then y (desc)
+x        y        z
+int      int      int
+------   ------   ------
+2        2        1
+2        1        1
+1        1        1
+4        2        2
+

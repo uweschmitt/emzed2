@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_ChooseValue(object):
     def setupUi(self, ChooseValue):
         ChooseValue.setObjectName(_fromUtf8("ChooseValue"))
-        ChooseValue.resize(211, 45)
+        ChooseValue.resize(111, 45)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -37,7 +37,7 @@ class Ui_ChooseValue(object):
         self.verticalLayout.setMargin(3)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.column_name = QtGui.QLabel(ChooseValue)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.column_name.sizePolicy().hasHeightForWidth())
@@ -59,6 +59,7 @@ class Ui_ChooseValue(object):
 
     def retranslateUi(self, ChooseValue):
         ChooseValue.setWindowTitle(_translate("ChooseValue", "Form", None))
+        self.column_name.setText(_translate("ChooseValue", "placeholder", None))
 
 
 class ChooseValue(QtGui.QWidget, Ui_ChooseValue):

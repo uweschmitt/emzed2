@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>143</width>
+    <width>120</width>
     <height>70</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>200</width>
+    <width>120</width>
     <height>16777215</height>
    </size>
   </property>
@@ -42,6 +42,16 @@
      </property>
     </widget>
    </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_lower_bound">
+     <property name="text">
+      <string>min:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="2" colspan="3">
     <widget class="QLineEdit" name="upper_bound">
      <property name="sizePolicy">
@@ -55,16 +65,6 @@
        <width>100</width>
        <height>0</height>
       </size>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_lower_bound">
-     <property name="text">
-      <string>min:</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
@@ -91,6 +91,9 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="text">
+      <string>placeholder</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
