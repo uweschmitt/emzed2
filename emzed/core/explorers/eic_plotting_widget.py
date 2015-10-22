@@ -117,7 +117,7 @@ class EicPlottingWidget(CurveWidget):
     SELECTED_RANGE_CHANGED = pyqtSignal(float, float)
 
     def __init__(self, parent=None, with_range=True):
-        super(EicPlottingWidget, self).__init__(parent, xlabel="RT", ylabel="I")
+        super(EicPlottingWidget, self).__init__(parent, ylabel="I")
         patch_inner_plot_object(self, EicPlot)
         self._with_range = with_range
         self._setup_plot()
@@ -156,6 +156,9 @@ class EicPlottingWidget(CurveWidget):
         marker.attach(self.plot)
         self.marker = marker
 
+        self._setup_cursor_info(marker)
+
+    def _setup_cursor_info(self, marker):
         self.cursor_info = RtCursorInfo(marker)
 
     def _setup_range_selector(self):
@@ -221,7 +224,7 @@ class EicPlottingWidget(CurveWidget):
             self.plot.add_item(curve)
 
         self.plot.add_item(self.label)
-        self.plot.set_rts(sorted(set(allrts)))
+        self.plot.set_x_values(sorted(set(allrts)))
         # no idea why guiqwt needs double registration here:
         self.marker.attach(self.plot)
         self.plot.add_item(self.marker)

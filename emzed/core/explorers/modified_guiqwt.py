@@ -432,7 +432,7 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
     # we use this class by patching, so we do not call __init__, instead we set defaults as
     # follows
-    rts = None
+    x_values = None
 
     @protect_signal_handler
     def do_space_pressed(self, filter, evt):
@@ -525,8 +525,8 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         # label next to cursor turned off:
         return None
 
-    def set_rts(self, rts):
-        self.rts = np.array(rts)
+    def set_x_values(self, x_values):
+        self.x_values = np.array(x_values)
 
     def set_rt(self, rt):
         # sets cursor
@@ -537,13 +537,13 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     @protect_signal_handler
     def on_plot(self, x, y):
         """ callback for marker: determine marked point based on cursors coordinates """
-        rts = self.rts
-        if rts is None or len(rts) == 0:
+        x_values = self.x_values
+        if x_values is None or len(x_values) == 0:
             return x, y
-        distances = np.abs(x - rts)
+        distances = np.abs(x - x_values)
         imin = np.argmin(distances)
-        self.current_peak = rts[imin], 0
-        self.CURSOR_MOVED.emit(rts[imin])
+        self.current_peak = x_values[imin], 0
+        self.CURSOR_MOVED.emit(x_values[imin])
         return self.current_peak
 
 

@@ -1,3 +1,4 @@
+import datetime
 import functools
 import new
 
@@ -33,6 +34,18 @@ def formatSeconds(seconds):
 def set_rt_formatting_on_x_axis(plot):
     def label(self, v):
         return QwtText(formatSeconds(v))
+    a = QwtScaleDraw()
+    a.label = new.instancemethod(label, plot, QwtScaleDraw)
+    plot.setAxisScaleDraw(plot.xBottom, a)
+
+
+def set_datetime_formating_on_x_axis(plot):
+    def label(self, float_val):
+        if float_val < 1.0:
+            return QwtText("")
+        dt = datetime.datetime.fromordinal(int(float_val))
+        txt = str(dt).split(" ")[0]
+        return QwtText(txt)
     a = QwtScaleDraw()
     a.label = new.instancemethod(label, plot, QwtScaleDraw)
     plot.setAxisScaleDraw(plot.xBottom, a)
