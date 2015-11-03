@@ -36,6 +36,8 @@ class BaseIntegrator(object):
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
         baseline = self.getBaseline(rts, params)
 
+        eic = [], []
+
         return dict(area=area, rmse=rmse, params=params, eic=eic, baseline=baseline)
 
     @abc.abstractmethod

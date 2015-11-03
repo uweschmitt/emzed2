@@ -176,8 +176,8 @@ def run(integrator, regtest):
     print("params = %s" % (params,), file=regtest)
 
     x, y = result.get("eic")
-    eicarea = 0.5 * np.dot(x[1:] - x[:-1], y[1:] + y[:-1])
-    print("eic area: is=%e" % eicarea, file=regtest)
+    # eicarea = 0.5 * np.dot(x[1:] - x[:-1], y[1:] + y[:-1])
+    # print("eic area: is=%e" % eicarea, file=regtest)
 
 
 def testNoIntegration():
