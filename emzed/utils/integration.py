@@ -122,7 +122,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)
     for postfix in supportedPostfixes:
         areas = []
         rmses = []
-        paramss = []
+        peak_shape_params = []
         eics = []
         baselines = []
         for i, row in enumerate(ftable.rows):
@@ -157,7 +157,7 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)
 
             areas.append(area)
             rmses.append(rmse)
-            paramss.append(params)
+            peak_shape_params.append(params)
             eics.append(eic)
             baselines.append(baseline)
 
@@ -174,11 +174,11 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)
         resultTable._updateColumnWithoutNameCheck("rmse" + postfix, rmses, float,
                                                   "%.2e", insertBefore="peakmap" + postfix)
 
-        resultTable._updateColumnWithoutNameCheck("params" + postfix, paramss,
+        resultTable._updateColumnWithoutNameCheck("params" + postfix, peak_shape_params,
                                                   object, None, insertBefore="peakmap" + postfix)
 
-        resultTable._updateColumnWithoutNameCheck("eic" + postfix, eics,
-                                                  object, None, insertBefore="peakmap" + postfix)
+        # resultTable._updateColumnWithoutNameCheck("eic" + postfix, eics,
+                                                  # object, None, insertBefore="peakmap" + postfix)
 
     resultTable.meta["integrated"] = True, "\n"
     resultTable.title = "integrated: " + (resultTable.title or "")
