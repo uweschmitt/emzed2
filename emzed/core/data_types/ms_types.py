@@ -180,7 +180,7 @@ class Spectrum(object):
 
     def maxIntensity(self):
         """maximal intensity in spectrum"""
-        return float(self.peak[:, 1].max())
+        return float(self.peaks[:, 1].max())
 
     @staticmethod
     def compute_alignments(spectra, mz_tolerance):

@@ -130,7 +130,7 @@ class TestMSTypes(object):
 
         pm = PeakMap(pm.spectra)
         mz = pm.representingMzPeak(0, 99999, 0, 99999)
-        assert abs(mz-831.86538) < 0.00001
+        assert abs(mz-831.86538) < 0.0001
 
 
     def testEmptyPeakMap(self):
@@ -177,6 +177,7 @@ class TestMSTypes(object):
         assert spec.intensityInRange(0.5, 4.5) == 4.0
         assert spec.intensityInRange(2.0, 2.0) == 1.0
         assert spec.intensityInRange(2.1, 2.0) == 0.0
+        assert spec.maxIntensity() == 1.0
 
 
     def testFilterIntensity(self, regtest):
@@ -186,6 +187,10 @@ class TestMSTypes(object):
         assert peaks.shape == (6,2)
         spec1 = Spectrum(peaks, 0.0, 1, "0")
         spec2 = Spectrum(peaks, 0.0, 2, "0")
+
+        assert spec1.maxIntensity() == 15.0
+
+
         pm = PeakMap([spec1, spec2])
 
         pm_x = pm.extract(mslevelmin=1)
