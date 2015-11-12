@@ -124,7 +124,7 @@ You can start the *MetaboFeatureFinder* feature detector by typing
 
    tables = emzed.batches.runMetaboFeatureFinder("*.mzXML", destination=".", configid="std") !noexec
    for i, t in enumerate(tables): t.store("feat%d.table" % i) !noexec
-   tables = [ emzed.io.loadTable("feat%d.table" % i) for i in range(3) ]
+   tables = [emzed.io.loadTable("feat%d.table" % i) for i in range(3)]
 
 The feature detector needs a few minutes depending on the power of your
 computer, we omitted the verbose output.  We predefined a
@@ -219,7 +219,7 @@ Users which are familiar to relational databases will recognize the
 combining and filtering tables will be given below at :ref:`table_example`.
 
 .. pycon::
-   before = tab1.join(tab2, tab1.mz.approxEqual(tab2.mz, 3*emzed.MMU) & tab1.rt.approxEqual(tab2.rt, 30*emzed.SECONDS))
+   before = tab1.join(tab2, tab1.mz.approxEqual(tab2.mz, 3 * emzed.MMU) & tab1.rt.approxEqual(tab2.rt, 30 * emzed.SECONDS))
 
 
 Open the window for table ``before`` and sort the table to ascending  ``sn`` values
@@ -230,9 +230,9 @@ alignment:
 
 .. pycon::
    tabA1, tabA2, tabA3 = tablesAligned
-   tabA1 = tabA1.filter(tabA1.quality>1e-2)
-   tabA2 = tabA2.filter(tabA2.quality>1e-2)
-   after = tabA1.join(tabA2, tabA1.mz.approxEqual(tabA2.mz, 3*emzed.MMU) & tabA1.rt.approxEqual(tabA2.rt, 30*emzed.SECONDS))
+   tabA1 = tabA1.filter(tabA1.quality > 1e-2)
+   tabA2 = tabA2.filter(tabA2.quality > 1e-2)
+   after = tabA1.join(tabA2, tabA1.mz.approxEqual(tabA2.mz, 3 * emzed.MMU) & tabA1.rt.approxEqual(tabA2.rt, 30 * emzed.SECONDS))
 
 Open now the table ``after``, sort again and choose the same row as above.
 
@@ -259,13 +259,18 @@ content of ``example.csv`` looks like:
 
     print open("example.csv").read()
 
-We load this table and print some information about it:
+We load this file
 
 .. pycon::
 
     substances = emzed.io.loadCSV("example.csv")
+    print substances
+
+and print some information about the columns of the table:
+
+.. pycon::
+
     substances.info()
-    substances.print_()
 
 
 That is the table has two columns named ``name`` and ``mf`` and both
@@ -301,7 +306,7 @@ the column ``substances.mf``:
 .. pycon::
 
     substances.addColumn("m0", substances.mf.apply(emzed.mass.of))
-    substances.print_()
+    print substances
 
 
 Now we want to add some extra information to ``substances``, this
@@ -311,7 +316,7 @@ information is stored in ``information.csv``:
 .. pycon::
     print open("information.csv").read()
     info = emzed.io.loadCSV("information.csv")
-    info.print_()
+    print info
 
 As you can see ``emzed.io.loadCSV`` recognized that the column ``info.onEarth`` only
 contains integers.
@@ -328,14 +333,22 @@ same molecular formula:
 .. pycon::
 
     joined = substances.leftJoin(info, substances.mf== info.mf) !noexec
-    joined.print_()
+    print joined
+
+To simplfiy the table we do some cleanup:
+
+.. pycon::
+
+    joined.dropColumns("mf__0")
+    joined.renameColumn("onEarth__0", "onEarth")
+    print joined
 
 To restrict to substances which are known to exist on earth we can do:
 
 .. pycon::
 
-    common = joined.filter(joined.onEarth__0 == 1)
-    common.print_()
+    common = joined.filter(joined.onEarth == 1)
+    print common
 
 
 The ``emzed.db`` module contains some databases, e.g. the substances from PubChem
@@ -345,9 +358,17 @@ tables:
 .. pycon::
 
     pc = emzed.db.load_pubchem()
-    pc.filter(pc.cid <= 3).print_()
+    print pc.filter(pc.cid <= 5)
+    pc.info()
     emzed.gui.inspect(pc)  !noexec
 
+Before we go on we remove some column because printint the full columns makes
+this tutorial less readable:
+
+.. pycon::
+
+    pc.dropColumns("synonyms", "url", "inchi")
+    print pc.filter(pc.cid <= 5)
 
 
 Before matching our data against the large *PubChem* table, we build an index
@@ -358,9 +379,17 @@ an index is done by sorting the corresponding column:
 .. pycon::
 
     pc.sortBy("m0")
-    matched = joined.leftJoin(pc, (joined.onEarth__0 == 1) & joined.m0.approxEqual(pc.m0, 15 * emzed.MMU))
-    print matched.numRows()
-    matched.print_()
+    matched = joined.leftJoin(pc, (joined.onEarth == 1) & joined.m0.approxEqual(pc.m0, 15 * emzed.MMU))
+    print len(matched), "rows in matched"
+    matched.info()
+
+Before we inspect the result we cleanup the column names
+
+.. pycon::
+
+    matched.cleanupPostfixes()
+    matched.info()
+    print matched
     emzed.gui.inspect(matched)  !noexec
 
 
@@ -427,7 +456,7 @@ containing these data. ``emzed.utils.isotopeDistributionTable`` does this
 .. pycon::
 
     tab = emzed.utils.isotopeDistributionTable("C4S4", minp=0.01)
-    tab.print_()
+    print tab
 
 Non natural distributions as in marker experiments can be simulated too
 
@@ -436,14 +465,14 @@ Non natural distributions as in marker experiments can be simulated too
 
     iso = emzed.utils.isotopeDistributionTable("C4S4", C=dict(C12=0.5, C13=0.5))
     iso.replaceColumn("abundance", iso.abundance / iso.abundance.sum() * 100.0)
-    iso.print_()
+    print iso
 
 The method can simulate the resolution of the used mass analyzer
 
 .. pycon::
 
     tab = emzed.utils.isotopeDistributionTable("C4S4", R=10000, minp=0.01)
-    tab.print_()
+    print tab
 
 Matching isotope patterns now works like this
 
@@ -451,13 +480,13 @@ Matching isotope patterns now works like this
 
     iso = emzed.utils.isotopeDistributionTable("H2O", minp=1e-3)
     iso.addEnumeration()
-    iso.print_()
+    print iso
 
 .. pycon::
 
-    common.dropColumns("mf__0", "onEarth__0")
-    matched = iso.leftJoin(common, iso.mass.approxEqual(common.m0, 1*emzed.MMU))
-    matched.print_()
+    common.dropColumns("onEarth")
+    matched = iso.leftJoin(common, iso.mass.approxEqual(common.m0, 1 * emzed.MMU))
+    print matched
 
 .. _statistics_example:
 
@@ -471,16 +500,16 @@ analysis.  These methods work on tables like this
 
 .. pycon::
 
-    group1 = [ 1.0, 0.9, 1.2, 1.4, 2.1]
-    group2 = [ 1.0, 2.2, 2.3, 1.9, 2.8, 2.3]
+    group1 = [1.0, 0.9, 1.2, 1.4, 2.1]
+    group2 = [1.0, 2.2, 2.3, 1.9, 2.8, 2.3]
 
     t = emzed.utils.toTable("measurement", group1 + group2)
 
-    indices = [1]*len(group1) + [2] * len(group2)
+    indices = [1] * len(group1) + [2] * len(group2)
     print indices
 
     t.addColumn("group", indices)
-    t.print_()
+    print t
 
 
 ``emzed.stats.oneWayAnova`` returns the corresponding ``F`` and ``p`` value,
@@ -507,17 +536,17 @@ former examples and leave this paragraph empty.
 
 .. comment pycon::
 
-    t = emzed.utils.toTable("m0",[195.0877, 194.07904])
-    t.print_()
+    t = emzed.utils.toTable("m0", [195.0877, 194.07904])
+    print t
     matched = emzed.utils.matchMetlin(t, "m0", ["M"], ppm=30)
-    matched.print_()
+    print matched
 
 .. comment pycon::
 
     t = emzed.utils.toTable("m0",[194.07904])
-    t.print_()
+    print t
     matched = emzed.utils.matchMetlin(t, "m0", ["M+H", "M+2H"], ppm=30)
-    matched.print_()
+    print matched
 
 .. _dialogbuilder_example2:
 
@@ -545,7 +574,7 @@ The following dialog is created by the simple commands below:
     (10, 1.02, 'C:/Dokumente und Einstellungen/e001.mzML') !asoutput
 
 
-.. comment 
+.. comment
 
     this is not up to date
 
@@ -555,5 +584,3 @@ The following dialog is created by the simple commands below:
     *emzed* installs example scripts in the ``emzed_files/example_scripts``
     folder in your home directory. We recommend to study these scripts to
     get an understanding how the inididual *emzed* modules play together.
-
-

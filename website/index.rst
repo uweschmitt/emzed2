@@ -93,11 +93,13 @@ emzed in the press
 
 Recent publications using emzed for data analysis:
 
+* Peter et al. "Screening and Engineering the Synthetic Potential of Carboxylating Reductases from Central Metabolism and Polyketide Biosynthesis." Angew Chem Int Ed Engl. (2015).
 * Kiefer, Patrick, et al. "DynaMet, a fully automated pipeline for dynamic LC-MS data." Analytical Chemistry (2015).
 * Ryffel, Florian, et al. "Metabolic footprint of epiphytic bacteria on Arabidopsis thaliana leaves." The ISME journal (2015).
 * Müller, Jonas EN, et al. "Core pathways operating during methylotrophy of Bacillus methanolicus MGA3 and induction of a bacillithiol-dependent detoxification pathway upon formaldehyde stress." Molecular microbiology (2015).
 * Müller, Jonas EN, et al. "Engineering Escherichia coli for methanol conversion." Metabolic engineering 28 (2015): 190-201.
 * Wilson, Micheal C., et al. "An environmental bacterial taxon with a large and distinct metabolic repertoire." Nature 506.7486 (2014): 58-62.
+* Erb, Kiefer, et al. "GFAJ-1 is an arsenate-resistant, phosphate-dependent organism", Science (2012).
 
 Website Navigation
 ---------------
