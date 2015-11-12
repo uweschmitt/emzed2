@@ -689,7 +689,7 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
             else:  # Give up and point child stderr at nul
                 childstderr = file('nul', 'a')
 
-        # as __setattr__ iso verriden, we have to set members like this:
+        # as __setattr__ is overridden, we have to set members like this:
         self.__dict__['has_numpy'] = use_numpy and has_numpy
         self.__dict__['has_pandas'] = use_pandas and has_pandas
         self.__dict__['Rfun'] = self.__Rfun
@@ -816,25 +816,19 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
         self.__call__('rm(%s)' % obj)
 
     def install_del_callaback(self):
+
         def on_die(killed_ref, prog=self.prog, newline=self.newline):
             try:
                 if prog:
+                    print "send q() command"
                     sendAll(prog, 'q("no")' + newline)
+                    time.sleep(0.5)
+                    prog.terminate()
+                    prog.poll()
                     print "R interpreter shut down"
             except:
                 traceback.print_exc()
         self.__dict__["_del_ref"] = weakref.ref(self, on_die)
-
-
-    def _x__del__(self):  # to model "del r"
-        try:
-            if self.prog:
-                sendAll(self.prog, 'q("no")' + self.newline)
-                self.prog = None
-                print "R interpreter shut down"
-        except:
-            traceback.print_exc()
-            exit()
 
     def __getattr__(self, obj, use_dict=None):  # to model object attribute: "r.XXX"
         '''
