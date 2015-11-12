@@ -405,28 +405,40 @@ class Table(object):
         """
         prints some table information and some table statistics
         """
-        import pprint
-        print
-        print "table info:   title=", self.title
-        print
-        print "   meta=",
-        pprint.pprint(self.meta)
-        print "   rows=", len(self)
-        print
-        for i, (name, type_, format_) in enumerate(zip(self._colNames,
-                                                       self._colTypes,
-                                                       self._colFormats)):
-            vals = getattr(self, name).values
-            nones = sum(1 for v in vals if v is None)
-            numvals = len(set(id(v) for v in vals))
-            txt = "%3d diff vals, %3d Nones" % (numvals, nones)
+
+        names = ["index", "name", "type", "format", "diff values", "none values"]
+        types_ = [int, str, str, str, int, int]
+        formats = ["%d", "%s", "%s", "%s", "%d", "%d"]
+
+        import emzed.utils
+
+        def extract_type(col_name):
+            type_ = self.getColType(col_name)
             match = re.match("<(type|class) '(.+)'>", str(type_))
             if match is not None:
                 type_str = match.group(2).split(".")[-1]
             else:
                 type_str = str(type_)
-            print "   column %2d:  %-25s in column %-15s of type %-10s with format %r" % (i, txt, name, type_str, format_)
+            return type_str
+
+        def extract_format(col_name):
+            return self.getColFormat(col_name)
+
+        def count_diff_values(col_name):
+            return len(set(self.getColumn(col_name)))
+
+        def count_nones(col_name):
+            return sum(1 for v in self.getColumn(col_name) if v is None)
+
+        table = emzed.utils.toTable("name", self._colNames, type_=str)
+        table.addEnumeration()
+        table.addColumn("type", table.name.apply(extract_type), type_=str)
+        table.addColumn("format", table.name.apply(extract_format), type_=str, format_="%r")
+        table.addColumn("diff values", table.name.apply(count_diff_values), type_=int)
+        table.addColumn("nones", table.name.apply(count_nones), type_=int)
+
         print
+        print table
 
     def addRow(self, row, doResetInternals=True):
         """ adds a new row to the table, checks if values in row are of
