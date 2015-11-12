@@ -1375,3 +1375,18 @@ def test_relative_path_computation(regtest):
     _test("/", "/d.proxy")
     _test("/a/", "/d.proxy")
 
+def test_postfix_cleanup(regtest):
+
+    t = emzed.utils.toTable("a", (1,), type_=int)
+    t.addColumn("b", 2, type_=int)
+
+    t2 = t[:]
+    tn = t.join(t2, t.a == t2.a)
+
+    print(tn, file=regtest)
+    tn.cleanupPostfixes()
+    print(tn, file=regtest)
+
+    tn.dropColumns("b")
+    tn.cleanupPostfixes()
+    print(tn, file=regtest)

@@ -1547,6 +1547,18 @@ class Table(object):
         self._colNames = new_column_names
         self.resetInternals()
 
+    def cleanupPostfixes(self):
+        """
+        removes postfixes from those columns where this change does not introduce
+        duplicate names.
+        """
+        names = {}
+        for name in self._colNames:
+            new_name, __, __ = name.partition("__")
+            if new_name not in names:
+                names[name] = new_name
+        self._renameColumnsUnchecked(**names)
+
     def supportedPostfixes(self, colNamesToSupport):
         """
 
