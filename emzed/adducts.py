@@ -40,6 +40,7 @@ _shortname = lambda key: key.replace("+", "_plus_").replace("-", "_minus_")
 labels = [ _a[0] for _a in  _all_adducts ]
 namedLabels = [ _shortname(_a) for _a in labels ]
 
+
 class _Adducts(object):
 
     def __init__(self, adducts):
@@ -91,7 +92,7 @@ class _Adducts(object):
         pos, neg, neut = [], [], []
         if self.positives and self.negatives and self.neutrals:
             pos, neg, neut = res
-        if self.positives and self.negatives:
+        elif self.positives and self.negatives:
             pos, neg = res
         elif self.positives:
             pos = res
