@@ -588,6 +588,11 @@ class Table(object):
             prototype.rows.append(select(row, icol))
         return prototype
 
+    def overwrite(self, other):
+        Table._check_if_compatible((self, other))
+        self.rows = other.rows[:]
+        self.resetInternals()
+
     def __getstate__(self):
         """ **for internal use**: filters some attributes for pickling. """
         dd = self.__dict__.copy()
@@ -2156,25 +2161,15 @@ class Table(object):
                 raise Exception("column names do not fit: \n%s" % msg)
 
         msgs = []
-        for i, t1 in enumerate(tables):
-            if len(t1) == 0:
-                continue
-            for di, t2 in enumerate(tables[i + 1:]):
-                # look for next non empty table
-                if len(t2) == 0:
-                    continue
-                j = i + di + 1
-                if t1._colTypes != t2._colTypes:
-                    msg = diff_message(
-                        t1._colTypes, t2._colTypes, "%d/%d" % (i, j), t1._colNames)
-                    msgs.append(msg)
-                if t1._colFormats != t2._colFormats:
-                    msg = diff_message(
-                        t1._colFormats, t2._colFormats, "%d/%d" % (i, j), t1._colNames)
-                    msgs.append(msg)
-                # we checked a pair of sequential tables (skipping empty ones),
-                # so:
-                break
+        for i, (t1, t2) in enumerate(zip(tables, tables[1:])):
+            if t1._colTypes != t2._colTypes:
+                msg = diff_message(
+                    t1._colTypes, t2._colTypes, "%d/%d" % (i, i + 1), t1._colNames)
+                msgs.append(msg)
+            if t1._colFormats != t2._colFormats:
+                msg = diff_message(
+                    t1._colFormats, t2._colFormats, "%d/%d" % (i, i + 1), t1._colNames)
+                msgs.append(msg)
         if msgs:
             full_msg = "\n".join(msgs)
             raise Exception("detected incompatibilities: \n%s" % full_msg)

@@ -1,4 +1,4 @@
-#encoding: utf-8
+# encoding: utf-8
 
 from __future__ import print_function
 
@@ -587,6 +587,7 @@ def test_replace_dunder_coloumn():
     t.replaceColumn("z__0", t.z__0.apply(float))
     t.print_()
 
+
 def test_sort_empty_table():
     t = emzed.utils.toTable("z", (), type_=int)
     print(t)
@@ -1036,6 +1037,7 @@ def test_getitem_variations():
         assert ti.getColTypes() == t.getColTypes()[::-1]
         assert ti.getColFormats() == t.getColFormats()[::-1]
 
+
 def test_t():
     t = emzed.utils.toTable("v", range(1, 3))
 
@@ -1320,8 +1322,7 @@ def test_new_apply(regtest):
         return a + b
 
     def any_none(a, b):
-        return a is None or b  is None
-
+        return a is None or b is None
 
     t.addColumn("sum", t.apply(add, (t.a, t.b)))
     t.addColumn("b+1", t.apply(add, (1.0, t.b)))
@@ -1375,6 +1376,7 @@ def test_relative_path_computation(regtest):
     _test("/", "/d.proxy")
     _test("/a/", "/d.proxy")
 
+
 def test_postfix_cleanup(regtest):
 
     t = emzed.utils.toTable("a", (1,), type_=int)
@@ -1390,3 +1392,27 @@ def test_postfix_cleanup(regtest):
     tn.dropColumns("b")
     tn.cleanupPostfixes()
     print(tn, file=regtest)
+
+
+def test_overwrite(regtest):
+    t1 = emzed.utils.toTable("a", (1,), type_=int)
+    t2 = emzed.utils.toTable("a", (3, 4), type_=int)
+
+    t1.overwrite(t2)
+    assert t1.a.values == (3, 4)
+
+    # test if no refs are introduced:
+    t2.addRow([5])
+    assert t1.a.values == (3, 4)
+
+    t2 = emzed.utils.toTable("a", (), type_=int)
+    t1.overwrite(t2)
+    assert t1.a.values == ()
+
+    t2 = emzed.utils.toTable("b", (1, ), type_=int)
+    with pytest.raises(Exception):
+        t1.overwrite(t2)
+
+    t2 = emzed.utils.toTable("a", (1.0,), type_=float)
+    with pytest.raises(Exception):
+        t1.overwrite(t2)
