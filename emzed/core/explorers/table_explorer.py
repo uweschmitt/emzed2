@@ -230,8 +230,12 @@ class EmzedTableView(QTableView):
 
 class TableExplorer(EmzedDialog):
 
-    def __init__(self, tables, offerAbortOption, parent=None):
+    def __init__(self, tables, offerAbortOption, parent=None, close_callback=None):
         super(TableExplorer, self).__init__(parent)
+
+        # function which is called when window is closed. the arguments passed are boolean
+        # flags indication for every table if it was modified:
+        self.close_callback = close_callback
 
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -257,6 +261,17 @@ class TableExplorer(EmzedDialog):
         self.setSizeGripEnabled(True)
 
         self.setupViewForTable(0)
+
+
+    def reject(self):
+        super(TableExplorer, self).reject()
+        modified = [len(m.actions) > 0 for m in self.models]
+        if self.close_callback is not None:
+            try:
+                self.close_callback(*modified)
+            except:
+                import traceback
+                traceback.print_exc()
 
     def keyPressEvent(self, e):
         if e.key() != Qt.Key_Escape:
@@ -1148,7 +1163,7 @@ class TableExplorer(EmzedDialog):
         self.mz_plotter.replot()
 
 
-def inspect(what, offerAbortOption=False, modal=True, parent=None):
+def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callback=None):
     """
     allows the inspection and editing of simple or multiple
     tables.
@@ -1157,7 +1172,7 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None):
     if isinstance(what, Table):
         what = [what]
     app = guidata.qapplication()  # singleton !
-    explorer = TableExplorer(what, offerAbortOption, parent=parent)
+    explorer = TableExplorer(what, offerAbortOption, parent=parent, close_callback=close_callback)
     if modal:
         explorer.raise_()
         explorer.exec_()

@@ -106,8 +106,14 @@ t_with_ts = t1
 t_with_ts.setTitle("with ts")
 t_with_ts.dropColumns("spectra_ms2")
 
+t_with_ts.info()
 
-emzed.gui.inspect((t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2))
+def callback(*args):
+    print(args)
+
+
+emzed.gui.inspect((t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
+        close_callback=callback)
 
 print(t)
 
