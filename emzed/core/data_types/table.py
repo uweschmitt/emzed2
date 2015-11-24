@@ -1767,7 +1767,7 @@ class Table(object):
         For a more flexible but still fast way to join on exact or approximate matches use
         the ``.equals`` expression, which allows and/or for more complex match conditions::
 
-            tn = t.join(t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
+            tn = t.join(t2, t.mz.equals(t2.mz, rel_tol=5e-6) & t.rt.equals(t2.rt, abs_tol=30))
 
         """
         table, lookup, __ = self._prepare_fast_join(other, column_name, column_name_other,
