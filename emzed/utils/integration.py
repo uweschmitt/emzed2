@@ -90,6 +90,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             t.replaceColumn("peakmap", pms, type_=ftable.getColType("peakmap"),
                             format_=ftable.getColFormat("peakmap"))
 
+        # at least needed on win, else worker processes accumulate:
         pool.close()
 
         tables = [t for t in tables if len(t) > 0]

@@ -28,8 +28,8 @@ Installation on 64 bit Windows
 1. Download and install *Microsoft Visual C++ 2008 SP1 Redistributable Package
    (x64)* from http://www.microsoft.com/en-us/download/details.aspx?id=2092
 
-2. Download the latest *WinPython* version 2.7.X.Y
-   for **64 bit** from http://sourceforge.net/projects/winpython/files/WinPython_2.7/
+2. Download *WinPython* version **2.7.9.5 (no other version !!!)**
+   for **64 bit** from http://downloads.sourceforge.net/project/winpython/WinPython_2.7/2.7.9.5/WinPython-64bit-2.7.9.5.exe
 
    .. note::
       Do not confuse *WinPython* with the official Python for windows release from
@@ -38,7 +38,7 @@ Installation on 64 bit Windows
       Take care to install the 64 bit version.
 
 3. Run the *WinPython* installer. This step only unpacks *WinPython* to a target directory
-   you can choose. We recommend to use **C:\\WinPython-2.7.X** unless you have some
+   you can choose. We recommend to use **C:\\WinPython-2.7.9.5** unless you have some
    special reasons.
 
    .. note::
@@ -50,9 +50,9 @@ Installation on 64 bit Windows
    The installer asks for the path to the Python interpreter to use.
 
    If you folllowed the recommandation from step 3, the path to the Python interpreter
-   is **C:\\WinPython-2.7.X\\python-2.7.X\\python.exe**.
-   Else you will find the **python.exe** inside the **python-2.7.X** subfolder of the installation
-   target from the previous step.
+   is **C:\\WinPython-2.7.9.5\\python-2.7.9.amd64\\python.exe**.
+   Else you will find the **python.exe** inside the **python-2.7.9.amd64**
+   subfolder of the installation target from the previous step.
 
    The installation process opens a terminal window and runs for a few minutes, so stay patient.
 
