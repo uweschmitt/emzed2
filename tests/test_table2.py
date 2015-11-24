@@ -730,7 +730,7 @@ def test_ts(regtest_redirect):
     t.addColumn("ts", ts, format_="%s")
 
     with regtest_redirect():
-        for xi, yi in ts.segments():
+        for xi, yi in ts.for_plotting():
             print(xi, yi)
         print(TimeSeries([], []))
         print(t)

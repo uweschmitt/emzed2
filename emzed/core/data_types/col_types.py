@@ -72,14 +72,20 @@ class TimeSeries(object):
     def __len__(self):
         return len(self.x)
 
-    def segments(self):
+    @staticmethod
+    def detect_segments(x, y):
         """detects segments in x which are separated by one or multiple None values, so if a list
         contains None values indicating "nan", this supports plotting of the segments.
 
         this generate yields the pairs (xi, yi) for every segment.
         """
-        ni = [-1] + [i for i, xi in enumerate(self.x) if xi is None] + [len(self.x)]
+        segments = []
+        ni = [-1] + [i for i, xi in enumerate(x) if xi is None] + [len(x)]
         for (si, ti) in zip(ni, ni[1:]):
             if si + 1 < ti:
                 s = slice(si + 1, ti)
-                yield self.x[s], self.y[s]
+                segments.append((x[s], y[s]))
+        return segments
+
+    def for_plotting(self):
+        return self.detect_segments(self.x, self.y)

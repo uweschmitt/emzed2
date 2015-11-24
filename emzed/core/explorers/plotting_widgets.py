@@ -168,7 +168,7 @@ class RtPlotter(PlotterBase):
                     config = dict(color=getColor(i))
                 title = ts.label
                 labels.add(title)
-                for j, (x, y) in enumerate(ts.segments()):
+                for j, (x, y) in enumerate(ts.for_plotting()):
                     x = [xi.toordinal() if isinstance(xi, datetime) else xi for xi in x]
                     allrts.extend(x)
                     curve = make.curve(x, y, title="<pre>%s</pre>" % title, **config)

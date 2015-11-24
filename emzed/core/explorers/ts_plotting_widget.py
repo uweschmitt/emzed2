@@ -4,7 +4,7 @@ from __future__ import print_function
 from datetime import datetime
 
 from modified_guiqwt import make_unselectable_curve
-from eic_plotting_widget import EicPlottingWidget, getColor, setup_marker_param, ObjectInfo, Marker
+from eic_plotting_widget import EicPlottingWidget, getColor, ObjectInfo
 
 from helpers import set_datetime_formating_on_x_axis
 
@@ -53,7 +53,7 @@ class TimeSeriesPlottingWidget(EicPlottingWidget):
             if config is None:
                 config = dict(color=getColor(i))
             title = ts.label
-            for j, (x, y) in enumerate(ts.segments()):
+            for j, (x, y) in enumerate(ts.for_plotting()):
                 x = [xi.toordinal() if isinstance(xi, datetime) else xi for xi in x]
                 x_values.extend(x)
                 curve = make_unselectable_curve(x, y, title="<pre>%s</pre>" % title, **config)

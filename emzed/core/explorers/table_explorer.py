@@ -31,6 +31,7 @@ from ...gui.file_dialogs import askForSave
 
 from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
 
+
 def eic_curves(model):
     rtmins, rtmaxs, curves = [], [], []
     for idx in model.selected_data_rows:
@@ -115,14 +116,18 @@ def turn_light(color):
 
 def configsForEics(eics):
     n = len(eics)
-    w = 1.5
-    return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
+    return [dict(linewidth=1.5, color=getColors(i)) for i in range(n)]
 
 
 def configsForTimeSeries(eics):
     n = len(eics)
-    w = 1.5
-    return [dict(linewidth=w, color=getColors(i)) for i in range(n)]
+    return [dict(linewidth=1,
+                 color=getColors(i),
+                 marker="Ellipse",
+                 markersize=4,
+                 markerfacecolor=getColors(i),
+                 markeredgecolor=getColors(i)
+                 ) for i in range(n)]
 
 
 def configs_for_fitted_peakshapes(smootheds):
@@ -261,7 +266,6 @@ class TableExplorer(EmzedDialog):
         self.setSizeGripEnabled(True)
 
         self.setupViewForTable(0)
-
 
     def reject(self):
         super(TableExplorer, self).reject()
@@ -668,7 +672,8 @@ class TableExplorer(EmzedDialog):
             if idx is not None:
                 header = self.tableView.horizontalHeader()
                 header.blockSignals(True)
-                header.setSortIndicator(idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
+                header.setSortIndicator(
+                    idx, Qt.AscendingOrder if main_order.startswith("asc") else Qt.DescendingOrder)
                 header.blockSignals(False)
 
     @protect_signal_handler
@@ -990,8 +995,6 @@ class TableExplorer(EmzedDialog):
         if self.has_time_series:
             self.plot_time_series()
 
-
-
     def select_rows_in_group(self, widget_row_idx):
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
@@ -1076,7 +1079,8 @@ class TableExplorer(EmzedDialog):
     def plot_chromatograms(self, reset=True):
 
         self.eic_plotter.del_all_items()
-        rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(self.model, self.allow_integration)
+        rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(
+            self.model, self.allow_integration)
         configs = configsForEics(curves)
 
         self.eic_plotter.add_eics(curves, configs=configs)
@@ -1106,7 +1110,8 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def spectrumChosen(self):
-        spectra = [self.spectra_listed_in_chooser[idx.row()] for idx in self.choose_spec.selectedIndexes()]
+        spectra = [self.spectra_listed_in_chooser[idx.row()]
+                   for idx in self.choose_spec.selectedIndexes()]
         labels = [str(item.data(0).toString()) for item in self.choose_spec.selectedItems()]
         ms2_data = [(l, s) for (l, s) in zip(labels, spectra) if s is not None and l is not None]
         if ms2_data:
@@ -1121,7 +1126,8 @@ class TableExplorer(EmzedDialog):
         if not self.first_spec_in_choser_is_ms1:
             return
         self.choose_spec.setCurrentRow(0)
-        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        peakmaps = [
+            pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
         windows = []
         for idx in self.model.selected_data_rows:
             for (__, __, mzmin, mzmax) in self.model.getEICWindows(idx):
@@ -1130,8 +1136,10 @@ class TableExplorer(EmzedDialog):
         self.plot_spectra_from_peakmaps(peakmaps, windows)
 
     def plot_ms1_spectra(self):
-        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        windows = [w for idx in self.model.selected_data_rows for w in self.model.getEICWindows(idx)]
+        peakmaps = [
+            pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        windows = [
+            w for idx in self.model.selected_data_rows for w in self.model.getEICWindows(idx)]
         self.plot_spectra_from_peakmaps(peakmaps, windows)
 
     def plot_ms2_spectra(self, spectra, labels):
