@@ -3,6 +3,8 @@
 Installation
 ------------
 
+**Your current Windows Installation is broken ???** Goto :ref:`fix_windows` !!!.
+
 The current version of *emzed* was developed and tested on 32 and 64 bit Windows XP, 7 and 8 as well
 as 64 bit Ubuntu Linux and Mac OS X.
 The current version of *emzed* relies on Python 2.7.X and is not Python 3 ready.
