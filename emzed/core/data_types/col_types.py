@@ -1,8 +1,4 @@
 import hashlib
-import datetime
-from collections import namedtuple
-
-import numpy
 import cPickle
 
 
