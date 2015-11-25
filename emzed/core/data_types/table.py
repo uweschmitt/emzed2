@@ -406,10 +406,6 @@ class Table(object):
         prints some table information and some table statistics
         """
 
-        names = ["index", "name", "type", "format", "diff values", "none values"]
-        types_ = [int, str, str, str, int, int]
-        formats = ["%d", "%s", "%s", "%s", "%d", "%d"]
-
         import emzed.utils
 
         def extract_type(col_name):
@@ -550,9 +546,9 @@ class Table(object):
         icol = None
         if isinstance(ix, tuple):
             if len(ix) == 1:
-                    irow, icol = ix[0], None
+                irow, icol = ix[0], None
             elif len(ix) == 2:
-                    irow, icol = ix
+                irow, icol = ix
             else:
                 raise Exception("can not handle argument %r" % ix)
         else:
