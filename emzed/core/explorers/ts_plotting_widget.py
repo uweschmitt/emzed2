@@ -53,10 +53,16 @@ class TimeSeriesPlottingWidget(EicPlottingWidget):
             if config is None:
                 config = dict(color=getColor(i))
             title = ts.label
-            for j, (x, y) in enumerate(ts.for_plotting()):
+            for j, item in enumerate(ts.for_plotting()):
+                lconfig = config.copy()
+                if len(item) == 2:
+                    x, y = item
+                else:
+                    x, y, special_config = item
+                    lconfig.update(special_config)
                 x = [xi.toordinal() if isinstance(xi, datetime) else xi for xi in x]
                 x_values.extend(x)
-                curve = make_unselectable_curve(x, y, title="<pre>%s</pre>" % title, **config)
+                curve = make_unselectable_curve(x, y, title="<pre>%s</pre>" % title, **lconfig)
                 self.plot.add_item(curve)
                 if j == 0:
                     labels.append(title)

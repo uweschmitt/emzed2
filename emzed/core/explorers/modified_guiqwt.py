@@ -202,15 +202,6 @@ class PositiveValuedCurvePlot(CurvePlot):
     overall_x_min = None
     overall_x_max = None
 
-    def _x_range(self):
-        xvals = []
-        for item in self.get_items_of_class(CurveItem):
-            xi, __ = item.get_data()
-            xvals.extend(xi)
-        if not xvals:
-            return None, None
-        return min(xvals), max(xvals)
-
     @protect_signal_handler
     def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
         """
@@ -240,8 +231,6 @@ class PositiveValuedCurvePlot(CurvePlot):
         axes_to_update = self.get_axes_to_update(dx, dy)
 
         axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
-
-        xmin, xmax = self._x_range()
 
         for (direction, x1, x0, start, width), axis_id in axes_to_update:
             lbound, hbound = self.get_axis_limits(axis_id)
@@ -387,6 +376,11 @@ class ExtendedCurvePlot(CurvePlot):
         if xmax is None:
             if len(xvals):
                 xmax = max(xvals) * fac
+
+        if xmin == xmax:  # zoomint to same min and max limits looks strange, so we zoom a bit:
+            xmin *= 0.9
+            xmax *= 1.1
+
         if xmin is not None and xmax is not None:
             self.update_plot_xlimits(xmin, xmax)
 
@@ -445,8 +439,13 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             min_neu = min(item._min, item._max)
             max_neu = max(item._min, item._max)
             range_ = max_neu - min_neu
-            max_neu += 0.1 * range_
-            min_neu -= 0.1 * range_
+            if range_ == 0.0:   # look strange in this case, so we zoom a little bit:
+                mm = max_neu
+                max_neu = mm * 1.1
+                min_neu = mm * 0.9
+            else:
+                max_neu += 0.1 * range_
+                min_neu -= 0.1 * range_
             self.update_plot_xlimits(min_neu, max_neu)
 
             yvals = self.seen_yvals(min_neu, max_neu)
