@@ -63,7 +63,7 @@ class Ui_ChooseRange(object):
         self.lower_bound.setObjectName(_fromUtf8("lower_bound"))
         self.gridLayout.addWidget(self.lower_bound, 1, 2, 1, 3)
         self.column_name = QtGui.QLabel(ChooseRange)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.column_name.sizePolicy().hasHeightForWidth())

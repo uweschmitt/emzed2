@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_StringFilter(object):
     def setupUi(self, StringFilter):
         StringFilter.setObjectName(_fromUtf8("StringFilter"))
-        StringFilter.resize(159, 46)
+        StringFilter.resize(200, 46)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
@@ -37,7 +37,7 @@ class Ui_StringFilter(object):
         self.gridLayout.setSpacing(3)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.column_name = QtGui.QLabel(StringFilter)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.column_name.sizePolicy().hasHeightForWidth())
@@ -64,6 +64,7 @@ class Ui_StringFilter(object):
 
     def retranslateUi(self, StringFilter):
         StringFilter.setWindowTitle(_translate("StringFilter", "Form", None))
+        self.column_name.setText(_translate("StringFilter", "dfadadsfldsjfladjsfladsjfladjsalsdf", None))
         self.label_pattern.setText(_translate("StringFilter", "pattern:", None))
 
 
