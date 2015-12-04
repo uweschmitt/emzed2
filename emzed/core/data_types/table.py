@@ -421,7 +421,7 @@ class Table(object):
             return self.getColFormat(col_name)
 
         def count_diff_values(col_name):
-            return len(set(self.getColumn(col_name)))
+            return len(set(map(id, self.getColumn(col_name))))
 
         def count_nones(col_name):
             return sum(1 for v in self.getColumn(col_name) if v is None)
