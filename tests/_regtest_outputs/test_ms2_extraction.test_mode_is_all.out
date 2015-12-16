@@ -4,7 +4,7 @@ MODE= all
 id       mz        mzmin      mzmax      rt       rtmin    rtmax    peakmap  num_spectra_ms2 ms2_extraction_info ms2_mz_range ms2_energy
 int      float     float      float      float    float    float    None     int             str                 float        float
 ------   ------    ------     ------     ------   ------   ------   ------   ------          ------              ------       ------
-0        315.17123  315.17105  315.17136 21.32m   21.17m   24.49m   -        4               all                 262.33191    2.07e+15
+0        315.17123  315.17105  315.17136 21.32m   21.17m   24.49m   -        4               all                 262.33190    2.07e+15
 1        316.17476  316.17447  316.17627 21.32m   21.06m   22.43m   -        0               all                 -            -
 2        317.17663  317.17508  317.17810 21.32m   20.76m   21.70m   -        0               all                 -            -
 3        318.17894  318.17874  318.17917 21.32m   21.23m   21.49m   -        0               all                 -            -

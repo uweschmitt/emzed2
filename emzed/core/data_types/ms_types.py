@@ -53,6 +53,7 @@ class Spectrum(object):
         assert type(peaks) == np.ndarray, type(peaks)
         assert peaks.ndim == 2, "peaks has wrong dimension"
         assert peaks.shape[1] == 2, "peaks needs 2 columns"
+        assert peaks.dtype == np.float64
 
         assert polarity in "0+-", "polarity must be +, - or 0"
 
@@ -67,7 +68,7 @@ class Spectrum(object):
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
-        self.peaks = peaks[perm, :].astype(np.float32)
+        self.peaks = peaks[perm, :] # .astype(np.float64)
         self.rt = rt
         self.msLevel = msLevel
         self.polarity = polarity
@@ -113,7 +114,7 @@ class Spectrum(object):
         if IS_PYOPENMS_2:
             # signature changed in pyopenms
             mzs, iis = peaks
-            peaks = np.vstack((mzs.flatten(), iis.flatten())).T
+            peaks = np.vstack((mzs.flatten(), iis.flatten())).T.astype(np.float64)
         res = clz(peaks, mspec.getRT(), mspec.getMSLevel(), pol, pcs)
         return res
 
@@ -263,13 +264,13 @@ class Spectrum(object):
                 peaks_self = sorted([self.peaks[i, 1] for (i, j) in al])[:top_n]
                 # fill up with zeros
                 peaks_self += [0.0] * (top_n - len(peaks_self))
-                peaks_self = np.array(peaks_self, dtype=float)
+                peaks_self = np.array(peaks_self, dtype=np.float64)
                 peaks_self /= np.linalg.norm(peaks_self)
 
                 peaks_other = sorted([other.peaks[j, 1] for (i, j) in al])[:top_n]
                 # fill up with zeros
                 peaks_other += [0.0] * (top_n - len(peaks_other))
-                peaks_other = np.array(peaks_other, dtype=float)
+                peaks_other = np.array(peaks_other, dtype=np.float64)
                 peaks_other /= np.linalg.norm(peaks_other)
 
                 cos_dist = np.dot(peaks_self, peaks_other)
@@ -290,13 +291,13 @@ class Spectrum(object):
                 peaks_self = sorted([self.peaks[i, 1] for (i, j) in al])[:top_n]
                 # fill up with zeros
                 peaks_self += [0.0] * (top_n - len(peaks_self))
-                peaks_self = np.array(peaks_self, dtype=float)
+                peaks_self = np.array(peaks_self, dtype=np.float64)
                 peaks_self /= np.linalg.norm(peaks_self)
 
                 peaks_other = sorted([other.peaks[j, 1] for (i, j) in al])[:top_n]
                 # fill up with zeros
                 peaks_other += [0.0] * (top_n - len(peaks_other))
-                peaks_other = np.array(peaks_other, dtype=float)
+                peaks_other = np.array(peaks_other, dtype=np.float64)
                 peaks_other /= np.linalg.norm(peaks_other)
 
                 cos_dist_shifted = np.dot(peaks_self, peaks_other)
@@ -569,7 +570,7 @@ class PeakMap(object):
             peaks = np.vstack([s.peaks for s in specs])
             perm = np.argsort(peaks[:, 0])
             return peaks[perm, :]
-        return np.zeros((0, 2), dtype=float)
+        return np.zeros((0, 2), dtype=np.float64)
 
     def allRts(self):
         """returns all rt values in peakmap"""
@@ -734,7 +735,7 @@ class PeakMap(object):
         assert n_bins > 0
         assert ms_level > 0
         if rtmin >= rtmax or mzmin >= mzmax:
-            return np.zeros((n_bins, 2), dtype=float)
+            return np.zeros((n_bins, 2), dtype=np.float64)
         peaks = sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level)
         return peaks
 

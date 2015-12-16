@@ -896,9 +896,9 @@ class TestTable(unittest.TestCase):
         import numpy
         t.compressPeakMaps()
 
-        s = Spectrum(numpy.arange(12).reshape(-1,2), 1.0, 1, "+")
+        s = Spectrum(numpy.arange(12, dtype="float64").reshape(-1,2), 1.0, 1, "+")
         pm = PeakMap([s])
-        s = Spectrum(numpy.arange(12).reshape(-1,2), 1.0, 1, "+")
+        s = Spectrum(numpy.arange(12, dtype="float64").reshape(-1,2), 1.0, 1, "+")
         pm2 = PeakMap([s])
 
         t = toTable("pm", [pm, pm2])
