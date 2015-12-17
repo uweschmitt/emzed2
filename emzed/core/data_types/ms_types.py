@@ -24,6 +24,49 @@ def deprecation(message):
     warnings.warn(message, UserWarning, stacklevel=2)
 
 
+class NDArrayProxy(np.ndarray):
+
+    """works like a regular array but calls a call back function (if provided) in case of
+    writing. Used in Spectrum class so that cached uniqued id can be invalidated.
+
+    for details how this class is implemented see
+    http://docs.scipy.org/doc/numpy-1.9.2/user/basics.subclassing.html
+    """
+
+    def __new__(cls, input_array, modification_callback=None):
+        obj = np.asarray(input_array).view(cls)
+        obj._modification_callback = modification_callback
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self._modification_callback = getattr(obj, '_modification_callback', None)
+
+    def wrap(special_method_name):
+        def inner(self, *a, **kw):
+            if self._modification_callback is not None:
+                self._modification_callback(self)
+            return getattr(np.ndarray, special_method_name)(self, *a, **kw)
+        return inner
+
+    __setitem__ = wrap("__setitem__")
+    __iadd__ = wrap("__iadd__")
+    __iand__ = wrap("__iand__")
+    __idiv__ = wrap("__idiv__")
+    __ifloordiv__ = wrap("__ifloordiv__")
+    __itruediv__ = wrap("__itruediv__")
+    __ilshift__ = wrap("__ilshift__")
+    __imod__ = wrap("__imod__")
+    __imul__ = wrap("__imul__")
+    __ior__ = wrap("__ior__")
+    __ipow__ = wrap("__ipow__")
+    __irshift__ = wrap("__irshift__")
+    __isub__ = wrap("__isub__")
+    __itruediv__ = wrap("__itruediv__")
+    __ixor__ = wrap("__ixor__")
+
+
 class Spectrum(object):
 
     """
@@ -50,10 +93,12 @@ class Spectrum(object):
                        list of floats
                        precursor m/z values if msLevel > 1
            """
-        assert type(peaks) == np.ndarray, type(peaks)
+
+        assert isinstance(peaks, (np.ndarray, NDArrayProxy))
         assert peaks.ndim == 2, "peaks has wrong dimension"
         assert peaks.shape[1] == 2, "peaks needs 2 columns"
-        assert peaks.dtype == np.float64
+
+        assert peaks.dtype in (np.float64,)
 
         assert polarity in "0+-", "polarity must be +, - or 0"
 
@@ -65,15 +110,45 @@ class Spectrum(object):
         if meta is None:
             meta = dict()
 
+        def invalidate_unique_id(peaks):
+            if "unique_id" in self.meta:
+                del self.meta["unique_id"]
+
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
-        self.peaks = peaks[perm, :] # .astype(np.float64)
-        self.rt = rt
-        self.msLevel = msLevel
-        self.polarity = polarity
-        self.precursors = precursors
+        self.peaks = NDArrayProxy(peaks[perm, :], modification_callback=invalidate_unique_id)  # .astype(np.float64)
+
+        def prop(name):
+            lname = "_" + name
+            def set_(value):
+                setattr(self, lname, value)
+            def get_(value):
+                return getattr(self, lname)
+            return property(get_, set_)
+
+        self._rt = rt
+        self._msLevel = msLevel
+        self._polarity = polarity
+        self._precursors = precursors
+
         self.meta = meta
+
+    def _create_prop(name):
+        lname = "_" + name
+        def getter(self):
+            return getattr(self, lname)
+
+        def setter(self, value):
+            if "unique_id" in self.meta:
+                del self.meta["unique_id"]
+            setattr(self, lname, value)
+        return property(getter, setter)
+
+    rt = _create_prop("rt")
+    msLevel = _create_prop("msLevel")
+    polarity = _create_prop("polarity")
+    precursors = _create_prop("precursors")
 
     def __eq__(self, other):
         """Method to compare two instances of class Spectrum"""
@@ -332,10 +407,19 @@ class Spectrum(object):
         spec.updateRanges()
         return spec
 
+    @staticmethod
+    def _fix_for_unpickling_older_files(state):
+        for attribute_name in ("rt", "msLevel", "polarity", "precursors"):
+            if attribute_name in state:
+                state["_%s" % attribute_name] = state.pop(attribute_name)
+        if "meta" not in state:
+            state["meta"] = {}
+        state["peaks"] = NDArrayProxy(state["peaks"].astype(np.float64))
+        return state
+
     def __setstate__(self, state):
-        self.__dict__ = state
-        if not hasattr(self, "meta"):
-            self.meta = dict()
+        state = self._fix_for_unpickling_older_files(state)
+        self.__dict__.update(state)
 
 
 class PeakMap(object):
@@ -619,7 +703,11 @@ class PeakMap(object):
         return clz(specs, meta)
 
     def uniqueId(self):
-        if "unique_id" not in self.meta:
+        # Spectrum deletes cached unique_id on internal changes so check first
+        # if recomputation is needed:
+        if "unique_id" in self.meta:
+            any_spec_invalidated = any("unique_id" not in s.meta for s in self.spectra)
+        if "unique_id" not in self.meta or any_spec_invalidated:
             h = hashlib.sha256()
             for spec in self.spectra:
                 h.update(spec.uniqueId())
@@ -746,6 +834,11 @@ class PeakMapProxy(PeakMap):
         self._path = path
         self._loaded = False
         self.meta = meta if meta is not None else {}
+
+    def uniqueId(self):
+        if "unique_id" in self.meta:
+            return self.meta["unique_id"]
+        return super(PeakMapProxy, self).uniqueId()
 
     def __getattr__(self, name):
         if name == "spectra" and not self._loaded:

@@ -259,3 +259,39 @@ class TestMSTypes(object):
         assert np.all(pmt.spectra[1].peaks.flatten() == [0., 1.0, 4.0, 1.0, 5.0, 1.0])
         assert np.all(pmt.spectra[2].peaks == peaks)
         assert np.all(pmt.spectra[3].peaks.flatten() == [0., 1.0, 4.0, 1.0, 5.0, 1.0])
+
+    def test_proxies(self):
+        mzs = np.array([ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0 ]).reshape(-1,1)
+        ones = np.ones_like(mzs)
+        peaks = np.hstack((mzs, ones))
+        spec = Spectrum(peaks, 0.0, 1, "0")
+        spec.peaks[:, 0] += 1.0
+        assert np.linalg.norm(spec.peaks[:, 0] - mzs.flatten(), 1) == 6.0
+
+        def check(fun, spec=spec):
+            before = spec.uniqueId()
+            exec(fun, dict(spec=spec))
+            assert "unique_id" not in spec.meta
+            after = spec.uniqueId()
+            assert before != after
+
+        check("spec.peaks[:, 0] += 1")
+        check("spec.peaks += 1")
+        check("spec.peaks -= 1")
+        check("spec.peaks /= 2.1")
+        check("spec.peaks //= 2.1")
+        check("spec.peaks *= 2")
+        check("spec.peaks %= 1.1")
+        check("spec.peaks **= 2")
+
+        check("spec.rt += 1")
+        check("spec.msLevel += 1")
+        check("spec.precursors = [(1, 1)]")
+        check("spec.polarity = '+'")
+
+        pm = PeakMap([spec])
+        before = pm.uniqueId()
+        pm.spectra[0].rt += 2
+        after = spec.uniqueId()
+        assert before != after
+

@@ -32,3 +32,24 @@ def test_1_3_8(path):
     """
     t = loadTable(path("data/table_version_1_3_8.table"))
     assert t.version == "1.3.2"
+
+
+def test_2_7_5_table_with_peakmap(path):
+    """the table under test had originally attributes rt, polarity, msLevel and peaks
+    which are now "proxied" (see impl. Spectrum class).
+    We check if this conversion worked.
+    """
+
+    from emzed.core.data_types.ms_types import NDArrayProxy
+
+    t = loadTable(path("data/features.table"))
+    assert t.version == (2, 7, 5)
+
+    pm = t.peakmap.uniqueValue()
+    spec = pm.spectra[0]
+
+    for att in ("rt", "polarity", "msLevel", "precursors"):
+        assert hasattr(spec, "_" + att)
+
+    assert isinstance(spec.peaks, NDArrayProxy)
+
