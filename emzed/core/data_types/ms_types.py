@@ -14,7 +14,7 @@ OPTIMIZATIONS_INSTALLED = False
 try:
     import emzed_optimizations
     OPTIMIZATIONS_INSTALLED = True
-except:
+except ImportError:
     pass
 
 IS_PYOPENMS_2 = pyopenms.__version__.startswith("2.")
@@ -464,7 +464,7 @@ class PeakMap(object):
                 wsum += np.sum(weights)
                 mzsum += np.sum(s.peaks[ix, 0] * weights)
         if wsum > 0.0:
-            return mzsum / wsum
+            return float(mzsum / wsum)
         else:
             return None
 
