@@ -144,6 +144,8 @@ def guessFormatFor(name, type_):
 
 
 def computekey(o):
+    if isinstance(o, np.number):
+        o = o.tolist()   # converts singel number to python equivalent !
     if type(o) in [int, float, str, long]:
         return o
     if type(o) == dict:
