@@ -95,9 +95,9 @@ def test_squeeze(path):
     n = len(pm)
     assert n == 41
     assert isinstance(pm, PeakMapProxy)
-    assert "spectra" in pm.__dict__
+    assert "_spectra" in pm.__dict__
 
     pm.squeeze()
-    assert "spectra" not in pm.__dict__
+    assert "_spectra" not in pm.__dict__
     assert len(pm) == 41  # triggers loading
-    assert "spectra" in pm.__dict__
+    assert "_spectra" in pm.__dict__

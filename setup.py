@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 version = (2, 22, 3)
 
 
-install_requires = ["emzed_optimizations>=0.4.0",
+install_requires = ["emzed_optimizations>=0.5.0",
                     "guidata<=1.6.2",
                     "guiqwt<=2.3.2",
                     "requests",

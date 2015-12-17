@@ -2308,7 +2308,12 @@ class Table(object):
             del self.meta["unique_id"]
 
     def uniqueId(self):
-        if "unique_id" not in self.meta:
+        if "unique_id" in self.meta:
+            peakmaps = set(s for name in self._colNames
+                           if name.startswith("peakmap")
+                           for s in set(self.getColumn(name)))
+            found_invalidated_pm = any("unique_id" not in pm.meta for pm in peakmaps)
+        if "unique_id" not in self.meta or found_invalidated_pm:
             h = hashlib.sha256()
 
             def update(what):

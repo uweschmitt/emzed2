@@ -6,6 +6,7 @@ import copy
 import hashlib
 from collections import defaultdict
 import warnings
+import weakref
 import zlib
 
 from emzed_optimizations.sample import sample_peaks
@@ -113,19 +114,15 @@ class Spectrum(object):
         def invalidate_unique_id(peaks):
             if "unique_id" in self.meta:
                 del self.meta["unique_id"]
+                if self._parent is not None:
+                    parent = self._parent()
+                    if parent is not None and "unique_id" in parent.meta:
+                        del parent.meta["unique_id"]
 
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
         self.peaks = NDArrayProxy(peaks[perm, :], modification_callback=invalidate_unique_id)  # .astype(np.float64)
-
-        def prop(name):
-            lname = "_" + name
-            def set_(value):
-                setattr(self, lname, value)
-            def get_(value):
-                return getattr(self, lname)
-            return property(get_, set_)
 
         self._rt = rt
         self._msLevel = msLevel
@@ -133,6 +130,11 @@ class Spectrum(object):
         self._precursors = precursors
 
         self.meta = meta
+
+        self._parent = None
+
+    def register_parent(self, parent):
+        self._parent = weakref.ref(parent)
 
     def _create_prop(name):
         lname = "_" + name
@@ -142,6 +144,10 @@ class Spectrum(object):
         def setter(self, value):
             if "unique_id" in self.meta:
                 del self.meta["unique_id"]
+                if self._parent is not None:
+                    parent = self._parent()
+                    if parent is not None and "unique_id" in parent.meta:
+                        del parent.meta["unique_id"]
             setattr(self, lname, value)
         return property(getter, setter)
 
@@ -417,9 +423,21 @@ class Spectrum(object):
         state["peaks"] = NDArrayProxy(state["peaks"].astype(np.float64))
         return state
 
+    def __getstate__(self):
+        return (self.meta, self.rt, self.msLevel, self.polarity, self.precursors,
+                self.peaks)
+
     def __setstate__(self, state):
-        state = self._fix_for_unpickling_older_files(state)
-        self.__dict__.update(state)
+        if isinstance(state, dict):
+            state = self._fix_for_unpickling_older_files(state)
+            self.__dict__.update(state)
+        else:
+            self._parent = None
+            self.meta = state[0]
+            # here we have properties which access self.meta, this why we first set
+            # selt.meta (no property) and then the following properties:
+            self.rt, self.msLevel, self.polarity, self.precursors, self.peaks = state[1:]
+            self.meta = state[0]
 
 
 class PeakMap(object):
@@ -440,10 +458,7 @@ class PeakMap(object):
 
             meta    : dictionary of meta values
         """
-        try:
-            self.spectra = sorted(spectra, key=lambda spec: spec.rt)
-        except:
-            raise Exception("spectra param is not iterable")
+        self.spectra = sorted(spectra, key=lambda spec: spec.rt)
 
         if meta is None:
             meta = dict()
@@ -451,16 +466,37 @@ class PeakMap(object):
 
         # accepting the unique id from another peakmap is dangerous, eg if we uwe
         # the extract method, so we delete the cached value:
-        if "unique_id" in self.meta:
-            del self.meta["unique_id"]
+        self.meta.pop("unique_id", None)
 
-        polarities = set(spec.polarity for spec in spectra)
+        polarities = set(spec.polarity for spec in self.spectra)
         if len(polarities) > 1:
             self.polarity = list(polarities)
         elif len(polarities) == 1:
             self.polarity = polarities.pop()
         else:
             self.polarity = None
+
+    @property
+    def spectra(self):
+        return self._spectra
+
+    @spectra.setter
+    def spectra(self, spectra):
+        self._spectra = tuple(spectra)
+        for s in self._spectra:
+            s.register_parent(self)
+
+    @staticmethod
+    def _fix_for_unpickling_older_files(state):
+        if "spectra" in state:
+            state["_spectra"] = tuple(state.pop("spectra"))
+        return state
+
+    def __setstate__(self, state):
+        state = self._fix_for_unpickling_older_files(state)
+        self.__dict__.update(state)
+        for s in self._spectra:
+            s.register_parent(self)
 
     def __iter__(self):
         """Returns an iterator of the spectra of the PeakMap object"""
@@ -512,15 +548,16 @@ class PeakMap(object):
         spectra = copy.deepcopy(self.spectra)
 
         if mslevelmin is not None:
-            spectra = [s for s in spectra if s.msLevel >= mslevelmin]
+            spectra = (s for s in spectra if s.msLevel >= mslevelmin)
         if mslevelmax is not None:
-            spectra = [s for s in spectra if s.msLevel <= mslevelmax]
+            spectra = (s for s in spectra if s.msLevel <= mslevelmax)
 
         if rtmin:
-            spectra = [s for s in spectra if rtmin <= s.rt]
+            spectra = (s for s in spectra if rtmin <= s.rt)
         if rtmax:
-            spectra = [s for s in spectra if rtmax >= s.rt]
+            spectra = (s for s in spectra if rtmax >= s.rt)
 
+        spectra = list(spectra)
         if mzmin is not None or mzmax is not None:
             for s in spectra:
                 s.peaks = s.peaksInRange(mzmin, mzmax)
@@ -532,7 +569,7 @@ class PeakMap(object):
                 if imax is not None:
                     s.peaks = s.peaks[s.peaks[:, 1] <= imax]
 
-        spectra = [s for s in spectra if len(s.peaks)]
+        spectra = (s for s in spectra if len(s.peaks))
 
         return PeakMap(spectra, self.meta.copy())
 
@@ -567,7 +604,7 @@ class PeakMap(object):
             spectra ``s``
         """
         spectra = copy.deepcopy(self.spectra)
-        return PeakMap([s for s in spectra if condition(s)], self.meta.copy())
+        return PeakMap((s for s in spectra if condition(s)), self.meta.copy())
 
     def specsInRange(self, rtmin, rtmax):
         """
@@ -604,7 +641,7 @@ class PeakMap(object):
                 cut_out = (s.peaks[:, 0] >= mzmin) & (s.peaks[:, 0] <= mzmax)
                 s.peaks = peaks[~cut_out]
 
-        self.spectra = [s for s in self.spectra if len(s.peaks)]
+        self.spectra = tuple(s for s in self.spectra if len(s.peaks))
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """
@@ -703,11 +740,7 @@ class PeakMap(object):
         return clz(specs, meta)
 
     def uniqueId(self):
-        # Spectrum deletes cached unique_id on internal changes so check first
-        # if recomputation is needed:
-        if "unique_id" in self.meta:
-            any_spec_invalidated = any("unique_id" not in s.meta for s in self.spectra)
-        if "unique_id" not in self.meta or any_spec_invalidated:
+        if "unique_id" not in self.meta:
             h = hashlib.sha256()
             for spec in self.spectra:
                 h.update(spec.uniqueId())
@@ -841,7 +874,7 @@ class PeakMapProxy(PeakMap):
         return super(PeakMapProxy, self).uniqueId()
 
     def __getattr__(self, name):
-        if name == "spectra" and not self._loaded:
+        if name == "_spectra" and not self._loaded:
             ext = os.path.splitext(self._path)[1].upper()
             if ext in (".MZML", ".MZXML", ".MZDATA"):
                 pm = PeakMap.load(self._path)
@@ -864,8 +897,8 @@ class PeakMapProxy(PeakMap):
 
     def squeeze(self):
         self._loaded = False
-        if "spectra" in self.__dict__:  # use of 'hasattr' would trigger 'getattr' and load data !
-            del self.spectra
+        if "_spectra" in self.__dict__:  # use of 'hasattr' would trigger 'getattr' and load data !
+            del self._spectra
 
     def store(self, path):
         """overrides path from PeakMap class because this method would trigger loading the

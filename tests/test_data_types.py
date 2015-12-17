@@ -112,17 +112,14 @@ class TestMSTypes(object):
         pp2 = pm.spectra[0].peaksInRange(mzmin = 0)
         assert np.all(pp1 == pp2)
 
-        specs0 = pm.spectra[:]
+        specs0 = list(pm.spectra)
         specs1 = pm.specsInRange(0, 99999)
         specs2 = pm.specsInRange(0, specs0[0].rt)
         specs3 = pm.specsInRange(specs0[-1].rt, 999999)
 
-
-
         assert specs0 == specs1
         assert specs2 == [ specs0[0] ]
         assert specs3 == [ specs0[-1] ]
-
 
 
         pm.spectra[0].polarity = "+"
@@ -135,8 +132,8 @@ class TestMSTypes(object):
 
     def testEmptyPeakMap(self):
         pm = PeakMap([])
-        assert pm.extract(0, 9999, 0, 10000).spectra == []
-        assert pm.filter(lambda t: True).spectra == []
+        assert pm.extract(0, 9999, 0, 10000).spectra == ()
+        assert pm.filter(lambda t: True).spectra == ()
         assert pm.specsInRange(0, 10e6) == []
         assert pm.levelNSpecsInRange(1, 0, 10e6) == []
         assert pm.chromatogram(0, 10e6, 0, 10e6) == ([], [])
@@ -294,4 +291,11 @@ class TestMSTypes(object):
         pm.spectra[0].rt += 2
         after = spec.uniqueId()
         assert before != after
+
+        from cPickle import loads, dumps
+
+        back = loads(dumps(pm))
+        back.meta.pop("unique_id", None)
+        pm.meta.pop("unique_id", None)
+        assert back.uniqueId() == pm.uniqueId()
 

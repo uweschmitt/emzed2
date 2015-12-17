@@ -188,7 +188,7 @@ def _get_temp_peakmap(msLevel, peakMap):
         msLevel = msLevels[0]
 
     temp_peakmap = peakMap.extract(mslevelmin=msLevel, mslevelmax=msLevel)
-    temp_peakmap.spectra.sort(key=lambda s: s.rt)
+    temp_peakmap.spectra = sorted(temp_peakmap, key=lambda s: s.rt)
     return temp_peakmap
 
 

@@ -49,3 +49,18 @@ def test_stack_tables_with_empty_list():
     t = emzed.utils.stackTables([])
     assert len(t) == 0
     assert len(t.getColNames()) == 0
+
+
+def test_invalidated_peakmaps():
+    import numpy as np
+
+    peaks = np.zeros((0, 2), dtype="float64")
+    spec = emzed.core.data_types.ms_types.Spectrum(peaks, 0.0, 1, "+", [])
+    pm = emzed.core.data_types.ms_types.PeakMap([spec])
+
+    t = emzed.utils.toTable("peakmap", [pm])
+
+    before = t.uniqueId()
+    spec.rt += 1
+    assert t.uniqueId() != before
+
