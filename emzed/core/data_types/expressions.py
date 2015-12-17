@@ -392,6 +392,8 @@ class BaseExpression(object):
     def __div__(self, other):
         return BinaryExpression(self, other, lambda a, b: a / b, "/", None)
 
+    __truediv__ = __div__
+
     def __rdiv__(self, other):
         return BinaryExpression(other, self,  lambda a, b: a / b, "/", None)
 
