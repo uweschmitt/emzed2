@@ -109,6 +109,7 @@ Website Navigation
     :maxdepth: 2
 
     installation
+    fix_windows
     credits
     getting_started
     tour

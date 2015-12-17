@@ -63,7 +63,7 @@ Installation on 64 bit Windows
 5. optional: install `R <http://www.r-project.org/>`_ if you want to use *XCMS* or any other *R*
    library.
 
-
+6. In case of problems, read :ref:`fix_windows` !!!.
 
 Installation on Ubuntu Linux
 ~~~~~~~~~~
