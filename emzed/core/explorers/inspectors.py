@@ -35,8 +35,8 @@ def inspector(obj, *a, **kw):
     return None
 
 
-def inspect(*a, **kw):
-    insp = inspector(*a, **kw)
+def inspect(obj, *a, **kw):
+    insp = inspector(obj, *a, **kw)
     if insp is not None:
         return insp()
     else:

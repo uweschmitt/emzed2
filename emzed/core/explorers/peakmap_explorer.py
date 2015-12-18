@@ -417,10 +417,10 @@ class PeakMapExplorer(EmzedDialog):
         connection here:
         """
         self.eic_plotter.VIEW_RANGE_CHANGED.disconnect()
-        self.in_change = True
+        self.peakmap_plotter.blockSignals(True)
         self.peakmap_plotter.set_rt_limits(rtmin, rtmax)
+        self.peakmap_plotter.blockSignals(False)
         self.peakmap_plotter.replot()
-        self.in_change = False
         self.eic_plotter.VIEW_RANGE_CHANGED.connect(self.eic_view_range_changed)
 
     def mz_view_range_changed(self, mzmin, mzmax):
@@ -431,6 +431,7 @@ class PeakMapExplorer(EmzedDialog):
         connection here:
         """
         self.mz_plotter.VIEW_RANGE_CHANGED.disconnect()
+        self.peakmap_plotter.blockSignals(True)
         self.peakmap_plotter.set_mz_limits(mzmin, mzmax)
         self.peakmap_plotter.blockSignals(False)
         self.peakmap_plotter.replot()
