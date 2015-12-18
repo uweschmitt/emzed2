@@ -14,7 +14,7 @@ does not show up when ou start it ?
 
 This is a known bug on some Windows machines and the following procedure should fix this:
 
-Start ``cmd.exe`` (you can search for this in Windows), a console window should open, then
+Start ``cmd.exe`` (you can search for this with Windows search), a console window should open, then
 enter the following sequence of instructions::
 
     cd %APPDATA%
