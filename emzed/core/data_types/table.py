@@ -436,7 +436,7 @@ class Table(object):
         table.addColumn("nones", table.name.apply(count_nones), type_=int)
 
         print
-        print table
+        table.print_(max_lines=None)
 
     def addRow(self, row, doResetInternals=True):
         """ adds a new row to the table, checks if values in row are of
