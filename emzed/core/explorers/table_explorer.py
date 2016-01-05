@@ -41,6 +41,8 @@ def eic_curves(model):
         if rtmax is not None:
             rtmaxs.append(rtmax)
         curves.extend(eics)
+    if not rtmins or not rtmaxs:
+        return None, None, []
     return min(rtmins), max(rtmaxs), curves
 
 

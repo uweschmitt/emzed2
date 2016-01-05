@@ -377,11 +377,10 @@ class ExtendedCurvePlot(CurvePlot):
             if len(xvals):
                 xmax = max(xvals) * fac
 
-        if xmin == xmax:  # zoomint to same min and max limits looks strange, so we zoom a bit:
-            xmin *= 0.9
-            xmax *= 1.1
-
         if xmin is not None and xmax is not None:
+            if xmin == xmax:  # zoomint to same min and max limits looks strange, so we zoom a bit:
+                xmin *= 0.9
+                xmax *= 1.1
             self.update_plot_xlimits(xmin, xmax)
 
     def reset_y_limits(self, ymin=None, ymax=None, fac=1.1, xmin=None, xmax=None):

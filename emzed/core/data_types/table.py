@@ -969,8 +969,7 @@ class Table(object):
             writer = csv.writer(fp, delimiter=";")
             if as_printed:
                 colNames = self.getVisibleCols()
-                formatters = [
-                    _formatter(self.getColFormat(n)) for n in colNames]
+                formatters = [_formatter(self.getColFormat(n)) for n in colNames]
             else:
                 colNames = self._colNames
                 noop = lambda x: x
