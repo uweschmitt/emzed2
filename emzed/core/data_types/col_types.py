@@ -1,6 +1,8 @@
 import hashlib
 import cPickle
 
+import numpy as np
+
 
 def unique_id_from(*args):
     h = hashlib.sha256()
@@ -76,7 +78,7 @@ class TimeSeries(object):
         this generate yields the pairs (xi, yi) for every segment.
         """
         segments = []
-        ni = [-1] + [i for i, xi in enumerate(x) if xi is None] + [len(x)]
+        ni = [-1] + [i for i, xi in enumerate(x) if xi is None or xi is np.nan] + [len(x)]
         for (si, ti) in zip(ni, ni[1:]):
             if si + 1 < ti:
                 s = slice(si + 1, ti)
