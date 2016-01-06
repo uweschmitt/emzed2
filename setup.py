@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 23, 1)
+version = (2, 23, 2)
 
 
 install_requires = ["emzed_optimizations>=0.5.0",
