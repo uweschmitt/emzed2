@@ -78,7 +78,9 @@ class TimeSeries(object):
         this generate yields the pairs (xi, yi) for every segment.
         """
         segments = []
-        ni = [-1] + [i for i, xi in enumerate(x) if xi is None or xi is np.nan] + [len(x)]
+        def invalid(x, y):
+            return x is None or y is None or x is np.nan or y is np.nan
+        ni = [-1] + [i for i, (xi, yi) in enumerate(zip(x, y)) if invalid(xi, yi)] + [len(x)]
         for (si, ti) in zip(ni, ni[1:]):
             if si + 1 < ti:
                 s = slice(si + 1, ti)
