@@ -17,19 +17,14 @@ import guidata
 
 from pkg_resources import resource_string
 
-from peakmap_plotting_widget import PeakMapPlottingWidget, get_range
-from mz_plotting_widget import MzPlottingWidget
-from eic_plotting_widget import EicPlottingWidget
-
-from helpers import protect_signal_handler
-
-
 from ...io.load_utils import loadPeakMap
-
 from ...gui.file_dialogs import askForSave, askForSingleFile
 
-from emzed_dialog import EmzedDialog
-
+from .peakmap_plotting_widget import PeakMapPlottingWidget, get_range
+from .mz_plotting_widget import MzPlottingWidget
+from .eic_plotting_widget import EicPlottingWidget
+from .helpers import protect_signal_handler
+from .emzed_dialog import EmzedDialog
 from .widgets.image_scaling_widget import ImageScalingWidget
 from .widgets.spectra_selector_widget import SpectraSelectorWidget
 from .widgets.view_range_widget import ViewRangeWidget

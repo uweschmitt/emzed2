@@ -63,7 +63,7 @@ class ImageScalingWidget(_ImageScalingWidget):
         self._gamma_slider.setMaximum(100)
 
     def _set_intensity_field(self, field, value):
-        fmt = "%.0f" if value < 100000 else "%.1e"
+        fmt = "%f" if value < 100000 else "%e"
         field.setText(fmt % value)
 
     def _set_imin_input(self, imin):

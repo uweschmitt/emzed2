@@ -8,7 +8,9 @@ from PyQt4.QtGui import (QPainter, QPixmap)
 from PyQt4.Qwt5 import (QwtScaleDraw, QwtText)
 
 import numpy as np
-from scipy.signal import convolve2d
+import scipy.ndimage.morphology
+
+import pylab
 
 
 from guiqwt.builder import make
@@ -58,8 +60,8 @@ def full_mz_range(pm):
     return mzmin, mzmax
 
 
-def smooth(data, mzmax, mzmin):
-    """smooth image (here this means: paint big pixels) depending on the given mz range
+def dilate(data, mzmax, mzmin):
+    """dilate image (here this means: paint big pixels) depending on the given mz range
     """
     dmz = mzmax - mzmin
     # above dmz > 100.0 we will have n == 2, for dmz < .0 we have n == 4, inbetween
@@ -70,9 +72,10 @@ def smooth(data, mzmax, mzmin):
     smin = 2.0
     n = round(smax - (dmz - dmz_min) / (dmz_max - dmz_min) * (smax - smin))
     n = max(smin, min(smax, n))
-    mask = np.ones((n, n), dtype=np.uint32)
-    smoothed = convolve2d(data, mask, mode="full")
-    return smoothed
+    # we use moving max here, no moving sum, because this lead to strong local peaks which
+    # dominate the final imager after rescaling from max intensity to 1.0:
+    dilated = scipy.ndimage.morphology.grey_dilation(data, int(n))
+    return dilated
 
 
 class PeakMapImageBase(object):
@@ -131,7 +134,7 @@ class PeakMapImageBase(object):
     def compute_image(self, idx, NX, NY, rtmin, rtmax, mzmin, mzmax):
 
         if rtmin >= rtmax or mzmin >= mzmax:
-            smoothed = np.zeros((1, 1))
+            dilated = np.zeros((1, 1))
         else:
             # optimized:
             # one additional row / col as we loose one row and col during smoothing:
@@ -140,32 +143,30 @@ class PeakMapImageBase(object):
             pm = self.peakmaps[idx].getDominatingPeakmap()
             data = sample_image(pm, rtmin, rtmax, mzmin, mzmax, NX + 1, NY + 1)
 
-            smoothed = smooth(data, mzmax, mzmin)
-            # enlarge single pixels depending on the mz range in the image:
+            imin = self.imin
+            imax = self.imax
+
+            if self.is_log:
+                data = np.log(1.0 + data)
+                imin = np.log(1.0 + imin)
+                imax = np.log(1.0 + imax)
+
+            # set values out of range to black:
+            overall_max = np.max(data)
+            data[data < imin] = 0
+            data[data > imax] = 0
+
+            data /= overall_max
+
+            # enlarge peak pixels depending on the mz range in the image:
+            dilated = dilate(data, mzmax, mzmin)
 
         # turn up/down
-        smoothed = smoothed[::-1, :]
-        imin = self.imin
-        imax = self.imax
-
-        if self.is_log:
-            smoothed = np.log(1.0 + smoothed)
-            imin = np.log(1.0 + imin)
-            imax = np.log(1.0 + imax)
-
-        # set values out of range to imin, later this is scaled to 0, also black:
-        smoothed[smoothed < imin] = imin
-        smoothed[smoothed > imax] = imin
-        smoothed -= imin
-
-        # scale to 1.0
-        maxd = np.max(smoothed)
-        if maxd:
-            smoothed /= maxd
+        dilated = dilated[::-1, :]
 
         # apply gamma
-        smoothed = smoothed ** (self.gamma) * 255
-        return smoothed.astype(np.uint8)
+        dilated = dilated ** (self.gamma) * 255
+        return dilated.astype(np.uint8)
 
 
 class PeakMapImageItem(PeakMapImageBase, RawImageItem):
@@ -221,8 +222,7 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
         self.last_xmap = xMap
         self.last_ymap = yMap
 
-        x1, y1 = canvasRect.left(), canvasRect.top()
-        x2, y2 = canvasRect.right(), canvasRect.bottom()
+        x1, y1, x2, y2 = canvasRect.getCoords()
         NX = x2 - x1
         NY = y2 - y1
         rtmin, mzmax, rtmax, mzmin = srcRect
@@ -230,7 +230,7 @@ class PeakMapImageItem(PeakMapImageBase, RawImageItem):
 
         # draw
         srcRect = (0, 0, NX, NY)
-        x1, y1, x2, y2 = canvasRect.getCoords()
+        # x1, y1, x2, y2 = canvasRect.getCoords()
         RawImageItem.draw_image(self, painter, canvasRect, srcRect, (x1, y1, x2, y2), xMap, yMap)
 
 
@@ -291,16 +291,17 @@ class RGBPeakMapImageItem(PeakMapImageBase, RGBImageItem):
         image = self.compute_image(0, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
         image2 = self.compute_image(1, NX, NY, rtmin, rtmax, mzmin, mzmax)[::-1, :]
 
-        smoothed = smooth(image, mzmax, mzmin)
-        smoothed2 = smooth(image2, mzmax, mzmin)
+        dilated = dilate(image.astype(np.int32), mzmax, mzmin)
+        dilated2 = dilate(image2.astype(np.int32), mzmax, mzmin)
 
-        self.data = np.zeros_like(smoothed, dtype=np.uint32)[::-1, :]
-        self.data[:] = 255 << 24  # alpha = 1.0
-        # add image as rgb(255, 255, 0)
-        self.data += smoothed * 256 * 256
-        self.data += smoothed * 256
-        # add image2 as rgb(0, 0, 256)
-        self.data += smoothed2
+        self.data = np.zeros_like(dilated, dtype=np.uint32)[::-1, :]
+        # add image as rgb(255, 255, 0): first we add red, then green which yields yellow:
+        self.data += dilated * 256 * 256
+        # plus red:
+        self.data += dilated * 256
+        # add image2 as rgb(0, 0, 256) which is blue:
+        self.data += dilated2
+        self.data |= 255 << 24
 
         self.bounds = QRectF(rtmin, mzmin, rtmax - rtmin, mzmax - mzmin)
 
