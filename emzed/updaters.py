@@ -2,6 +2,7 @@
 
 import _tools
 
+
 def setup_updaters(data_home=None):
 
     from core.update_handling import registry
@@ -38,6 +39,7 @@ def reset(id_):
 #
 # zum testen: ts_file vorher löschen, oder update_intervall auf 0 setzen
 #
+
 
 def get(id_):
     registry = setup_updaters()
@@ -115,8 +117,9 @@ def print_update_status():
             print "no need to update local verison"
     print
 
+
 def _interactive_update():
-    from core.update_handling import registry
+    from core.update_handling import registry  
     from core.dialogs.update_dialog import UpdateDialog, qapplication
     from core.config import global_config
 
@@ -128,7 +131,7 @@ def _interactive_update():
             yield add_info_line, ("configured exchange folder is %s" % exchange_folder,)
         else:
             yield add_info_line, ("no exchange folder configured. use emzed.config.edit() to "
-                                    "configure an exchange folder",)
+                                  "configure an exchange folder",)
 
         for name, updater in registry.updaters.items():
 
@@ -141,7 +144,7 @@ def _interactive_update():
                     pass
                 else:
                     yield add_info_line, ("%s: failed to update from exchange folder: %s" % (name,
-                        msg),)
+                                                                                             msg),)
             elif flag is False:
                 yield add_info_line, ("%s: local version still up to date" % name,)
             elif flag is None:
@@ -173,7 +176,6 @@ def _interactive_update():
     if at_least_one_sucess:
         import emzed.gui
         emzed.gui.showInformation("please restart emzed to activate updates")
-
 
 
 def interactive_update():
