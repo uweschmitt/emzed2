@@ -67,7 +67,6 @@ except:
     from setuptools.command.easy_install import main
 
     main([os.path.join(HERE, "spyder-2.1.13.zip")])
-    emzed.gui.showInformation("updates finished. please start again.")
     import sys
     sys.exit(0)
 
