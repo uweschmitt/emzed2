@@ -21,6 +21,7 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "pyopenms",
                     "pyRserve==0.8.2",
                     "pytest",
+                    "pycrypto",
                     ]
 
 # if we install pyreadline on ubuntu14 we run into trouble:
