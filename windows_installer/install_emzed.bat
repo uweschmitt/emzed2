@@ -6,11 +6,10 @@ set INSTALLTARGET=%APPDATA%\emzed2
 @echo.
 
 rem on some machines we find the python script on others the exe, so we try both:
-%PYTHONHOME%\python.exe %PYTHONHOME%\Scripts\easy_install-script.py virtualenv
-%PYTHONHOME%\python.exe %PYTHONHOME%\Scripts\easy_install.exe virtualenv
+%PYTHONHOME%\python.exe -m pip install virtualenv
 
 @echo.
-%PYTHONHOME%\python.exe %PYTHONHOME%\Scripts\virtualenv-script.py --system-site-packages %INSTALLTARGET%
+%PYTHONHOME%\python.exe -m virtualenv --system-site-packages %INSTALLTARGET%
 @echo.
 call %INSTALLTARGET%\Scripts\activate
 @echo.
@@ -20,7 +19,7 @@ pip install pyopenms
 @echo.
 python -c "import pyopenms"
 @echo.
-easy_install emzed_optimizations
+pip install emzed_optimizations
 @echo.
 easy_install -U ipython==0.10
 @echo.
@@ -28,3 +27,6 @@ easy_install -U dill
 @echo.
 set MPLCONFIGDIR=.
 easy_install emzed
+REM boostraps libs
+emzed.workbench.debug
+

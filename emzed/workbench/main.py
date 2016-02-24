@@ -63,7 +63,6 @@ try:
     import spyderlib
     print(spyderlib.__version__)
 except: 
-    import emzed.gui
     from setuptools.command.easy_install import main
 
     main([os.path.join(HERE, "spyder-2.1.13.zip")])
