@@ -21,6 +21,7 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "pyopenms",
                     "pyRserve==0.8.2",
                     "pytest",
+                    "pycryptodome<=3.3",   # wheel for 3.4.0 was broken, 3.3 does the job !
                     ]
 
 # if we install pyreadline on ubuntu14 we run into trouble:

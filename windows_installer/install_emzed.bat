@@ -13,7 +13,7 @@ rem on some machines we find the python script on others the exe, so we try both
 @echo.
 call %INSTALLTARGET%\Scripts\activate
 @echo.
-easy_install -U setuptools
+pip install -U setuptools
 @echo.
 pip install pyopenms
 @echo.
@@ -21,11 +21,14 @@ python -c "import pyopenms"
 @echo.
 pip install emzed_optimizations
 @echo.
-easy_install -U ipython==0.10
+pip install -U ipython==0.10
 @echo.
-easy_install -U dill
+pip install -U dill
 @echo.
 set MPLCONFIGDIR=.
+
+easy_install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1.win32-py2.7.exe
+
 easy_install emzed
 REM boostraps libs
 emzed.workbench.debug

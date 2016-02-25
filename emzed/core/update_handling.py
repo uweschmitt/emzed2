@@ -239,6 +239,7 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
 
     def do_update(self, limit):
         updater = load_updater_from_website()
+        print(updater)
         is_venv = os.getenv("VIRTUAL_ENV") is not None
         updater.run_update(locally=not is_venv)
         return "please restart emzed to enable updates"
