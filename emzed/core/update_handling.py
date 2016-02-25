@@ -1,17 +1,17 @@
 # encoding:latin-1
 
+import abc
 import os
 import time
 import random
 import glob
 import subprocess
-import string
 import tempfile
-
-import requests
 
 from .. import version
 from ..core import config
+
+from .emzed_update_downloader import load_updater_from_website
 
 
 def is_writable(folder):
@@ -33,14 +33,8 @@ def is_writable(folder):
         return True
 
 
-import abc
-
 class AbstractUpdaterImpl(object):
     __metaclass__ = abc.ABCMeta
-
-    #@abc.abstractmethod
-    #def __init__(self, data_home, exchange_folder):
-        #pass
 
     @staticmethod
     @abc.abstractmethod
@@ -77,6 +71,7 @@ class AbstractUpdaterImpl(object):
     @abc.abstractmethod
     def update_from_exchange_folder(self, exchange_folder):
         pass
+
 
 class Updater(object):
 
@@ -136,25 +131,28 @@ class Updater(object):
             offer_update = False
         return (self.impl.get_id(), self.get_latest_update_ts(), info, offer_update)
 
-
     def do_update_with_gui(self, limit=None):
         try:
-            self.impl.do_update_with_gui(limit)
+            msg = self.impl.do_update_with_gui(limit)
+            msg = "ok" if msg is None else msg
         except BaseException, e:
             import traceback
             traceback.print_exc()
             return False, str(e)
-        return self._finalize_update()
+        self._finalize_update()
+        return True, msg
 
     def do_update(self, limit=None):
         """ returns flag, message """
         try:
-            self.impl.do_update(limit)
+            msg = self.impl.do_update(limit)
+            msg = "ok" if msg is None else msg
         except BaseException, e:
             import traceback
             traceback.print_exc()
             return False, str(e)
-        return self._finalize_update()
+        self._finalize_update()
+        return True, msg
 
     def _finalize_update(self):
         # update succeeded
@@ -165,7 +163,6 @@ class Updater(object):
                 self.impl.upload_to_exchange_folder(exchange_folder)
                 # make data_home data "newer" than those on exchange folder:
                 self.impl.touch_data_home_files()
-        return True, "ok"
 
     def check_for_newer_version_on_exchange_folder(self):
         """ returns flag, message
@@ -228,53 +225,23 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         return "emzed_updater"
 
     def get_update_time_delta_in_seconds(self):
-        days = 1
-        return days * 24 * 60 * 60
+        minutes = 1
+        return minutes * 60
 
     def query_update_info(self, limit):
-        url = config.global_config.get_url("pypi_url")
-        if url is None:
-            return "pypi_url not set. use emzed.config.edit()", False
-        response = requests.get(url + "/emzed/json")
-        response.raise_for_status()
-        response = response.json()
-        version_str = response["info"]["version"]
-
-        keywords = response["info"].get("keywords") or ""
-        keywords = map(string.lower, keywords.split(","))
-        is_stable = "stable" in keywords
-
-        latest_version = tuple(map(int, version_str.split(".")))
+        updater = load_updater_from_website()
+        latest_version = updater.version()
         if latest_version > version.version:
-            s = "stable" if is_stable else "untested"
-            return "new %s emzed version %s available" % (s.upper(), version_str), True
+            description = updater.description()
+            version_str = ".".join(map(str, latest_version))
+            return "new emzed version %s available\n%s" % (version_str, description), True
         return "emzed still up to date", False
 
     def do_update(self, limit):
+        updater = load_updater_from_website()
         is_venv = os.getenv("VIRTUAL_ENV") is not None
-        # install / locally
-        user_flag = "" if is_venv else "--user"
-        url = config.global_config.get_url("pypi_index_url")
-        if url is not None:
-            extra_args = "-i %s" % url
-        else:
-            extra_args = ""
-
-        # starting easy_install from temp dir is needed as it fails if easy_install
-        # is started from a dir which has emzed as sub dir:
-        temp_dir = tempfile.mkdtemp()
-        try:
-            print subprocess.check_output("pip uninstall -y emzed",
-                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
-            print subprocess.check_output("pip install --upgrade %s %s emzed" % (user_flag, extra_args),
-                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError, e:
-            print e.output
-        # try to cleanup, failure does not matter
-        try:
-            os.rmdir(temp_dir)
-        except:
-            pass
+        updater.run_update(locally=not is_venv)
+        return "please restart emzed to enable updates"
 
     def upload_to_exchange_folder(self, exchange_folder):
         pass
@@ -298,7 +265,7 @@ class UpdaterRegistry(object):
 
     def register(self, updater):
         assert isinstance(updater, Updater)
-        self.updaters[updater.get_id()]=updater
+        self.updaters[updater.get_id()] = updater
 
     def get(self, id_):
         return self.updaters.get(id_)
@@ -309,8 +276,6 @@ class UpdaterRegistry(object):
     def install(self, module):
         for name, updater in self.updaters.items():
             setattr(module, name, updater.do_update)
-
-
 
 registry = UpdaterRegistry()
 registry.reset()

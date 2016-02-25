@@ -2,6 +2,7 @@
 
 import _tools
 
+
 def setup_updaters(data_home=None):
 
     from core.update_handling import registry
@@ -38,6 +39,7 @@ def reset(id_):
 #
 # zum testen: ts_file vorher löschen, oder update_intervall auf 0 setzen
 #
+
 
 def get(id_):
     registry = setup_updaters()
@@ -115,20 +117,34 @@ def print_update_status():
             print "no need to update local verison"
     print
 
+
 def _interactive_update():
-    from core.update_handling import registry
+    from core.update_handling import registry  
     from core.dialogs.update_dialog import UpdateDialog, qapplication
     from core.config import global_config
 
     registry = setup_updaters()
 
     def script(add_info_line, add_update_info):
+        """
+        add_info_line and add_upate_info are two tokens to communicate with the GUI.
+        Actually both are methods.
+        For calling the methods we yield a pair where the first entry is the method and
+        the second is a tuple of arguments.
+
+        This method allows async updating the dialog without blocking the GUI until all
+        update info is retrieved.
+
+        add_info_line adds text to the upper text field in the dialog and add_update_info
+        adds a row to the table below this text field.
+        """
+
         exchange_folder = global_config.get("exchange_folder")
         if exchange_folder:
             yield add_info_line, ("configured exchange folder is %s" % exchange_folder,)
         else:
             yield add_info_line, ("no exchange folder configured. use emzed.config.edit() to "
-                                    "configure an exchange folder",)
+                                  "configure an exchange folder",)
 
         for name, updater in registry.updaters.items():
 
@@ -141,7 +157,7 @@ def _interactive_update():
                     pass
                 else:
                     yield add_info_line, ("%s: failed to update from exchange folder: %s" % (name,
-                        msg),)
+                                                                                             msg),)
             elif flag is False:
                 yield add_info_line, ("%s: local version still up to date" % name,)
             elif flag is None:
@@ -152,6 +168,8 @@ def _interactive_update():
 
             if updater.offer_update_lookup():
                 id_, ts, info, offer_update = updater.query_update_info()
+                if "\n" in info:  # multiline info
+                    yield add_info_line, ("\n%s" % info,)
                 yield add_update_info, (name, info, offer_update)
             else:
                 yield add_update_info, (name, "no update lookup today", False)
@@ -173,7 +191,6 @@ def _interactive_update():
     if at_least_one_sucess:
         import emzed.gui
         emzed.gui.showInformation("please restart emzed to activate updates")
-
 
 
 def interactive_update():
