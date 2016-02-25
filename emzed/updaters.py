@@ -126,6 +126,19 @@ def _interactive_update():
     registry = setup_updaters()
 
     def script(add_info_line, add_update_info):
+        """
+        add_info_line and add_upate_info are two tokens to communicate with the GUI.
+        Actually both are methods.
+        For calling the methods we yield a pair where the first entry is the method and
+        the second is a tuple of arguments.
+
+        This method allows async updating the dialog without blocking the GUI until all
+        update info is retrieved.
+
+        add_info_line adds text to the upper text field in the dialog and add_update_info
+        adds a row to the table below this text field.
+        """
+
         exchange_folder = global_config.get("exchange_folder")
         if exchange_folder:
             yield add_info_line, ("configured exchange folder is %s" % exchange_folder,)
@@ -155,6 +168,8 @@ def _interactive_update():
 
             if updater.offer_update_lookup():
                 id_, ts, info, offer_update = updater.query_update_info()
+                if "\n" in info:  # multiline info
+                    yield add_info_line, ("\n%s" % info,)
                 yield add_update_info, (name, info, offer_update)
             else:
                 yield add_update_info, (name, "no update lookup today", False)

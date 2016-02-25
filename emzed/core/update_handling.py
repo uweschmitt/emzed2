@@ -225,8 +225,8 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
         return "emzed_updater"
 
     def get_update_time_delta_in_seconds(self):
-        days = 1
-        return days * 24 * 60 * 60
+        minutes = 1
+        return minutes * 60
 
     def query_update_info(self, limit):
         updater = load_updater_from_website()
