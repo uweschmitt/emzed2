@@ -59,7 +59,7 @@ class UpdateDialog(QDialog):
         self.ok_button.setEnabled(True)
 
     def setup_widgets(self):
-        self.label_info = QLabel("updates from exchange folder:")
+        self.label_info = QLabel("messages:")
         self.info = QTextEdit(self)
         self.info.setReadOnly(1)
 
