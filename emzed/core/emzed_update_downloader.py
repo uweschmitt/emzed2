@@ -13,7 +13,7 @@ from base64 import b64decode, b64encode
 to reformat one very long line from public key file:
 1. mark key code line
 2. !fold -w 90
-3. remove email adress at end !
+3. remove id resp. email adress at end !
 """
 
 public_key="""
@@ -27,8 +27,9 @@ gt5a7PaxfQEEWjMM1AR7qiV+ZK+ioGiZ3yYICLtdgBCp9Kf1rTn1x9tw0+CfCDHOSYo3t5uSCA1BcHQ4
 
 def verify_sign(signature, message, public_key=public_key):
     '''
-    Verifies with a public key from whom the data came that it was indeed
-    signed by their private key
+    Verifies with a public key from whom the data came that it was indeed signed by their private
+    key.
+
     param: public_key_loc Path to public key
     param: signature String signature to be verified
     return: Boolean. True if the signature is valid; False otherwise.
