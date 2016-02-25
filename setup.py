@@ -12,9 +12,7 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "guiqwt<=2.3.2",
                     "requests",
                     "ipython==0.10",
-                    # "spyder==2.1.13",
                     "dill",
-                    "sphinx",
                     "html2text",
                     "pandas",
                     "dill",
@@ -22,7 +20,6 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "pyRserve==0.8.2",
                     "pytest",
                     "scikit-learn",
-                    "pycryptodome<=3.3",   # wheel for 3.4.0 was broken, 3.3 does the job !
                     ]
 
 # if we install pyreadline on ubuntu14 we run into trouble:

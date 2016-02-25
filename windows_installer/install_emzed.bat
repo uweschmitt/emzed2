@@ -27,9 +27,10 @@ pip install -U dill
 @echo.
 set MPLCONFIGDIR=.
 
-easy_install http://www.voidspace.org.uk/python/pycrypto-2.6.1/pycrypto-2.6.1.win32-py2.7.exe
+pip install "pycryptodome<=3.3"
 
 easy_install emzed
-REM boostraps libs
+
+REM boostrap libs:
 emzed.workbench.debug
 
