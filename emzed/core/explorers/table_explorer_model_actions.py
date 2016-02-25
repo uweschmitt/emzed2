@@ -193,14 +193,14 @@ class IntegrateAction(TableAction):
             area = res.get("area")
             rmse = res.get("rmse")
             params = res.get("params")
-            eic = res.get("eic")
+            # eic = res.get("eic")
             baseline = res.get("baseline")
 
         else:
             area = None
             rmse = None
             params = None
-            eic = None
+            # eic = None
             baseline = None
 
         # var 'row' is a Bunch, so we have to get the row from direct access
@@ -215,7 +215,7 @@ class IntegrateAction(TableAction):
         table.setValue(row, "area" + postfix, area)
         table.setValue(row, "rmse" + postfix, rmse)
         table.setValue(row, "params" + postfix, params)
-        table.setValue(row, "eic" + postfix, eic)
+        # table.setValue(row, "eic" + postfix, eic)
         table.setValue(row, "baseline" + postfix, baseline)
         self.notifyGUI()
         return True
