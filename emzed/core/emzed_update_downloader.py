@@ -61,7 +61,7 @@ def check(script_code, signature):
 
 def import_from_string(script_code):
 
-    # we mimic a name space for the downloaded code here:
+    # we mimic a "module" (name space) for the downloaded code here:
 
     class Updater(object):
         pass

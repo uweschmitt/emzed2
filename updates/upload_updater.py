@@ -1,14 +1,25 @@
 # encoding: utf-8
-from __future__ import print_function
+from __future__ import print_function, division
 
 
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 
-from base64 import b64decode, b64encode
+from base64 import b64encode
 
 from subprocess import check_output, call
+
+
+"""
+
+This script first checks if the private key in this folder is consisent with the public key in
+emzed/core/emzed_update_downloader.py. If this succeeds a digital signature of updater.py is
+computed and script and signaure are uploaded to the emzed website at
+http://emzed.ethz.ch/downloads.
+
+"""
+
 
 def sign(message, private_key):
     key = RSA.importKey(private_key)
@@ -32,11 +43,13 @@ def check_consitency_of_key_pair():
                                            "emzed.core.emzed_update_downloader first")
     return private_key
 
+
 def write_signature_file(private_key):
     updater_code = open("updater.py").read()
     signature = sign(updater_code, private_key)
     with open("updater.py.signature", "wb") as fh:
         fh.write(signature)
+
 
 def upload_stuff():
     call("scp updater.py emzed:htdocs/downloads".split(" "))

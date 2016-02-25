@@ -239,34 +239,9 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
 
     def do_update(self, limit):
         updater = load_updater_from_website()
-        print(updater)
         is_venv = os.getenv("VIRTUAL_ENV") is not None
         updater.run_update(locally=not is_venv)
         return "please restart emzed to enable updates"
-
-        # install / locally
-        user_flag = "" if is_venv else "--user"
-        url = config.global_config.get_url("pypi_index_url")
-        if url is not None:
-            extra_args = "-i %s" % url
-        else:
-            extra_args = ""
-
-        # starting easy_install from temp dir is needed as it fails if easy_install
-        # is started from a dir which has emzed as sub dir:
-        temp_dir = tempfile.mkdtemp()
-        try:
-            print subprocess.check_output("pip uninstall -y emzed",
-                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
-            print subprocess.check_output("pip install --upgrade %s %s emzed" % (user_flag, extra_args),
-                                          shell=True, cwd=temp_dir, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError, e:
-            print e.output
-        # try to cleanup, failure does not matter
-        try:
-            os.rmdir(temp_dir)
-        except:
-            pass
 
     def upload_to_exchange_folder(self, exchange_folder):
         pass
