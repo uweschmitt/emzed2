@@ -58,9 +58,8 @@ def test_invalidated_peakmaps():
     spec = emzed.core.data_types.ms_types.Spectrum(peaks, 0.0, 1, "+", [])
     pm = emzed.core.data_types.ms_types.PeakMap([spec])
 
-    t = emzed.utils.toTable("peakmap", [pm])
+    t = emzed.utils.toTable("peakmap", [pm, None])
 
     before = t.uniqueId()
     spec.rt += 1
     assert t.uniqueId() != before
-

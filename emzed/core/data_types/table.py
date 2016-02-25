@@ -2310,7 +2310,8 @@ class Table(object):
         if "unique_id" in self.meta:
             peakmaps = set(s for name in self._colNames
                            if name.startswith("peakmap")
-                           for s in set(self.getColumn(name)))
+                           for s in set(self.getColumn(name))
+                           if s is not None)
             found_invalidated_pm = any("unique_id" not in pm.meta for pm in peakmaps)
         if "unique_id" not in self.meta or found_invalidated_pm:
             h = hashlib.sha256()
