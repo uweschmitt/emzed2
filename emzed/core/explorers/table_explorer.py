@@ -1008,8 +1008,13 @@ class TableExplorer(EmzedDialog):
             return
 
         col_name = str(self.chooseGroupColumn.currentText())
-        widget_rows = self.model.rows_with_same_value(col_name, widget_row_idx)
-        to_select = widget_rows[:200]  # avoid to many rows
+        to_select = self.model.rows_with_same_value(col_name, widget_row_idx)
+
+        N = 200
+        if len(to_select) > N:
+            QMessageBox.warning(self, "Warning", "multiselect would mark %d lines. "
+                                      "reduced number of lines to %d" % (len(to_select), N))
+            to_select = to_select[:N]
 
         # expand selection
         mode_before = self.tableView.selectionMode()
