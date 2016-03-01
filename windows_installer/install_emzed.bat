@@ -31,6 +31,11 @@ pip install "pycryptodome<=3.3"
 
 easy_install emzed
 
+REM sometimes matplotlib setup is broken, this should fix this:
+set MPLCONFIGDIR=%APPDATA%\matplotlib_config
+python -c "import matplotlib"
+python -c "import matplotlib"
+
 REM boostrap libs:
 emzed.workbench.debug
 
