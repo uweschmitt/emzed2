@@ -1,4 +1,4 @@
-from emzed.r import RInterpreter, RError, RInterpreterFast
+from emzed.r import RInterpreter, RError
 from emzed.utils import toTable
 from emzed.core import Table
 
@@ -6,11 +6,6 @@ from emzed.core import Table
 def test_native_types():
 
     ip = RInterpreter()
-    _test_native_types(ip)
-
-def test_native_types_fast():
-
-    ip = RInterpreterFast()
     _test_native_types(ip)
 
 def _test_native_types(ip):
@@ -33,9 +28,6 @@ def test_tables(regtest):
     ip = RInterpreter()
     _test_tables(ip, regtest)
 
-def test_tables_fast(regtest):
-    ip = RInterpreterFast()
-    _test_tables(ip, regtest)
 
 def _test_tables(ip, regtest):
     t = toTable("a", [1, 2])
@@ -79,35 +71,6 @@ def test_table_full(regtest):
     print >> regtest, t._colTypes
     print >> regtest, ip.t._colTypes
 
-
-
-def test_nested(regtest):
-    ip = RInterpreterFast()
-    ip.execute("""
-        df <- data.frame(a=c(1,2,3))
-        li <- list(df=df, x=3)
-        li2 <- list(a=li)
-        cc <- c(1,2,3)
-    """)
-
-    assert isinstance(ip.df, Table)
-    print >> regtest, ip.df
-
-    assert isinstance(ip.li.df, Table)
-    print >> regtest, ip.li.df
-    print >> regtest, ip.li.x
-
-    assert isinstance(ip.li2.a.df, Table)
-    print >> regtest, ip.li2.a.df
-    print >> regtest, ip.li2.a.x
-
-    print >> regtest, ip.cc
-
-    ip.abc = ip.cc
-    print >> regtest, ip.abc
-
-    ip.abc = (1, 2, "3")
-    print >> regtest, ip.abc
 
 
 def test_r_error_pickling():

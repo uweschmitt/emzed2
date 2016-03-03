@@ -1,1 +1,1 @@
-from core.r_connect import RInterpreter, RError, RInterpreterFast
+from core.r_connect import RInterpreter, RError
