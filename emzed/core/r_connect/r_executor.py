@@ -13,7 +13,6 @@ import time
 import traceback
 import weakref
 
-import pyRserve
 import pandas
 import numpy as np
 
