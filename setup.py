@@ -17,7 +17,6 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "pandas",
                     "dill",
                     "pyopenms",
-                    "pytest",
                     "scikit-learn",
                     ]
 
