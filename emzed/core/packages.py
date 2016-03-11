@@ -49,7 +49,7 @@ VERSION = %(version)r
 
 # list all required packages here:
 
-REQUIRED_PACKAGES = ["emzed", ]
+REQUIRED_PACKAGES = []
 
 
 ### install package as emzed extension ? #############################################
