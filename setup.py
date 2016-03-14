@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 version = (2, 24, 5)
 
 
-install_requires = ["emzed_optimizations>=0.5.0",
+install_requires = [
                     "guidata<=1.6.2",
                     "guiqwt<=2.3.2",
                     "requests",
@@ -19,6 +19,9 @@ install_requires = ["emzed_optimizations>=0.5.0",
                     "pyopenms",
                     "pytest",
                     "scikit-learn",
+
+                    "emzed_optimizations>=0.5.0",
+                    "pycryptodome<=3.3",
                     ]
 
 # if we install pyreadline on ubuntu14 we run into trouble:
