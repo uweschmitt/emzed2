@@ -299,3 +299,6 @@ class TestMSTypes(object):
         pm.meta.pop("unique_id", None)
         assert back.uniqueId() == pm.uniqueId()
 
+        for s in back:
+            s.peaks += 1
+

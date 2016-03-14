@@ -34,10 +34,12 @@ class NDArrayProxy(np.ndarray):
     http://docs.scipy.org/doc/numpy-1.9.2/user/basics.subclassing.html
     """
 
-    def __new__(cls, input_array, modification_callback=None):
+    def __new__(cls, input_array):
         obj = np.asarray(input_array).view(cls)
-        obj._modification_callback = modification_callback
         return obj
+
+    def patch_modification_callback(self, callback):
+        self._modification_callback = callback
 
     def __array_finalize__(self, obj):
         if obj is None:
@@ -47,7 +49,7 @@ class NDArrayProxy(np.ndarray):
     def wrap(special_method_name):
         def inner(self, *a, **kw):
             if self._modification_callback is not None:
-                self._modification_callback(self)
+                self._modification_callback()
             return getattr(np.ndarray, special_method_name)(self, *a, **kw)
         return inner
 
@@ -111,18 +113,12 @@ class Spectrum(object):
         if meta is None:
             meta = dict()
 
-        def invalidate_unique_id(peaks):
-            if "unique_id" in self.meta:
-                del self.meta["unique_id"]
-                if self._parent is not None:
-                    parent = self._parent()
-                    if parent is not None and "unique_id" in parent.meta:
-                        del parent.meta["unique_id"]
 
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
-        self.peaks = NDArrayProxy(peaks[perm, :], modification_callback=invalidate_unique_id)  # .astype(np.float64)
+
+        self._setup_peaks(peaks[perm, :])
 
         self._rt = rt
         self._msLevel = msLevel
@@ -130,8 +126,19 @@ class Spectrum(object):
         self._precursors = precursors
 
         self.meta = meta
-
         self._parent = None
+
+    def _setup_peaks(self, peaks):
+        self.peaks = NDArrayProxy(peaks)
+        self.peaks.patch_modification_callback(self._invalidate_unique_id)
+
+    def _invalidate_unique_id(self):
+        if "unique_id" in self.meta:
+            del self.meta["unique_id"]
+            if self._parent is not None:
+                parent = self._parent()
+                if parent is not None and "unique_id" in parent.meta:
+                    del parent.meta["unique_id"]
 
     def register_parent(self, parent):
         self._parent = weakref.ref(parent)
@@ -425,19 +432,21 @@ class Spectrum(object):
 
     def __getstate__(self):
         return (self.meta, self.rt, self.msLevel, self.polarity, self.precursors,
-                self.peaks)
+                np.asarray(self.peaks))
 
     def __setstate__(self, state):
         if isinstance(state, dict):
             state = self._fix_for_unpickling_older_files(state)
             self.__dict__.update(state)
+            self._setup_peaks(self.peaks)
         else:
             self._parent = None
             self.meta = state[0]
             # here we have properties which access self.meta, this why we first set
             # selt.meta (no property) and then the following properties:
-            self.rt, self.msLevel, self.polarity, self.precursors, self.peaks = state[1:]
+            self.rt, self.msLevel, self.polarity, self.precursors, peaks = state[1:]
             self.meta = state[0]
+            self._setup_peaks(peaks)
 
 
 class PeakMap(object):
