@@ -299,6 +299,12 @@ class TestMSTypes(object):
         pm.meta.pop("unique_id", None)
         assert back.uniqueId() == pm.uniqueId()
 
+        # this was broken after pickling, the callback was not pickled and calling
+        # it whein operatin on peaks rose an excepion
         for s in back:
             s.peaks += 1
+
+        # this was broken because it creates a view which is not continous:
+        s.peaks = s.peaks[1:-1:2]
+        assert s.uniqueId()
 

@@ -181,7 +181,7 @@ class Spectrum(object):
             h.update("%.6e" % self.rt)
             h.update(str(self.msLevel))
             # peaks.data is binary representation of numpy array peaks:
-            h.update(str(self.peaks.data))
+            h.update(str(self.peaks.tostring()))
             h.update(str(self.polarity))
             for mz, ii in self.precursors:
                 h.update("%.6e" % mz)
