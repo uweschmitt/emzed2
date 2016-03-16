@@ -2,23 +2,22 @@
 from __future__ import print_function
 
 def version():
-    return (0, 0, 1)
+    return (2, 24, 6)
 
 
 def description():
     msg = """
-    this is a test for development of the prototype. New Feature:
-        - first version of new version
-        - not the last version of new version
-        - bla bla bla
+    release 2.24.6:
+    this release provides some bugfixes and minor performance improvements.
     """
     return msg
 
 
 def run_update(locally=True):
     import pip
-    pip.main("install -U requests".split())
-    raw_input("press enter !")
+    pip.main("install -U pycryptodome<=3.3".split())
+    pip.main("install -U emzed_optimizations>=0.5.0".split())
+    pip.main("install emzed==2.24.6".split())
 
 
 if __name__ == "__main__":
