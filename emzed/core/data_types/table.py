@@ -2566,8 +2566,8 @@ class TProxy(Table):
 
     def __getattr__(self, name):
         if name in self._t._colNames:
-            ix = self.getIndex(name)
-            col = ColumnExpression(self, name, ix, self._colTypes[ix])
+            ix = self._t.getIndex(name)
+            col = ColumnExpression(self._t, name, ix, self._t._colTypes[ix])
             return col
         return getattr(self._t, name)
 
