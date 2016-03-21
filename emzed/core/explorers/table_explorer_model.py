@@ -32,12 +32,14 @@ class TableModel(QAbstractTableModel):
 
     DATA_CHANGE = pyqtSignal(object, object)
     SORT_TRIGGERED = pyqtSignal(str, bool)
- 
-    def __init__(self, table, view):
-        parent = view
+    ACTION_LIST_CHANGED = pyqtSignal(object, object)
+
+
+    def __init__(self, table, parent):
+        #parent = view_widget
         super(TableModel, self).__init__(parent)
         self.table = table
-        self.view = view
+        # self.view_widget = view_widget
         nc = len(self.table._colNames)
         self.indizesOfVisibleCols = [j for j in range(nc) if self.table._colFormats[j] is not None]
         self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
@@ -220,15 +222,20 @@ class TableModel(QAbstractTableModel):
             return done
         self.actions.append(action)
         self.redoActions = []
-        self.view.updateMenubar()
+        self.emit_updated_actions()
         return done
 
-    def infoLastAction(self):
+    def emit_updated_actions(self):
+        last_action = unicode(self.actions[-1]) if self.actions else None
+        last_redo_action = unicode(self.redoActions[-1]) if self.redoActions else None
+        self.ACTION_LIST_CHANGED.emit(last_action, last_redo_action)
+
+    def _infoLastAction(self):
         if len(self.actions):
             return unicode(self.actions[-1])
         return None
 
-    def infoRedoAction(self):
+    def _infoRedoAction(self):
         if len(self.redoActions):
             return unicode(self.redoActions[-1])
         return None
@@ -240,7 +247,7 @@ class TableModel(QAbstractTableModel):
             action.undo()
             self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
             self.redoActions.append(action)
-            self.view.updateMenubar()
+            self.emit_updated_actions()
 
     def redoLastAction(self):
         if len(self.redoActions):
@@ -249,7 +256,7 @@ class TableModel(QAbstractTableModel):
             action.do()
             self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
             self.actions.append(action)
-            self.view.updateMenubar()
+            self.emit_updated_actions()
             return
 
     def cloneRow(self, widget_row_idx):

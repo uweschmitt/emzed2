@@ -212,7 +212,7 @@ class EmzedTableView(QTableView):
             self.setSortingEnabled(True)
             self.resizeColumnsToContents()
             self.model().emptyActionStack()
-            self.dialog.updateMenubar()
+            self.dialog.updateMenubar(None, None)
 
     @protect_signal_handler
     def keyPressEvent(self, evt):
@@ -253,7 +253,7 @@ class TableExplorer(EmzedDialog):
 
         self.offerAbortOption = offerAbortOption
 
-        self.models = [TableModel(table, self) for table in tables]
+        self.models = [TableModel(table, parent=self) for table in tables]
         self.model = None
         self.tableView = None
 
@@ -629,11 +629,17 @@ class TableExplorer(EmzedDialog):
 
             self.connect(vh, SIGNAL("sectionClicked(int)"), self.rowClicked)
 
+            vh.customContextMenuRequested.connect(self.openContextMenu)
+            vh.sectionClicked.connect(self.rowClicked)
+
             model = view.model()
             handler = lambda idx, model=model: self.handleClick(idx, model)
             handler = protect_signal_handler(handler)
-            self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
-            self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
+            #self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
+            #self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
+            model.ACTION_LIST_CHANGED.connect(self.updateMenubar)
+            view.clicked.connect(handler)
+            view.doubleClicked.connect(self.handle_double_click)
 
             view.pressed.connect(self.cell_pressed)
 
@@ -812,9 +818,9 @@ class TableExplorer(EmzedDialog):
     def group_column_selected(self, idx):
         self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-    def updateMenubar(self):
-        undoInfo = self.model.infoLastAction()
-        redoInfo = self.model.infoRedoAction()
+    def updateMenubar(self, undoInfo, redoInfo):
+        #undoInfo = self.model.infoLastAction()
+        #redoInfo = self.model.infoRedoAction()
         self.undoAction.setEnabled(undoInfo is not None)
         self.redoAction.setEnabled(redoInfo is not None)
         if undoInfo:
@@ -865,7 +871,7 @@ class TableExplorer(EmzedDialog):
         self.setup_choose_group_column_widget(hidden)
         self.setup_sort_fields(hidden)
         self.connectModelSignals()
-        self.updateMenubar()
+        self.updateMenubar(None, None)
         self.set_window_title(self.model.table)
 
     def setup_choose_group_column_widget(self, hidden_names):
