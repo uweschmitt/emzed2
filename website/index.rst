@@ -93,6 +93,7 @@ emzed in the press
 
 Recent publications using emzed for data analysis:
 
+* Hemann et al. "The One-carbon Carrier Methylofuran from Methylobacterium extorquens AM1 Contains a Large Number of Alpha- and Gamma-linked Glutamic Acid Residues", http://doi.org/10.1074/jbc.M116.714741
 * Peter et al. "Screening and Engineering the Synthetic Potential of Carboxylating Reductases from Central Metabolism and Polyketide Biosynthesis." Angew Chem Int Ed Engl. (2015).
 * Kiefer, Patrick, et al. "DynaMet, a fully automated pipeline for dynamic LC-MS data." Analytical Chemistry (2015).
 * Ryffel, Florian, et al. "Metabolic footprint of epiphytic bacteria on Arabidopsis thaliana leaves." The ISME journal (2015).
