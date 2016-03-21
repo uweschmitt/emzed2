@@ -206,36 +206,26 @@ class: center, middle, inverse
 
 # How did it start ?
 
-- Julia Vorholt and Patrick Kiefer asked for assistance in 2012.
+- Prof Julia Vorholt and Patrick Kiefer asked for assistance in 2012.
 
 - Stategic IT fund of DBIOL payed 4 months of work for emzed 1
 
 
 ---
 
-# Software wishlist:
-
-- flexible
-
-- easy to use
-
-- integrative
-
-- interactive graphical data inspection tools
-
---
-
 # emzed concepts:
 
-- flexible: workflows are Python scripts
+- workflows are Python scripts
 
-- easy to use: workflows compose emzed functions
+- workflows compose emzed functions
 
-- easy to use: matlab like workbench
+- simple API ("internal DSL")
 
-- integrative: bridges to R and OpenMS
+- matlab like workbench
 
-- good tools for interactive data analysis
+- bridges to R and OpenMS
+
+- tools for interactive data analysis
 
 ---
 
@@ -246,7 +236,7 @@ class: center, middle, inverse
 ---
 
 
-# Example: I/O
+# API Example: I/O
 
 ````python
 >>> import emzed
@@ -279,7 +269,7 @@ NDArrayProxy([[  202.07313538,   877.50109863],
 
 ---
 
-# Example: peak picker from OpenMS
+# API Example: peak picker from OpenMS
 
 ````python
 >>> peaks = emzed.ff.runMetaboFeatureFinder(data, config="std")
@@ -303,7 +293,7 @@ int      int        float      float    float     float     float
 ````
 ---
 
-# Example: Table handling
+# API Example: Table handling
 
 ````python
 >>> targets = emzed.io.loadCSV("targets.csv")
@@ -337,7 +327,7 @@ cryptonite Kr       -
 ````
 ---
 
-# Example: Table handling continued
+# API Example: Table handling continued
 
 ````python
 >>> on_earth = targets.filter(targets.m0.isNotNone())
@@ -365,7 +355,7 @@ float     float     str        str      float
 
 ---
 
-# Example: Dialog builder
+# API Example: Dialog builder
 
 ````python
 >>> b = emzed.gui.DialogBuilder(title="Please provide data")
@@ -403,8 +393,6 @@ float     float     str        str      float
 <center>
 <img src="workbenc.png" class="center" width="700">
 </center>
----
-
 
 ---
 # emzed internals:
@@ -419,7 +407,7 @@ float     float     str        str      float
 
 - Workbench is patched **Spyder**
 
-- R bridge uses **ruype** (stdio/stdout pipes to R subprocess)
+- R bridge uses **rPype** (stdio/stdout pipes to R subprocess)
 
 - Bridge to **OpenMS** uses Cython (pyOpenMS)
 
