@@ -24,6 +24,9 @@ def protect_signal_handler(fun):
         except:
             import traceback
             traceback.print_exc()
+            msg = traceback.format_exc()
+            import emzed
+            emzed.gui.showWarning(msg)
     return wrapped
 
 

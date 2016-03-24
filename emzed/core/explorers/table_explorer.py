@@ -16,6 +16,7 @@ from mz_plotting_widget import MzPlottingWidget
 from ts_plotting_widget import TimeSeriesPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack
+from ..data_types.hdf5 import TableProxy
 
 from table_explorer_model import *
 
@@ -30,6 +31,7 @@ from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog, IntegrationW
 from ...gui.file_dialogs import askForSave
 
 from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
+
 
 
 def eic_curves(model):
@@ -568,11 +570,9 @@ class TableExplorer(EmzedDialog):
         frame.setLayout(layout)
         return frame
 
-    def set_window_title(self, table, visible=None):
-        if visible is None:
-            visible = table
+    def set_window_title(self, n_rows_total, n_rows_visible):
         model_title = self.model.getTitle()
-        title = "%d out of %d rows from %s" % (len(visible), len(table), model_title)
+        title = "%d out of %d rows from %s" % (n_rows_visible, n_rows_total, model_title)
         self.setWindowTitle(title)
 
     def setup_model_dependent_look(self):
@@ -625,18 +625,12 @@ class TableExplorer(EmzedDialog):
         for view in self.tableViews:
             vh = view.verticalHeader()
             vh.setContextMenuPolicy(Qt.CustomContextMenu)
-            self.connect(vh, SIGNAL("customContextMenuRequested(QPoint)"), self.openContextMenu)
-
-            self.connect(vh, SIGNAL("sectionClicked(int)"), self.rowClicked)
-
             vh.customContextMenuRequested.connect(self.openContextMenu)
             vh.sectionClicked.connect(self.rowClicked)
 
             model = view.model()
             handler = lambda idx, model=model: self.handleClick(idx, model)
             handler = protect_signal_handler(handler)
-            #self.connect(view, SIGNAL("clicked(QModelIndex)"), handler)
-            #self.connect(view, SIGNAL("doubleClicked(QModelIndex)"), self.handle_double_click)
             model.ACTION_LIST_CHANGED.connect(self.updateMenubar)
             view.clicked.connect(handler)
             view.doubleClicked.connect(self.handle_double_click)
@@ -792,7 +786,7 @@ class TableExplorer(EmzedDialog):
         self.menubar.connect(self.redoAction, SIGNAL("triggered()"),
                              protect_signal_handler(self.model.redoLastAction))
 
-        self.model.DATA_CHANGE.connect(self.set_window_title)
+        self.model.VISIBLE_ROWS_CHANGE.connect(self.set_window_title)
         self.model.SORT_TRIGGERED.connect(self.sort_by_click_in_header)
 
     @protect_signal_handler
@@ -872,7 +866,7 @@ class TableExplorer(EmzedDialog):
         self.setup_sort_fields(hidden)
         self.connectModelSignals()
         self.updateMenubar(None, None)
-        self.set_window_title(self.model.table)
+        self.set_window_title(len(self.model.table), len(self.model.table))
 
     def setup_choose_group_column_widget(self, hidden_names):
         before = None
@@ -988,7 +982,7 @@ class TableExplorer(EmzedDialog):
         postfix = str(postfix)
         rtmin, rtmax = self.eic_plotter.get_range_selection_limits()
         for data_row_idx in self.model.selected_data_rows:
-            self.model.integrate(postfix, data_row_idx, method, rtmin, rtmax)
+            self.model.integrate(data_row_idx, postfix, method, rtmin, rtmax)
 
     @protect_signal_handler
     def rowClicked(self, widget_row_idx):
@@ -1029,6 +1023,7 @@ class TableExplorer(EmzedDialog):
         self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
         for i in to_select:
             if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
+                print(i)
                 self.tableView.selectRow(i)
         self.tableView.setSelectionMode(mode_before)
         self.tableView.verticalScrollBar().setValue(scrollbar_before)
@@ -1190,7 +1185,7 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callbac
     tables.
 
     """
-    if isinstance(what, Table):
+    if isinstance(what, (Table, TableProxy)):
         what = [what]
     app = guidata.qapplication()  # singleton !
     explorer = TableExplorer(what, offerAbortOption, parent=parent, close_callback=close_callback)

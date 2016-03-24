@@ -103,17 +103,20 @@ class SortTableAction(TableAction):
     def do(self):
         table = self.model.table
         names, ascending = zip(*self.sort_data)
-        self.memory = table.sortBy(names, ascending)
+        self.memory = self.model.get_row_permutation()
+        permutation = table.sortPermutation(names, ascending)
+        self.model.set_row_permutation(permutation)
         return True
 
     def undo(self):
         super(SortTableAction, self).undo()
-        table = self.model.table
+        # table = self.model.table
+        self.model.set_row_permutation(self.memory)
         # calc inverse permuation:
-        decorated = [(self.memory[i], i) for i in range(len(self.memory))]
-        decorated.sort()
-        invperm = [i for (_, i) in decorated]
-        table._applyRowPermutation(invperm)
+        #decorated = [(self.memory[i], i) for i in range(len(self.memory))]
+        #decorated.sort()
+        #invperm = [i for (_, i) in decorated]
+        #table._applyRowPermutation(invperm)
 
 
 class ChangeValueAction(TableAction):
@@ -159,14 +162,14 @@ class IntegrateAction(TableAction):
 
     actionName = "integrate"
 
-    def __init__(self, model, data_row_idx, postfix, method, rtmin, rtmax, data_row_to_widget_row):
+    def __init__(self, model, data_row_idx, postfix, method, rtmin, rtmax, widget_row):
         super(IntegrateAction, self).__init__(model,
                                               data_row_idx=data_row_idx,
                                               postfix=postfix,
                                               method=method,
                                               rtmin=rtmin,
                                               rtmax=rtmax,
-                                              data_row_to_widget_row=data_row_to_widget_row)
+                                              widget_row=widget_row)
         self.toview = dict(rtmin=rtmin, rtmax=rtmax, method=method,
                            postfix=postfix)
 
@@ -228,9 +231,9 @@ class IntegrateAction(TableAction):
         self.notifyGUI()
 
     def notifyGUI(self):
-        idx_view = self.data_row_to_widget_row[self.data_row_idx]
-        tl = self.model.createIndex(idx_view, 0)
-        tr = self.model.createIndex(idx_view, self.model.columnCount() - 1)
+        print(self.widget_row)
+        tl = self.model.createIndex(self.widget_row, 0)
+        tr = self.model.createIndex(self.widget_row, self.model.columnCount() - 1)
         # this one updates plots
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),

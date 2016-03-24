@@ -115,7 +115,7 @@ def callback(*args):
     print(args)
 
 
-emzed.gui.inspect((t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
+emzed.gui.inspect((t_integrated, t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
         close_callback=callback)
 
 print(t)

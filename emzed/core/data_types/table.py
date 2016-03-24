@@ -818,7 +818,18 @@ class Table(object):
         self._addColumFromIterable(
             colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
+
     def sortBy(self, colNames, ascending=True):
+        perm = self.sortPermutation(colNames, ascending)
+        self._applyRowPermutation(perm)
+
+        if ascending:
+            self.primaryIndex = {colNames[0]: True}
+        else:
+            self.primaryIndex = {}
+        return perm
+
+    def sortPermutation(self, colNames, ascending=True):
         """
         sorts table in respect of column named *colName* **in place**.
         *ascending* is boolean and tells if the values are sorted
@@ -859,17 +870,41 @@ class Table(object):
         decorated = list(enumerate(self.rows))
         decorated.sort(cmp=compare)
         perm, __ = zip(*decorated)
-        self._applyRowPermutation(perm)
-
-        if ascending:
-            self.primaryIndex = {colNames[0]: True}
-        else:
-            self.primaryIndex = {}
         return perm
 
+
+    def findMatchingRows(self, filters):
+        """accepts list of column names and functions operating on those columns,
+        returns the indices of the remaining columns
+
+        Example::
+
+            t.findMatchingRows(("mz", lambda mz: 100 <= mz <= 200),
+                               ("rt", lambda rt: 200 <= rt <= 1000))
+
+            computes the row indices of all rows where mz and rt are in the given 
+            ranges.
+        """
+
+        indices_of_fitting_rows = set(range(len(self)))
+
+        for name, filter_function in filters:
+
+            if filter_function is None:
+                continue
+
+            col_values = self.getColumn(name).values
+            rows_to_remain = set()
+            for j, v in enumerate(col_values):
+                match = filter_function(v)
+                if match:
+                    rows_to_remain.add(j)
+            indices_of_fitting_rows = indices_of_fitting_rows.intersection(rows_to_remain)
+
+        return indices_of_fitting_rows
+
     def _applyRowPermutation(self, permutation):
-        self.rows = [self.rows[permutation[i]]
-                     for i in range(len(permutation))]
+        self.rows = [self.rows[pi] for pi in permutation]
         self.resetInternals()
 
     def copy(self):

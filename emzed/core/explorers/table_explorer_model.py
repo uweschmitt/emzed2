@@ -25,12 +25,17 @@ def isUrl(what):
     return what.startswith("http://") or what.startswith("https://")
 
 
+def changes_table(f):
+    # todo: immutable tables !
+    return f
+
+
 class TableModel(QAbstractTableModel):
 
     LIGHT_BLUE = QColor(200, 200, 255)
     WHITE = QColor(255, 255, 255)
 
-    DATA_CHANGE = pyqtSignal(object, object)
+    VISIBLE_ROWS_CHANGE = pyqtSignal(int, int)
     SORT_TRIGGERED = pyqtSignal(str, bool)
     ACTION_LIST_CHANGED = pyqtSignal(object, object)
 
@@ -44,18 +49,32 @@ class TableModel(QAbstractTableModel):
         self.indizesOfVisibleCols = [j for j in range(nc) if self.table._colFormats[j] is not None]
         self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
         nr = len(table)
-        self.widgetRowToDataRow = dict(zip(range(nr), range(nr)))
-        self.dataRowToWidgetRow = dict(zip(range(nr), range(nr)))
+
+
+        self.row_permutation = range(nr)
+        self.visible_rows = set(range(nr))
+        self.update_row_view()
+
         self.emptyActionStack()
 
         self.nonEditables = set()
 
-        self.last_limits = None
+        self.last_filters = None
         self.setFiltersEnabled(False)
 
         self.selected_data_rows = []
         self.counter_for_calls_to_sort = 0
         self.load_preset_hidden_column_names()
+
+    def set_row_permutation(self, permutation):
+        self.row_permutation = permutation
+
+    def get_row_permutation(self):
+        return self.row_permutation
+
+    def update_row_view(self):
+        self.widgetRowToDataRow = [row_idx for row_idx in self.row_permutation if row_idx in
+                                   self.visible_rows]
 
     def set_selected_data_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
@@ -71,10 +90,6 @@ class TableModel(QAbstractTableModel):
     def emptyActionStack(self):
         self.actions = []
         self.redoActions = []
-
-    def getRow(self, idx):
-        r = self.widgetRowToDataRow[idx]
-        return self.table.getValues(self.table.rows[r])
 
     def rowCount(self, index=QModelIndex()):
         return len(self.widgetRowToDataRow)
@@ -245,7 +260,7 @@ class TableModel(QAbstractTableModel):
             action = self.actions.pop()
             self.beginResetModel()
             action.undo()
-            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
+            self.update_visible_rows_for_given_limits()  # does endResetModel
             self.redoActions.append(action)
             self.emit_updated_actions()
 
@@ -254,11 +269,12 @@ class TableModel(QAbstractTableModel):
             action = self.redoActions.pop()
             self.beginResetModel()
             action.do()
-            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
+            self.update_visible_rows_for_given_limits()  # does endResetModel
             self.actions.append(action)
             self.emit_updated_actions()
             return
 
+    @changes_table
     def cloneRow(self, widget_row_idx):
         data_row_idx = self.widgetRowToDataRow[widget_row_idx]
         self.beginResetModel()
@@ -273,14 +289,11 @@ class TableModel(QAbstractTableModel):
         self.update_visible_rows_for_given_limits()  # does endResetModel
         return True
 
-    def removeRow(self, *a):
-        raise RuntimeError("obsolte method, use removeRows instead")
-
     def sort(self, colIdx, order=Qt.AscendingOrder):
         # the counter is a dirty hack: during startup of table explorer the sort method is
         # called twice automatically, so the original order of the table is not maintained
         # in the view when the explorer windows shows up.
-        # we count the calls ignore the first two calls. then sorting is only done if
+        # we count the calls ignore the first two calls. after that sorting is only done if
         # the user clicks to a column heading.
         # this is a dirty hack but I cound not find out why sort() is called twice.
         # the first call is triggered by setSortingEnabled() in the table view, the origin
@@ -300,17 +313,22 @@ class TableModel(QAbstractTableModel):
                 return widget_col
 
     def sort_by(self, sort_data):
-        cn = self.table._colNames
         data_cols = [(name, order.startswith("asc")) for (name, order) in sort_data]
         self.beginResetModel()
         self.runAction(SortTableAction, data_cols)
-        self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
+        self.update_visible_rows_for_given_limits()  # does endResetModel
 
     def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
+        for widget_row_idx, ridx in enumerate(self.widgetRowToDataRow):
+            if data_row_idx == ridx:
+                break
+        else:
+            raise Exception("this should never happen !")
+
         self.beginResetModel()
-        self.runAction(IntegrateAction, postfix, data_row_idx, method, rtmin, rtmax,
-                       self.dataRowToWidgetRow)
-        self.update_visible_rows_for_given_limits(force_reset=False)  # does endResetModel
+        self.runAction(IntegrateAction, data_row_idx, postfix, method, rtmin, rtmax,
+                       widget_row_idx)
+        self.update_visible_rows_for_given_limits()  # does endResetModel
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -323,7 +341,6 @@ class TableModel(QAbstractTableModel):
 
     def hasTimeSeries(self):
         return self.checkForAny("time_series")
-        #return any(t is TimeSeries for t in self.table.getColTypes())
 
     def hasSpectra(self):
         return any(n.startswith("spectra") for n in self.table.getColNames())
@@ -460,15 +477,17 @@ class TableModel(QAbstractTableModel):
         selected_value = t.getValue(t.rows[data_row_idx], col_name)
         selected_data_rows = [i for i, row in enumerate(t.rows)
                               if t.getValue(row, col_name) == selected_value]
+
         # view might be filtered, so only select what we can see:
-        selected_data_rows = [i for i in selected_data_rows if i in self.dataRowToWidgetRow]
-        return self.transform_row_idx_model_to_widget(selected_data_rows)
+
+        selected_widget_rows = []
+        for widget_row, data_row in enumerate(self.widgetRowToDataRow):
+            if data_row in selected_data_rows:
+                selected_widget_rows.append(widget_row)
+        return selected_widget_rows
 
     def transform_row_idx_widget_to_model(self, row_idxs):
         return [self.widgetRowToDataRow[i] for i in row_idxs]
-
-    def transform_row_idx_model_to_widget(self, row_idxs):
-        return [self.dataRowToWidgetRow[i] for i in row_idxs]
 
     def getEICs(self, data_row_idx):
         eics = []
@@ -495,69 +514,48 @@ class TableModel(QAbstractTableModel):
         return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else rtmax, sorted(allrts)
 
     def remove_filtered(self):
-        to_delete = sorted(self.widgetRowToDataRow.keys())  # sort for nicer undo/redo description
+        to_delete = range(len(self.widgetRowToDataRow))
         self.removeRows(to_delete)
 
+    @changes_table
     def restrict_to_filtered(self):
-        shown_data_rows = self.widgetRowToDataRow.values()
+        shown_data_rows = self.widgetRowToDataRow
         delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
         self.beginResetModel()
         self.runAction(DeleteRowsAction, [], delete_data_rows)
         self.update_visible_rows_for_given_limits()  # does endResetModel
         return True
 
-    def limits_changed(self, limits):
-        self.last_limits = limits
+    def limits_changed(self, filters):
+        self.last_filters = filters
         self.update_visible_rows_for_given_limits()
 
-    def update_visible_rows_for_given_limits(self, force_reset=False):
+    def update_visible_rows_for_given_limits(self):
         if self.filters_enabled is False:
-            limits = {}
+            filters = {}
         else:
-            if self.last_limits is None:
-                limits = {}
+            if self.last_filters is None:
+                filters = {}
             else:
-                limits = self.last_limits
+                filters = self.last_filters
 
         t = self.table
-        all_rows_to_remain = set(range(len(t)))
 
-        for name, filter_function in limits.items():
+        self.visible_rows = set(t.findMatchingRows(filters.items()))
 
-            if filter_function is None:
-                continue
+        self.beginResetModel()
+        self.update_row_view()
+        self.endResetModel()
+        self.emit_visible_rows_change()
 
-            col_idx = t.getIndex(name)
-            rows_to_remain = set()
-            for j, row in enumerate(t):
-                match = filter_function(row[col_idx])
-                if match:
-                    rows_to_remain.add(j)
-            all_rows_to_remain = all_rows_to_remain.intersection(rows_to_remain)
-
-        widget_row_to_data_row = {}
-        data_row_to_widget_row = {}
-        for view_idx, row_idx in enumerate(sorted(all_rows_to_remain)):
-            widget_row_to_data_row[view_idx] = row_idx
-            data_row_to_widget_row[row_idx] = view_idx
-
-        if force_reset or widget_row_to_data_row != self.widgetRowToDataRow:
-            # only reset view if something changed
-
-            self.beginResetModel()
-            self.widgetRowToDataRow = dict()
-            self.dataRowToWidgetRow = dict()
-            self.widgetRowToDataRow = widget_row_to_data_row
-            self.dataRowToWidgetRow = data_row_to_widget_row
-            self.endResetModel()
-            self.emit_data_change()
-
-    def emit_data_change(self):
-        visible_table = self.table[self.widgetRowToDataRow.values()]
-        self.DATA_CHANGE.emit(self.table, visible_table)
+    def emit_visible_rows_change(self):
+        n_visible = len(self.widgetRowToDataRow)
+        self.VISIBLE_ROWS_CHANGE.emit(len(self.table), n_visible)
 
     def extract_visible_table(self):
-        row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
+        # TODO: warning if too long !, not supported by TableProxy yet !
+        # row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
+        row_idxs = self.widgetRowToDataRow
         return self.table[row_idxs]
 
     def columnames_with_visibility(self):
