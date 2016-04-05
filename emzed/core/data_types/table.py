@@ -23,10 +23,14 @@ from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_ty
                           common_type_for, is_numpy_number_type,
                           Lookup)
 
+from .base_classes import MutableTable
+
 from . import tools
 
+from hdf5.stores import ObjectProxy
+
 from .ms_types import PeakMap, PeakMapProxy
-from .col_types import Blob
+from .col_types import Blob, TimeSeries
 
 __doc__ = """
 
@@ -256,7 +260,7 @@ def _formatter(f):
         return evalformat
 
 
-class Table(object):
+class Table(MutableTable):
 
     """
     A table holds rows of the same length. Each Column of the table has
@@ -726,7 +730,10 @@ class Table(object):
         """
         if colName not in self._colNames:
             return default
-        return row[self.getIndex(colName)]
+        value = row[self.getIndex(colName)]
+        if isinstance(value, ObjectProxy):
+            value = value.load()
+        return value
 
     def setRow(self, idx, row):
         """ replaces row ``idx`` with ``row``.
@@ -2348,7 +2355,7 @@ class Table(object):
                            for s in set(self.getColumn(name))
                            if s is not None)
             found_invalidated_pm = any("unique_id" not in pm.meta for pm in peakmaps)
-        if "unique_id" not in self.meta or found_invalidated_pm:
+        if ("unique_id" not in self.meta) or found_invalidated_pm:
             h = hashlib.sha256()
 
             def update(what):
@@ -2359,7 +2366,7 @@ class Table(object):
             update(self._colFormats)
             for row in self.rows:
                 for val in row:
-                    if isinstance(val, (Table, PeakMap, Blob)):
+                    if hasattr(val, "uniqueId"):
                         h.update(val.uniqueId())
                     else:
                         update(val)

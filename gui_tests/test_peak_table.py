@@ -111,11 +111,16 @@ t_with_ts.dropColumns("spectra_ms2")
 
 t_with_ts.info()
 
+"""
+from emzed.core.data_types.hdf5.table_writer import to_hdf5
+to_hdf5(t_with_ts, "with_ts.hdf5")
+"""
+
 def callback(*args):
     print(args)
 
 
-emzed.gui.inspect((t_integrated, t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
+emzed.gui.inspect((t_integrated[:10], t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
         close_callback=callback)
 
 print(t)

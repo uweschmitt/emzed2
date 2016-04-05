@@ -51,12 +51,22 @@ class DeleteRowsAction(TableAction):
         self.toview = dict(rows=widget_row_indices)
 
     def do(self):
-        indices = sorted(self.data_row_indices)
+        rows_to_del = sorted(self.data_row_indices)
         table = self.model.table
-        self.memory = [(i, table.rows[i]) for i in indices]
+        permutation = self.model.get_row_permutation()
+        self.memory = (permutation, [(i, table.rows[i]) for i in rows_to_del])
 
-        for ix in reversed(indices):
-            del table.rows[ix]
+        # right order matters: (realy ?)
+        for row_to_del in reversed(rows_to_del):
+            del table.rows[row_to_del]
+            # update permutation: remove entry and decrement succeeding data_row values:
+            for i, data_row in enumerate(permutation):
+                if data_row > row_to_del:
+                    permutation[i] -= 1
+                if data_row == row_to_del:
+                    to_del = i
+            del permutation[to_del]
+        self.model.set_row_permutation(permutation)
 
         table.resetInternals()
         return True
@@ -64,7 +74,9 @@ class DeleteRowsAction(TableAction):
     def undo(self):
         super(DeleteRowsAction, self).undo()
         table = self.model.table
-        for ix, row in self.memory:
+        permutation, saved_rows = self.memory
+        self.model.set_row_permutation(permutation)
+        for ix, row in saved_rows:
             table.rows.insert(ix, row[:])
         table.resetInternals()
 
@@ -80,14 +92,30 @@ class CloneRowAction(TableAction):
 
     def do(self):
         table = self.model.table
+        permutation = self.model.get_row_permutation()
+        self.memory = permutation[:]
+        # shift successors
+        for i, pi in enumerate(permutation):
+            if pi > self.data_row_idx:
+                permutation[i] += 1
+
+        # new entry in permutation
+        if self.widget_row_idx == len(permutation) - 1:
+            permutation.append(self.data_row_idx + 1)
+        else:
+            permutation.insert(self.widget_row_idx + 1, self.data_row_idx + 1)
+
+        self.model.set_row_permutation(permutation)
+
+        # duplicate row in data
         table.rows.insert(self.data_row_idx + 1, table.rows[self.data_row_idx][:])
         table.resetInternals()
-        self.memory = True
         return True
 
     def undo(self):
         super(CloneRowAction, self).undo()
         table = self.model.table
+        self.model.set_row_permutation(self.memory)
         del table.rows[self.data_row_idx + 1]
         table.resetInternals()
 

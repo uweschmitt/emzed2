@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-
-from ..data_types import PeakMap, TimeSeries
-from ..data_types.table import create_row_class
-
-import guidata
-
+from datetime import datetime
+import functools
 import hashlib
 import os
 import re
-from datetime import datetime
+
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+
+import guidata
+
+from ..data_types import PeakMap, TimeSeries
+from ..data_types.table import create_row_class
+from ..data_types.hdf5_table_proxy import Hdf5TableProxy
+from ..data_types.base_classes import ImmutableTable
 
 from ... import algorithm_configs
-
 
 from .table_explorer_model_actions import *
 
@@ -23,11 +25,6 @@ from ..config import folders
 
 def isUrl(what):
     return what.startswith("http://") or what.startswith("https://")
-
-
-def changes_table(f):
-    # todo: immutable tables !
-    return f
 
 
 class TableModel(QAbstractTableModel):
@@ -39,25 +36,21 @@ class TableModel(QAbstractTableModel):
     SORT_TRIGGERED = pyqtSignal(str, bool)
     ACTION_LIST_CHANGED = pyqtSignal(object, object)
 
-
     def __init__(self, table, parent):
-        #parent = view_widget
         super(TableModel, self).__init__(parent)
         self.table = table
+        self.parent = parent
         # self.view_widget = view_widget
         nc = len(self.table._colNames)
         self.indizesOfVisibleCols = [j for j in range(nc) if self.table._colFormats[j] is not None]
         self.widgetColToDataCol = dict(enumerate(self.indizesOfVisibleCols))
         nr = len(table)
 
-
         self.row_permutation = range(nr)
         self.visible_rows = set(range(nr))
         self.update_row_view()
 
         self.emptyActionStack()
-
-        self.nonEditables = set()
 
         self.last_filters = None
         self.setFiltersEnabled(False)
@@ -67,7 +60,7 @@ class TableModel(QAbstractTableModel):
         self.load_preset_hidden_column_names()
 
     def set_row_permutation(self, permutation):
-        self.row_permutation = permutation
+        self.row_permutation = list(permutation)
 
     def get_row_permutation(self):
         return self.row_permutation
@@ -82,10 +75,6 @@ class TableModel(QAbstractTableModel):
     def setFiltersEnabled(self, flag):
         self.filters_enabled = flag
         self.update_visible_rows_for_given_limits()
-
-    def addNonEditable(self, name):
-        dataColIdx = self.table.getIndex(name)
-        self.nonEditables.add(dataColIdx)
 
     def emptyActionStack(self):
         self.actions = []
@@ -111,11 +100,6 @@ class TableModel(QAbstractTableModel):
         value = self.table.rows[ridx][cidx]
         return value
 
-    def set_cell_value(self, index, value):
-        ridx, cidx = self.table_index(index)
-        self.table.rows[ridx][cidx] = value
-        self.dataChanged.emit(index, index)
-
     def row(self, index):
         ridx, cidx = self.table_index(index)
         row = create_row_class(self.table)(self.table.rows[ridx])
@@ -126,11 +110,26 @@ class TableModel(QAbstractTableModel):
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()
+
+        if role == Qt.FontRole:
+            content = self.data(index)
+            if isUrl(content):
+                font = QFont(super(TableModel, self).data(index, Qt.DisplayRole))
+                font.setUnderline(True)
+                return font
+
+        if role != Qt.DisplayRole:
+            return QVariant()
+
         ridx, cidx = self.table_index(index)
         if not (0 <= index.row() < self.rowCount()):
             return QVariant()
+
         value = self.table.rows[ridx][cidx]
         fmter = self.table.colFormatters[cidx]
+
+        if hasattr(value, "load"):
+            value = value.load()
 
         if isinstance(value, datetime):
             fmt = self.table.getColFormats()[cidx]
@@ -141,34 +140,9 @@ class TableModel(QAbstractTableModel):
                     shown = fmter(value)
                 except:
                     shown = value.strftime(self.DATE_FORMAT)
-            if role in (Qt.DisplayRole, Qt.EditRole):
-                return shown
         else:
             shown = fmter(value)
-
-        if role == Qt.DisplayRole:
-            return shown
-        if role == Qt.EditRole:
-            colType = self.table._colTypes[cidx]
-            if colType in (int, float, str, unicode):
-                if shown.strip().endswith("m"):
-                    return shown
-                try:
-                    colType(shown)
-                    return shown
-                except:
-                    if colType == float:
-                        return "-" if value is None else "%.4f" % value
-                    return unicode(value) if value is not None else "-"
-            return unicode(value) if value is not None else "-"
-        if role == Qt.FontRole:
-            content = self.data(index)
-            if isUrl(content):
-                font = QFont(super(TableModel, self).data(index, Qt.DisplayRole))
-                font.setUnderline(True)
-                return font
-
-        return QVariant()
+        return shown
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
@@ -178,57 +152,6 @@ class TableModel(QAbstractTableModel):
             return str(self.table._colNames[dataIdx])
         # vertical header:
         return QString("   ")
-
-    def flags(self, index):
-        if not index.isValid():
-            return Qt.ItemIsEnabled
-        default = super(TableModel, self).flags(index)
-        # urls are not editable
-        if isUrl(self.data(index)):
-            return default
-        if self.widgetColToDataCol[index.column()] in self.nonEditables:
-            return default
-        return Qt.ItemFlags(default | Qt.ItemIsEditable)
-
-    def setData(self, index, value, role=Qt.EditRole):
-        ridx, cidx = self.table_index(index)
-        if index.isValid() and 0 <= index.row() < self.rowCount():
-            expectedType = self.table._colTypes[cidx]
-            if value.toString().trimmed() == "-":
-                value = None
-            elif expectedType != object:
-                # QVariant -> QString -> unicode + strip:
-                value = unicode(value.toString()).strip()
-                # floating point number + "m for minutes ?
-                if re.match("^((\d+m)|(\d*.\d+m))$", value):
-                    try:
-                        value = 60.0 * float(value[:-1])
-                    except Exception:
-                        guidata.qapplication().beep()
-                        return False
-                if expectedType == datetime:
-                    try:
-                        value = datetime.strptime(value, self.DATE_FORMAT)
-                    except Exception:
-                        guidata.qapplication().beep()
-                        return False
-                elif expectedType == bool:
-                    if value.lower() in ("true", "false"):
-                        value = (value.lower() == "true")
-                    else:
-                        guidata.qapplication().beep()
-                        return False
-                else:
-                    try:
-                        value = expectedType(value)
-                    except Exception:
-                        guidata.qapplication().beep()
-                        return False
-            done = self.runAction(ChangeValueAction, index, ridx, cidx, value)
-            if done:
-                self.update_visible_rows_for_given_limits()
-            return done
-        return False
 
     def runAction(self, clz, *a):
         action = clz(self, *a)
@@ -245,12 +168,12 @@ class TableModel(QAbstractTableModel):
         last_redo_action = unicode(self.redoActions[-1]) if self.redoActions else None
         self.ACTION_LIST_CHANGED.emit(last_action, last_redo_action)
 
-    def _infoLastAction(self):
+    def infoLastAction(self):
         if len(self.actions):
             return unicode(self.actions[-1])
         return None
 
-    def _infoRedoAction(self):
+    def infoRedoAction(self):
         if len(self.redoActions):
             return unicode(self.redoActions[-1])
         return None
@@ -273,21 +196,6 @@ class TableModel(QAbstractTableModel):
             self.actions.append(action)
             self.emit_updated_actions()
             return
-
-    @changes_table
-    def cloneRow(self, widget_row_idx):
-        data_row_idx = self.widgetRowToDataRow[widget_row_idx]
-        self.beginResetModel()
-        self.runAction(CloneRowAction, widget_row_idx, data_row_idx)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
-        return True
-
-    def removeRows(self, widget_row_indices):
-        data_row_indices = self.transform_row_idx_widget_to_model(widget_row_indices)
-        self.beginResetModel()
-        self.runAction(DeleteRowsAction, widget_row_indices, data_row_indices)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
-        return True
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
         # the counter is a dirty hack: during startup of table explorer the sort method is
@@ -314,21 +222,8 @@ class TableModel(QAbstractTableModel):
 
     def sort_by(self, sort_data):
         data_cols = [(name, order.startswith("asc")) for (name, order) in sort_data]
-        self.beginResetModel()
         self.runAction(SortTableAction, data_cols)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
-
-    def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
-        for widget_row_idx, ridx in enumerate(self.widgetRowToDataRow):
-            if data_row_idx == ridx:
-                break
-        else:
-            raise Exception("this should never happen !")
-
-        self.beginResetModel()
-        self.runAction(IntegrateAction, data_row_idx, postfix, method, rtmin, rtmax,
-                       widget_row_idx)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
+        self.update_visible_rows_for_given_limits(force_reset=True)
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -349,7 +244,9 @@ class TableModel(QAbstractTableModel):
         return ["area", "rmse", "method", "params", "baseline"]
 
     def getIntegrationValues(self, data_row_idx, p):
-        get = lambda nn: self.table.getValue(self.table.rows[data_row_idx], nn + p)
+        def get(nn):
+            value = self.table.getValue(self.table.rows[data_row_idx], nn + p)
+            return value
         return dict((nn + p, get(nn)) for nn in self.integrationColNames())
 
     def isIntegrated(self):
@@ -360,11 +257,6 @@ class TableModel(QAbstractTableModel):
         checks if names appear at least once as prefixes in current colNames
         """
         return len(self.table.supportedPostfixes(names)) > 0
-
-    def setNonEditable(self, colBaseName, group):
-        for postfix in self.table.supportedPostfixes(group):
-            if self.table.hasColumns(colBaseName + postfix):
-                self.addNonEditable(colBaseName + postfix)
 
     def getTitle(self):
         table = self.table
@@ -479,7 +371,6 @@ class TableModel(QAbstractTableModel):
                               if t.getValue(row, col_name) == selected_value]
 
         # view might be filtered, so only select what we can see:
-
         selected_widget_rows = []
         for widget_row, data_row in enumerate(self.widgetRowToDataRow):
             if data_row in selected_data_rows:
@@ -517,20 +408,11 @@ class TableModel(QAbstractTableModel):
         to_delete = range(len(self.widgetRowToDataRow))
         self.removeRows(to_delete)
 
-    @changes_table
-    def restrict_to_filtered(self):
-        shown_data_rows = self.widgetRowToDataRow
-        delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
-        self.beginResetModel()
-        self.runAction(DeleteRowsAction, [], delete_data_rows)
-        self.update_visible_rows_for_given_limits()  # does endResetModel
-        return True
-
     def limits_changed(self, filters):
         self.last_filters = filters
         self.update_visible_rows_for_given_limits()
 
-    def update_visible_rows_for_given_limits(self):
+    def update_visible_rows_for_given_limits(self, force_reset=False):
         if self.filters_enabled is False:
             filters = {}
         else:
@@ -539,21 +421,21 @@ class TableModel(QAbstractTableModel):
             else:
                 filters = self.last_filters
 
-        t = self.table
+        visible_rows = set(self.table.findMatchingRows(filters.items()))
 
-        self.visible_rows = set(t.findMatchingRows(filters.items()))
-
-        self.beginResetModel()
-        self.update_row_view()
-        self.endResetModel()
-        self.emit_visible_rows_change()
+        if force_reset or visible_rows != self.visible_rows:
+            self.visible_rows = visible_rows
+            self.beginResetModel()
+            self.update_row_view()
+            self.endResetModel()
+            self.emit_visible_rows_change()
 
     def emit_visible_rows_change(self):
         n_visible = len(self.widgetRowToDataRow)
         self.VISIBLE_ROWS_CHANGE.emit(len(self.table), n_visible)
 
     def extract_visible_table(self):
-        # TODO: warning if too long !, not supported by TableProxy yet !
+        # TODO: show warning if table too long !, not supported by TableProxy yet !
         # row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
         row_idxs = self.widgetRowToDataRow
         return self.table[row_idxs]
@@ -621,3 +503,139 @@ class TableModel(QAbstractTableModel):
             if name not in names_to_hide:
                 col_indices.append(ix)
         self._set_visible_cols(col_indices)
+
+    def implements(self, method_name):
+        return hasattr(self, method_name)
+
+    @staticmethod
+    def table_model_for(table, parent=None):
+        if isinstance(table, Hdf5TableProxy):
+            return TableModel(table, parent)
+        else:
+            return MutableTableModel(table, parent)
+
+
+class MutableTableModel(TableModel):
+
+    def __init__(self, table, parent):
+        super(MutableTableModel, self).__init__(table, parent)
+        self.nonEditables = set()
+
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.EditRole:
+            shown = super(MutableTableModel, self).data(index, Qt.DisplayRole)
+            return unicode(shown)
+            ridx, cidx = self.table_index(index)
+            colType = self.table._colTypes[cidx]
+            if colType in (int, float, str, unicode):
+                if shown.strip().endswith("m"):
+                    return shown
+                try:
+                    colType(shown)
+                    return shown
+                except ValueError:
+                    import pdb; pdb.set_trace()  ### break here
+                    if colType == float:
+                        return "-" if shown is None else "%.4f" % shown
+                    return unicode(value) if value is not None else "-"
+            return unicode(shown) if shown is not None else "-"
+        else:
+            return super(MutableTableModel, self).data(index, role)
+
+    def flags(self, index):
+        if not index.isValid():
+            return Qt.ItemIsEnabled
+        default = super(TableModel, self).flags(index)
+        # urls are not editable
+        if isUrl(self.data(index)):
+            return default
+        if self.widgetColToDataCol[index.column()] in self.nonEditables:
+            return default
+        return Qt.ItemFlags(default | Qt.ItemIsEditable)
+
+    def setData(self, index, value, role=Qt.EditRole):
+        ridx, cidx = self.table_index(index)
+        if index.isValid() and 0 <= index.row() < self.rowCount():
+            expectedType = self.table._colTypes[cidx]
+            if value.toString().trimmed() == "-":
+                value = None
+            elif expectedType != object:
+                # QVariant -> QString -> unicode + strip:
+                value = unicode(value.toString()).strip()
+                # floating point number + "m for minutes ?
+                if re.match("^((\d+m)|(\d*.\d+m))$", value):
+                    try:
+                        value = 60.0 * float(value[:-1])
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
+                if expectedType == datetime:
+                    try:
+                        value = datetime.strptime(value, self.DATE_FORMAT)
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
+                elif expectedType == bool:
+                    if value.lower() in ("true", "false"):
+                        value = (value.lower() == "true")
+                    else:
+                        guidata.qapplication().beep()
+                        return False
+                else:
+                    try:
+                        value = expectedType(value)
+                    except Exception:
+                        guidata.qapplication().beep()
+                        return False
+            done = self.runAction(ChangeValueAction, index, ridx, cidx, value)
+            if done:
+                self.update_visible_rows_for_given_limits()
+            return done
+        return False
+
+    def addNonEditable(self, name):
+        dataColIdx = self.table.getIndex(name)
+        self.nonEditables.add(dataColIdx)
+
+    def cloneRow(self, widget_row_idx):
+        data_row_idx = self.widgetRowToDataRow[widget_row_idx]
+        self.beginInsertRows(QModelIndex(), widget_row_idx, widget_row_idx)
+        self.runAction(CloneRowAction, widget_row_idx, data_row_idx)
+        self.endInsertRows()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
+        return True
+
+    def removeRows(self, widget_row_indices):
+        data_row_indices = self.transform_row_idx_widget_to_model(widget_row_indices)
+        mini = min(widget_row_indices)
+        maxi = max(widget_row_indices)
+        self.beginRemoveRows(QModelIndex(), mini, maxi)
+        self.runAction(DeleteRowsAction, widget_row_indices, data_row_indices)
+        self.endRemoveRows()
+        self.update_visible_rows_for_given_limits()  # does endResetModel
+        return True
+
+    def integrate(self, data_row_idx, postfix, method, rtmin, rtmax):
+        for widget_row_idx, ridx in enumerate(self.widgetRowToDataRow):
+            if data_row_idx == ridx:
+                break
+        else:
+            raise Exception("this should never happen !")
+
+        self.runAction(IntegrateAction, data_row_idx, postfix, method, rtmin, rtmax,
+                       widget_row_idx)
+        self.dataChanged.emit(self.index(widget_row_idx, 0),
+                              self.index(widget_row_idx, self.columnCount() - 1))
+        self.update_visible_rows_for_given_limits()
+
+    def setNonEditable(self, colBaseName, group):
+        for postfix in self.table.supportedPostfixes(group):
+            if self.table.hasColumns(colBaseName + postfix):
+                self.addNonEditable(colBaseName + postfix)
+
+    def restrict_to_filtered(self):
+        shown_data_rows = self.widgetRowToDataRow
+        delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
+        self.runAction(DeleteRowsAction, [], delete_data_rows)
+        self.update_visible_rows_for_given_limits()
+        return True

@@ -73,7 +73,7 @@ def test_pubchem_updaters_without_exchange_folder(tmpdir):
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
-    assert offer_update
+    assert offer_update, info
 
     # download 10 items
     updater.do_update(limit=100)
@@ -118,7 +118,7 @@ def test_pubchem_updaters_with_exchange_folder(tmpdir):
     assert id_ == "pubchem_updater"
     assert ts < 0
     assert len(info) > 0
-    assert offer_update
+    assert offer_update, info
 
     # download 10 items
     assert updater.do_update(limit=10) == (True, "ok")

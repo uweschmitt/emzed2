@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
 import os
 
-import numpy as np
-
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 import guidata
-
-from guiqwt.shapes import PolygonShape
-from guiqwt.styles import ShapeParam
 
 from eic_plotting_widget import EicPlottingWidget
 from mz_plotting_widget import MzPlottingWidget
 from ts_plotting_widget import TimeSeriesPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack
-from ..data_types.hdf5 import TableProxy
+from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
-from table_explorer_model import *
+from table_explorer_model import (MutableTableModel, TableModel, isUrl, 
+                                  IntegrateAction,)
 
 from helpers import protect_signal_handler
 
@@ -29,9 +25,7 @@ from emzed_dialog import EmzedDialog
 from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog, IntegrationWidget
 
 from ...gui.file_dialogs import askForSave
-
-from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog
-
+from ... import algorithm_configs
 
 
 def eic_curves(model):
@@ -46,13 +40,6 @@ def eic_curves(model):
     if not rtmins or not rtmaxs:
         return None, None, []
     return min(rtmins), max(rtmaxs), curves
-
-
-"""
-todo: eic only table, peak_table, integrated_peak_table, peak_table + ts,
-peak_table + integrated + ts
-ts only !
-"""
 
 
 def time_series_curves(model):
@@ -179,29 +166,6 @@ class ButtonDelegate(QItemDelegate):
             self.view.setIndexWidget(index, button)
 
 
-class CheckBoxDelegate(QItemDelegate):
-
-    def __init__(self, view, parent):
-        QItemDelegate.__init__(self, parent)
-        self.view = view
-
-    def paint(self, painter, option, index):
-        if not self.view.indexWidget(index):
-            # we find the mode using the view, as the current model might change if one explores
-            # more than one table wit the table explorer:
-            model = self.view.model()
-            is_true = bool(model.cell_value(index))
-
-            def handler(check_state):
-                is_true = bool(check_state)
-                model.set_cell_value(index, is_true)
-
-            box = QCheckBox("", self.parent())
-            box.setCheckState(Qt.Checked if is_true else Qt.Unchecked)
-            box.stateChanged.connect(handler)
-            self.view.setIndexWidget(index, box)
-
-
 class EmzedTableView(QTableView):
 
     def __init__(self, dialog):
@@ -255,7 +219,7 @@ class TableExplorer(EmzedDialog):
 
         self.offerAbortOption = offerAbortOption
 
-        self.models = [TableModel(table, parent=self) for table in tables]
+        self.models = [TableModel.table_model_for(table, parent=self) for table in tables]
         self.model = None
         self.tableView = None
 
@@ -277,7 +241,7 @@ class TableExplorer(EmzedDialog):
         if self.close_callback is not None:
             try:
                 self.close_callback(*modified)
-            except:
+            except Exception:
                 import traceback
                 traceback.print_exc()
 
@@ -585,7 +549,7 @@ class TableExplorer(EmzedDialog):
 
         self.eic_only_mode = hasEIC and not hasFeatures  # includes: not isIntegrated !
         self.has_chromatograms = hasFeatures
-        self.allow_integration = isIntegrated
+        self.allow_integration = isIntegrated and self.model.implements("integrate")
         self.has_time_series = hasTimeSeries
         self.has_spectra = hasSpectra
 
@@ -813,8 +777,6 @@ class TableExplorer(EmzedDialog):
         self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
     def updateMenubar(self, undoInfo, redoInfo):
-        #undoInfo = self.model.infoLastAction()
-        #redoInfo = self.model.infoRedoAction()
         self.undoAction.setEnabled(undoInfo is not None)
         self.redoAction.setEnabled(redoInfo is not None)
         if undoInfo:
@@ -850,13 +812,14 @@ class TableExplorer(EmzedDialog):
             pass
 
         self.setup_model_dependent_look()
-        if self.allow_integration:
+        if self.model.implements("setNonEditable"):
             self.model.setNonEditable("method", ["area", "rmse", "method", "params"])
 
-        for col_name in self.model.table.getColNames():
-            t = self.model.table.getColType(col_name)
-            if t in (list, tuple, object, dict, set) or t is None or has_inspector(t):
-                self.model.addNonEditable(col_name)
+        if self.model.implements("addNonEditable"):
+            for col_name in self.model.table.getColNames():
+                t = self.model.table.getColType(col_name)
+                if t in (list, tuple, object, dict, set) or t is None or has_inspector(t):
+                    self.model.addNonEditable(col_name)
 
         mod = self.model
         postfixes = mod.table.supportedPostfixes(mod.integrationColNames())
@@ -955,8 +918,17 @@ class TableExplorer(EmzedDialog):
     def openContextMenu(self, point):
         idx = self.tableView.verticalHeader().logicalIndexAt(point)
         menu = QMenu()
-        cloneAction = menu.addAction("Clone row")
-        removeAction = menu.addAction("Delete row")
+
+        if self.model.implements("cloneRow"):
+            cloneAction = menu.addAction("Clone row")
+        else:
+            cloneAction = None
+
+        if self.model.implements("removeRows"):
+            removeAction = menu.addAction("Delete row")
+        else:
+            removeAction = None
+
         undoInfo = self.model.infoLastAction()
         redoInfo = self.model.infoRedoAction()
 
@@ -1023,7 +995,6 @@ class TableExplorer(EmzedDialog):
         self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
         for i in to_select:
             if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
-                print(i)
                 self.tableView.selectRow(i)
         self.tableView.setSelectionMode(mode_before)
         self.tableView.verticalScrollBar().setValue(scrollbar_before)
@@ -1113,9 +1084,6 @@ class TableExplorer(EmzedDialog):
 
         self.eic_plotter.replot()
 
-        reset = reset and mzmin is not None and mzmax is not None
-        limits = (mzmin, mzmax) if reset else None
-
     @protect_signal_handler
     def spectrumChosen(self):
         spectra = [self.spectra_listed_in_chooser[idx.row()]
@@ -1185,7 +1153,7 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callbac
     tables.
 
     """
-    if isinstance(what, (Table, TableProxy)):
+    if isinstance(what, (Table, Hdf5TableProxy)):
         what = [what]
     app = guidata.qapplication()  # singleton !
     explorer = TableExplorer(what, offerAbortOption, parent=parent, close_callback=close_callback)

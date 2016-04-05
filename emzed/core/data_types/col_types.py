@@ -1,8 +1,8 @@
 import hashlib
 import cPickle
 
-
 import pandas as pd
+import numpy as np
 
 
 def unique_id_from(*args):
@@ -45,12 +45,21 @@ class Blob(object):
 
 class TimeSeries(object):
 
-    def __init__(self, x, y, label=None):
+    def __init__(self, x, y, label=None, blank_flags=None):
         assert len(x) == len(y)
-        self.x = list(x)  # no numpy arrays here
-        self.y = list(y)
+        self.x = np.array(x)
+        self.y = np.array(y, dtype="float64")
         self._unique_id = None
         self.label = label
+        self.is_blank = blank_flags
+
+    def uniqueId(self):
+        if self._unique_id is None:
+            self._unique_id = unique_id_from((self.x, self.y, self.is_blank, self.label))
+        return self._unique_id
+
+    def __len__(self):
+        return len(self.x)
 
     def __str__(self):
         try:
@@ -62,14 +71,6 @@ class TimeSeries(object):
             min_x = min(xi for xi in self.x if xi is not None)
             max_x = max(xi for xi in self.x if xi is not None)
             return "<TimeSeries, time=%s..%s, values=%s..%s>" % (min_x, max_x, min_y, max_y)
-
-    def uniqueId(self):
-        if self._unique_id is None:
-            self._unique_id = unique_id_from((self.x, self.y))
-        return self._unique_id
-
-    def __len__(self):
-        return len(self.x)
 
     @staticmethod
     def detect_segments(x, y):
@@ -88,4 +89,19 @@ class TimeSeries(object):
         return segments
 
     def for_plotting(self):
-        return self.detect_segments(self.x, self.y)
+        if self.is_blank is None:
+            return self.detect_segments(self.x, self.y)
+
+        signal_xy = [(x, y)
+                     for (x, y, is_blank) in zip(self.x, self.y, self.is_blank) if not is_blank]
+        blank_xy = [(x, y) for (x, y, is_blank) in zip(self.x, self.y, self.is_blank) if is_blank]
+
+        def segments(list_of_tuples):
+            if list_of_tuples:
+                return self.detect_segments(*zip(*list_of_tuples))
+            return []
+
+        seg_xy = segments(signal_xy)
+        seg_blanks = [(x, y, dict(linestyle="DashLine")) for (x, y) in segments(blank_xy)]
+        return seg_xy + seg_blanks
+

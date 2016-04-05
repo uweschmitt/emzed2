@@ -1,17 +1,17 @@
 from ..data_types import PeakMap, Table
 from ..data_types.col_types import Blob
-from ..data_types.hdf5.table_proxy import TableProxy
+from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
 
 def has_inspector(clz):
-    return clz in (PeakMap, Table, Blob, TableProxy)
+    return clz in (PeakMap, Table, Blob, Hdf5TableProxy)
 
 
 def inspector(obj, *a, **kw):
     if isinstance(obj, PeakMap):
         from peakmap_explorer import inspectPeakMap
         return lambda: inspectPeakMap(obj, *a, **kw)
-    elif isinstance(obj, (Table, TableProxy)):
+    elif isinstance(obj, (Table, Hdf5TableProxy)):
         from table_explorer import inspect
         return lambda: inspect(obj, *a, **kw)
     elif isinstance(obj, (list, tuple)) and all(isinstance(t, Table) for t in obj):
