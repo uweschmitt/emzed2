@@ -10,7 +10,7 @@ import requests
 from base64 import b64decode, b64encode
 
 """
-to reformat one very long line from public key file:
+to reformat one very long line from public key file with vim:
 1. mark key code line
 2. !fold -w 90
 3. remove id resp. email adress at end !
