@@ -106,8 +106,12 @@ class Hdf5TableWriter(Hdf5Base):
 
 class Hdf5TableReader(Hdf5Base):
 
+    """opens written table for reading, inplace modification of table cells is supported
+       for some data types.
+    """
+
     def __init__(self, path):
-        self._initial_setup(path, "r")
+        self._initial_setup(path, "r+")
         self._load_meta()
         self.row_cache = LruDict(10000)
         self.col_cache = LruDict(100)
@@ -154,6 +158,24 @@ class Hdf5TableReader(Hdf5Base):
             row.append(value)
         self.row_cache[index] = row
         return row
+
+    def replace_cell(self, row_index, col_index, value):
+        assert self.col_types[col_index] in (int, long, float, bool)
+        if row_index in self.row_cache:
+            del self.row_cache[row_index]
+
+        row_iter = self.row_table.iterrows(row_index, row_index + 1)
+        row = row_iter.next()
+        name = self.col_names[row_index]
+        row[name] = value
+        row.update()
+        # we have to finish "iteration", else pytables will not update table buffers:
+        try:
+            row.next()
+        except StopIteration:
+            pass
+        self.row_table.flush()
+
 
     def __len__(self):
         return self.nrows

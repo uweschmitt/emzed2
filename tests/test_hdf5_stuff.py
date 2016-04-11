@@ -131,6 +131,13 @@ def test_row_attribute(tproxy, regtest):
         print(row, file=regtest)
 
 
+def test_row_write_cell(tproxy, regtest):
+    # test row attribute
+    tproxy.set_value(0, 0, 4711)
+    for row in tproxy.rows:
+        print(row, file=regtest)
+
+
 def test_sort_by(tproxy, regtest):
     # test sortBy
     perm = tproxy.sortPermutation("int", True)

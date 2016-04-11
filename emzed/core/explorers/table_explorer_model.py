@@ -525,20 +525,6 @@ class MutableTableModel(TableModel):
         if role == Qt.EditRole:
             shown = super(MutableTableModel, self).data(index, Qt.DisplayRole)
             return unicode(shown)
-            ridx, cidx = self.table_index(index)
-            colType = self.table._colTypes[cidx]
-            if colType in (int, float, str, unicode):
-                if shown.strip().endswith("m"):
-                    return shown
-                try:
-                    colType(shown)
-                    return shown
-                except ValueError:
-                    import pdb; pdb.set_trace()  ### break here
-                    if colType == float:
-                        return "-" if shown is None else "%.4f" % shown
-                    return unicode(value) if value is not None else "-"
-            return unicode(shown) if shown is not None else "-"
         else:
             return super(MutableTableModel, self).data(index, role)
 
@@ -551,7 +537,7 @@ class MutableTableModel(TableModel):
             return default
         if self.widgetColToDataCol[index.column()] in self.nonEditables:
             return default
-        return Qt.ItemFlags(default | Qt.ItemIsEditable)
+        return Qt.ItemFlags(default | Qt.ItemIsEditable) #  | Qt.ItemIsUserCheckable)
 
     def setData(self, index, value, role=Qt.EditRole):
         ridx, cidx = self.table_index(index)
