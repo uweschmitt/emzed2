@@ -1064,9 +1064,13 @@ class TableExplorer(EmzedDialog):
 
         self.eic_plotter.add_eics(curves, configs=configs)
 
-        for ((rts, iis), baseline), config in zip(fit_shapes, configs):
+        for (chromo, baseline), config in zip(fit_shapes, configs):
+            if chromo is None:
+                continue
+            rts, iis = chromo
             if baseline is None:
                 baseline = 0.0
+
             eic_color = config["color"]
             color = turn_light(eic_color)
             self.eic_plotter.add_eic_filled(rts, iis, baseline, color)

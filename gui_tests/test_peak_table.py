@@ -62,6 +62,8 @@ t.addColumn("ms2_spectra_count", t.spectra_ms2.apply(len), type_=int, format_="%
 ti = emzed.utils.integrate(t)
 ti.setColFormat("params", "%r")
 
+ti.replaceColumn("params", (ti.mzmin <= 10).thenElse(None, ti.params))
+
 # t.dropColumns("peakmap", "rtmin")
 t.addEnumeration()
 t.addColumn("f", t.id / 3)

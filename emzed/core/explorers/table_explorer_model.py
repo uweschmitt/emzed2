@@ -287,10 +287,10 @@ class TableModel(QAbstractTableModel):
             method = values["method" + p]
             params = values["params" + p]
             integrator = dict(algorithm_configs.peakIntegrators).get(method)
-            if method is not None:
+            if method is not None and params is not None and integrator is not None:
                 # data is a tuple with two onedim numpy arrays:
                 data = integrator.getSmoothed(rts, params)
-                # baslein is a numerical value or None
+                # baseline is a numerical value or None
                 baseline = integrator.getBaseline(rts, params)
             else:
                 data = baseline = None
