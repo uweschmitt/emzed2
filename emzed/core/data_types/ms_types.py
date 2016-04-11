@@ -828,8 +828,15 @@ class PeakMap(object):
         if isinstance(fp_or_path, basestring):
             if sys.platform == "win32":
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
-            with open(fp_or_path, "wb") as fp:
+
+            # atomic write:
+            with open(fp_or_path + ".tmp", "wb") as fp:
                 fp.write(zlib.compress(dill.dumps(self), 9))
+                fp.flush()
+                os.fsync(fp.fileno())
+            if os.path.exists(fp_or_path):
+                os.remove(fp_or_path)
+            os.rename(fp_or_path + ".tmp", fp_or_path)
             return
         dill.dump(self, fp_or_path)
 
@@ -843,7 +850,7 @@ class PeakMap(object):
         try:
             fp = open(path, "rb")
         except IOError:
-            raise IOError("failed to open/read from %s" % path)
+            raise IOError("failed to open %s for reading" % path)
         try:
             data = fp.read()
             try:

@@ -1054,11 +1054,16 @@ class Table(MutableTable):
         if peakmap_cache_folder is not None:
             self._introduce_proxies(peakmap_cache_folder, path)
 
-        with open(path, "w+b") as fp:
+        with open(path + ".tmp", "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
+            fp.flush()
+            os.fsync(fp.fileno())
+        if os.path.exists(path):
+            os.remove(path)
+        os.rename(path + ".tmp", path)
 
         if peakmap_cache_folder == ".":
             self._correct_proxies(path)
