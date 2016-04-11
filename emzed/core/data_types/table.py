@@ -682,6 +682,20 @@ class Table(MutableTable):
             raise Exception("column with name %r not in table" % colName)
         return idx
 
+    def setCellValue(self, row_index, col_index, value):
+        if type(value) in [np.float32, np.float64]:
+            value = float(value)
+        assert 0 <= row_index < len(self), "row_index out of range 0...%d" % (len(self) - 1)
+        assert 0 <= col_index < len(self._colNames), "col_index out of range 0..%d" % ((self._colNames) - 1)
+        col_type = self._colTypes[col_index]
+        if value is not None:
+            try:
+                value = col_type(value)
+            except ValueError:
+                raise ValueError("can not convert %r to %s" % (value, col_type))
+        self.rows[row_index][col_index] = value
+        self.resetInternals()
+
     def setValue(self, row, colName, value, slow_but_checked=True):
         """ sets ``value`` of column ``colName`` in a given ``row``.
 

@@ -165,8 +165,7 @@ class ChangeValueAction(TableAction):
         self.memory = row[self.col_idx]
         if self.memory == self.value:
             return False
-        row[self.col_idx] = self.value
-        table.resetInternals()
+        table.setCellValue(self.row_idx, self.col_idx, self.value)
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
             self.idx,
@@ -177,8 +176,7 @@ class ChangeValueAction(TableAction):
     def undo(self):
         super(ChangeValueAction, self).undo()
         table = self.model.table
-        table.rows[self.row_idx][self.col_idx] = self.memory
-        table.resetInternals()
+        table.setCellValue(self.row_idx, self.col_idx, self.memory)
         self.model.emit(
             SIGNAL("dataChanged(QModelIndex,QModelIndex,PyQt_PyObject)"),
             self.idx,

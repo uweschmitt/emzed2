@@ -1416,3 +1416,23 @@ def test_overwrite(regtest):
     t2 = emzed.utils.toTable("a", (1.0,), type_=float)
     with pytest.raises(Exception):
         t1.overwrite(t2)
+
+def test_set_cell_value(regtest):
+
+    t = emzed.utils.toTable("a", (1, 2, 3), type_=int)
+    t.addColumn("b", t.a.apply(str), type_= str)
+    t.setCellValue(0, 0, 42)
+    assert t.getValues(t.rows[0]).a == 42
+    t.setCellValue(1, 0, 42.1)
+    assert t.getValues(t.rows[1]).a == 42
+    t.setCellValue(2, 0, "42")
+    assert t.getValues(t.rows[2]).a == 42
+    with pytest.raises(ValueError):
+        t.setCellValue(0, 0, "hello")
+
+    t.setCellValue(0, 1, 42)
+    assert t.getValues(t.rows[0]).b == "42"
+    t.setCellValue(1, 1, 42.1)
+    assert t.getValues(t.rows[1]).b == "42.1"
+    t.setCellValue(2, 1, "42")
+    assert t.getValues(t.rows[2]).b == "42"

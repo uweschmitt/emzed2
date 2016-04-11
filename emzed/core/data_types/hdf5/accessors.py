@@ -134,7 +134,11 @@ class Hdf5TableReader(Hdf5Base):
 
         # read full table -> numpy array -> list -> set
         self.missing_values_table = self.file_.root.missing_values
-        self.missing_values = set(self.missing_values_table.read().tolist())
+        missing_value_indices = self.missing_values_table.read().tolist()
+        self.missing_values = {}
+        for cell_index, row_index_in_table in itertools.izip(missing_value_indices,
+                                                             itertools.count()):
+            self.missing_values[cell_index] = row_index_in_table
         self.missing_values_in_column = defaultdict(set)
 
         idx_to_name = dict(enumerate(self.col_names))
@@ -160,13 +164,34 @@ class Hdf5TableReader(Hdf5Base):
         return row
 
     def replace_cell(self, row_index, col_index, value):
-        assert self.col_types[col_index] in (int, long, float, bool)
+        type_ = self.col_types[col_index]
         if row_index in self.row_cache:
             del self.row_cache[row_index]
 
+        index = (row_index, col_index)
+        if value is None:
+            if index not in self.missing_values:
+                row = self.missing_values_table.row
+                row["row_index"] = row_index
+                row["col_index"] = col_index
+                row.append()
+                self.missing_values[index] = self.missing_values_table.nrows
+                self.missing_values_table.flush()
+                return
+        elif index in self.missing_values:  # we overwrite a previously None with a not None:
+            ri = self.missing_values[index]
+            self.missing_values_table.remove_row(ri)
+            self.missing_values_table.flush()
+            del self.missing_values[index]
+
         row_iter = self.row_table.iterrows(row_index, row_index + 1)
         row = row_iter.next()
-        name = self.col_names[row_index]
+        name = self.col_names[col_index]
+
+        if type_ not in (int, long, float, bool):
+            value = self.manager.store_object(value)
+            self.manager.finalize()
+
         row[name] = value
         row.update()
         # we have to finish "iteration", else pytables will not update table buffers:
@@ -175,7 +200,6 @@ class Hdf5TableReader(Hdf5Base):
         except StopIteration:
             pass
         self.row_table.flush()
-
 
     def __len__(self):
         return self.nrows

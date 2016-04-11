@@ -25,6 +25,9 @@ class LruDict(object):
     def __contains__(self, what):
         return what in self._data
 
+    def __delitem__(self, index):
+        del self._data[index]
+
 
 def lru_cache(maxsize):
 

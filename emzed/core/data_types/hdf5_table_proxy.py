@@ -107,7 +107,7 @@ class Hdf5TableProxy(ImmutableTable):
             perm = [i for (v, i) in sorted(zip(values, itertools.count()), reverse=not order)]
         return perm
 
-    def set_value(self, row_idx, col_idx, value):
+    def setCellValue(self, row_idx, col_idx, value):
         self.reader.replace_cell(row_idx, col_idx, value)
 
     def toTable(self):

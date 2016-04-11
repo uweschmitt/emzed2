@@ -295,7 +295,10 @@ class PeakMapProxy(object):
             peaks = np.vstack((mzs, iis)).T
             spectrum = Spectrum(peaks, rt, ms_level, "0", [])
             spectra.append(spectrum)
-        peaks = optim_sample_peaks(PeakMap(spectra), rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+        if rtmin <= rtmax and mzmin < mzmax:
+            peaks = optim_sample_peaks(PeakMap(spectra), rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+        else:
+            peaks = np.zeros((0, 2))
         return peaks
 
 

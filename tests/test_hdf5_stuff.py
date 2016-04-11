@@ -133,10 +133,48 @@ def test_row_attribute(tproxy, regtest):
 
 def test_row_write_cell(tproxy, regtest):
     # test row attribute
-    tproxy.set_value(0, 0, 4711)
-    for row in tproxy.rows:
-        print(row, file=regtest)
+    tproxy.setCellValue(0, 0, 4711)
 
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    # make sure that row 0 is cached, and test again:
+    tproxy[0]
+    tproxy.setCellValue(0, 0, 4712)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(4, 0, 4713)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(4, 0, None)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(4, 0, 4713)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(4, 0, None)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(0, 3, "4713")
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
+
+    tproxy.setCellValue(0, 3, None)
+    t = tproxy.toTable()
+    t.dropColumns("time_series", "object", "peakmap")
+    print(t, file=regtest)
 
 def test_sort_by(tproxy, regtest):
     # test sortBy

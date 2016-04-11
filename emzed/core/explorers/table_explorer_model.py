@@ -510,7 +510,7 @@ class TableModel(QAbstractTableModel):
     @staticmethod
     def table_model_for(table, parent=None):
         if isinstance(table, Hdf5TableProxy):
-            return TableModel(table, parent)
+            return MutableTableModel(table, parent)
         else:
             return MutableTableModel(table, parent)
 
