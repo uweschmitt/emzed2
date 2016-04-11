@@ -20,9 +20,9 @@ def test_1(path, tmpdir):
     t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
     t.addColumn("peakmap", pm, type_=object)
     p1 = tmpdir.join("without_comp.table").strpath
-    t.store(p1 , True, True)
+    t.store(p1, True, True)
     p2 = tmpdir.join("with_comp.table").strpath
-    t.store(p2 , True, True, tmpdir.strpath)
+    t.store(p2, True, True, tmpdir.strpath)
 
     # compression by peakmap proxy should be factor 30 or better in this particular case:
     s1 = os.stat(p1).st_size
@@ -62,7 +62,7 @@ def test_2(path, tmpdir, regtest):
 
     p2 = tmpdir.join("with_comp.table").strpath
 
-    t.store(p2 , True, True, ".")
+    t.store(p2, True, True, ".")
 
     # chekc if pm proxy is next ot
     file_names = [p.basename for p in tmpdir.listdir()]
@@ -101,3 +101,13 @@ def test_squeeze(path):
     assert "_spectra" not in pm.__dict__
     assert len(pm) == 41  # triggers loading
     assert "_spectra" in pm.__dict__
+
+
+def test_as_pickle(path, tmpdir):
+    from emzed.core.data_types.ms_types import PeakMapProxy, PeakMap
+    pm = PeakMapProxy(path("data/SHORT_MS2_FILE.mzData"))
+    print(pm)
+    path = tmpdir.join("pm.pickle").strpath
+    pm.dump_as_pickle(path)
+    pm = PeakMap.load_as_pickle(path)
+    print(pm)

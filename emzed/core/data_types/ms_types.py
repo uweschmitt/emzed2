@@ -113,7 +113,6 @@ class Spectrum(object):
         if meta is None:
             meta = dict()
 
-
         peaks = peaks[peaks[:, 1] > 0]  # remove zero intensities
         # sort resp. mz values:
         perm = np.argsort(peaks[:, 0])
@@ -145,6 +144,7 @@ class Spectrum(object):
 
     def _create_prop(name):
         lname = "_" + name
+
         def getter(self):
             return getattr(self, lname)
 
@@ -329,7 +329,6 @@ class Spectrum(object):
 
     def cosine_distance(self, other, mz_tolerance, top_n=10, min_matches=10,
                         consider_precursor_shift=False):
-
         """computes the cosine distance of *self* and *other*.
 
         *top_n* is the number of most intense peaks which should be used for alignment.
@@ -835,14 +834,29 @@ class PeakMap(object):
         dill.dump(self, fp_or_path)
 
     @staticmethod
-    def load_as_pickle(fp_or_path):
+    def load_as_pickle(path):
         import dill
-        if isinstance(fp_or_path, basestring):
-            if sys.platform == "win32":
-                fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
-            with open(fp_or_path, "rb") as fp:
-                return dill.loads(zlib.decompress(fp.read()))
-        return dill.load(fp_or_path)
+        if not isinstance(path, basestring):
+            raise ValueError("load_as_pickle needs path as argument, you provided %r" % path)
+        if sys.platform == "win32":
+            path = path.replace("/", "\\")  # needed for network shares
+        try:
+            fp = open(path, "rb")
+        except IOError:
+            raise IOError("failed to open/read from %s" % path)
+        try:
+            data = fp.read()
+            try:
+                uncompressed = zlib.decompress(data)
+            except zlib.error:
+                raise IOError("compressed data in %s is invalid, file might be corrupted" % path)
+            try:
+                pm = dill.loads(uncompressed)
+            except Exception:
+                raise IOError("unpickling of data %s failed, file might be corrupted" % path)
+            return pm
+        finally:
+            fp.close()
 
     def squeeze(self):
         """only supported for peakmap proxies to save space if possible"""
