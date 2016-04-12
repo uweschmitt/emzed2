@@ -43,6 +43,8 @@ def table():
 
     n = 10
     ts_0 = TimeSeries(map(datetime.fromordinal, range(1, n + 1)), range(n), "label1")
+    ts_0.x[3] = None
+    ts_0.y[3] = np.nan
 
     n = 10
     ts_1 = TimeSeries(map(datetime.fromordinal, range(1000,  n + 1000)),

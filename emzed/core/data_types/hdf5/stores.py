@@ -495,7 +495,11 @@ class TimeSeriesStore(Store):
         start = self.x_blob.nrows
         size = len(obj.x)
 
-        self.x_blob.append([xi.toordinal() for xi in obj.x])
+        # transform missing values to -1 which is not possible for int representation of
+        # dates:
+        xvals = [xi.toordinal() if xi is not None else -1 for xi in obj.x]
+
+        self.x_blob.append(xvals)
         self.y_blob.append(obj.y)
 
         bp_start = self.bp.nrows
@@ -537,7 +541,8 @@ class TimeSeriesStore(Store):
         blank_flags_is_none = row["blank_flags_is_none"]
 
         x = self.x_blob[start:start + size]
-        x = map(datetime.fromordinal, x)
+
+        x = [datetime.fromordinal(xi) if xi >= 0 else None for xi in x]
 
         y = self.y_blob[start:start + size]
         blank_pos = self.bp[bp_start:bp_start + bp_size]
