@@ -138,13 +138,37 @@ class SortTableAction(TableAction):
 
     def undo(self):
         super(SortTableAction, self).undo()
-        # table = self.model.table
         self.model.set_row_permutation(self.memory)
-        # calc inverse permuation:
-        #decorated = [(self.memory[i], i) for i in range(len(self.memory))]
-        #decorated.sort()
-        #invperm = [i for (_, i) in decorated]
-        #table._applyRowPermutation(invperm)
+
+
+class ChangeAllValuesInColumnAction(TableAction):
+
+    actionName = "change all values"
+
+    def __init__(self, model, widget_col_index, data_row_indices, data_col_index, value):
+        super(ChangeAllValuesInColumnAction, self).__init__(model,
+                                                            widget_col_index=widget_col_index,
+                                                            data_row_indices=data_row_indices,
+                                                            data_col_index=data_col_index,
+                                                            value=value)
+        self.toview = dict(column=widget_col_index, value=value)
+
+    def do(self):
+        table = self.model.table
+        name = table.getColNames()[self.data_col_index]
+        self.memory = table.selectedRowValues(name, self.data_row_indices)
+
+        self.model.beginResetModel()
+        table.replaceSelectedRows(name, self.value, self.data_row_indices)
+        self.model.endResetModel()
+        return True
+
+    def undo(self):
+        super(ChangeAllValuesInColumnAction, self).undo()
+
+        self.model.beginResetModel()
+        self.model.table.setCellValue(self.data_row_indices, self.data_col_index, self.memory)
+        self.model.endResetModel()
 
 
 class ChangeValueAction(TableAction):
@@ -268,5 +292,3 @@ class IntegrateAction(TableAction):
             self)
         # this one updates cells in table
         self.model.emit(SIGNAL("dataChanged(QModelIndex,QModelIndex)"), tl, tr)
-
-

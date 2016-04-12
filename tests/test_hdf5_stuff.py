@@ -194,6 +194,76 @@ def test_sort_by(tproxy, regtest):
     print(perm, file=regtest)
     print(tproxy.toTable()[perm], file=regtest)
 
+def test_replace_column(tproxy, regtest):
+
+    tproxy.replaceColumn("int", 2)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("int", None)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("int", 1)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("int", 3)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("int", None)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("int", 3)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+
+def test_replace_column_2(tproxy, regtest):
+    tproxy.replaceColumn("str", "2")
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("str", None)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("str", "1")
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("str", "3")
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("str", None)
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceColumn("str", "3")
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+def test_replace_column_3(tproxy, regtest):
+
+    tproxy.replaceSelectedRows("int", 2, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", None, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", 1, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", 3, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", None, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", 3, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+
+def test_selected_col_values(tproxy, regtest):
+    for n in (1, 2, 3, 4, 5):
+        v = tproxy.selectedRowValues("int", range(n))
+        print(v, file=regtest)
+
+    for n in (1, 2, 3, 4):
+        v = tproxy.selectedRowValues("int", range(n, 5))
+        print(v, file=regtest)
+
 
 def test_ghost_table_forwarding(tproxy):
     assert tproxy.getValue(tproxy.rows[1], "int") == 2

@@ -1419,20 +1419,85 @@ def test_overwrite(regtest):
 
 def test_set_cell_value(regtest):
 
-    t = emzed.utils.toTable("a", (1, 2, 3), type_=int)
+    t = emzed.utils.toTable("a", (0, 0, 0), type_=int)
     t.addColumn("b", t.a.apply(str), type_= str)
-    t.setCellValue(0, 0, 42)
-    assert t.getValues(t.rows[0]).a == 42
-    t.setCellValue(1, 0, 42.1)
-    assert t.getValues(t.rows[1]).a == 42
-    t.setCellValue(2, 0, "42")
-    assert t.getValues(t.rows[2]).a == 42
-    with pytest.raises(ValueError):
-        t.setCellValue(0, 0, "hello")
+    t.addColumn("c", t.a.apply(float), type_= float)
 
-    t.setCellValue(0, 1, 42)
-    assert t.getValues(t.rows[0]).b == "42"
-    t.setCellValue(1, 1, 42.1)
-    assert t.getValues(t.rows[1]).b == "42.1"
-    t.setCellValue(2, 1, "42")
-    assert t.getValues(t.rows[2]).b == "42"
+    t0 = t.copy()
+
+    t0.setCellValue(0, 0, 42)
+    assert t0.getValues(t0.rows[0]).a == 42
+    t0.setCellValue(1, 0, 42.1)
+    assert t0.getValues(t0.rows[1]).a == 42
+    t0.setCellValue(2, 0, "42")
+    assert t0.getValues(t0.rows[2]).a == 42
+    with pytest.raises(ValueError):
+        t0.setCellValue(0, 0, "hello")
+
+    t0.setCellValue(0, 1, 42)
+    assert t0.getValues(t0.rows[0]).b == "42"
+    t0.setCellValue(1, 1, 42.1)
+    assert t0.getValues(t0.rows[1]).b == "42.1"
+    t0.setCellValue(2, 1, "42")
+    assert t0.getValues(t0.rows[2]).b == "42"
+
+    t0 = t.copy()
+    t0.setCellValue([0], 0, [42])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue(0, [0], [42])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue([0], [0], [[42]])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue([0], [0, 2], [[42, 43]])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue([0, 2], [0], [[42], [43]])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue([0, 2], [0, 2], [[42, 43], [11, 12]])
+    print(t0, file=regtest)
+
+    t0 = t.copy()
+    t0.setCellValue([0, 2], 0, 1234)
+    print(t0, file=regtest)
+
+
+def test_selected_replacements(regtest):
+    t = emzed.utils.toTable("a", (0, 0, 0), type_=int)
+    t.addColumn("b", t.a.apply(str), type_= str)
+    t.addColumn("c", t.a.apply(float), type_= float)
+    print(t, file=regtest)
+
+    t.replaceSelectedRows("a", 2, (0, 2))
+    print(t, file=regtest)
+
+    t.replaceSelectedRows("a", None, (0, 2))
+    print(t, file=regtest)
+
+    t.replaceSelectedRows("b", "2", (0, 2))
+    print(t, file=regtest)
+    t.replaceSelectedRows("b", None, (0, 2))
+    print(t, file=regtest)
+
+    t.replaceSelectedRows("c", 2.0, (0, 2))
+    print(t, file=regtest)
+    t.replaceSelectedRows("c", None, (0, 2))
+    print(t, file=regtest)
+
+def test_selected_col_values(regtest):
+    t = emzed.utils.toTable("a", (0, 0, None), type_=int)
+    t.addColumn("b", t.a.apply(str), type_= str)
+
+    v = t.selectedRowValues("a", (0, 2))
+    print(v, file=regtest)
+
+    v = t.selectedRowValues("b", (0, 2))
+    print(v, file=regtest)

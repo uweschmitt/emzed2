@@ -68,7 +68,7 @@ class Store(object):
         pass
 
     @abc.abstractmethod
-    def finalize():
+    def flush():
         pass
 
     def close(self):
@@ -219,7 +219,7 @@ class PeakMapStore(Store):
                               unique_id=unique_id)
         return result
 
-    def finalize(self):
+    def flush(self):
         self.node.pm_table.flush()
         self.node.spec_table.flush()
 
@@ -383,7 +383,7 @@ class StringStore(Store):
 
         return "".join(self.blob_array[start:start + size])
 
-    def finalize(self):
+    def flush(self):
         self.index_table.flush()
         self.blob_array.flush()
 
@@ -564,7 +564,7 @@ class TimeSeriesStore(Store):
         t.addColumn("y", yvals, type_=object)
         print(t)
 
-    def finalize(self):
+    def flush(self):
         self.x_blob.flush()
         self.y_blob.flush()
         self.bp.flush()

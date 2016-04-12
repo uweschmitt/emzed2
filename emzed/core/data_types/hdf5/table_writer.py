@@ -10,7 +10,7 @@ def append_to_hdf5(table, path):
     file_ = open_file(path, mode="w")
     filters = Filters(complib="blosc", complevel=9)
 
-    store, fetch, finalize = setup(file_)
+    store, fetch, flush = setup(file_)
 
 
 def to_hdf5(table, path):
@@ -18,7 +18,7 @@ def to_hdf5(table, path):
     file_ = open_file(path, mode="w")
     filters = Filters(complib="blosc", complevel=9)
 
-    store, fetch, finalize = setup(file_)
+    store, fetch, flush = setup(file_)
 
     meta_table = file_.create_table(file_.root, "meta_index",
                                     description=dict(index=UInt64Col()),
@@ -71,7 +71,7 @@ def to_hdf5(table, path):
                     hdf_row[name] = store(value)
         hdf_row.append()
 
-    finalize()
+    flush()
     meta_table.flush()
     missing_values.flush()
     row_table.flush()

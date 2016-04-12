@@ -13,7 +13,7 @@ import guidata
 
 from ..data_types import PeakMap, TimeSeries
 from ..data_types.table import create_row_class
-from ..data_types.hdf5_table_proxy import Hdf5TableProxy
+from ..data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy
 from ..data_types.base_classes import ImmutableTable
 
 from ... import algorithm_configs
@@ -24,7 +24,11 @@ from ..config import folders
 
 
 def isUrl(what):
-    return what.startswith("http://") or what.startswith("https://")
+    if isinstance(what, QString):
+        what = str(what)
+    if isinstance(what, basestring):
+        return what.startswith("http://") or what.startswith("https://")
+    return False
 
 
 class TableModel(QAbstractTableModel):
@@ -87,8 +91,18 @@ class TableModel(QAbstractTableModel):
         return len(self.widgetColToDataCol)
 
     def column_name(self, index):
-        __, col = self.table_index(index)
+        if isinstance(index, (int, long)):
+            col = self.widgetColToDataCol[index]
+        else:
+            __, col = self.table_index(index)
         return self.table.getColNames()[col]
+
+    def column_type(self, index):
+        if isinstance(index, (int, long)):
+            col = self.widgetColToDataCol[index]
+        else:
+            __, col = self.table_index(index)
+        return self.table.getColTypes()[col]
 
     def table_index(self, index):
         cidx = self.widgetColToDataCol[index.column()]
@@ -100,6 +114,15 @@ class TableModel(QAbstractTableModel):
         value = self.table.rows[ridx][cidx]
         return value
 
+    def set_all(self, widget_col_index, value):
+        data_col_index = self.widgetColToDataCol[widget_col_index]
+        data_row_indices = self.widgetRowToDataRow
+        done = self.runAction(ChangeAllValuesInColumnAction, widget_col_index, data_row_indices,
+                                                             data_col_index, value)
+        if done:
+            self.update_visible_rows_for_given_limits()
+        return done
+
     def row(self, index):
         ridx, cidx = self.table_index(index)
         row = create_row_class(self.table)(self.table.rows[ridx])
@@ -107,29 +130,43 @@ class TableModel(QAbstractTableModel):
 
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+    def font(self, index):
+        content = self.data(index, Qt.DisplayRole)
+        if isUrl(content):
+            font = QFont(super(TableModel, self).data(index, Qt.DisplayRole))
+            font.setUnderline(True)
+            return font
+        return QVariant()
+
+    def bool_data(self, index, role):
+        if role == Qt.CheckStateRole:
+            value = self.cell_value(index)
+            if value is None:
+                return QVariant()
+            return Qt.Checked if value else Qt.Unchecked
+        elif role == Qt.DisplayRole:
+            return QString("")
+        return QVariant()
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()
 
         if role == Qt.FontRole:
-            content = self.data(index)
-            if isUrl(content):
-                font = QFont(super(TableModel, self).data(index, Qt.DisplayRole))
-                font.setUnderline(True)
-                return font
+            return self.font(index)
+
+        if self.column_type(index) is bool:
+            return self.bool_data(index, role)
 
         if role != Qt.DisplayRole:
             return QVariant()
 
-        ridx, cidx = self.table_index(index)
-        if not (0 <= index.row() < self.rowCount()):
-            return QVariant()
-
-        value = self.table.rows[ridx][cidx]
-        fmter = self.table.colFormatters[cidx]
-
-        if hasattr(value, "load"):
+        value = self.cell_value(index)
+        if isinstance(value, ObjectProxy):
             value = value.load()
+
+        ridx, cidx = self.table_index(index)
+        fmter = self.table.colFormatters[cidx]
 
         if isinstance(value, datetime):
             fmt = self.table.getColFormats()[cidx]
@@ -138,11 +175,11 @@ class TableModel(QAbstractTableModel):
             else:
                 try:
                     shown = fmter(value)
-                except:
+                except Exception:
                     shown = value.strftime(self.DATE_FORMAT)
         else:
             shown = fmter(value)
-        return shown
+        return QString(shown)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
@@ -524,6 +561,7 @@ class MutableTableModel(TableModel):
     def data(self, index, role=Qt.DisplayRole):
         if role == Qt.EditRole:
             shown = super(MutableTableModel, self).data(index, Qt.DisplayRole)
+            print(shown)
             return unicode(shown)
         else:
             return super(MutableTableModel, self).data(index, role)
@@ -537,7 +575,14 @@ class MutableTableModel(TableModel):
             return default
         if self.widgetColToDataCol[index.column()] in self.nonEditables:
             return default
-        return Qt.ItemFlags(default | Qt.ItemIsEditable) #  | Qt.ItemIsUserCheckable)
+        if self.column_type(index) is bool:
+            value = self.cell_value(index)
+            if value is None:
+                return Qt.ItemFlags(default)
+            else:
+                return Qt.ItemFlags(default | Qt.ItemIsEditable | Qt.ItemIsUserCheckable)
+        else:
+            return Qt.ItemFlags(default | Qt.ItemIsEditable) #  | Qt.ItemIsUserCheckable)
 
     def setData(self, index, value, role=Qt.EditRole):
         ridx, cidx = self.table_index(index)
@@ -545,6 +590,8 @@ class MutableTableModel(TableModel):
             expectedType = self.table._colTypes[cidx]
             if value.toString().trimmed() == "-":
                 value = None
+            elif expectedType is bool:
+                value = (value == Qt.Checked)
             elif expectedType != object:
                 # QVariant -> QString -> unicode + strip:
                 value = unicode(value.toString()).strip()

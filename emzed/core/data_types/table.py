@@ -682,19 +682,50 @@ class Table(MutableTable):
             raise Exception("column with name %r not in table" % colName)
         return idx
 
-    def setCellValue(self, row_index, col_index, value):
-        if type(value) in [np.float32, np.float64]:
-            value = float(value)
-        assert 0 <= row_index < len(self), "row_index out of range 0...%d" % (len(self) - 1)
-        assert 0 <= col_index < len(self._colNames), "col_index out of range 0..%d" % ((self._colNames) - 1)
-        col_type = self._colTypes[col_index]
-        if value is not None:
-            try:
-                value = col_type(value)
-            except ValueError:
-                raise ValueError("can not convert %r to %s" % (value, col_type))
-        self.rows[row_index][col_index] = value
+    def setCellValue(self, row_indices, col_indices, values):
+        """
+        row_indices is either a list of ints or a single int
+
+        col_indices is either a list of ints or a single int
+
+        values is either a single value or a list of lists where the lenghts must match
+        the given indices.
+        """
+        for ri, ci, value in self._resolve_write_operations(row_indices, col_indices, values):
+            assert 0 <= ri < len(self), "row_index %d out of range 0...%d" % (ri, len(self) - 1)
+            assert 0 <= ci < len(self._colNames), "col_index %d out of range 0..%d" % (ci, len(self._colNames) - 1)
+            self.rows[ri][ci] = value
         self.resetInternals()
+
+    def setColumnValues(self, col_index, value):
+        self.setCellValue(range(len(self)), col_index, value)
+
+    def _resolve_write_operations(self, row_indices, col_indices, values):
+        if isinstance(row_indices, (int, float)):
+            row_indices = [row_indices]
+
+        if not isinstance(values, (list, tuple)):
+            values = [values] * len(row_indices)
+        assert len(values) == len(row_indices)
+
+        if isinstance(col_indices, (int, float)):
+            col_indices = [col_indices]
+
+        if not isinstance(values[0], (list, tuple)):
+            values = [[v] for v in values]
+
+        for i, ri in enumerate(row_indices):
+            for j, ci in enumerate(col_indices):
+                col_type = self._colTypes[ci]
+                value = values[i][j]
+                if value is not None:
+                    if type(value) in [np.float32, np.float64]:
+                        value = float(value)
+                    try:
+                        value = col_type(value)
+                    except ValueError:
+                        raise ValueError("can not convert %r to %s" % (value, col_type))
+                yield ri, ci, value
 
     def setValue(self, row, colName, value, slow_but_checked=True):
         """ sets ``value`` of column ``colName`` in a given ``row``.
@@ -1068,7 +1099,7 @@ class Table(MutableTable):
         if peakmap_cache_folder is not None:
             self._introduce_proxies(peakmap_cache_folder, path)
 
-        with open(path + ".tmp", "w+b") as fp:
+        with open(path + ".incomplete", "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
@@ -1077,7 +1108,7 @@ class Table(MutableTable):
             os.fsync(fp.fileno())
         if os.path.exists(path):
             os.remove(path)
-        os.rename(path + ".tmp", path)
+        os.rename(path + ".incomplete", path)
 
         if peakmap_cache_folder == ".":
             self._correct_proxies(path)
@@ -1302,6 +1333,23 @@ class Table(MutableTable):
         for t in alltables:
             self.rows.extend(t.rows)
         self.resetInternals()
+
+    def replaceSelectedRows(self, name, what, rowIndices):
+        """replace values in given rowIndices and given column *name* with constant value *what*
+        """
+        if what is not None:
+            type_ = self.getColType(name)
+            if not isinstance(what, type_):
+                raise ValueError("given value %r is not of type %s" % (what, type_))
+
+        col_index = self.getIndex(name)
+        for ri in rowIndices:
+            self.rows[ri][col_index] = what
+        self.resetInternals()
+
+    def selectedRowValues(self, name, rowIndices):
+        col_index = self.getIndex(name)
+        return [self.rows[ri][col_index] for ri in rowIndices]
 
     def replaceColumn(self, name, what, type_=None, format_=""):
         """

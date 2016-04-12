@@ -37,9 +37,9 @@ class StoreManager(object):
             if global_id & 7 == flag:
                 return self._flags[flag].read(global_id >> 3)
 
-    def finalize(self):
+    def flush(self):
         for store in self._flags.values():
-            store.finalize()
+            store.flush()
 
     def close(self):
         for store in self._flags.values():
@@ -64,7 +64,7 @@ def setup_manager(file_, node=None):
 if __name__ == "__main__":
     from tables import open_file
     file_ = open_file("peakmap.h5", mode="w")
-    store, fetch, finalize = setup(file_, file_.root)
+    store, fetch, flush = setup(file_, file_.root)
 
     #import emzed
     #pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     s = time.time()
     id_ = store(data)
     print(time.time() - s)
-    finalize()
+    flush()
 
     print(id_)
     data = fetch(id_)

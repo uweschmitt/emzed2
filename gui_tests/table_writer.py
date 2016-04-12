@@ -35,10 +35,13 @@ def main():
     for k in range(0, n, 10):
         integers[k] = None
 
+    flags = [i % 2 == 0 for i in range(n)]
+
     tuples = [tuple(randint(0, 1000, size=10)) for _ in range(100)]
 
     with measure("create table"):
         t = emzed.utils.toTable("integers", integers, type_=int)
+        t.addColumn("check", flags, type_=bool)
         t.addColumn(
             "mzmin", t.apply(lambda: 100 + 900 * np_random() + np_random(), ()), type_=float)
         t.addColumn(

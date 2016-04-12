@@ -49,6 +49,11 @@ for i in range(len(t) / 2):
 
 # peak table with chromatograms
 
+flags = [i % 2 == 0 for i in range(len(t))]
+flags[0] = None
+
+t.addColumn("check", flags, type_=bool)
+
 t.addColumn("mzmax", t.mzmin + 10.0)
 t.addColumn("rtmin", 2 * range(10, 30), type_=float)
 t.addColumn("rtmax", t.rtmin + 3)

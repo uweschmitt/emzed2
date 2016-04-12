@@ -107,8 +107,27 @@ class Hdf5TableProxy(ImmutableTable):
             perm = [i for (v, i) in sorted(zip(values, itertools.count()), reverse=not order)]
         return perm
 
-    def setCellValue(self, row_idx, col_idx, value):
-        self.reader.replace_cell(row_idx, col_idx, value)
+    def setCellValue(self, row_indices, col_indices, values):
+        for ri, ci, v in self._ghost_table._resolve_write_operations(row_indices, col_indices,
+                                                                     values):
+            self.reader._replace_cell(ri, ci, v)
+        self.reader.flush()
+
+    def replaceColumn(self, name, what, **kw):
+        if "type_" in kw:
+            raise NotImplementedError("argument type_ not supported yet")
+        if "format_" in kw:
+            raise NotImplementedError("argument format_ not supported yet")
+        if what is not None and not isinstance(what, (bool, int, long, str)):
+            raise NotImplementedError("what argument must be constant value, no iterables supported")
+
+        self.reader.replace_column(self.getIndex(name), what)
+
+    def replaceSelectedRows(self, name, what, rowIndices):
+        self.reader.replace_column(self.getIndex(name), what, rowIndices)
+
+    def selectedRowValues(self, name, rowIndices):
+        return self.reader.select_col_values(self.getIndex(name), rowIndices)
 
     def toTable(self):
         rows = []

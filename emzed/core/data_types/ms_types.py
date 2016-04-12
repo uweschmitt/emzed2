@@ -830,13 +830,13 @@ class PeakMap(object):
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
 
             # atomic write:
-            with open(fp_or_path + ".tmp", "wb") as fp:
+            with open(fp_or_path + ".incomplete", "wb") as fp:
                 fp.write(zlib.compress(dill.dumps(self), 9))
                 fp.flush()
                 os.fsync(fp.fileno())
             if os.path.exists(fp_or_path):
                 os.remove(fp_or_path)
-            os.rename(fp_or_path + ".tmp", fp_or_path)
+            os.rename(fp_or_path + ".incomplete", fp_or_path)
             return
         dill.dump(self, fp_or_path)
 

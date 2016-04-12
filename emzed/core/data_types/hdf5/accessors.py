@@ -101,7 +101,7 @@ class Hdf5TableWriter(Hdf5Base):
 
         self.missing_values_table.flush()
         self.row_table.flush()
-        self.manager.finalize()
+        self.manager.flush()
 
 
 class Hdf5TableReader(Hdf5Base):
@@ -163,7 +163,73 @@ class Hdf5TableReader(Hdf5Base):
         self.row_cache[index] = row
         return row
 
-    def replace_cell(self, row_index, col_index, value):
+    def select_col_values(self, col_index, row_indices):
+        type_ = self.col_types[col_index]
+        basic_types = {int, long, float, bool}
+        if type_ not in basic_types:
+            raise NotImplementedError("fetching selected values only works for basic types")
+
+        is_missing = [(ri, col_index) in self.missing_values for ri in row_indices]
+
+        name = self.col_names[col_index]
+        values = getattr(self.row_table.cols, name)[:]
+        values = [values[i] for i in row_indices]
+        return [v if not im else None for (v, im) in zip(values, is_missing)]
+
+    def replace_column(self, col_index, value, row_selection=None):
+        type_ = self.col_types[col_index]
+        self.row_cache.clear()
+
+        if value is None:
+            n = self.missing_values_table.nrows
+            row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
+            for row_index in row_iter:
+                index = (row_index, col_index)
+                if index not in self.missing_values:
+                    row = self.missing_values_table.row
+                    row["row_index"] = row_index
+                    row["col_index"] = col_index
+                    row.append()
+                    self.missing_values[index] = n
+                    n += 1
+            self.missing_values_table.flush()
+            return
+        else:
+            to_remove = []
+            row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
+            for row_index in row_iter:
+                index = (row_index, col_index)
+                if index in self.missing_values:  # we overwrite a previously None with a not None:
+                    ri = self.missing_values[index]
+                    to_remove.append(ri)
+                    del self.missing_values[index]
+
+            # we remove from the end !
+            for ri in sorted(to_remove, reverse=True):
+                self.missing_values_table.remove_row(ri)
+
+        self.missing_values_table.flush()
+
+        name = self.col_names[col_index]
+        if type_ not in (int, long, float, bool):
+            value = self.manager.store_object(value)
+
+        if row_selection is None:
+            n = self.row_table.nrows
+            bulk_size = 10000
+            for start in range(0, n, bulk_size):
+                stop = min(n, start + bulk_size)
+                data = [value] * (stop - start)
+                self.row_table.modify_column(start=start, stop=stop, colname=name, column=data)
+        else:
+            col = getattr(self.row_table.cols, name)
+            for row_index in row_selection:
+                col[row_index] = value
+
+        self.row_table.flush()
+        self.manager.flush()
+
+    def _replace_cell(self, row_index, col_index, value):
         type_ = self.col_types[col_index]
         if row_index in self.row_cache:
             del self.row_cache[row_index]
@@ -190,7 +256,6 @@ class Hdf5TableReader(Hdf5Base):
 
         if type_ not in (int, long, float, bool):
             value = self.manager.store_object(value)
-            self.manager.finalize()
 
         row[name] = value
         row.update()
@@ -199,7 +264,15 @@ class Hdf5TableReader(Hdf5Base):
             row.next()
         except StopIteration:
             pass
+
+    def replace_cell(self, row_index, col_index, value):
+        self._replace_cell(row_index, col_index, value)
+        self.flush()
+
+    def flush(self):
         self.row_table.flush()
+        self.missing_values_table.flush()
+        self.manager.flush()
 
     def __len__(self):
         return self.nrows

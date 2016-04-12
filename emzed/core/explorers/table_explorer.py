@@ -4,6 +4,7 @@ import os
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
+
 import guidata
 
 from eic_plotting_widget import EicPlottingWidget
@@ -589,8 +590,12 @@ class TableExplorer(EmzedDialog):
         for view in self.tableViews:
             vh = view.verticalHeader()
             vh.setContextMenuPolicy(Qt.CustomContextMenu)
-            vh.customContextMenuRequested.connect(self.openContextMenu)
+            vh.customContextMenuRequested.connect(self.openContextMenuVerticalHeader)
             vh.sectionClicked.connect(self.rowClicked)
+
+            hh = view.horizontalHeader()
+            hh.setContextMenuPolicy(Qt.CustomContextMenu)
+            hh.customContextMenuRequested.connect(self.openContextMenuHorizontalHeader)
 
             model = view.model()
             handler = lambda idx, model=model: self.handleClick(idx, model)
@@ -915,8 +920,41 @@ class TableExplorer(EmzedDialog):
         self.close()
 
     @protect_signal_handler
-    def openContextMenu(self, point):
-        idx = self.tableView.verticalHeader().logicalIndexAt(point)
+    def openContextMenuHorizontalHeader(self, point):
+        widget_col_index = self.tableView.horizontalHeader().logicalIndexAt(point)
+        data_col_index = self.model.widgetColToDataCol[widget_col_index]
+
+        if self.model.column_type(widget_col_index) is bool:
+            menu = QMenu()
+            check_all_action = menu.addAction("check all")
+            uncheck_all_action = menu.addAction("uncheck all")
+            appearAt = self.tableView.horizontalHeader().mapToGlobal(point)
+
+            chosen = menu.exec_(appearAt)
+            if chosen == check_all_action:
+                self.run_blocked(self.model.set_all, (widget_col_index, True))
+            if chosen == uncheck_all_action:
+                self.run_blocked(self.model.set_all, (widget_col_index, False))
+
+    def run_blocked(self, function, args):
+
+        @pyqtSlot()
+        def doit():
+            self.setEnabled(False)
+            self.setCursor(Qt.WaitCursor)
+            try:
+                function(*args)
+            except Exception:
+                pass
+            self.setEnabled(True)
+            self.setCursor(Qt.ArrowCursor)
+
+        print(QTimer.singleShot(0, doit))
+
+
+    @protect_signal_handler
+    def openContextMenuVerticalHeader(self, point):
+        index = self.tableView.verticalHeader().logicalIndexAt(point)
         menu = QMenu()
 
         if self.model.implements("cloneRow"):
@@ -939,9 +977,9 @@ class TableExplorer(EmzedDialog):
         appearAt = self.tableView.verticalHeader().mapToGlobal(point)
         choosenAction = menu.exec_(appearAt)
         if choosenAction == removeAction:
-            self.model.removeRows([idx])
+            self.model.removeRows([index])
         elif choosenAction == cloneAction:
-            self.model.cloneRow(idx)
+            self.model.cloneRow(index)
         elif undoInfo is not None and choosenAction == undoAction:
             self.model.undoLastAction()
         elif redoInfo is not None and choosenAction == redoAction:
