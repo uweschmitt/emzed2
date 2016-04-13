@@ -165,8 +165,9 @@ To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with
     $ brew link python 
     $ brew install hdf5
 
-3. Create a Virtual Environment for emzed and activate it::
+3. Install virtualenv, create a Virtual Environment for emzed and activate it::
 
+    $ /usr/local/bin/python2.7 -m pip install --upgrade pip
     $ /usr/local/bin/python2.7 -m pip install virtualenv
     $ /usr/local/bin/python2.7 -m virtualenv emzed
     $ cd emzed/
