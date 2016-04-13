@@ -180,10 +180,7 @@ To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with
     $ brew install pyqwt
     $ pip install pyopenms==2.0
     $ pip install ipython==0.10
-    $ pip install numpy
-    $ pip install scipy
-    $ pip install matplotlib
-    $ pip install pandas 
+    $ pip install pylab
     $ pip install tables
     $ pip install cython 
     $ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
