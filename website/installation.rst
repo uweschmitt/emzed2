@@ -148,7 +148,7 @@ Manual Installation on Mac OS X
 
 To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with brew, the missing package manager for OS X.
 
-0. If you're running ruby for the first time, you mabe need to agree to the Xcode license::
+0. If you're running ruby for the first time, you maybe need to agree to the Xcode license::
 
     $ sudo xcodebuild -license
 
