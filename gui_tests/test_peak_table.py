@@ -43,6 +43,8 @@ for i in range(len(t) / 2):
         x = x[:1]
         y = y[:1]
     ts = TimeSeries(x,y, label="mz=%.2f" % (123123.3434/(i + 7)))
+    ts.x[::5] = None
+    ts.y[::5] = np.nan
     tsi.append(ts)
     tsi.append(ts)
 

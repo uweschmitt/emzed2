@@ -54,6 +54,8 @@ def time_series_curves(model):
             rtmins.append(min(xi))
             rtmaxs.append(max(xi))
             curves.extend(tsi)
+    if not rtmins:
+        return None, None, []
     return min(rtmins), max(rtmaxs), curves
 
 
