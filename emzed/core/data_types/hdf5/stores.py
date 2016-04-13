@@ -55,7 +55,6 @@ class Store(object):
     def _write(obj):
         pass
 
-    @profile
     def read(self, index):
         if index in self.read_cache:
             return self.read_cache[index]
@@ -159,7 +158,6 @@ class PeakMapStore(Store):
         row.append()
         self.node.spec_table
 
-    @profile
     def _write(self, pm):
 
         unique_id = pm.uniqueId()
@@ -196,7 +194,6 @@ class PeakMapStore(Store):
 
         yield index
 
-    @profile
     def _read(self, index):
         result = list(self.node.pm_table.where("""index == %r""" % index))
         if len(result) == 0:
@@ -341,7 +338,6 @@ class StringStore(Store):
             string_index = self.file_.create_table(node, index_name, description, filters=None)
             string_index.cols.index.create_index()
 
-    @profile
     def _write(self, s):
 
         # hash key
@@ -369,7 +365,6 @@ class StringStore(Store):
         yield next_index
 
 
-    @profile
     def _read(self, index):
 
         rows = list(self.index_table.where("""index == %d""" % index))
@@ -394,7 +389,6 @@ class ObjectStore(StringStore):
         super(ObjectStore, self).__init__(file_, node, 32, "object_blob", "obect_index")
         self.obj_read_cache = LruDict(500)
 
-    @profile
     def _write(self, obj):
 
         # hash key
@@ -404,7 +398,6 @@ class ObjectStore(StringStore):
         code = code.replace("\\", "\\\\").replace("\0", "\\0")
         yield self._write_str(code).next()
 
-    @profile
     def _resolve(self, index):
         if index in self.obj_read_cache:
             return self.obj_read_cache[index]
@@ -525,7 +518,6 @@ class TimeSeriesStore(Store):
         self.next_index += 1
         yield next_index
 
-    @profile
     def _read(self, index):
         result = list(self.node.ts_index.where("""index == %r""" % index))
         if len(result) == 0:

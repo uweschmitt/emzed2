@@ -31,7 +31,6 @@ class Hdf5TableProxy(ImmutableTable):
         self._ghost_table = Table(r.col_names, r.col_types, r.col_formats,
                                   meta=r.meta, rows=[])
 
-    @profile
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,
         returns the indices of the remaining columns
