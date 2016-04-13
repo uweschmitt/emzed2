@@ -146,52 +146,61 @@ manually as described now:
 Manual Installation on Mac OS X
 ~~~~~~~~~~
 
-1. Install brew
-        /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-        brew update 
-        brew tap homebrew/science
+To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with brew, the missing package manager for OS X.
 
-2. Install Python 2.7
-        brew install python 
-        brew linkapps python 
-        brew link python 
-        brew install hdf5
+0. If you're running ruby for the first time, you maybe need to agree to the Xcode license::
 
-3. Create a Virtual Environment for emzed and activate it
-        /usr/local/bin/python2.7 -m pip install virtualenv
-        /usr/local/bin/python2.7 -m virtualenv emzed
-        cd emzed/
-        echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> lib/python2.7/site-packages/homebrew.pth
-        . bin/activate
+    $ sudo xcodebuild -license
 
-4. Install the necessary packages using brew and pip
-        brew install pyqt
-        brew install pyqwt
-        pip install pyopenms==2.0
-        pip install ipython==0.10
-        pip install numpy
-        pip install scipy
-        pip install matplotlib
-        pip install pandas 
-        pip install tables 
-        pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
-        pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
-        pip install cython 
-        pip install sphinx 
-        pip install emzed
+1. Install brew::
+
+    $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    $ brew update 
+    $ brew tap homebrew/science
+
+2. Install Python 2.7::
+
+    $ brew install python 
+    $ brew linkapps python 
+    $ brew link python 
+    $ brew install hdf5
+
+3. Install virtualenv, create a Virtual Environment for emzed and activate it::
+
+    $ /usr/local/bin/python2.7 -m pip install --upgrade pip
+    $ /usr/local/bin/python2.7 -m pip install virtualenv
+    $ /usr/local/bin/python2.7 -m virtualenv emzed
+    $ cd emzed/
+    $ echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> lib/python2.7/site-packages/homebrew.pth
+    $ . bin/activate
+
+4. Install the necessary packages using brew and pip::
+
+    $ brew install pyqt
+    $ brew install pyqwt
+    $ pip install pyopenms==2.0
+    $ pip install ipython==0.10
+    $ pip install pylab
+    $ pip install tables
+    $ pip install cython 
+    $ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
+    $ pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
+    $ pip install sphinx 
+    $ easy_install http://pypi.python.org/packages/2.7/r/readline/readline-6.2.2-py2.7-macosx-10.7-intel.egg#md5=25383d860632d4a1521961ba68a52fe2
+    $ pip install emzed
 
 5. add workaround for matplotlib in virtualenv
 
 Workaround taken from http://matplotlib.org/faq/virtualenv_faq.html
-Add the following lines in your ``~/.bash_profile``
+Add the following lines in your ``~/.bash_profile``::
 
-        function frameworkpython {
-            if [[ ! -z "$VIRTUAL_ENV" ]]; then
-                PYTHONHOME=$VIRTUAL_ENV /usr/local/bin/python "$@"
-            else
-                /usr/local/bin/python "$@"
-            fi
-        }
+    function frameworkpython {
+        if [[ ! -z "$VIRTUAL_ENV" ]]; then
+            PYTHONHOME=$VIRTUAL_ENV /usr/local/bin/python "$@"
+        else
+            /usr/local/bin/python "$@"
+        fi
+    }
 
 install the frameworkpython function: ``source ~/.bash_profile``
 
