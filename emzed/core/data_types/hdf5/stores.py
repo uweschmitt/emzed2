@@ -7,7 +7,7 @@ import functools
 import time
 
 import dill
-from tables import (Filters, StringAtom, Int64Col, Atom, Float32Col, BoolCol,
+from tables import (Filters, Int64Col, Atom, Float32Col, BoolCol,
                     UInt8Col, UInt32Col, UInt64Col, StringCol)
 import numpy as np
 
@@ -19,8 +19,6 @@ from ..col_types import TimeSeries
 
 filters = Filters(complib="blosc", complevel=9)
 
-
-from install_profile import profile
 
 from lru import LruDict, lru_cache
 
@@ -115,7 +113,8 @@ class PeakMapStore(Store):
             description["ms_level"] = UInt8Col(pos=2)
             description["start"] = UInt64Col(pos=3)
             description["size"] = UInt32Col(pos=4)
-            spec_table = self.file_.create_table(self.node, 'spec_table', description, filters=filters)
+            spec_table = self.file_.create_table(self.node, 'spec_table', description,
+                                                 filters=filters)
 
             # every colums which appears in a where method call should/must be indexed !
             # this is not only for performance but for correct lookup as well (I had strange bugs
@@ -172,8 +171,7 @@ class PeakMapStore(Store):
         ms_levels = sorted(set(pm.getMsLevels()))
         as_str = ",".join(map(str, ms_levels))
         if len(as_str) > self.MSLEVEL_FIELD_SIZE:
-            raise ValueError(
-                "current implementation does not support so many ms levels: %s" % as_str)
+            raise ValueError("ms level description %r is to long" % as_str)
 
         rtmin, rtmax = pm.rtRange()
         mzmin, mzmax = pm.mzRange()
@@ -293,7 +291,8 @@ class PeakMapProxy(object):
             spectrum = Spectrum(peaks, rt, ms_level, "0", [])
             spectra.append(spectrum)
         if rtmin <= rtmax and mzmin < mzmax:
-            peaks = optim_sample_peaks(PeakMap(spectra), rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            peaks = optim_sample_peaks(PeakMap(spectra),
+                                       rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
         else:
             peaks = np.zeros((0, 2))
         return peaks
@@ -301,30 +300,27 @@ class PeakMapProxy(object):
 
 class StringStore(Store):
 
-    def __init__(self, file_, node, block_size=None, blob_name="string_blob",
+    def __init__(self, file_, node, blob_name="string_blob",
                  index_name="string_index"):
-        if block_size is None:
-            block_size = 64
 
         self.file_ = file_
         self.node = node
-        self.block_size = block_size
 
         self.write_cache = LruDict(10000)
         self.read_cache = LruDict(10000)
 
-        self.setup(node, block_size, blob_name, index_name)
+        self.setup(node, blob_name, index_name)
 
         self.blob_array = getattr(node, blob_name)
         self.index_table = getattr(node, index_name)
 
         self.next_index = self.index_table.nrows
 
-    def setup(self, node, block_size, blob_name, index_name):
+    def setup(self, node, blob_name, index_name):
 
         if not hasattr(node, blob_name):
             self.file_.create_earray(node, blob_name,
-                                     StringAtom(itemsize=block_size), (0,),
+                                     Atom.from_dtype(np.dtype("uint8")), (0,),
                                      filters=filters)
 
             description = {}
@@ -350,9 +346,7 @@ class StringStore(Store):
 
         blob = self.blob_array
         start = blob.nrows
-        for k in range(0, len(s), self.block_size):
-            part = s[k:k + self.block_size]
-            blob.append([part])
+        blob.append(np.fromstring(s, dtype=np.uint8))
 
         row = self.index_table.row
         row["index"] = self.next_index
@@ -363,7 +357,6 @@ class StringStore(Store):
         next_index = self.next_index
         self.next_index += 1
         yield next_index
-
 
     def _read(self, index):
 
@@ -376,7 +369,7 @@ class StringStore(Store):
         start = row["start"]
         size = row["size"]
 
-        return "".join(self.blob_array[start:start + size])
+        return self.blob_array[start:start + size].tostring()
 
     def flush(self):
         self.index_table.flush()
@@ -386,7 +379,7 @@ class StringStore(Store):
 class ObjectStore(StringStore):
 
     def __init__(self, file_, node):
-        super(ObjectStore, self).__init__(file_, node, 32, "object_blob", "obect_index")
+        super(ObjectStore, self).__init__(file_, node, "object_blob", "obect_index")
         self.obj_read_cache = LruDict(500)
 
     def _write(self, obj):
@@ -395,7 +388,6 @@ class ObjectStore(StringStore):
         yield id(obj)
 
         code = dill.dumps(obj, protocol=2)
-        code = code.replace("\\", "\\\\").replace("\0", "\\0")
         yield self._write_str(code).next()
 
     def _resolve(self, index):
