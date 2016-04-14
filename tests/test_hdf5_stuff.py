@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 
 from emzed.core.data_types import TimeSeries
-from emzed.core.data_types.hdf5_table_writer import to_hdf5, append_to_hdf5
+from emzed.core.data_types.hdf5_table_writer import to_hdf5, append_to_hdf5, atomic_hdf5_writer
 from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, PeakMapProxy
 from emzed.core.data_types.ms_types import PeakMap, Spectrum
 
@@ -97,6 +97,14 @@ def test_hdf5_table_appender(table, tmpdir):
     path = tmpdir.join("test.hdf5").strpath
     to_hdf5(table, path)
     append_to_hdf5([table, table, table], path)
+
+
+def test_atomic_hdf5_writer(table, tmpdir):
+    path = tmpdir.join("test.hdf5").strpath
+    with atomic_hdf5_writer(path) as add:
+        add(table)
+        add(table)
+        add(table)
 
 
 def test_round_trip(tproxy, table, regtest):

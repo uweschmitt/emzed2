@@ -2,6 +2,7 @@ import cPickle
 import cStringIO
 import codecs
 import collections
+import contextlib
 import copy
 import csv
 import fnmatch
@@ -12,11 +13,44 @@ import locale
 import os
 import re
 import sys
+import time
 import warnings
 
 import dill
 import numpy as np
 import pyopenms
+
+
+def try_to_move(from_, to):
+
+    if os.path.exists(to):
+        os.remove(to)
+
+    for attempt in range(10):
+        try:
+            os.rename(from_, to)
+            break
+        except EnvironmentError:
+            time.sleep(.1)
+    else:
+        raise IOError("could not rename %s to %s" % (from_, to))
+
+
+@contextlib.contextmanager
+def atomic_open_for_write(path, flags):
+
+    temp_path = path + ".incomplete"
+    fh = open(temp_path, flags)
+    try:
+        yield fh
+    finally:
+        fh.flush()
+        os.fsync(fh.fileno())
+        fh.close()
+    if os.path.exists(path):
+        os.remove(path)
+
+    try_to_move(temp_path, path)
 
 
 from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
@@ -1099,16 +1133,11 @@ class Table(MutableTable):
         if peakmap_cache_folder is not None:
             self._introduce_proxies(peakmap_cache_folder, path)
 
-        with open(path + ".incomplete", "w+b") as fp:
+        with atomic_open_for_write(path, "w+b") as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
-            fp.flush()
-            os.fsync(fp.fileno())
-        if os.path.exists(path):
-            os.remove(path)
-        os.rename(path + ".incomplete", path)
 
         if peakmap_cache_folder == ".":
             self._correct_proxies(path)
