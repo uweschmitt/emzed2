@@ -5,7 +5,10 @@ import itertools
 
 from .table import Table
 
+# PeakMapProxy no needed here, but convenient if it can be importet the same way as ObjectProxy:
 from .hdf5.stores import ObjectProxy
+from .hdf5.stores import PeakMapProxy  # analysis:ignore
+
 from .hdf5.accessors import Hdf5TableReader
 from .hdf5.lru import LruDict
 
