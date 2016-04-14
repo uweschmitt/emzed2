@@ -5,9 +5,8 @@ import itertools
 
 from .table import Table
 
-from .hdf5.stores import ObjectProxy, PeakMapProxy
+from .hdf5.stores import ObjectProxy
 from .hdf5.accessors import Hdf5TableReader
-from .hdf5.install_profile import profile
 from .hdf5.lru import LruDict
 
 from base_classes import ImmutableTable
@@ -30,6 +29,7 @@ class Hdf5TableProxy(ImmutableTable):
         r = self.reader
         self._ghost_table = Table(r.col_names, r.col_types, r.col_formats,
                                   meta=r.meta, rows=[])
+        self.hdf5_meta = r.hdf5_meta
 
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,
@@ -118,7 +118,8 @@ class Hdf5TableProxy(ImmutableTable):
         if "format_" in kw:
             raise NotImplementedError("argument format_ not supported yet")
         if what is not None and not isinstance(what, (bool, int, long, str)):
-            raise NotImplementedError("what argument must be constant value, no iterables supported")
+            raise NotImplementedError(
+                "what argument must be constant value, no iterables supported")
 
         self.reader.replace_column(self.getIndex(name), what)
 

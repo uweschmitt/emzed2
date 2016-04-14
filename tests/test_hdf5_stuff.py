@@ -271,3 +271,12 @@ def test_ghost_table_forwarding(tproxy):
     assert tproxy.getValue(tproxy.rows[1], "int") == 2
 
     assert tproxy.supportedPostfixes("") == []
+
+
+def test_version_2_26_0(path, regtest):
+    t = Hdf5TableProxy(path("data/table_v_2_26_0.hdf5"))
+    assert t.hdf5_meta == {'hdf5_table_version': (2, 26, 0)}
+
+    # calling .toTable is the "lackmus" test if data reading worked:
+    print(t.toTable(), file=regtest)
+

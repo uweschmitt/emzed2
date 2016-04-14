@@ -3,12 +3,12 @@ from __future__ import print_function, division
 
 from collections import defaultdict
 import itertools
+import warnings
 
 
 from tables import open_file, Filters, Int64Col, Float64Col, BoolCol, UInt64Col, UInt32Col
 
 from .store_manager import setup_manager
-from .stores import ObjectProxy
 from .lru import LruDict
 
 
@@ -28,6 +28,8 @@ class Hdf5Base(object):
 
 
 class Hdf5TableWriter(Hdf5Base):
+
+    LATEST_HDF5_TABLE_VERSION = (2, 26, 0)
 
     def __init__(self, path):
         self._initial_setup(path, "w")
@@ -64,6 +66,9 @@ class Hdf5TableWriter(Hdf5Base):
         store_meta(col_names)
         store_meta(col_types)
         store_meta(col_formats)
+
+        # this table vesion was last modified in:
+        store_meta(dict(hdf5_table_version=self.LATEST_HDF5_TABLE_VERSION))
 
         self.meta_table.flush()
 
@@ -120,17 +125,31 @@ class Hdf5TableReader(Hdf5Base):
 
         rows = iter(self.file_.root.meta_index)
 
-        meta_index = rows.next()["index"]
-        self.meta = self.manager.fetch(meta_index).load()
+        def fetch_next():
+            idx = rows.next()["index"]
+            return self.manager.fetch(idx).load()
 
-        col_names_index = rows.next()["index"]
-        self.col_names = self.manager.fetch(col_names_index).load()
+        self.meta = fetch_next()
+        self.col_names = fetch_next()
+        self.col_types = fetch_next()
+        self.col_formats = fetch_next()
 
-        col_types_index = rows.next()["index"]
-        self.col_types = self.manager.fetch(col_types_index).load()
+        try:
+            self.hdf5_meta = fetch_next()
+        except StopIteration:
+            # fetch_next() failed as we introduced the meta field in emzed
+            # 2.26.0:
+            self.hdf5_meta = dict(hdf5_table_version=(2, 26, 0))
 
-        col_formats_index = rows.next()["index"]
-        self.col_formats = self.manager.fetch(col_formats_index).load()
+        self.hdf5_table_version = self.hdf5_meta["hdf5_table_version"]
+        expected = Hdf5TableWriter.LATEST_HDF5_TABLE_VERSION
+
+        if self.hdf5_table_version != expected:
+            message = ("you read from / append to a hdf5 table which has version %s and older "
+                       "as the current version %s, you might have problems...." %
+                       (self.hdf5_table_version, expected))
+
+            warnings.warn(message, UserWarning, stacklevel=2)
 
         # read full table -> numpy array -> list -> set
         self.missing_values_table = self.file_.root.missing_values
@@ -176,44 +195,52 @@ class Hdf5TableReader(Hdf5Base):
         values = [values[i] for i in row_indices]
         return [v if not im else None for (v, im) in zip(values, is_missing)]
 
+    def _replace_column_with_missing_values(self, col_index, row_selection):
+        n = self.missing_values_table.nrows
+        row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
+        for row_index in row_iter:
+            index = (row_index, col_index)
+            if index not in self.missing_values:
+                row = self.missing_values_table.row
+                row["row_index"] = row_index
+                row["col_index"] = col_index
+                row.append()
+                self.missing_values[index] = n
+                n += 1
+        self.missing_values_table.flush()
+
+    def _remove_missing_value_entries_in_column(self, col_index, row_selection):
+
+        to_remove = []
+        row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
+        for row_index in row_iter:
+            index = (row_index, col_index)
+            # we overwrite a previously None with a not None:
+            if index in self.missing_values:
+                ri = self.missing_values[index]
+                to_remove.append(ri)
+                del self.missing_values[index]
+
+        # we remove from the end !
+        for ri in sorted(to_remove, reverse=True):
+            self.missing_values_table.remove_row(ri)
+
+        self.missing_values_table.flush()
+
     def replace_column(self, col_index, value, row_selection=None):
         type_ = self.col_types[col_index]
         self.row_cache.clear()
 
         if value is None:
-            n = self.missing_values_table.nrows
-            row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
-            for row_index in row_iter:
-                index = (row_index, col_index)
-                if index not in self.missing_values:
-                    row = self.missing_values_table.row
-                    row["row_index"] = row_index
-                    row["col_index"] = col_index
-                    row.append()
-                    self.missing_values[index] = n
-                    n += 1
-            self.missing_values_table.flush()
+            self._replace_column_with_missing_values(col_index, row_selection)
             return
-        else:
-            to_remove = []
-            row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
-            for row_index in row_iter:
-                index = (row_index, col_index)
-                if index in self.missing_values:  # we overwrite a previously None with a not None:
-                    ri = self.missing_values[index]
-                    to_remove.append(ri)
-                    del self.missing_values[index]
 
-            # we remove from the end !
-            for ri in sorted(to_remove, reverse=True):
-                self.missing_values_table.remove_row(ri)
+        self._remove_missing_value_entries_in_column(col_index, row_selection)
 
-        self.missing_values_table.flush()
-
-        name = self.col_names[col_index]
         if type_ not in (int, long, float, bool):
             value = self.manager.store_object(value)
 
+        name = self.col_names[col_index]
         if row_selection is None:
             n = self.row_table.nrows
             bulk_size = 10000
@@ -244,7 +271,8 @@ class Hdf5TableReader(Hdf5Base):
                 self.missing_values[index] = self.missing_values_table.nrows
                 self.missing_values_table.flush()
                 return
-        elif index in self.missing_values:  # we overwrite a previously None with a not None:
+        # we overwrite a previously None with a not None:
+        elif index in self.missing_values:
             ri = self.missing_values[index]
             self.missing_values_table.remove_row(ri)
             self.missing_values_table.flush()
@@ -259,7 +287,8 @@ class Hdf5TableReader(Hdf5Base):
 
         row[name] = value
         row.update()
-        # we have to finish "iteration", else pytables will not update table buffers:
+        # we have to finish "iteration", else pytables will not update table
+        # buffers:
         try:
             row.next()
         except StopIteration:
