@@ -33,6 +33,7 @@ def lru_cache(maxsize):
 
     def wrapper(fun):
         cache = LruDict(maxsize)
+
         @functools.wraps(fun)
         def inner(*args, **kwargs):
             key = args + tuple(kwargs.items())

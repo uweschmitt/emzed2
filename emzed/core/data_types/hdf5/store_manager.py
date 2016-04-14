@@ -45,8 +45,6 @@ class StoreManager(object):
         for store in self._flags.values():
             store.close()
 
-# order of regisration mattters:
-
 
 def setup_manager(file_, node=None):
 
@@ -64,10 +62,8 @@ def setup_manager(file_, node=None):
 if __name__ == "__main__":
     from tables import open_file
     file_ = open_file("peakmap.h5", mode="w")
-    store, fetch, flush = setup(file_, file_.root)
 
-    #import emzed
-    #pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
+    store, fetch, flush = setup_manager(file_, file_.root)
 
     data = " asdlfadlsfjal " * 10
     data = (1, 2, 3)
