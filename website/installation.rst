@@ -84,7 +84,7 @@ If needed you can eg use `$ apt-cache search matplotlib` to lookup exact names o
 
 2. For the final installation download the installation script from
    http://emzed.ethz.ch/downloads/install_emzed2.sh.
-   The script will ask for the 
+   The script will ask for the
    target folder, we recommend to use the proposed default value.::
 
     $ bash install_emzed2.sh
@@ -155,21 +155,22 @@ To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with
 1. Install brew::
 
     $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    $ brew update 
+    $ brew update
     $ brew tap homebrew/science
 
 2. Install Python 2.7::
 
-    $ brew install python 
-    $ brew linkapps python 
-    $ brew link python 
+    $ brew install python
+    $ brew linkapps python
+    $ brew link python
     $ brew install hdf5
 
 3. Install virtualenv, create a Virtual Environment for emzed and activate it::
 
     $ /usr/local/bin/python2.7 -m pip install --upgrade pip
+    $ /usr/local/bin/python2.7 -m pip install matplotlib
     $ /usr/local/bin/python2.7 -m pip install virtualenv
-    $ /usr/local/bin/python2.7 -m virtualenv emzed
+    $ /usr/local/bin/python2.7 -m virtualenv --system-site-packages emzed
     $ cd emzed/
     $ echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> lib/python2.7/site-packages/homebrew.pth
     $ . bin/activate
@@ -180,12 +181,13 @@ To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with
     $ brew install pyqwt
     $ pip install pyopenms==2.0
     $ pip install ipython==0.10
-    $ pip install pylab
+    $ pip install numpy
+    $ pip install scipy
     $ pip install tables
-    $ pip install cython 
+    $ pip install cython
     $ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
     $ pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
-    $ pip install sphinx 
+    $ pip install sphinx
     $ easy_install http://pypi.python.org/packages/2.7/r/readline/readline-6.2.2-py2.7-macosx-10.7-intel.egg#md5=25383d860632d4a1521961ba68a52fe2
     $ pip install emzed
 
