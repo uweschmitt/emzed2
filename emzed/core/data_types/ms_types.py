@@ -2,6 +2,7 @@ import pyopenms
 import numpy as np
 import os.path
 import sys
+import time
 import copy
 import hashlib
 from collections import defaultdict
@@ -836,7 +837,12 @@ class PeakMap(object):
                 os.fsync(fp.fileno())
             if os.path.exists(fp_or_path):
                 os.remove(fp_or_path)
-            os.rename(fp_or_path + ".incomplete", fp_or_path)
+            for attempt in range(10):
+                try:
+                    os.rename(fp_or_path + ".incomplete", fp_or_path)
+                    break
+                except EnvironmentError:
+                    time.sleep(.1)
             return
         dill.dump(self, fp_or_path)
 
