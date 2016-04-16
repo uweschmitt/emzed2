@@ -40,6 +40,7 @@ def table():
     t0.addColumn("str", ("1", "2" * 100, None, "a", "b"), type_=str)
     t0.addColumn("object", ({1}, dict(a=2), None, (1,), [1, 2]), type_=object)
     t0.addColumn("peakmap", pm, type_=object)
+    t0.addColumn("some_binay_stuff", (peaks_1,) * len(t0), type_=object)
 
     n = 10
     ts_0 = TimeSeries(map(datetime.fromordinal, range(1, n + 1)), range(n), "label1")
@@ -99,12 +100,18 @@ def test_hdf5_table_appender(table, tmpdir):
     append_to_hdf5([table, table, table], path)
 
 
-def test_atomic_hdf5_writer(table, tmpdir):
+def test_atomic_hdf5_writer(table, tmpdir, regtest):
     path = tmpdir.join("test.hdf5").strpath
     with atomic_hdf5_writer(path) as add:
         add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
         add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
         add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
+
+    t = Hdf5TableProxy(path).toTable()
+    print(t.int.values, file=regtest)
 
 
 def test_round_trip(tproxy, table, regtest):
@@ -186,6 +193,7 @@ def test_row_write_cell(tproxy, regtest):
     t.dropColumns("time_series", "object", "peakmap")
     print(t, file=regtest)
 
+
 def test_sort_by(tproxy, regtest):
     # test sortBy
     perm = tproxy.sortPermutation("int", True)
@@ -203,6 +211,7 @@ def test_sort_by(tproxy, regtest):
     perm = tproxy.sortPermutation(("int", "float"), (True, False))
     print(perm, file=regtest)
     print(tproxy.toTable()[perm], file=regtest)
+
 
 def test_replace_column(tproxy, regtest):
 
@@ -243,6 +252,7 @@ def test_replace_column_2(tproxy, regtest):
 
     tproxy.replaceColumn("str", "3")
     print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
 
 def test_replace_column_3(tproxy, regtest):
 
@@ -287,4 +297,3 @@ def test_version_2_26_0(path, regtest):
 
     # calling .toTable is the "lackmus" test if data reading worked:
     print(t.toTable(), file=regtest)
-

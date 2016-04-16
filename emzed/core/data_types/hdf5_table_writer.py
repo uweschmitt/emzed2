@@ -30,19 +30,16 @@ class _Adder(object):
         self.path = path
 
     def __call__(self, table):
-        if self.appender is None:
+        if self.writer is None:
             self.writer = Hdf5TableWriter(self.path)
             self.writer.write_table(table)
             self.writer.close()
-            self.writer = None
         else:
             if self.appender is None:
                 self.appender = Hdf5TableAppender(self.path)
-            self.appender.append(table)
+            self.appender.append_table(table)
 
     def close(self):
-        if self.writer is not None:
-            self.writer.close()
         if self.appender is not None:
             self.appender.close()
 
