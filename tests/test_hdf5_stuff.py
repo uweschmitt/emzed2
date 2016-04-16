@@ -40,7 +40,6 @@ def table():
     t0.addColumn("str", ("1", "2" * 100, None, "a", "b"), type_=str)
     t0.addColumn("object", ({1}, dict(a=2), None, (1,), [1, 2]), type_=object)
     t0.addColumn("peakmap", pm, type_=object)
-    t0.addColumn("some_binay_stuff", (peaks_1,) * len(t0), type_=object)
 
     n = 10
     ts_0 = TimeSeries(map(datetime.fromordinal, range(1, n + 1)), range(n), "label1")

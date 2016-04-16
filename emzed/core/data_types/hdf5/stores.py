@@ -203,10 +203,14 @@ class PeakMapStore(Store):
         mzmin = result[0]["mzmin"]
         mzmax = result[0]["mzmax"]
         unique_id = result[0]["unique_id"]
+        if ms_levels:
+            ms_levels = map(int, ms_levels.split(",")),
+        else:
+            ms_levels = []
 
         result = PeakMapProxy(node=self.node,
                               index=index,
-                              ms_levels=map(int, ms_levels.split(",")),
+                              ms_levels=ms_levels,
                               rtmin=rtmin,
                               rtmax=rtmax,
                               mzmin=mzmin,
@@ -394,7 +398,6 @@ class ObjectStore(StringStore):
         if index in self.obj_read_cache:
             return self.obj_read_cache[index]
         code = StringStore._read(self, index)
-        code = code.replace("\\\\", "\\").replace("\\0", "\0")
         obj = dill.loads(code)
         self.obj_read_cache[index] = obj
         return obj
