@@ -6,7 +6,9 @@ from datetime import datetime
 import functools
 import time
 
-import dill
+import cPickle
+
+
 from tables import (Filters, Int64Col, Atom, Float32Col, BoolCol,
                     UInt8Col, UInt32Col, UInt64Col, StringCol)
 import numpy as np
@@ -383,21 +385,13 @@ class ObjectStore(StringStore):
     def __init__(self, file_, node):
         super(ObjectStore, self).__init__(file_, node, "object_blob", "obect_index")
         self.obj_read_cache = LruDict(500)
-        self.last_fail = 999000
 
     def _write(self, obj):
 
         # hash key
         yield id(obj)
 
-        code = dill.dumps(obj, protocol=2)
-        if code.startswith("\x80\x02\x86") or True:
-            self._write_str(repr(obj), self.last_fail)
-            try:
-                self._write_str(str(map(repr, dir(obj))), self.last_fail + 1)
-            except:
-                pass
-            self.last_fail += 2
+        code = cPickle.dumps(obj, protocol=2)
 
         yield self._write_str(code).next()
 
@@ -405,7 +399,11 @@ class ObjectStore(StringStore):
         if index in self.obj_read_cache:
             return self.obj_read_cache[index]
         code = StringStore._read(self, index)
-        obj = dill.loads(code)
+        try:
+            obj = cPickle.loads(code)
+        except (IndexError, ):
+            print(repr(code))
+            obj = None
         self.obj_read_cache[index] = obj
         return obj
 

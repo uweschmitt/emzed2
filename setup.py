@@ -7,8 +7,7 @@ from setuptools import setup, find_packages
 version = (2, 26, 3)
 
 
-install_requires = [
-                    "guidata<=1.6.2",
+install_requires = ["guidata<=1.6.2",
                     "guiqwt<=2.3.2",
                     "requests",
                     "ipython==0.10",
@@ -19,7 +18,6 @@ install_requires = [
                     "pyopenms",
                     "pytest",
                     "scikit-learn",
-
                     "emzed_optimizations>=0.5.0",
                     "pycryptodome<=3.3",
                     ]
