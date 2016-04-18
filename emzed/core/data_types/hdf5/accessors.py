@@ -137,9 +137,7 @@ class Hdf5TableReader(Hdf5Base):
         try:
             self.hdf5_meta = fetch_next()
         except StopIteration:
-            # fetch_next() failed as we introduced the meta field in emzed
-            # 2.26.0:
-            self.hdf5_meta = dict(hdf5_table_version=(2, 26, 0))
+            raise Exception("hdf5 file is too old and can not be loaded any more, I'm sorry.")
 
         self.hdf5_table_version = self.hdf5_meta["hdf5_table_version"]
         expected = Hdf5TableWriter.LATEST_HDF5_TABLE_VERSION

@@ -203,10 +203,7 @@ class PeakMapStore(Store):
         mzmin = result[0]["mzmin"]
         mzmax = result[0]["mzmax"]
         unique_id = result[0]["unique_id"]
-        if ms_levels:
-            ms_levels = map(int, ms_levels.split(",")),
-        else:
-            ms_levels = []
+        ms_levels = map(int, ms_levels.split(","))
 
         result = PeakMapProxy(node=self.node,
                               index=index,
@@ -346,20 +343,21 @@ class StringStore(Store):
         # store and yield index
         yield self._write_str(s).next()
 
-    def _write_str(self, s):
+    def _write_str(self, s, index=None):
 
         blob = self.blob_array
         start = blob.nrows
         blob.append(np.fromstring(s, dtype=np.uint8))
 
         row = self.index_table.row
-        row["index"] = self.next_index
+        row["index"] = index if index is not None else self.next_index
         row["start"] = start
         row["size"] = blob.nrows - start
         row.append()
 
         next_index = self.next_index
-        self.next_index += 1
+        if index is None:
+            self.next_index += 1
         yield next_index
 
     def _read(self, index):
@@ -385,6 +383,7 @@ class ObjectStore(StringStore):
     def __init__(self, file_, node):
         super(ObjectStore, self).__init__(file_, node, "object_blob", "obect_index")
         self.obj_read_cache = LruDict(500)
+        self.last_fail = 999000
 
     def _write(self, obj):
 
@@ -392,6 +391,14 @@ class ObjectStore(StringStore):
         yield id(obj)
 
         code = dill.dumps(obj, protocol=2)
+        if code.startswith("\x80\x02\x86") or True:
+            self._write_str(repr(obj), self.last_fail)
+            try:
+                self._write_str(str(map(repr, dir(obj))), self.last_fail + 1)
+            except:
+                pass
+            self.last_fail += 2
+
         yield self._write_str(code).next()
 
     def _resolve(self, index):
