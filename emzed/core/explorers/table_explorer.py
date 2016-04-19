@@ -1025,7 +1025,7 @@ class TableExplorer(EmzedDialog):
         col_name = str(self.chooseGroupColumn.currentText())
         to_select = self.model.rows_with_same_value(col_name, widget_row_idx)
 
-        N = 200
+        N = 50
         if len(to_select) > N:
             QMessageBox.warning(self, "Warning", "multiselect would mark %d lines. "
                                       "reduced number of lines to %d" % (len(to_select), N))

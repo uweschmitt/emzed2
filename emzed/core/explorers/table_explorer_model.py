@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-import functools
 import hashlib
 import os
 import re
@@ -11,10 +10,9 @@ from PyQt4.QtCore import *
 
 import guidata
 
-from ..data_types import PeakMap, TimeSeries
+from ..data_types import PeakMap
 from ..data_types.table import create_row_class
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy
-from ..data_types.base_classes import ImmutableTable
 
 from ... import algorithm_configs
 
@@ -72,6 +70,7 @@ class TableModel(QAbstractTableModel):
     def update_row_view(self):
         self.widgetRowToDataRow = [row_idx for row_idx in self.row_permutation if row_idx in
                                    self.visible_rows]
+        self.dataRowToWidgetRow = {row: i for (i, row) in enumerate(self.widgetRowToDataRow)}
 
     def set_selected_data_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
@@ -118,7 +117,7 @@ class TableModel(QAbstractTableModel):
         data_col_index = self.widgetColToDataCol[widget_col_index]
         data_row_indices = self.widgetRowToDataRow
         done = self.runAction(ChangeAllValuesInColumnAction, widget_col_index, data_row_indices,
-                                                             data_col_index, value)
+                              data_col_index, value)
         if done:
             self.update_visible_rows_for_given_limits()
         return done
@@ -401,18 +400,14 @@ class TableModel(QAbstractTableModel):
             sorted(allrts)
 
     def rows_with_same_value(self, col_name, widget_row_idx):
-        t = self.table
         data_row_idx = self.widgetRowToDataRow[widget_row_idx]
-        selected_value = t.getValue(t.rows[data_row_idx], col_name)
-        selected_data_rows = [i for i, row in enumerate(t.rows)
-                              if t.getValue(row, col_name) == selected_value]
+        selected_value = self.table.getValue(self.table.rows[data_row_idx], col_name)
 
-        # view might be filtered, so only select what we can see:
-        selected_widget_rows = []
-        for widget_row, data_row in enumerate(self.widgetRowToDataRow):
-            if data_row in selected_data_rows:
-                selected_widget_rows.append(widget_row)
-        return selected_widget_rows
+        def equals(value):
+            return value == selected_value
+
+        selected_data_rows = self.table.findMatchingRows([(col_name, equals)])
+        return [self.dataRowToWidgetRow[i] for i in selected_data_rows]
 
     def transform_row_idx_widget_to_model(self, row_idxs):
         return [self.widgetRowToDataRow[i] for i in row_idxs]
