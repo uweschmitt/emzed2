@@ -228,6 +228,9 @@ class Hdf5TableReader(Hdf5Base):
     def replace_column(self, col_index, value, row_selection=None):
         type_ = self.col_types[col_index]
         self.row_cache.clear()
+        col_name = self.col_names[col_index]
+        if col_name in self.col_cache:
+            del self.col_name[col_name]
 
         if value is None:
             self._replace_column_with_missing_values(col_index, row_selection)
@@ -258,6 +261,9 @@ class Hdf5TableReader(Hdf5Base):
         type_ = self.col_types[col_index]
         if row_index in self.row_cache:
             del self.row_cache[row_index]
+        col_name = self.col_names[col_index]
+        if col_name in self.col_cache:
+            del self.col_cache[col_name]
 
         index = (row_index, col_index)
         if value is None:
