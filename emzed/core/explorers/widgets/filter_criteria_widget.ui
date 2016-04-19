@@ -7,13 +7,25 @@
     <x>0</x>
     <y>0</y>
     <width>291</width>
-    <height>84</height>
+    <height>200</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>1</horstretch>
+    <verstretch>1</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>100</width>
+    <height>0</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="_verticalLayout">
+  <layout class="QVBoxLayout" name="_verticalLayout" stretch="0">
    <property name="spacing">
     <number>1</number>
    </property>
@@ -23,10 +35,16 @@
    <item>
     <widget class="QScrollArea" name="_scrollArea">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+      <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>90</height>
+      </size>
      </property>
      <property name="frameShape">
       <enum>QFrame::NoFrame</enum>
@@ -43,18 +61,27 @@
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
      <widget class="QWidget" name="_widgets">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
         <width>285</width>
-        <height>78</height>
+        <height>194</height>
        </rect>
       </property>
-      <layout class="QHBoxLayout" name="_hlayout">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <layout class="QHBoxLayout" name="_hlayout" stretch="">
        <property name="margin">
-        <number>5</number>
+        <number>0</number>
        </property>
       </layout>
      </widget>

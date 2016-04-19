@@ -110,10 +110,11 @@ class ChooseValue(_ChooseValue):
 
     INDICATE_CHANGE = QtCore.pyqtSignal(str)
 
-    def __init__(self, name, table, parent=None):
+    def __init__(self, name, table, choices, parent=None):
         super(ChooseValue, self).__init__(parent)
         self.name = name
         self.table = table
+        self.choices = choices
         self.column_name.setText(self.name)
         self.update()
 
@@ -134,10 +135,10 @@ class ChooseValue(_ChooseValue):
 
     def update(self):
         before = self.values.currentText()
-        values = set(self.table.getColumn(self.name).values)
-        values = sorted("-" if v is None else v for v in values)
-        self.pure_values = [None] + values
-        new_items = [u""] + map(unicode, values)
+        #values = set(self.table.getColumn(self.name).values)
+        #values = sorted("-" if v is None else v for v in values)
+        self.pure_values = [None] + self.choices
+        new_items = [u""] + map(unicode, self.choices)
 
         # block emiting signals, because the setup / update of the values below would
         # trigger emitting a curretnIndexChanged signal !
@@ -203,6 +204,18 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
             limits[name] = filter_function
         self.LIMITS_CHANGED.emit(limits)
 
+    def _setup_float_chooser(self, name, i, t):
+        fmtter = t.colFormatters[i]
+        try:
+            txt = fmtter(0.0)
+        except Exception:
+            txt = ""
+        if txt.endswith("m"):
+            ch = ChooseTimeRange(name, t)
+        else:
+            ch = ChooseFloatRange(name, t)
+        return ch
+
     def configure(self, emzed_table):
         t = emzed_table
         for i, (fmt, name, type_) in enumerate(zip(t.getColFormats(),
@@ -210,26 +223,14 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
                                                    t.getColTypes())):
             if fmt is not None:
                 ch = None
-                col = t.getColumn(name)
                 if type_ == float:
-                    fmtter = t.colFormatters[i]
-                    try:
-                        txt = fmtter(0.0)
-                    except Exception:
-                        txt = ""
-                    if txt.endswith("m"):
-                        ch = ChooseTimeRange(name, t)
-                    else:
-                        ch = ChooseFloatRange(name, t)
-                elif type_ in (bool, str, unicode, basestring, int):
-                    distinct_values = sorted(set(col.values))
-                    if len(distinct_values) <= 15:
-                        ch = ChooseValue(name, t)
-                    else:
-                        if type_ == int:
-                            ch = ChooseIntRange(name, t)
-                        elif type_ in (str, unicode, basestring):
-                            ch = StringFilterPattern(name, t)
+                    ch = self._setup_float_chooser(name, i, t)
+                elif type_ == bool:
+                    ch = ChooseValue(name, t, [True, False])
+                elif type_ in (int, long):
+                    ch = ChooseIntRange(name, t)
+                elif type_ in (str, unicode, basestring):
+                    ch = StringFilterPattern(name, t)
                 if ch is not None:
                     self._addChooser(ch)
         self._hlayout.addStretch(1)

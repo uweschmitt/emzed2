@@ -433,6 +433,8 @@ class TableExplorer(EmzedDialog):
 
         # self.filter_widgets_box = QScrollArea(self)
         self.filter_widgets_container = QStackedWidget(self)
+        sizePolicy = QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.filter_widgets_container.setSizePolicy(sizePolicy)
         for w in self.filterWidgets:
             self.filter_widgets_container.addWidget(w)
 
@@ -533,6 +535,7 @@ class TableExplorer(EmzedDialog):
 
         # layout.addWidget(self.dummy, row, column, alignment=Qt.AlignLeft)
         layout.setColumnStretch(column, 1)
+        layout.setVerticalSpacing(2)
 
         frame.setLayout(layout)
         return frame

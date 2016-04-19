@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_ChooseValue(object):
     def setupUi(self, ChooseValue):
         ChooseValue.setObjectName(_fromUtf8("ChooseValue"))
-        ChooseValue.resize(111, 45)
+        ChooseValue.resize(260, 45)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -59,7 +59,7 @@ class Ui_ChooseValue(object):
 
     def retranslateUi(self, ChooseValue):
         ChooseValue.setWindowTitle(_translate("ChooseValue", "Form", None))
-        self.column_name.setText(_translate("ChooseValue", "placeholder", None))
+        self.column_name.setText(_translate("ChooseValue", "sadfsdfadsfasdfasdfasdfdsafadsfadsfdsf", None))
 
 
 class ChooseValue(QtGui.QWidget, Ui_ChooseValue):
