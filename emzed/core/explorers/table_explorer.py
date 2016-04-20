@@ -14,7 +14,7 @@ from ts_plotting_widget import TimeSeriesPlottingWidget
 from ..data_types import Table, PeakMap, CallBack
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
-from table_explorer_model import (MutableTableModel, TableModel, isUrl, 
+from table_explorer_model import (MutableTableModel, TableModel, isUrl,
                                   IntegrateAction,)
 
 from helpers import protect_signal_handler
@@ -81,6 +81,8 @@ def chromatograms(model, is_integrated):
             fit_shapes.extend(fitted_shapes)
         else:
             curves.extend(eics)
+    if not rtmins or not rtmaxs or not mzmins or not mzmaxs:
+        return None, None, None, None, [], []
     return min(rtmins), max(rtmaxs), min(mzmins), max(mzmaxs), curves, fit_shapes
 
 
@@ -1182,6 +1184,8 @@ class TableExplorer(EmzedDialog):
             mzs.append(mzmax)
             data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
 
+        if not mzs:
+            return
         mzmin = min(mzs)
         mzmax = max(mzs)
 

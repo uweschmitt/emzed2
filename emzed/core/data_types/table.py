@@ -8,7 +8,6 @@ import csv
 import fnmatch
 import hashlib
 import inspect
-import itertools
 import locale
 import os
 import re
@@ -64,7 +63,6 @@ from . import tools
 from hdf5.stores import ObjectProxy
 
 from .ms_types import PeakMap, PeakMapProxy
-from .col_types import Blob, TimeSeries
 
 __doc__ = """
 
@@ -217,7 +215,7 @@ def is_minute_value(s):
     if isinstance(s, basestring) and s.endswith("m"):
         try:
             float(s[:-1])
-        except:
+        except ValueError:
             return False
         else:
             return True
@@ -285,7 +283,7 @@ def _formatter(f):
         def interpolationformat(s, f=f):
             try:
                 return "-" if s is None else f % (s,)
-            except:
+            except Exception:
                 return ""
         return interpolationformat
     else:
@@ -487,7 +485,7 @@ class Table(MutableTable):
             self.rows.append([])
             # includes checks which might throw exceptions:
             self.setRow(len(self) - 1, row)
-        except:
+        except Exception:
             self.rows.pop()
             raise
 
@@ -727,7 +725,8 @@ class Table(MutableTable):
         """
         for ri, ci, value in self._resolve_write_operations(row_indices, col_indices, values):
             assert 0 <= ri < len(self), "row_index %d out of range 0...%d" % (ri, len(self) - 1)
-            assert 0 <= ci < len(self._colNames), "col_index %d out of range 0..%d" % (ci, len(self._colNames) - 1)
+            assert 0 <= ci < len(self._colNames), "col_index %d out of range 0..%d" % (
+                ci, len(self._colNames) - 1)
             self.rows[ri][ci] = value
         self.resetInternals()
 
@@ -904,7 +903,6 @@ class Table(MutableTable):
         self._addColumFromIterable(
             colName, values, int, "%d", insertBefore=col_idx, insertAfter=None)
 
-
     def sortBy(self, colNames, ascending=True):
         perm = self.sortPermutation(colNames, ascending)
         self._applyRowPermutation(perm)
@@ -958,7 +956,6 @@ class Table(MutableTable):
         perm, __ = zip(*decorated)
         return perm
 
-
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,
         returns the indices of the remaining columns
@@ -968,7 +965,7 @@ class Table(MutableTable):
             t.findMatchingRows(("mz", lambda mz: 100 <= mz <= 200),
                                ("rt", lambda rt: 200 <= rt <= 1000))
 
-            computes the row indices of all rows where mz and rt are in the given 
+            computes the row indices of all rows where mz and rt are in the given
             ranges.
         """
 
@@ -1205,7 +1202,7 @@ class Table(MutableTable):
             if not version_str.startswith("emzed_version="):
                 try:
                     return Table._try_to_load_old_version(pickle_data)
-                except:
+                except Exception:
                     return Table._try_to_load_old_version(data)
             v_number_str = version_str[14:]
             v_number = tuple(map(int, v_number_str.split(".")))
@@ -1216,7 +1213,7 @@ class Table(MutableTable):
                 tab.version = v_number
                 tab.meta["loaded_from"] = os.path.abspath(path)
                 return tab
-            except:
+            except Exception:
                 return Table._try_to_load_old_version(pickle_data)
 
     def buildEmptyClone(self, cols=None):
@@ -1486,7 +1483,7 @@ class Table(MutableTable):
                 return self._addColumFromIterable(name, what, type_, format_,
                                                   insertBefore, insertAfter)
             else:
-                warn("you added %d numpy array as colum", what.ndim)
+                warn("you added %d numpy array as colum" % what.ndim)
 
         return self._addConstantColumnWithoutNameCheck(name, what, type_,
                                                        format_, insertBefore, insertAfter)
@@ -1769,7 +1766,7 @@ class Table(MutableTable):
         # no direct type check below, as databases decorate member tables:
         try:
             t._getColumnCtx
-        except:
+        except AttributeError:
             raise Exception("first arg is of wrong type")
 
         if not isinstance(expr, BaseExpression):
@@ -1825,7 +1822,7 @@ class Table(MutableTable):
         # no direct type check below, as databases decorate member tables:
         try:
             t._getColumnCtx
-        except:
+        except AttributeError:
             raise Exception("first argument is of wrong type")
 
         if not isinstance(expr, BaseExpression):
@@ -2514,13 +2511,10 @@ class Table(MutableTable):
                         # todo:
                         if folder.startswith("."):
                             pickle_path = os.path.join(os.path.dirname(table_path), folder, fname)
-                        #if folder == ".":
-                            #pickle_path = os.path.join(os.path.dirname(table_path), fname)
                         else:
                             pickle_path = os.path.abspath(os.path.join(folder, fname))
                         if not os.path.exists(pickle_path):
                             cell.dump_as_pickle(pickle_path)
-                        #'if folder == ".":
                         if folder.startswith("."):
                             proxies[id_] = PeakMapProxy(os.path.join(folder, fname), cell.meta)
                         else:
@@ -2532,7 +2526,7 @@ class Table(MutableTable):
         try:
             is_nan = np.isnan(val)  # does not work for str values etc !
             return None if is_nan else val
-        except:
+        except Exception:
             return val
 
     def to_pandas(self):
@@ -2670,8 +2664,6 @@ class Table(MutableTable):
             else:
                 all_values.append(arg)
                 fixed.add(i)
-
-        func_values = []
 
         result = []
 
