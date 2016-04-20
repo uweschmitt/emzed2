@@ -1136,7 +1136,7 @@ class Table(MutableTable):
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
 
-        if peakmap_cache_folder.startswith("."):
+        if peakmap_cache_folder is not None and peakmap_cache_folder.startswith("."):
             self._correct_proxies(path)
 
     @staticmethod
