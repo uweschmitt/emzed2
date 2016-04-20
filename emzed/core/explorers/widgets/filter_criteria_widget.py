@@ -177,6 +177,10 @@ class StringFilterPattern(_StringFilter):
         pattern = unicode(self.pattern.text())
         if pattern == u"":
             return self.name, None
+        def _filter(v, pattern=pattern):
+            if v is None:
+                return False
+            return fnmatch(str(v), pattern)
         return self.name, lambda v, pattern=pattern: v is not None and fnmatch(v, pattern)
 
 
