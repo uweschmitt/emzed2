@@ -1139,7 +1139,7 @@ class Table(MutableTable):
             data = tuple(getattr(self, a) for a in Table._to_pickle)
             dill.dump(data, fp)
 
-        if peakmap_cache_folder == ".":
+        if peakmap_cache_folder.startswith("."):
             self._correct_proxies(path)
 
     @staticmethod
@@ -2511,14 +2511,18 @@ class Table(MutableTable):
                     id_ = cell.uniqueId()
                     if id_ not in proxies:
                         fname = "peak_map_%s.pickle" % id_
-                        if folder == ".":
-                            pickle_path = os.path.join(os.path.dirname(table_path), fname)
+                        # todo:
+                        if folder.startswith("."):
+                            pickle_path = os.path.join(os.path.dirname(table_path), folder, fname)
+                        #if folder == ".":
+                            #pickle_path = os.path.join(os.path.dirname(table_path), fname)
                         else:
                             pickle_path = os.path.abspath(os.path.join(folder, fname))
                         if not os.path.exists(pickle_path):
                             cell.dump_as_pickle(pickle_path)
-                        if folder == ".":
-                            proxies[id_] = PeakMapProxy(os.path.join(".", fname), cell.meta)
+                        #'if folder == ".":
+                        if folder.startswith("."):
+                            proxies[id_] = PeakMapProxy(os.path.join(folder, fname), cell.meta)
                         else:
                             proxies[id_] = PeakMapProxy(pickle_path, cell.meta)
                     row[i] = proxies[id_]

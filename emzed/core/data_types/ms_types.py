@@ -831,6 +831,9 @@ class PeakMap(object):
                 fp_or_path = fp_or_path.replace("/", "\\")  # needed for network shares
 
             # atomic write:
+            folder = os.path.dirname(fp_or_path)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
             with open(fp_or_path + ".incomplete", "wb") as fp:
                 fp.write(zlib.compress(dill.dumps(self), 9))
                 fp.flush()

@@ -1,9 +1,10 @@
 # encoding: utf-8
 from __future__ import print_function
 
+import os
+import shutil
 
 import emzed
-import os
 
 
 def test_0(path):
@@ -53,7 +54,9 @@ def test_1(path, tmpdir):
 
 
 def test_2(path, tmpdir, regtest):
-    from emzed.core.data_types.ms_types import PeakMapProxy
+
+    # same folder as table for peakmaps:
+
     from emzed.core.data_types import Table
 
     pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
@@ -75,7 +78,6 @@ def test_2(path, tmpdir, regtest):
     t = Table.load(p2)
     print(len(t.peakmap.values[0]), file=regtest)
 
-    import shutil
     subfolder = tmpdir.join("subfolder")
     os.makedirs(subfolder.strpath)
     for p in file_names:
@@ -85,6 +87,40 @@ def test_2(path, tmpdir, regtest):
     print(t2, file=regtest)
     print(len(t2.peakmap.values[0]), file=regtest)
     print(t2, file=regtest)
+
+
+def test_3(path, tmpdir, regtest):
+
+    # relative path for peakmaps:
+
+    from emzed.core.data_types import Table
+
+    pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
+    t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
+    t.addColumn("peakmap", pm, type_=object)
+
+    folder = tmpdir.join("subfolder")
+    folder.mkdir()
+
+    p2 = folder.join("with_comp.table").strpath
+    t.store(p2, True, True, "..")
+
+    for p in tmpdir.listdir():
+        # full path varies because the folder is a tmp dir:
+        print(p.basename, file=regtest)
+
+    t2 = Table.load(p2)
+    # this triggers loading:
+    t2.peakmap[0].chromatogram(0, 10, 0, 10)
+
+    t2.peakmap[0]._path == p.strpath
+
+    # now we move and check if proxy still works:
+    moved = folder.join("..").join("moved")
+    shutil.move(folder.strpath, moved.strpath)
+
+    t2 = Table.load(moved.join("with_comp.table").strpath)
+    t2.peakmap[0].chromatogram(0, 10, 0, 10)
 
 
 def test_squeeze(path):
