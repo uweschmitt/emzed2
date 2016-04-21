@@ -179,7 +179,7 @@ class RInterpreter(object):
         self.__dict__["session"] = session
 
     def _create_new_log(self):
-        if "_fh" in self.__dict__:
+        if "_fh" in self.__dict__ and self.__dict__["_fh"] is not None:
             self.__dict__["_fh"].flush()
             self.__dict__["_fh"].close()
         if sys.platform == "darwin":
