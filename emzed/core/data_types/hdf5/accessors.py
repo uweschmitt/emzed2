@@ -134,6 +134,8 @@ class Hdf5TableReader(Hdf5Base):
         self.col_types = fetch_next()
         self.col_formats = fetch_next()
 
+        self.col_type_of_name = dict(zip(self.col_names, self.col_types))
+
         try:
             self.hdf5_meta = fetch_next()
         except StopIteration:
@@ -169,12 +171,11 @@ class Hdf5TableReader(Hdf5Base):
         if index in self.row_cache:
             return self.row_cache[index]
         values = self.row_table[index].tolist()
-        basic_types = {int, long, float, bool}
         row = []
         for (col_idx, value, type_) in zip(itertools.count(), values, self.col_types):
             if (index, col_idx) in self.missing_values:
                 value = None
-            elif type_ not in basic_types:
+            elif type_ not in self.basic_type_map:
                 value = self.manager.fetch(value)
             row.append(value)
         self.row_cache[index] = row
@@ -182,8 +183,7 @@ class Hdf5TableReader(Hdf5Base):
 
     def select_col_values(self, col_index, row_indices):
         type_ = self.col_types[col_index]
-        basic_types = {int, long, float, bool}
-        if type_ not in basic_types:
+        if type_ not in self.basic_type_map:
             raise NotImplementedError("fetching selected values only works for basic types")
 
         is_missing = [(ri, col_index) in self.missing_values for ri in row_indices]
@@ -230,7 +230,7 @@ class Hdf5TableReader(Hdf5Base):
         self.row_cache.clear()
         col_name = self.col_names[col_index]
         if col_name in self.col_cache:
-            del self.col_name[col_name]
+            del self.col_cache[col_name]
 
         if value is None:
             self._replace_column_with_missing_values(col_index, row_selection)
@@ -316,11 +316,15 @@ class Hdf5TableReader(Hdf5Base):
         if col_name in self.col_cache:
             return self.col_cache[col_name]
         missing = self.missing_values_in_column[col_name]
+        type_ = self.col_type_of_name[col_name]
         col_values = getattr(self.row_table.cols, col_name)[:]
-        if missing:
-            col_values = col_values.tolist()
-            for ridx in missing:
-                col_values[ridx] = None
+        col_values = col_values.tolist()
+        for ridx in missing:
+            col_values[ridx] = None
+        if type_ not in self.basic_type_map:
+            for i, v in enumerate(col_values):
+                if v is not None:
+                    col_values[i] = self.manager.fetch(v)
         self.col_cache[col_name] = col_values
         return col_values
 

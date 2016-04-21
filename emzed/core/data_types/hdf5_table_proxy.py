@@ -130,7 +130,7 @@ class Hdf5TableProxy(ImmutableTable):
         self.reader.replace_column(self.getIndex(name), what, rowIndices)
 
     def selectedRowValues(self, name, rowIndices):
-        return self.reader.select_col_values(self.getIndex(name), rowIndices)
+        return [self.reader.get_col_values(name)[i] for i in rowIndices]
 
     def toTable(self):
         rows = []

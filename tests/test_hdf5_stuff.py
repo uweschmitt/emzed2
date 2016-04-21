@@ -90,6 +90,10 @@ def test_writer_appender_reader(table, tmpdir, regtest):
     # check if appending worked:
     assert rows[:5] == rows[5:10]
     assert rows[5:10] == rows[10:]
+
+    for col in reader.col_names:
+        print(reader.get_col_values(col), file=regtest)
+
     reader.close()
 
 
