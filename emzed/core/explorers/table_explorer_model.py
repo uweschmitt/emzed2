@@ -407,6 +407,7 @@ class TableModel(QAbstractTableModel):
             return value == selected_value
 
         selected_data_rows = self.table.findMatchingRows([(col_name, equals)])
+        selected_data_rows = [r for r in selected_data_rows if r in self.visible_rows]
         return [self.dataRowToWidgetRow[i] for i in selected_data_rows]
 
     def transform_row_idx_widget_to_model(self, row_idxs):
