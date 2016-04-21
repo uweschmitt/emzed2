@@ -21,3 +21,12 @@ def test_0(regtest):
     values = range(n)
 
     print(TimeSeries(time_stamps, values).uniqueId(), file=regtest)
+
+
+def test_checked():
+    from emzed.core.data_types.col_types import CheckState
+    ch = CheckState(True)
+    assert bool(ch) is True
+
+    ch = CheckState(False)
+    assert bool(ch) is False

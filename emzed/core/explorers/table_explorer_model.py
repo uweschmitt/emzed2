@@ -10,7 +10,7 @@ from PyQt4.QtCore import *
 
 import guidata
 
-from ..data_types import PeakMap
+from ..data_types import PeakMap, CheckState
 from ..data_types.table import create_row_class
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy
 
@@ -72,7 +72,7 @@ class TableModel(QAbstractTableModel):
                                    self.visible_rows]
         self.dataRowToWidgetRow = {row: i for (i, row) in enumerate(self.widgetRowToDataRow)}
 
-    def set_selected_data_rows(self, widget_rows):
+    def set_selected_widget_rows(self, widget_rows):
         self.selected_data_rows = self.transform_row_idx_widget_to_model(widget_rows)
 
     def setFiltersEnabled(self, flag):
@@ -137,7 +137,7 @@ class TableModel(QAbstractTableModel):
             return font
         return QVariant()
 
-    def bool_data(self, index, role):
+    def check_state_data(self, index, role):
         if role == Qt.CheckStateRole:
             value = self.cell_value(index)
             if value is None:
@@ -154,8 +154,8 @@ class TableModel(QAbstractTableModel):
         if role == Qt.FontRole:
             return self.font(index)
 
-        if self.column_type(index) is bool:
-            return self.bool_data(index, role)
+        if self.column_type(index) is CheckState:
+            return self.check_state_data(index, role)
 
         if role != Qt.DisplayRole:
             return QVariant()
@@ -571,7 +571,7 @@ class MutableTableModel(TableModel):
             return default
         if self.widgetColToDataCol[index.column()] in self.nonEditables:
             return default
-        if self.column_type(index) is bool:
+        if self.column_type(index) is CheckState:
             value = self.cell_value(index)
             if value is None:
                 return Qt.ItemFlags(default)
@@ -586,8 +586,8 @@ class MutableTableModel(TableModel):
             expectedType = self.table._colTypes[cidx]
             if value.toString().trimmed() == "-":
                 value = None
-            elif expectedType is bool:
-                value = (value == Qt.Checked)
+            elif expectedType is CheckState:
+                value = CheckState(value == Qt.Checked)
             elif expectedType != object:
                 # QVariant -> QString -> unicode + strip:
                 value = unicode(value.toString()).strip()

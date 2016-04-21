@@ -15,7 +15,7 @@ from eic_plotting_widget import EicPlottingWidget
 from mz_plotting_widget import MzPlottingWidget
 from ts_plotting_widget import TimeSeriesPlottingWidget
 
-from ..data_types import Table, PeakMap, CallBack
+from ..data_types import Table, PeakMap, CallBack, CheckState
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
 from table_explorer_model import (MutableTableModel, TableModel, isUrl,
@@ -956,7 +956,7 @@ class TableExplorer(EmzedDialog):
         widget_col_index = self.tableView.horizontalHeader().logicalIndexAt(point)
         data_col_index = self.model.widgetColToDataCol[widget_col_index]
 
-        if self.model.column_type(widget_col_index) is bool:
+        if self.model.column_type(widget_col_index) is CheckState:
             menu = QMenu()
             check_all_action = menu.addAction("check all")
             uncheck_all_action = menu.addAction("uncheck all")
@@ -964,9 +964,9 @@ class TableExplorer(EmzedDialog):
 
             chosen = menu.exec_(appearAt)
             if chosen == check_all_action:
-                self.run_async(self.model.set_all, (widget_col_index, True), blocked=True)
+                self.run_async(self.model.set_all, (widget_col_index, CheckState(True)), blocked=True)
             if chosen == uncheck_all_action:
-                self.run_async(self.model.set_all, (widget_col_index, False), blocked=True)
+                self.run_async(self.model.set_all, (widget_col_index, CheckState(False)), blocked=True)
 
     def run_async(self, function, args, blocked=True):
 
@@ -1036,7 +1036,7 @@ class TableExplorer(EmzedDialog):
             self.select_rows_in_group(widget_row_idx, group_by_idx)
         else:
             to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
-            self.model.set_selected_data_rows(to_select)
+            self.model.set_selected_widget_rows(to_select)
 
         @timethis
         def update():
@@ -1076,7 +1076,7 @@ class TableExplorer(EmzedDialog):
         self.tableView.setSelectionMode(mode_before)
         self.tableView.verticalScrollBar().setValue(scrollbar_before)
 
-        self.model.set_selected_data_rows(to_select)
+        self.model.set_selected_widget_rows(to_select)
 
     def setup_spectrum_chooser(self):
         self.choose_spec.clear()

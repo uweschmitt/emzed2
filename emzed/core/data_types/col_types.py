@@ -14,6 +14,21 @@ def unique_id_from(*args):
     return h.hexdigest()
 
 
+class CheckState(object):
+
+    def __init__(self, is_checked):
+        self._is_checked = bool(is_checked)
+
+    def is_checked(self):
+        return self._is_checked
+
+    def set_checked(self, is_checked):
+        self._is_checked = is_checked
+
+    def __nonzero__(self):
+        return self._is_checked
+
+
 class Blob(object):
 
     def __init__(self, data, type_=None):

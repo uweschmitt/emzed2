@@ -10,6 +10,8 @@ import datetime
 import math
 import numpy as np
 
+from emzed.core.data_types.col_types import CheckState
+
 pm = emzed.io.loadPeakMap(os.path.join(here, "..", "tests", "data", "test_mini.mzXML"))
 
 TimeSeries = emzed.core.data_types.TimeSeries
@@ -54,7 +56,9 @@ for i in range(len(t) / 2):
 flags = [i % 2 == 0 for i in range(len(t))]
 flags[0] = None
 
-t.addColumn("check", flags, type_=bool)
+
+t.addColumn("check", flags, type_=CheckState)
+t.addColumn("bool", flags, type_=bool)
 
 t.addColumn("mzmax", t.mzmin + 10.0)
 t.addColumn("rtmin", 2 * range(10, 30), type_=float)
