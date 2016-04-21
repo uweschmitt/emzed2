@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 
+import contextlib
+import functools
+import traceback
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -28,21 +32,27 @@ from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog, IntegrationW
 from ...gui.file_dialogs import askForSave
 from ... import algorithm_configs
 
-
-def eic_curves(model):
-    rtmins, rtmaxs, curves = [], [], []
-    for idx in model.selected_data_rows:
-        eics, rtmin, rtmax, allrts = model.getEICs(idx)
-        if rtmin is not None:
-            rtmins.append(rtmin)
-        if rtmax is not None:
-            rtmaxs.append(rtmax)
-        curves.extend(eics)
-    if not rtmins or not rtmaxs:
-        return None, None, []
-    return min(rtmins), max(rtmaxs), curves
+import time
 
 
+@contextlib.contextmanager
+def timer(name=""):
+    started = time.time()
+    yield
+    needed = time.time() - started
+    print name, "needed %.5fs" % needed
+
+
+def timethis(function):
+
+    @functools.wraps(function)
+    def inner(*a, **kw):
+        with timer(function.__name__):
+            return function(*a, **kw)
+    return inner
+
+
+@timethis
 def time_series_curves(model):
     rtmins, rtmaxs, curves = [], [], []
     for idx in model.selected_data_rows:
@@ -59,31 +69,38 @@ def time_series_curves(model):
     return min(rtmins), max(rtmaxs), curves
 
 
-def chromatograms(model, is_integrated):
+def _eic_fetcher(model, fetcher):
     curves = []
-    fit_shapes = []
-    mzmins, mzmaxs, rtmins, rtmaxs = [], [], [], []
+    rtmins, rtmaxs = [], []
     for idx in model.selected_data_rows:
-        eics, mzmin, mzmax, rtmin, rtmax, allrts = model.extractEICs(idx)
-        if mzmin is not None:
-            mzmins.append(mzmin)
+        eics, rtmin, rtmax, allrts = fetcher(idx)
         if rtmin is not None:
             rtmins.append(rtmin)
-        if mzmax is not None:
-            mzmaxs.append(mzmax)
         if rtmax is not None:
             rtmaxs.append(rtmax)
-        if is_integrated:
-            fitted_shapes = model.getFittedPeakshapes(idx, allrts)
-            # make sure that eics and fit shapes are in sync (needed for coloring):
-            assert len(eics) == len(fitted_shapes)
-            curves.extend(eics)
-            fit_shapes.extend(fitted_shapes)
-        else:
-            curves.extend(eics)
-    if not rtmins or not rtmaxs or not mzmins or not mzmaxs:
-        return None, None, None, None, [], []
-    return min(rtmins), max(rtmaxs), min(mzmins), max(mzmaxs), curves, fit_shapes
+        curves.extend(eics)
+    if not rtmins or not rtmaxs:
+        return None, None, []
+    return min(rtmins), max(rtmaxs), curves
+
+@timethis
+def compute_eics(model):
+    return _eic_fetcher(model, model.computeEics)
+
+
+@timethis
+def eic_curves(model):
+    return _eic_fetcher(model, model.getEics)
+
+
+@timethis
+def fit_shapes(model):
+    fit_shapes = []
+    for idx in model.selected_data_rows:
+        eics, rtmin, rtmax, allrts = model.getEics(idx)
+        fitted_shapes = model.getFittedPeakshapes(idx, allrts)
+        fit_shapes.extend(fitted_shapes)
+    return fit_shapes
 
 
 def button(txt=None, parent=None):
@@ -220,7 +237,7 @@ class TableExplorer(EmzedDialog):
         # (e.g. the editor's analysis thread in Spyder), thus leading to
         # a segmentation fault on UNIX or an application crash on Windows
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowFlags(Qt.Window)
+        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
 
         self.offerAbortOption = offerAbortOption
 
@@ -247,7 +264,6 @@ class TableExplorer(EmzedDialog):
             try:
                 self.close_callback(*modified)
             except Exception:
-                import traceback
                 traceback.print_exc()
 
     def keyPressEvent(self, e):
@@ -556,6 +572,7 @@ class TableExplorer(EmzedDialog):
         hasSpectra = self.model.hasSpectra()
 
         self.eic_only_mode = hasEIC and not hasFeatures  # includes: not isIntegrated !
+        self.has_eic = hasEIC
         self.has_chromatograms = hasFeatures
         self.allow_integration = isIntegrated and self.model.implements("integrate")
         self.has_time_series = hasTimeSeries
@@ -563,7 +580,15 @@ class TableExplorer(EmzedDialog):
 
         self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
         self.eic_plotter.enable_range(not self.eic_only_mode)
-        self.mz_plotter.setVisible(self.has_chromatograms or self.has_spectra)
+
+        if self.has_time_series:
+            show_mz = False
+        elif self.has_chromatograms or self.has_spectra:
+            show_mz = True
+        else:
+            show_mz = False
+
+        self.mz_plotter.setVisible(show_mz)
         self.ts_plotter.setVisible(self.has_time_series)
 
         self.enable_integration_widgets(self.allow_integration)
@@ -939,25 +964,26 @@ class TableExplorer(EmzedDialog):
 
             chosen = menu.exec_(appearAt)
             if chosen == check_all_action:
-                self.run_blocked(self.model.set_all, (widget_col_index, True))
+                self.run_async(self.model.set_all, (widget_col_index, True), blocked=True)
             if chosen == uncheck_all_action:
-                self.run_blocked(self.model.set_all, (widget_col_index, False))
+                self.run_async(self.model.set_all, (widget_col_index, False), blocked=True)
 
-    def run_blocked(self, function, args):
+    def run_async(self, function, args, blocked=True):
 
         @pyqtSlot()
         def doit():
-            self.setEnabled(False)
+            if blocked:
+                self.setEnabled(False)
             self.setCursor(Qt.WaitCursor)
             try:
                 function(*args)
             except Exception:
-                pass
-            self.setEnabled(True)
-            self.setCursor(Qt.ArrowCursor)
+                traceback.print_exc()
+            finally:
+                self.setEnabled(True)
+                self.setCursor(Qt.ArrowCursor)
 
         print(QTimer.singleShot(0, doit))
-
 
     @protect_signal_handler
     def openContextMenuVerticalHeader(self, point):
@@ -1002,27 +1028,33 @@ class TableExplorer(EmzedDialog):
             self.model.integrate(data_row_idx, postfix, method, rtmin, rtmax)
 
     @protect_signal_handler
+    @timethis
     def rowClicked(self, widget_row_idx):
 
-        self.select_rows_in_group(widget_row_idx)
-        self.setup_spectrum_chooser()
-
-        if self.eic_only_mode:
-            self.plot_eics_only()
-        if self.has_chromatograms:
-            self.plot_chromatograms()
-        if self.has_time_series:
-            self.plot_time_series()
-
-    def select_rows_in_group(self, widget_row_idx):
-
         group_by_idx = self.chooseGroupColumn.currentIndex()
-
-        # first entry is "manual selection"
-        if group_by_idx == 0:
+        if group_by_idx > 0:
+            self.select_rows_in_group(widget_row_idx, group_by_idx)
+        else:
             to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
             self.model.set_selected_data_rows(to_select)
-            return
+
+        @timethis
+        def update():
+            if not self.has_time_series:
+                self.setup_spectrum_chooser()
+
+            if self.eic_only_mode:
+                self.plot_eics_only()
+            if self.has_chromatograms:
+                self.plot_chromatograms()
+            if self.has_time_series:
+                self.plot_time_series()
+
+        # we need to keep gui responsive to handle key clicks:
+        self.run_async(update, (), blocked=False)
+
+    @timethis
+    def select_rows_in_group(self, widget_row_idx, group_by_idx):
 
         col_name = str(self.chooseGroupColumn.currentText())
         to_select = self.model.rows_with_same_value(col_name, widget_row_idx)
@@ -1084,6 +1116,7 @@ class TableExplorer(EmzedDialog):
         else:
             self.choose_spec.selectAll()
 
+    @timethis
     def plot_time_series(self):
         rtmin, rtmax, time_series = time_series_curves(self.model)
         ts_configs = configsForTimeSeries(time_series)
@@ -1100,16 +1133,22 @@ class TableExplorer(EmzedDialog):
             self.eic_plotter.add_eics(curves, configs=configs, labels=None)
             self.eic_plotter.replot()
 
+    @timethis
     def plot_chromatograms(self, reset=True):
 
         self.eic_plotter.del_all_items()
-        rtmin, rtmax, mzmin, mzmax, curves, fit_shapes = chromatograms(
-            self.model, self.allow_integration)
+        if self.has_eic:
+            rtmin, rtmax, curves = eic_curves(self.model)
+        elif self.has_chromatograms:
+            rtmin, rtmax, curves = compute_eics(self.model)
+        else:
+            return
+        f_shapes = fit_shapes(self.model)
         configs = configsForEics(curves)
 
-        self.eic_plotter.add_eics(curves, configs=configs)
+        timethis(self.eic_plotter.add_eics)(curves, configs=configs)
 
-        for (chromo, baseline), config in zip(fit_shapes, configs):
+        for (chromo, baseline), config in zip(f_shapes, configs):
             if chromo is None:
                 continue
             rts, iis = chromo
@@ -1127,11 +1166,13 @@ class TableExplorer(EmzedDialog):
                 w = 30.0  # seconds
             if reset:
                 self.eic_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
+
             self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
 
             self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
-        self.eic_plotter.replot()
+        timethis(self.eic_plotter.replot)()
+        print("done")
 
     @protect_signal_handler
     def spectrumChosen(self):
@@ -1148,7 +1189,7 @@ class TableExplorer(EmzedDialog):
             self.plot_ms1_spectra()
 
     def eic_selection_changed(self, rtmin, rtmax):
-        if not self.first_spec_in_choser_is_ms1:
+        if self.has_time_series or not self.first_spec_in_choser_is_ms1:
             return
         self.choose_spec.setCurrentRow(0)
         peakmaps = [
@@ -1158,14 +1199,16 @@ class TableExplorer(EmzedDialog):
             for (__, __, mzmin, mzmax) in self.model.getEICWindows(idx):
                 window = (rtmin, rtmax, mzmin, mzmax)
                 windows.append(window)
-        self.plot_spectra_from_peakmaps(peakmaps, windows)
+        if not self.has_time_series:
+            self.plot_spectra_from_peakmaps(peakmaps, windows)
 
     def plot_ms1_spectra(self):
         peakmaps = [
             pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
         windows = [
             w for idx in self.model.selected_data_rows for w in self.model.getEICWindows(idx)]
-        self.plot_spectra_from_peakmaps(peakmaps, windows)
+        if not self.has_time_series:
+            self.plot_spectra_from_peakmaps(peakmaps, windows)
 
     def plot_ms2_spectra(self, spectra, labels):
         self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)

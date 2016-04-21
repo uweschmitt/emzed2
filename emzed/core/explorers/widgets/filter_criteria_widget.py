@@ -181,7 +181,7 @@ class StringFilterPattern(_StringFilter):
             if v is None:
                 return False
             return fnmatch(str(v), pattern)
-        return self.name, lambda v, pattern=pattern: v is not None and fnmatch(v, pattern)
+        return self.name, _filter
 
 
 class FilterCriteriaWidget(_FilterCriteriaWidget):

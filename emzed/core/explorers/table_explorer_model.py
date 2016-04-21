@@ -370,7 +370,7 @@ class TableModel(QAbstractTableModel):
             postfixes.append(p)
         return postfixes, spectra
 
-    def extractEICs(self, data_row_idx):
+    def computeEics(self, data_row_idx):
         eics = []
         mzmins = []
         mzmaxs = []
@@ -396,7 +396,7 @@ class TableModel(QAbstractTableModel):
             allrts.extend(chromo[0])
         if not mzmins:
             return eics, 0, 0, 0, 0, sorted(allrts)
-        return eics, min(mzmins), max(mzmaxs), min(rtmins), max(rtmaxs),\
+        return eics, min(rtmins), max(rtmaxs),\
             sorted(allrts)
 
     def rows_with_same_value(self, col_name, widget_row_idx):
@@ -412,7 +412,7 @@ class TableModel(QAbstractTableModel):
     def transform_row_idx_widget_to_model(self, row_idxs):
         return [self.widgetRowToDataRow[i] for i in row_idxs]
 
-    def getEICs(self, data_row_idx):
+    def getEics(self, data_row_idx):
         eics = []
         rtmins = []
         rtmaxs = []
@@ -434,7 +434,7 @@ class TableModel(QAbstractTableModel):
                 else:
                     rtmaxs.append(max(rts))
                 allrts.extend(rts)
-        return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else rtmax, sorted(allrts)
+        return eics, min(rtmins) if rtmins else None, max(rtmaxs) if rtmaxs else None, sorted(allrts)
 
     def remove_filtered(self):
         to_delete = range(len(self.widgetRowToDataRow))
