@@ -9,7 +9,7 @@ from PyQt4 import QtCore, QtGui
 class ColumnMultiSelectDialog(_ColumnMultiSelectDialog):
 
     def __init__(self, names, states, n_shown=20, parent=None):
-        super(ColumnMultiSelectDialog, self).__init__(parent, f=QtCore.Qt.Window | QtCore.Qt.WindowStaysOnTopHint)
+        super(ColumnMultiSelectDialog, self).__init__(parent, f=QtCore.Qt.Window) #  | QtCore.Qt.WindowStaysOnTopHint)
         assert len(names) == len(states)
         self.setup(names, states, n_shown)
         self.column_settings = None

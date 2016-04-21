@@ -237,7 +237,7 @@ class TableExplorer(EmzedDialog):
         # (e.g. the editor's analysis thread in Spyder), thus leading to
         # a segmentation fault on UNIX or an application crash on Windows
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.Window) # | Qt.WindowStaysOnTopHint)
 
         self.offerAbortOption = offerAbortOption
 
