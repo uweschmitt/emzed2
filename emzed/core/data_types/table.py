@@ -1267,7 +1267,7 @@ class Table(MutableTable):
             self.rows = []
         self.resetInternals()
 
-    def splitBy(self, *colNames):
+    def splitBy(self, *colNames, **kw):
         """
         generates a list of subtables, where the columns given by ``colNames``
         are unique.
@@ -1312,10 +1312,26 @@ class Table(MutableTable):
         """
         self.ensureColNames(colNames)
 
+        if kw.get("efficient", False):
+            indices = [self.getIndex(n) for n in colNames]
+            sub_rows = collections.OrderedDict()
+            for row in self.rows:
+                key = tuple((row[i] for i in indices))
+                if key not in sub_rows:
+                    sub_rows[key] = []
+                sub_rows[key].append(row)
+            sub_tables = []
+            for rows in sub_rows.values():
+                t = TProxy(self, rows)
+                t.resetInternals()
+                sub_tables.append(t)
+            return sub_tables
+
         groups = set()
         for row in self.rows:
             key = computekey([self.getValue(row, n) for n in colNames])
             groups.add(key)
+
 
         # preserve order of rows
         subTables = collections.OrderedDict()
@@ -2316,6 +2332,19 @@ class Table(MutableTable):
             meta.update(t.meta)
 
         return meta
+
+    def appendTable(self, other):
+        assert len(self) == len(other), "numbe of table rows does not fit"
+        if set(self._colNames) & set(other._colNames):
+            raise ValueError("names of tables intersect")
+
+        self._colNames.extend(other._colNames)
+        self._colTypes.extend(other._colTypes)
+        self._colFormats.extend(other._colFormats)
+        self.meta["from_other"] = other.meta
+        for row_s, row_o in zip(self.rows, other.rows):
+            row_s.extend(row_o)
+        self.resetInternals()
 
     @staticmethod
     def stackTables(tables):
