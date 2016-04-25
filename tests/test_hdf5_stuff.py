@@ -8,7 +8,7 @@ from datetime import datetime
 
 import numpy as np
 
-from emzed.core.data_types import TimeSeries
+from emzed.core.data_types import TimeSeries, CheckState
 from emzed.core.data_types.hdf5_table_writer import to_hdf5, append_to_hdf5, atomic_hdf5_writer
 from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, PeakMapProxy
 from emzed.core.data_types.ms_types import PeakMap, Spectrum
@@ -39,6 +39,7 @@ def table():
     t0 = toTable("int", (None, 2, 3, 3, None), type_=int)
     t0.addColumn("float", (1.0, 2.0, 4.0, 3.0, None), type_=float)
     t0.addColumn("bool", (True, False, None, True, False), type_=bool)
+    t0.addColumn("check", (True, False, None, True, False), type_=CheckState)
     t0.addColumn("str", ("1", "2" * 100, None, "a", "b"), type_=str)
     t0.addColumn("object", ({1}, dict(a=2), None, (1,), [1, 2]), type_=object)
     t0.addColumn("peakmap", pm, type_=object)
@@ -143,7 +144,7 @@ def test_get_index(tproxy):
 
     # test getIndex method
     assert tproxy.getIndex("int") == 0
-    assert tproxy.getIndex("object") == 4
+    assert tproxy.getIndex("object") == 5
 
     with raises(Exception):
         tproxy.getIndex("hih")

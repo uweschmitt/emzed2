@@ -5,6 +5,8 @@ from collections import defaultdict
 import itertools
 import warnings
 
+from ..col_types import CheckState
+
 
 from tables import open_file, Filters, Int64Col, Float64Col, BoolCol, UInt64Col, UInt32Col
 
@@ -18,7 +20,8 @@ filters = Filters(complib="blosc", complevel=9)
 
 class Hdf5Base(object):
 
-    basic_type_map = {int: Int64Col, long: Int64Col, float: Float64Col, bool: BoolCol}
+    basic_type_map = {int: Int64Col, long: Int64Col, float: Float64Col, bool: BoolCol,
+                      CheckState: BoolCol}
 
     def _initial_setup(self, path, mode):
         self.file_ = open_file(path, mode)

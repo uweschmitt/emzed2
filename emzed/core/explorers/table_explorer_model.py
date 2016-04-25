@@ -587,7 +587,7 @@ class MutableTableModel(TableModel):
             if value.toString().trimmed() == "-":
                 value = None
             elif expectedType is CheckState:
-                value = CheckState(value == Qt.Checked)
+                value = (value == Qt.Checked)
             elif expectedType != object:
                 # QVariant -> QString -> unicode + strip:
                 value = unicode(value.toString()).strip()

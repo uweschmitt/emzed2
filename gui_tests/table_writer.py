@@ -7,6 +7,7 @@ import time
 
 
 from emzed.core.data_types.hdf5_table_writer import to_hdf5
+from emzed.core.data_types.col_types import CheckState
 
 
 def main():
@@ -41,7 +42,7 @@ def main():
 
     with measure("create table"):
         t = emzed.utils.toTable("integers", integers, type_=int)
-        t.addColumn("check", flags, type_=bool)
+        t.addColumn("check", flags, type_=CheckState)
         t.addColumn(
             "mzmin", t.apply(lambda: 100 + 900 * np_random() + np_random(), ()), type_=float)
         t.addColumn(
