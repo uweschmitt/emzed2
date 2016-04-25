@@ -1,72 +1,72 @@
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4711     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4711     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
-4713     -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+4713     -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
-4713     -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+4713     -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     1
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     4713
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     True     1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 
-int      float    bool     str
-int      float    bool     str
-------   ------   ------   ------
-4712     1.00     True     -
-2        2.00     False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222
-3        4.00     -        -
-3        3.00     True     a
--        -        False    b
+int      float    bool     check    str                                                                                                  i1       i2
+int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+------   ------   ------   ------   ------                                                                                               ------   ------
+4712     1.00     True     -        1                                                                                                    1        -
+2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
+3        4.00     -        -        -                                                                                                    2        -
+3        3.00     True     True     a                                                                                                    -        2
+-        -        False    False    b                                                                                                    3        -
 

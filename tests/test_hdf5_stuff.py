@@ -16,6 +16,8 @@ from emzed.core.data_types.ms_types import PeakMap, Spectrum
 from emzed.core.data_types.hdf5.accessors import (Hdf5TableWriter, Hdf5TableAppender,
                                                   Hdf5TableReader)
 
+from emzed.core.data_types.hdf5.stores import (BitMatrix,)
+
 
 from emzed.utils import toTable
 
@@ -34,12 +36,14 @@ def table():
 
     pm = PeakMap([spec_0, spec_1, spec_2])
 
-    t0 = toTable("int", (1, 2, 3, 3, None), type_=int)
+    t0 = toTable("int", (None, 2, 3, 3, None), type_=int)
     t0.addColumn("float", (1.0, 2.0, 4.0, 3.0, None), type_=float)
     t0.addColumn("bool", (True, False, None, True, False), type_=bool)
     t0.addColumn("str", ("1", "2" * 100, None, "a", "b"), type_=str)
     t0.addColumn("object", ({1}, dict(a=2), None, (1,), [1, 2]), type_=object)
     t0.addColumn("peakmap", pm, type_=object)
+    t0.addColumn("i1", [1, None, 2, None, 3], type_=int)
+    t0.addColumn("i2", [None, 1, None, 2, None], type_=int)
 
     n = 10
     ts_0 = TimeSeries(map(datetime.fromordinal, range(1, n + 1)), range(n), "label1")
@@ -84,7 +88,7 @@ def test_writer_appender_reader(table, tmpdir, regtest):
     assert len(reader) == 3 * len(table)
     rows = list(reader)
 
-    # resove proxies:
+    # resolve proxies:
     rows = [[ci.load() if isinstance(ci, ObjectProxy) else ci for ci in row] for row in rows]
 
     # check if appending worked:
@@ -300,3 +304,22 @@ def test_version_2_26_0(path, regtest):
 
     # calling .toTable is the "lackmus" test if data reading worked:
     print(t.toTable(), file=regtest)
+
+
+def test_bit_matrix(tmpdir):
+    from tables import open_file
+    for n in (11, 53):
+        file_ = open_file(tmpdir.join("data.bin").strpath, "w")
+        bm = BitMatrix(file_, "flags", n)
+        bm.resize(5)
+        for row in range(5):
+            for col in range(n):
+                bm.set_bit(row, col)
+                print(row, col, bm.positions_in_col(col), end=" ")
+                print(sorted(bm.positions_in_row(row)))
+                assert row in bm.positions_in_col(col)
+                assert col in bm.positions_in_row(row)
+                bm.unset_bit(row, col)
+        print()
+        file_.close()
+

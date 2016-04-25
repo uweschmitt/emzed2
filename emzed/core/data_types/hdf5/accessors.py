@@ -9,6 +9,7 @@ import warnings
 from tables import open_file, Filters, Int64Col, Float64Col, BoolCol, UInt64Col, UInt32Col
 
 from .store_manager import setup_manager
+from .stores import BitMatrix
 from .lru import LruDict
 
 
@@ -29,7 +30,7 @@ class Hdf5Base(object):
 
 class Hdf5TableWriter(Hdf5Base):
 
-    LATEST_HDF5_TABLE_VERSION = (2, 26, 0)
+    LATEST_HDF5_TABLE_VERSION = (2, 26, 12)
 
     def __init__(self, path):
         self._initial_setup(path, "w")
@@ -47,10 +48,6 @@ class Hdf5TableWriter(Hdf5Base):
                                              description=dict(index=UInt64Col()),
                                              filters=filters)
 
-        self.missing_values_table = file_.create_table(file_.root, "missing_values",
-                                                       description=dict(row_index=UInt64Col(pos=0),
-                                                                        col_index=UInt64Col(pos=1)),
-                                                       filters=filters)
 
         def store_meta(what):
             meta_index = self.manager.store_object(what)
@@ -66,6 +63,8 @@ class Hdf5TableWriter(Hdf5Base):
         store_meta(col_names)
         store_meta(col_types)
         store_meta(col_formats)
+
+        self.missing_values_flags = BitMatrix(file_, "flags", len(col_names))
 
         # this table vesion was last modified in:
         store_meta(dict(hdf5_table_version=self.LATEST_HDF5_TABLE_VERSION))
@@ -87,14 +86,14 @@ class Hdf5TableWriter(Hdf5Base):
         col_names = table.getColNames()
         col_types = table.getColTypes()
 
+        num_rows_exisiting = self.row_table.nrows
+        self.missing_values_flags.resize(num_rows_exisiting + len(table))
+
         for row_index, row in enumerate(table.rows):
             hdf_row = self.row_table.row
             for col_index, value, name, type_ in zip(itertools.count(), row, col_names, col_types):
                 if value is None:
-                    m_row = self.missing_values_table.row
-                    m_row["row_index"] = row_index + self.row_offset
-                    m_row["col_index"] = col_index
-                    m_row.append()
+                    self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
                     if type_ in self.basic_type_map:
                         hdf_row[name] = value
@@ -104,7 +103,7 @@ class Hdf5TableWriter(Hdf5Base):
 
         self.row_offset += len(table)
 
-        self.missing_values_table.flush()
+        self.missing_values_flags.flush()
         self.row_table.flush()
         self.manager.flush()
 
@@ -145,85 +144,61 @@ class Hdf5TableReader(Hdf5Base):
         expected = Hdf5TableWriter.LATEST_HDF5_TABLE_VERSION
 
         if self.hdf5_table_version != expected:
-            message = ("you read from / append to a hdf5 table which has version %s and older "
-                       "as the current version %s, you might have problems...." %
-                       (self.hdf5_table_version, expected))
+            if self.hdf5_table_version < (2, 26, 12):
+                if not hasattr(self.file_, "flags"):
+                    self.missing_values_flags = BitMatrix(self.file_, "flags", len(self.col_names))
+                    mv = self.file_.root.missing_values
+                    n = mv.nrows
+                    for s in range(0, n, 10000):
+                        rows = mv.cols.row_index[s: s + 10000]
+                        cols = mv.cols.col_index[s: s + 10000]
+                        self.missing_values_flags.resize(max(rows) + 1)
+                        for row, col in itertools.izip(rows, cols):
+                            self.missing_values_flags.set_bit(int(row), int(col))
+                    self.missing_values_flags.flush()
+                message = ("you read from / append to a hdf5 table which has version %s and older "
+                           "as the current version %s, you might have problems...." %
+                           (self.hdf5_table_version, expected))
 
             warnings.warn(message, UserWarning, stacklevel=2)
 
         # read full table -> numpy array -> list -> set
-        self.missing_values_table = self.file_.root.missing_values
-        missing_value_indices = self.missing_values_table.read().tolist()
-        self.missing_values = {}
-        for cell_index, row_index_in_table in itertools.izip(missing_value_indices,
-                                                             itertools.count()):
-            self.missing_values[cell_index] = row_index_in_table
-        self.missing_values_in_column = defaultdict(set)
-
-        idx_to_name = dict(enumerate(self.col_names))
-        for (ridx, cidx) in self.missing_values:
-            self.missing_values_in_column[idx_to_name[cidx]].add(ridx)
+        self.missing_values_flags = BitMatrix(self.file_, "flags", len(self.col_names))
 
         self.row_table = self.file_.root.rows
         self.nrows = self.file_.root.rows.nrows
 
-    def fetch_row(self, index):
-        if index in self.row_cache:
-            return self.row_cache[index]
-        values = self.row_table[index].tolist()
+    def fetch_row(self, row_index):
+        row = self._fetch_row(row_index)
+        return row
+
+    def _fetch_row(self, row_index):
+        if row_index in self.row_cache:
+            return self.row_cache[row_index]
+        values = self.row_table[row_index].tolist()
         row = []
+        missing = self.missing_values_flags.positions_in_row(row_index)
         for (col_idx, value, type_) in zip(itertools.count(), values, self.col_types):
-            if (index, col_idx) in self.missing_values:
+            if col_idx in missing:
                 value = None
             elif type_ not in self.basic_type_map:
                 value = self.manager.fetch(value)
             row.append(value)
-        self.row_cache[index] = row
+        self.row_cache[row_index] = row
         return row
 
-    def select_col_values(self, col_index, row_indices):
-        type_ = self.col_types[col_index]
-        if type_ not in self.basic_type_map:
-            raise NotImplementedError("fetching selected values only works for basic types")
-
-        is_missing = [(ri, col_index) in self.missing_values for ri in row_indices]
-
-        name = self.col_names[col_index]
-        values = getattr(self.row_table.cols, name)[:]
-        values = [values[i] for i in row_indices]
-        return [v if not im else None for (v, im) in zip(values, is_missing)]
-
     def _replace_column_with_missing_values(self, col_index, row_selection):
-        n = self.missing_values_table.nrows
         row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
         for row_index in row_iter:
-            index = (row_index, col_index)
-            if index not in self.missing_values:
-                row = self.missing_values_table.row
-                row["row_index"] = row_index
-                row["col_index"] = col_index
-                row.append()
-                self.missing_values[index] = n
-                n += 1
-        self.missing_values_table.flush()
+            self.missing_values_flags.set_bit(row_index, col_index)
+        self.missing_values_flags.flush()
 
     def _remove_missing_value_entries_in_column(self, col_index, row_selection):
 
-        to_remove = []
         row_iter = row_selection if row_selection is not None else xrange(self.row_table.nrows)
         for row_index in row_iter:
-            index = (row_index, col_index)
-            # we overwrite a previously None with a not None:
-            if index in self.missing_values:
-                ri = self.missing_values[index]
-                to_remove.append(ri)
-                del self.missing_values[index]
-
-        # we remove from the end !
-        for ri in sorted(to_remove, reverse=True):
-            self.missing_values_table.remove_row(ri)
-
-        self.missing_values_table.flush()
+            self.missing_values_flags.unset_bit(row_index, col_index)
+        self.missing_values_flags.flush()
 
     def replace_column(self, col_index, value, row_selection=None):
         type_ = self.col_types[col_index]
@@ -265,28 +240,19 @@ class Hdf5TableReader(Hdf5Base):
         if col_name in self.col_cache:
             del self.col_cache[col_name]
 
-        index = (row_index, col_index)
         if value is None:
-            if index not in self.missing_values:
-                row = self.missing_values_table.row
-                row["row_index"] = row_index
-                row["col_index"] = col_index
-                row.append()
-                self.missing_values[index] = self.missing_values_table.nrows
-                self.missing_values_table.flush()
-                return
-        # we overwrite a previously None with a not None:
-        elif index in self.missing_values:
-            ri = self.missing_values[index]
-            self.missing_values_table.remove_row(ri)
-            self.missing_values_table.flush()
-            del self.missing_values[index]
+            self.missing_values_flags.set_bit(row_index, col_index)
+            self.missing_values_flags.flush()
+            return
+        else:
+            self.missing_values_flags.unset_bit(row_index, col_index)
+            self.missing_values_flags.flush()
 
         row_iter = self.row_table.iterrows(row_index, row_index + 1)
         row = row_iter.next()
         name = self.col_names[col_index]
 
-        if type_ not in (int, long, float, bool):
+        if type_ not in self.basic_type_map:
             value = self.manager.store_object(value)
 
         row[name] = value
@@ -304,7 +270,7 @@ class Hdf5TableReader(Hdf5Base):
 
     def flush(self):
         self.row_table.flush()
-        self.missing_values_table.flush()
+        self.missing_values_flags.flush()
         self.manager.flush()
 
     def __len__(self):
@@ -315,7 +281,8 @@ class Hdf5TableReader(Hdf5Base):
     def get_col_values(self, col_name):
         if col_name in self.col_cache:
             return self.col_cache[col_name]
-        missing = self.missing_values_in_column[col_name]
+        col_index = self.col_names.index(col_name)
+        missing = self.missing_values_flags.positions_in_col(col_index)
         type_ = self.col_type_of_name[col_name]
         col_values = getattr(self.row_table.cols, col_name)[:]
         col_values = col_values.tolist()
@@ -346,3 +313,4 @@ class Hdf5TableAppender(Hdf5TableWriter, Hdf5TableReader):
         assert table.getColTypes() == self.col_types, "table does not match to exisiting table"
 
         self._add_rows(table)
+        self.flush()

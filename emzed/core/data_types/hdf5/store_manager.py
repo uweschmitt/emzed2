@@ -3,7 +3,6 @@ from .. import PeakMap, TimeSeries
 from stores import (Store, PeakMapStore, StringStore, ObjectStore, TimeSeriesStore)
 
 
-
 class StoreManager(object):
 
     """
