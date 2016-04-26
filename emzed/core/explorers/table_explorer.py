@@ -313,8 +313,15 @@ class TableExplorer(EmzedDialog):
         t = model.table
         w = FilterCriteriaWidget(self)
         w.configure(t)
-        w.LIMITS_CHANGED.connect(model.limits_changed)
+        w.LIMITS_CHANGED.connect(self.limits_changed)
         return w
+
+    def limits_changed(self, filters):
+        def _limits_changed():
+            self.model.limits_changed(filters)
+
+        self.run_async(_limits_changed, (), blocked=True)
+
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
@@ -976,14 +983,15 @@ class TableExplorer(EmzedDialog):
                 self.setEnabled(False)
             self.setCursor(Qt.WaitCursor)
             try:
-                function(*args)
+                timethis(function)(*args)
             except Exception:
                 traceback.print_exc()
             finally:
                 self.setEnabled(True)
                 self.setCursor(Qt.ArrowCursor)
 
-        print(QTimer.singleShot(0, doit))
+        QTimer.singleShot(0, doit)
+        print("timer started")
 
     @protect_signal_handler
     def openContextMenuVerticalHeader(self, point):
@@ -1031,15 +1039,15 @@ class TableExplorer(EmzedDialog):
     @timethis
     def rowClicked(self, widget_row_idx):
 
-        group_by_idx = self.chooseGroupColumn.currentIndex()
-        if group_by_idx > 0:
-            self.select_rows_in_group(widget_row_idx, group_by_idx)
-        else:
-            to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
-            self.model.set_selected_widget_rows(to_select)
-
         @timethis
-        def update():
+        def handle_row_click():
+            group_by_idx = self.chooseGroupColumn.currentIndex()
+            if group_by_idx > 0:
+                self.select_rows_in_group(widget_row_idx, group_by_idx)
+            else:
+                to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+                self.model.set_selected_widget_rows(to_select)
+
             if not self.has_time_series:
                 self.setup_spectrum_chooser()
 
@@ -1051,13 +1059,13 @@ class TableExplorer(EmzedDialog):
                 self.plot_time_series()
 
         # we need to keep gui responsive to handle key clicks:
-        self.run_async(update, (), blocked=False)
+        self.run_async(handle_row_click, (), blocked=True)
 
     @timethis
     def select_rows_in_group(self, widget_row_idx, group_by_idx):
 
         col_name = str(self.chooseGroupColumn.currentText())
-        to_select = self.model.rows_with_same_value(col_name, widget_row_idx)
+        to_select = timethis(self.model.rows_with_same_value)(col_name, widget_row_idx)
 
         N = 50
         if len(to_select) > N:

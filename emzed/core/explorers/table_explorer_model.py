@@ -20,6 +20,14 @@ from .table_explorer_model_actions import *
 
 from ..config import folders
 
+def timethis(function):
+
+    @functools.wraps(function)
+    def inner(*a, **kw):
+        with timer(function.__name__):
+            return function(*a, **kw)
+    return inner
+
 
 def isUrl(what):
     if isinstance(what, QString):
@@ -401,12 +409,12 @@ class TableModel(QAbstractTableModel):
 
     def rows_with_same_value(self, col_name, widget_row_idx):
         data_row_idx = self.widgetRowToDataRow[widget_row_idx]
-        selected_value = self.table.getValue(self.table.rows[data_row_idx], col_name)
+        selected_value = timethis(self.table.getValue)(self.table.rows[data_row_idx], col_name)
 
         def equals(value):
             return value == selected_value
 
-        selected_data_rows = self.table.findMatchingRows([(col_name, equals)])
+        selected_data_rows = timethis(self.table.findMatchingRows)([(col_name, equals)])
         selected_data_rows = [r for r in selected_data_rows if r in self.visible_rows]
         return [self.dataRowToWidgetRow[i] for i in selected_data_rows]
 
