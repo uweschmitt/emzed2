@@ -19,7 +19,7 @@ from ..data_types import Table, PeakMap, CallBack, CheckState
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
 from table_explorer_model import (MutableTableModel, TableModel, isUrl,
-                                  IntegrateAction,)
+                                  IntegrateAction, timer, timethis)
 
 from helpers import protect_signal_handler
 
@@ -33,23 +33,6 @@ from ...gui.file_dialogs import askForSave
 from ... import algorithm_configs
 
 import time
-
-
-@contextlib.contextmanager
-def timer(name=""):
-    started = time.time()
-    yield
-    needed = time.time() - started
-    print name, "needed %.5fs" % needed
-
-
-def timethis(function):
-
-    @functools.wraps(function)
-    def inner(*a, **kw):
-        with timer(function.__name__):
-            return function(*a, **kw)
-    return inner
 
 
 @timethis
@@ -317,11 +300,7 @@ class TableExplorer(EmzedDialog):
         return w
 
     def limits_changed(self, filters):
-        def _limits_changed():
-            self.model.limits_changed(filters)
-
-        self.run_async(_limits_changed, (), blocked=True)
-
+        timethis(self.model.limits_changed)(filters)
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
@@ -991,7 +970,6 @@ class TableExplorer(EmzedDialog):
                 self.setCursor(Qt.ArrowCursor)
 
         QTimer.singleShot(0, doit)
-        print("timer started")
 
     @protect_signal_handler
     def openContextMenuVerticalHeader(self, point):

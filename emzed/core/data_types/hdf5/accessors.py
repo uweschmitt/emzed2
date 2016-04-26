@@ -122,6 +122,7 @@ class Hdf5TableReader(Hdf5Base):
         self._load_meta()
         self.row_cache = LruDict(10000)
         self.col_cache = LruDict(100)
+        self.col_cache_raw = LruDict(100)
 
     def _load_meta(self):
 
@@ -155,7 +156,7 @@ class Hdf5TableReader(Hdf5Base):
                     for s in range(0, n, 10000):
                         rows = mv.cols.row_index[s: s + 10000]
                         cols = mv.cols.col_index[s: s + 10000]
-                        self.missing_values_flags.resize(max(rows) + 1)
+                        self.missing_values_flags.resize(int(max(rows)) + 1)
                         for row, col in itertools.izip(rows, cols):
                             self.missing_values_flags.set_bit(int(row), int(col))
                     self.missing_values_flags.flush()
@@ -209,6 +210,7 @@ class Hdf5TableReader(Hdf5Base):
         col_name = self.col_names[col_index]
         if col_name in self.col_cache:
             del self.col_cache[col_name]
+            del self.col_cache_raw[col_name]
 
         if value is None:
             self._replace_column_with_missing_values(col_index, row_selection)
@@ -242,6 +244,7 @@ class Hdf5TableReader(Hdf5Base):
         col_name = self.col_names[col_index]
         if col_name in self.col_cache:
             del self.col_cache[col_name]
+            del self.col_cache_raw[col_name]
 
         if value is None:
             self.missing_values_flags.set_bit(row_index, col_index)
@@ -297,6 +300,16 @@ class Hdf5TableReader(Hdf5Base):
                     col_values[i] = self.manager.fetch(v)
         self.col_cache[col_name] = col_values
         return col_values
+
+    def get_raw_col_values(self, col_name):
+        if col_name in self.col_cache_raw:
+            return self.col_cache_raw[col_name]
+        col_index = self.col_names.index(col_name)
+        missing = self.missing_values_flags.positions_in_col(col_index)
+        type_ = self.col_type_of_name[col_name]
+        col_values = getattr(self.row_table.cols, col_name)[:]
+        self.col_cache_raw[col_name] = (col_values, missing)
+        return col_values, missing
 
 
 class Hdf5TableAppender(Hdf5TableWriter, Hdf5TableReader):

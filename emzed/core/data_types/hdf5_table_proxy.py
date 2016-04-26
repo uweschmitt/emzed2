@@ -3,6 +3,8 @@ from __future__ import print_function, division
 
 import itertools
 
+import numpy as np
+
 from .table import Table
 
 # PeakMapProxy no needed here, but convenient if it can be importet the same way as ObjectProxy:
@@ -13,6 +15,15 @@ from .hdf5.accessors import Hdf5TableReader
 from .hdf5.lru import LruDict
 
 from base_classes import ImmutableTable
+
+
+class UfuncWrapper(object):
+
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self, *a, **kw):
+        return self.f(*a, **kw)
 
 
 class Hdf5TableProxy(ImmutableTable):
@@ -48,21 +59,30 @@ class Hdf5TableProxy(ImmutableTable):
         """
 
         indices_of_fitting_rows = set(range(len(self)))
+        print(filters)
 
         for col_name, filter_function in filters:
 
             if filter_function is None:
                 continue
 
-            col_values = self.reader.get_col_values(col_name)
-            rows_to_remain = set()
+            if isinstance(filter_function, UfuncWrapper):
 
-            for row_idx in range(len(self)):
-                v = col_values[row_idx]
-                if v is not None:
-                    match = filter_function(v)
-                    if match:
-                        rows_to_remain.add(row_idx)
+                col_values, missing_values = self.reader.get_raw_col_values(col_name)
+                keep = set(np.where(filter_function(col_values))[0])
+                keep -= set(missing_values)
+                rows_to_remain = keep
+
+            else:
+                col_values = self.reader.get_col_values(col_name)
+                rows_to_remain = set()
+
+                for row_idx in range(len(self)):
+                    v = col_values[row_idx]
+                    if v is not None:
+                        match = filter_function(v)
+                        if match:
+                            rows_to_remain.add(row_idx)
             indices_of_fitting_rows = indices_of_fitting_rows.intersection(rows_to_remain)
 
         return indices_of_fitting_rows

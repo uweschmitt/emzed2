@@ -594,9 +594,13 @@ class BitMatrix(object):
 
     def resize(self, n_rows):
         additional_rows = n_rows - self.n_rows
-        zeros = np.zeros(additional_rows * self._n_cols_flags, dtype="uint8")
-        self.data.append(zeros)
-        self.n_rows = n_rows
+        if additional_rows > 0:
+            zeros = np.zeros(additional_rows * self._n_cols_flags, dtype="uint8")
+            self.data.append(zeros)
+            self.n_rows = n_rows
+            idx = n_rows // self.cache_block_size
+            if idx in self.cache:
+                del self.cache[idx]
 
     def _lookup_cache(self, row):
         idx = row // self.cache_block_size

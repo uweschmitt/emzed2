@@ -20,6 +20,18 @@ from .table_explorer_model_actions import *
 
 from ..config import folders
 
+import contextlib
+import functools
+import time
+
+
+@contextlib.contextmanager
+def timer(name=""):
+    started = time.time()
+    yield
+    needed = time.time() - started
+    print name, "needed %.5fs" % needed
+
 def timethis(function):
 
     @functools.wraps(function)

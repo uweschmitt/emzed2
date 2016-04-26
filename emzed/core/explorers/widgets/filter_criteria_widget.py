@@ -1,10 +1,14 @@
 # encoding: utf-8
 from __future__ import print_function
 
+
+import numpy as np
+
 from PyQt4 import QtCore, QtGui
 
 from _filter_criteria_widget import _FilterCriteriaWidget
 
+from ...data_types.hdf5_table_proxy import UfuncWrapper
 
 from fnmatch import fnmatch
 
@@ -52,6 +56,22 @@ def range_filter(v1, v2):
     return filter
 
 
+def ufunc_range_filter(v1, v2):
+    if v1 is None and v2 is None:
+        return None
+
+    if v2 is None:
+        f = lambda vec, v1=v1: np.greater(vec, v1)
+    elif v1 is None:
+        f = lambda vec, v2=v2: np.greater(v2, vec)
+    elif v1 == v2:
+        f = lambda vec, v2=v2: np.equal(v2, vec)
+    else:
+        f = lambda vec, v1=v1, v2=v2: np.logical_and(np.greater(v2, vec), np.greater(vec, v1))
+
+    return UfuncWrapper(f)
+
+
 class ChooseFloatRange(_ChooseNumberRange):
 
     def get_filter(self):
@@ -65,7 +85,7 @@ class ChooseFloatRange(_ChooseNumberRange):
             v2 = float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, range_filter(v1, v2)
+        return self.name, ufunc_range_filter(v1, v2)
 
 
 class ChooseIntRange(_ChooseNumberRange):
@@ -81,7 +101,7 @@ class ChooseIntRange(_ChooseNumberRange):
             v2 = int(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, range_filter(v1, v2)
+        return self.name, ufunc_range_filter(v1, v2)
 
 
 class ChooseTimeRange(_ChooseNumberRange):
@@ -103,7 +123,7 @@ class ChooseTimeRange(_ChooseNumberRange):
             v2 = 60.0 * float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, range_filter(v1, v2)
+        return self.name, ufunc_range_filter(v1, v2)
 
 
 class ChooseValue(_ChooseValue):
@@ -131,6 +151,9 @@ class ChooseValue(_ChooseValue):
             return self.name, None
         if t == "-":
             t = None
+
+        if isinstance(t, (int, float)):
+            return self.name, ufunc_range_filter(t, t)
         return self.name, lambda v: v == t
 
     def update(self):
