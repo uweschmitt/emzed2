@@ -927,6 +927,12 @@ def test_getitem_variations():
     t4 = t[np.array((True, True, False), dtype=bool)]
     t5 = t[np.array((0, 1), dtype=int)]
 
+    assert t1.shape == (2, 1)
+    assert t2.shape == (2, 1)
+    assert t3.shape == (2, 1)
+    assert t4.shape == (2, 1)
+    assert t5.shape == (2, 1)
+
     assert t1.rows == [[0], [1]]
 
     for ti in (t1, t2, t3, t4, t5):

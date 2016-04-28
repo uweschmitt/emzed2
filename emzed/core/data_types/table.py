@@ -620,6 +620,7 @@ class Table(MutableTable):
         prototype = self.buildEmptyClone(icol)
         for row in select(self.rows, irow):
             prototype.rows.append(select(row, icol))
+        prototype.resetInternals()
         return prototype
 
     def overwrite(self, other):
