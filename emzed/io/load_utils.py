@@ -59,7 +59,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
     if path is None:
         return None
 
-    result = Table.loadCSV(path)
+    result = Table.loadCSV(path, sep, keepNone, **specialFormats)
     return result
 
 
