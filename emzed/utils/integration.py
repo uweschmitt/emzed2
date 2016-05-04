@@ -16,7 +16,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     """
     from ..core.data_types.table import Table, PeakMap
 
-    assert isinstance(ftable, Table)
+    # assert isinstance(ftable, Table)
 
     neededColumns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
     supportedPostfixes = ftable.supportedPostfixes(neededColumns)
@@ -178,8 +178,8 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)
         resultTable._updateColumnWithoutNameCheck("params" + postfix, peak_shape_params,
                                                   object, None, insertBefore="peakmap" + postfix)
 
-        # resultTable._updateColumnWithoutNameCheck("eic" + postfix, eics,
-                                                  # object, None, insertBefore="peakmap" + postfix)
+        resultTable._updateColumnWithoutNameCheck("eic" + postfix, eics,
+                                                  object, None, insertBefore="peakmap" + postfix)
 
     resultTable.meta["integrated"] = True, "\n"
     resultTable.title = "integrated: " + (resultTable.title or "")

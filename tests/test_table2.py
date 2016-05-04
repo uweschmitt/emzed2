@@ -595,9 +595,9 @@ def test_sort_empty_table():
 
 
 def test_multi_sort(regtest):
-    t = emzed.utils.toTable("x", [1, 2, 2, 4])
-    t.addColumn("y", [1, 1, 2, 2])
-    t.addColumn("z", [1, 1, 1, 2])
+    t = emzed.utils.toTable("x", [1, 1, 2, 2])
+    t.addColumn("y", [1, 2, 3, 4])
+    t.addColumn("z", [2, 1, 4, 3])
 
     print(t, file=regtest)
 

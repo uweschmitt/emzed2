@@ -132,6 +132,7 @@ to_hdf5(t_with_ts, "with_ts.hdf5")
 def callback(*args):
     print(args)
 
+# emzed.core.data_types.hdf5_table_writer.to_hdf5(t_integrated, "integrated.hdf5")
 
 emzed.gui.inspect((t_integrated[:10], t_with_ts, t_integrated, t_eic_only, t_feat_only, t_feat_and_ms2),
         close_callback=callback)
