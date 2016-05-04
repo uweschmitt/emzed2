@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-import contextlib
-import functools
+from collections import defaultdict
+import itertools
 import traceback
 
 from PyQt4.QtGui import *
@@ -18,8 +18,7 @@ from ts_plotting_widget import TimeSeriesPlottingWidget
 from ..data_types import Table, PeakMap, CallBack, CheckState
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
-from table_explorer_model import (MutableTableModel, TableModel, isUrl,
-                                  IntegrateAction, timer, timethis)
+from .table_explorer_model import (TableModel, isUrl, IntegrateAction, timethis)
 
 from helpers import protect_signal_handler
 
@@ -31,6 +30,8 @@ from .widgets import FilterCriteriaWidget, ColumnMultiSelectDialog, IntegrationW
 
 from ...gui.file_dialogs import askForSave
 from ... import algorithm_configs
+
+from .async_runner import AsyncRunner
 
 import time
 
@@ -65,6 +66,7 @@ def _eic_fetcher(model, fetcher):
     if not rtmins or not rtmaxs:
         return None, None, []
     return min(rtmins), max(rtmaxs), curves
+
 
 @timethis
 def compute_eics(model):
@@ -220,7 +222,7 @@ class TableExplorer(EmzedDialog):
         # (e.g. the editor's analysis thread in Spyder), thus leading to
         # a segmentation fault on UNIX or an application crash on Windows
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowFlags(Qt.Window) # | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.Window)  # | Qt.WindowStaysOnTopHint)
 
         self.offerAbortOption = offerAbortOption
 
@@ -229,6 +231,8 @@ class TableExplorer(EmzedDialog):
         self.tableView = None
 
         self.hadFeatures = None
+
+        self.async_runner = AsyncRunner()
 
         self.setupWidgets()
         self.setupLayout()
@@ -940,7 +944,6 @@ class TableExplorer(EmzedDialog):
     @protect_signal_handler
     def openContextMenuHorizontalHeader(self, point):
         widget_col_index = self.tableView.horizontalHeader().logicalIndexAt(point)
-        data_col_index = self.model.widgetColToDataCol[widget_col_index]
 
         if self.model.column_type(widget_col_index) is CheckState:
             menu = QMenu()
@@ -950,26 +953,10 @@ class TableExplorer(EmzedDialog):
 
             chosen = menu.exec_(appearAt)
             if chosen == check_all_action:
-                self.run_async(self.model.set_all, (widget_col_index, CheckState(True)), blocked=True)
+                self.async_runner.run_async(self.model.set_all, (widget_col_index, CheckState(True)), blocked=True)
             if chosen == uncheck_all_action:
-                self.run_async(self.model.set_all, (widget_col_index, CheckState(False)), blocked=True)
+                self.async_runner.run_async(self.model.set_all, (widget_col_index, CheckState(False)), blocked=True)
 
-    def run_async(self, function, args, blocked=True):
-
-        @pyqtSlot()
-        def doit():
-            if blocked:
-                self.setEnabled(False)
-            self.setCursor(Qt.WaitCursor)
-            try:
-                timethis(function)(*args)
-            except Exception:
-                traceback.print_exc()
-            finally:
-                self.setEnabled(True)
-                self.setCursor(Qt.ArrowCursor)
-
-        QTimer.singleShot(0, doit)
 
     @protect_signal_handler
     def openContextMenuVerticalHeader(self, point):
@@ -1017,52 +1004,91 @@ class TableExplorer(EmzedDialog):
     @timethis
     def rowClicked(self, widget_row_idx):
 
+        group_by_idx = self.chooseGroupColumn.currentIndex()
+        if group_by_idx > 0:
+            self.select_rows_in_group(widget_row_idx, group_by_idx)
+            return
+
         @timethis
         def handle_row_click():
-            group_by_idx = self.chooseGroupColumn.currentIndex()
-            if group_by_idx > 0:
-                self.select_rows_in_group(widget_row_idx, group_by_idx)
-            else:
-                to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
-                self.model.set_selected_widget_rows(to_select)
+            to_select = [idx.row() for idx in self.tableView.selectionModel().selectedRows()]
+            self.model.set_selected_widget_rows(to_select)
+            return to_select
 
+        def update(to_select):
+            if to_select is not None:
+                self.model.set_selected_widget_rows(to_select)
             if not self.has_time_series:
                 self.setup_spectrum_chooser()
 
             if self.eic_only_mode:
                 self.plot_eics_only()
-            if self.has_chromatograms:
+            elif self.has_chromatograms:
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
 
         # we need to keep gui responsive to handle key clicks:
-        self.run_async(handle_row_click, (), blocked=True)
+        self.async_runner.run_async(handle_row_click, (),
+                       id_="select_rows",
+                       only_one_worker=True, call_back=update)
 
     @timethis
     def select_rows_in_group(self, widget_row_idx, group_by_idx):
 
         col_name = str(self.chooseGroupColumn.currentText())
-        to_select = timethis(self.model.rows_with_same_value)(col_name, widget_row_idx)
 
-        N = 50
-        if len(to_select) > N:
-            QMessageBox.warning(self, "Warning", "multiselect would mark %d lines. "
-                                      "reduced number of lines to %d" % (len(to_select), N))
-            to_select = to_select[:N]
+        def find_rows():
+            self.tableView.blockSignals(True)
+            try:
+                to_select = timethis(self.model.rows_with_same_value)(col_name, widget_row_idx)
+                return to_select
+            finally:
+                self.tableView.blockSignals(False)
 
-        # expand selection
-        mode_before = self.tableView.selectionMode()
-        scrollbar_before = self.tableView.verticalScrollBar().value()
+        def mark_rows(to_select):
+            N = 50
+            if len(to_select) > N:
+                QMessageBox.warning(self, "Warning", "multiselect would mark %d lines. "
+                                        "reduced number of lines to %d" % (len(to_select), N))
+                to_select = to_select[:N]
 
-        self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
-        for i in to_select:
-            if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
-                self.tableView.selectRow(i)
-        self.tableView.setSelectionMode(mode_before)
-        self.tableView.verticalScrollBar().setValue(scrollbar_before)
+            # expand selection
 
-        self.model.set_selected_widget_rows(to_select)
+            self.tableView.blockSignals(True)
+            self.setCursor(Qt.WaitCursor)
+            try:
+                mode_before = self.tableView.selectionMode()
+                scrollbar_before = self.tableView.verticalScrollBar().value()
+
+                self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
+                for i in to_select:
+                    if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
+                        self.tableView.selectRow(i)
+                self.tableView.setSelectionMode(mode_before)
+                self.tableView.verticalScrollBar().setValue(scrollbar_before)
+
+                self.model.set_selected_widget_rows(to_select)
+
+                if to_select is not None:
+                    self.model.set_selected_widget_rows(to_select)
+                if not self.has_time_series:
+                    self.setup_spectrum_chooser()
+
+                if self.eic_only_mode:
+                    self.plot_eics_only()
+                elif self.has_chromatograms:
+                    self.plot_chromatograms()
+                if self.has_time_series:
+                    self.plot_time_series()
+            finally:
+                self.tableView.blockSignals(False)
+                self.setCursor(Qt.ArrowCursor)
+
+        self.async_runner.run_async(find_rows, (),
+                       id_="select_rows",
+                       blocked=True,
+                       only_one_worker=True, call_back=mark_rows)
 
     def setup_spectrum_chooser(self):
         self.choose_spec.clear()
@@ -1112,16 +1138,16 @@ class TableExplorer(EmzedDialog):
         self.ts_plotter.replot()
 
     def plot_eics_only(self):
-        if self.eic_only_mode:
-            rtmin, rtmax, curves = eic_curves(self.model)
-            configs = configsForEics(curves)
-            self.eic_plotter.reset()
-            self.eic_plotter.add_eics(curves, configs=configs, labels=None)
-            self.eic_plotter.replot()
+        rtmin, rtmax, curves = eic_curves(self.model)
+        configs = configsForEics(curves)
+        self.eic_plotter.reset()
+        self.eic_plotter.add_eics(curves, configs=configs, labels=None)
+        self.eic_plotter.replot()
 
     @timethis
     def plot_chromatograms(self, reset=True):
 
+        # todo: plot chromatograms async for huge tables !
         self.eic_plotter.del_all_items()
         if self.has_eic:
             rtmin, rtmax, curves = eic_curves(self.model)
@@ -1129,6 +1155,7 @@ class TableExplorer(EmzedDialog):
             rtmin, rtmax, curves = compute_eics(self.model)
         else:
             return
+
         f_shapes = fit_shapes(self.model)
         configs = configsForEics(curves)
 
@@ -1143,7 +1170,7 @@ class TableExplorer(EmzedDialog):
 
             eic_color = config["color"]
             color = turn_light(eic_color)
-            self.eic_plotter.add_eic_filled(rts, iis, baseline, color)
+            timethis(self.eic_plotter.add_eic_filled)(rts, iis, baseline, color)
 
         # allrts are sorted !
         if rtmin is not None and rtmax is not None:
@@ -1151,14 +1178,13 @@ class TableExplorer(EmzedDialog):
             if w == 0:
                 w = 30.0  # seconds
             if reset:
-                self.eic_plotter.set_rt_axis_limits(rtmin - w, rtmax + w)
+                timethis(self.eic_plotter.set_rt_axis_limits)(rtmin - w, rtmax + w)
 
-            self.eic_plotter.set_range_selection_limits(rtmin, rtmax)
+            timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax)
 
-            self.eic_plotter.reset_intensity_limits(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
+            timethis(self.eic_plotter.reset_intensity_limits)(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
         timethis(self.eic_plotter.replot)()
-        print("done")
 
     @protect_signal_handler
     def spectrumChosen(self):
@@ -1186,7 +1212,7 @@ class TableExplorer(EmzedDialog):
                 window = (rtmin, rtmax, mzmin, mzmax)
                 windows.append(window)
         if not self.has_time_series:
-            self.plot_spectra_from_peakmaps(peakmaps, windows)
+            timethis(self.plot_spectra_from_peakmaps)(peakmaps, windows)
 
     def plot_ms1_spectra(self):
         peakmaps = [
@@ -1222,9 +1248,12 @@ class TableExplorer(EmzedDialog):
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
         titles = map(repr, postfixes)
 
+        def update_plot(*a):
+            self.mz_plotter.reset_mz_limits(mzmin, mzmax)
+            self.mz_plotter.replot()
+
+        #TODO: async, dafür braucht hdf5 zeugs aber locks !
         self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
-        self.mz_plotter.reset_mz_limits(mzmin, mzmax)
-        self.mz_plotter.replot()
 
 
 def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callback=None):

@@ -899,6 +899,9 @@ class PeakMap(object):
         peaks = sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level)
         return peaks
 
+    def get_rts(self, msLevel=1):
+        return [s.rt for s in self.spectra if s.msLevel == msLevel]
+
 
 class PeakMapProxy(PeakMap):
 

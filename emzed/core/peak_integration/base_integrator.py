@@ -23,20 +23,18 @@ class BaseIntegrator(object):
                 raise Exception("multiple ms levels, you must specify the level")
             msLevel = msLevels[0]
 
-        spectra = [s for s in self.peakMap.spectra if s.msLevel == msLevel]
-        self.allrts = sorted([spec.rt for spec in spectra])
+        self.allrts = self.peakMap.get_rts(msLevel)
 
         rts, chromatogram = self.peakMap.chromatogram(mzmin, mzmax, rtmin, rtmax, msLevel)
         if len(rts) == 0:
             return dict(area=0.0, rmse=0.0, params=None, eic=None, baseline=None)
 
-        eic = self.peakMap.chromatogram(mzmin, mzmax)
+        drt = 2 * (rtmax - rtmin)
+        eic = self.peakMap.chromatogram(mzmin, mzmax, rtmin - drt, rtmax + drt, msLevel)
         allrts, fullchrom = eic
 
         area, rmse, params = self.integrator(allrts, fullchrom, rts, chromatogram)
         baseline = self.getBaseline(rts, params)
-
-        eic = [], []
 
         return dict(area=area, rmse=rmse, params=params, eic=eic, baseline=baseline)
 

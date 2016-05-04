@@ -5,14 +5,15 @@ from collections import defaultdict
 import itertools
 import warnings
 
-from ..col_types import CheckState
-
+import numpy as np
 
 from tables import open_file, Filters, Int64Col, Float64Col, BoolCol, UInt64Col, UInt32Col
 
 from .store_manager import setup_manager
-from .stores import BitMatrix
+from .bit_matrix import BitMatrix
 from .lru import LruDict
+
+from install_profile import profile
 
 
 filters = Filters(complib="blosc", complevel=9)
@@ -20,8 +21,7 @@ filters = Filters(complib="blosc", complevel=9)
 
 class Hdf5Base(object):
 
-    basic_type_map = {int: Int64Col, long: Int64Col, float: Float64Col, bool: BoolCol,
-                      CheckState: BoolCol}
+    from types import basic_type_map
 
     def _initial_setup(self, path, mode):
         self.file_ = open_file(path, mode)
@@ -33,7 +33,7 @@ class Hdf5Base(object):
 
 class Hdf5TableWriter(Hdf5Base):
 
-    LATEST_HDF5_TABLE_VERSION = (2, 26, 12)
+    LATEST_HDF5_TABLE_VERSION = (2, 26, 13)
 
     def __init__(self, path):
         self._initial_setup(path, "w")
@@ -53,7 +53,7 @@ class Hdf5TableWriter(Hdf5Base):
 
 
         def store_meta(what):
-            meta_index = self.manager.store_object(what)
+            meta_index = self.manager.store_object("meta", what)
             row = self.meta_table.row
             row["index"] = meta_index
             row.append()
@@ -98,10 +98,10 @@ class Hdf5TableWriter(Hdf5Base):
                 if value is None:
                     self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
-                    if type_ in self.basic_type_map:
-                        hdf_row[name] = value
-                    else:
-                        hdf_row[name] = self.manager.store_object(value)
+                    if type_ not in self.basic_type_map:
+                        old_value = value
+                        value = self.manager.store_object(col_index, value)
+                    hdf_row[name] = value
             hdf_row.append()
 
         self.row_offset += len(table)
@@ -130,7 +130,7 @@ class Hdf5TableReader(Hdf5Base):
 
         def fetch_next():
             idx = rows.next()["index"]
-            return self.manager.fetch(idx).load()
+            return self.manager.fetch("meta", idx).load()
 
         self.meta = fetch_next()
         self.col_names = fetch_next()
@@ -186,7 +186,7 @@ class Hdf5TableReader(Hdf5Base):
             if col_idx in missing:
                 value = None
             elif type_ not in self.basic_type_map:
-                value = self.manager.fetch(value)
+                value = self.manager.fetch(col_idx, value)
             row.append(value)
         self.row_cache[row_index] = row
         return row
@@ -219,7 +219,7 @@ class Hdf5TableReader(Hdf5Base):
         self._remove_missing_value_entries_in_column(col_index, row_selection)
 
         if type_ not in (int, long, float, bool):
-            value = self.manager.store_object(value)
+            value = self.manager.store_object(col_index, value)
 
         name = self.col_names[col_index]
         if row_selection is None:
@@ -259,7 +259,7 @@ class Hdf5TableReader(Hdf5Base):
         name = self.col_names[col_index]
 
         if type_ not in self.basic_type_map:
-            value = self.manager.store_object(value)
+            value = self.manager.store_object(col_index, value)
 
         row[name] = value
         row.update()
@@ -284,29 +284,39 @@ class Hdf5TableReader(Hdf5Base):
 
     __getitem__ = fetch_row
 
+    @profile
     def get_col_values(self, col_name):
         if col_name in self.col_cache:
             return self.col_cache[col_name]
         col_index = self.col_names.index(col_name)
-        missing = self.missing_values_flags.positions_in_col(col_index)
-        type_ = self.col_type_of_name[col_name]
+        store = self.manager.fetch_store(col_index)
         col_values = getattr(self.row_table.cols, col_name)[:]
-        col_values = col_values.tolist()
-        for ridx in missing:
-            col_values[ridx] = None
+        if store is not None:
+            values = store.fetch_column(col_index, col_values)
+            self.col_cache[col_name] = values
+            return values
+
+        missing = self.missing_values_flags.positions_in_col(col_index)
+
+        type_ = self.col_type_of_name[col_name]
         if type_ not in self.basic_type_map:
             for i, v in enumerate(col_values):
-                if v is not None:
-                    col_values[i] = self.manager.fetch(v)
+                if v == 0:
+                    col_values[i] = None
+                else:
+                    col_values[i] = self.manager.fetch(col_index, v)
+        else:
+            col_values = col_values.astype(object)
+            col_values[np.fromiter(missing, dtype=int)] = None
         self.col_cache[col_name] = col_values
         return col_values
 
+    @profile
     def get_raw_col_values(self, col_name):
         if col_name in self.col_cache_raw:
             return self.col_cache_raw[col_name]
         col_index = self.col_names.index(col_name)
         missing = self.missing_values_flags.positions_in_col(col_index)
-        type_ = self.col_type_of_name[col_name]
         col_values = getattr(self.row_table.cols, col_name)[:]
         self.col_cache_raw[col_name] = (col_values, missing)
         return col_values, missing

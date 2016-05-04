@@ -412,6 +412,8 @@ class TableModel(QAbstractTableModel):
                 mzmaxs.append(mzmax)
                 rtmins.append(rtmin)
                 rtmaxs.append(rtmax)
+            print list(chromo[0]) == sorted(chromo[0])
+            print
             eics.append(chromo)
             allrts.extend(chromo[0])
         if not mzmins:
@@ -422,6 +424,7 @@ class TableModel(QAbstractTableModel):
     def rows_with_same_value(self, col_name, widget_row_idx):
         data_row_idx = self.widgetRowToDataRow[widget_row_idx]
         selected_value = timethis(self.table.getValue)(self.table.rows[data_row_idx], col_name)
+        print(selected_value)
 
         def equals(value):
             return value == selected_value

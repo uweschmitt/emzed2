@@ -6,6 +6,8 @@ import new
 from PyQt4.QtCore import pyqtSignal, Qt
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
+from .table_explorer_model import timethis
+
 from PyQt4.QtGui import QPen
 
 from guiqwt.plot import CurveWidget, PlotManager
@@ -258,8 +260,8 @@ class EicPlottingWidget(CurveWidget):
     def set_range_selection_limits(self, xleft, xright):
         if self.range_ is None:
             return
-        self.range_.move_point_to(0, (xleft, 0))
-        self.range_.move_point_to(1, (xright, 0))
+        timethis(self.range_.move_point_to)(0, (xleft, 0))
+        timethis(self.range_.move_point_to)(1, (xright, 0))
 
     def reset_intensity_limits(self, imin=None, imax=None, fac=1.1, rtmin=None, rtmax=None):
         self.plot.reset_y_limits(imin, imax, fac, rtmin, rtmax)

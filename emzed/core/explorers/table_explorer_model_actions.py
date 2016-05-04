@@ -235,8 +235,10 @@ class IntegrateAction(TableAction):
 
             # TODO: restructure datatypes to avoid this dirty workaround
             # for ms 2 spectra:
-            pm = args["peakmap" + postfix].getDominatingPeakmap()
+            pm = args["peakmap" + postfix]
             integrator.setPeakMap(pm)
+
+            # TODO: EIC wird wo und / oder wann gesetzt: vergleiche emzed und envipy !
 
             # integrate
             mzmin = args["mzmin" + postfix]
@@ -246,30 +248,27 @@ class IntegrateAction(TableAction):
             area = res.get("area")
             rmse = res.get("rmse")
             params = res.get("params")
-            # eic = res.get("eic")
+            eic = res.get("eic")
             baseline = res.get("baseline")
 
         else:
-            area = None
-            rmse = None
-            params = None
-            # eic = None
-            baseline = None
+            area = rmse = params = eic = baseline = None
 
         # var 'row' is a Bunch, so we have to get the row from direct access
         # to table.rows:
         self.memory = table.rows[self.data_row_idx][:]
 
-        # write values to table
-        row = table.rows[self.data_row_idx]
-        table.setValue(row, "method" + postfix, self.method)
-        table.setValue(row, "rtmin" + postfix, self.rtmin)
-        table.setValue(row, "rtmax" + postfix, self.rtmax)
-        table.setValue(row, "area" + postfix, area)
-        table.setValue(row, "rmse" + postfix, rmse)
-        table.setValue(row, "params" + postfix, params)
-        # table.setValue(row, "eic" + postfix, eic)
-        table.setValue(row, "baseline" + postfix, baseline)
+
+        names = ("method", "rtmin", "rtmax", "area", "rmse", "params", "eic", "baseline")
+        values = (self.method, self.rtmin, self.rtmax, area, rmse, params, eic, baseline)
+
+        col_indices= []
+        for name in names:
+            idx = table.getIndex(name)
+            col_indices.append(idx)
+
+        row_indices = [self.data_row_idx]
+        table.setCellValue(row_indices, col_indices, [values])
         self.notifyGUI()
         return True
 

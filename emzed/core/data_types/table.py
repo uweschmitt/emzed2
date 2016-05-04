@@ -60,7 +60,7 @@ from .base_classes import MutableTable
 
 from . import tools
 
-from hdf5.stores import ObjectProxy
+from hdf5.object_store import ObjectProxy
 
 from .ms_types import PeakMap, PeakMapProxy
 
@@ -755,10 +755,11 @@ class Table(MutableTable):
                 if value is not None:
                     if type(value) in [np.float32, np.float64]:
                         value = float(value)
-                    try:
-                        value = col_type(value)
-                    except ValueError:
-                        raise ValueError("can not convert %r to %s" % (value, col_type))
+                    elif col_type is not object:
+                        try:
+                            value = col_type(value)
+                        except ValueError:
+                            raise ValueError("can not convert %r to %s" % (value, col_type))
                 yield ri, ci, value
 
     def setValue(self, row, colName, value, slow_but_checked=True):

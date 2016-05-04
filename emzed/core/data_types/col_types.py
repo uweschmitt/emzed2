@@ -28,6 +28,17 @@ class CheckState(object):
     def __nonzero__(self):
         return self._is_checked
 
+    def __eq__(self, other):
+        if isinstance(other, CheckState):
+            return self._is_checked == other._is_checked
+        elif isinstance(other, bool):
+            return self._is_checked == other
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not (self == other)
+
 
 class Blob(object):
 

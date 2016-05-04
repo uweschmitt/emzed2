@@ -4,17 +4,20 @@ from __future__ import print_function, division
 import itertools
 
 import numpy as np
+import pandas as pd
 
 from .table import Table
 
 # PeakMapProxy no needed here, but convenient if it can be importet the same way as ObjectProxy:
-from .hdf5.stores import ObjectProxy
-from .hdf5.stores import PeakMapProxy  # analysis:ignore
+from .hdf5.object_store import ObjectProxy
+from .hdf5.peakmap_store import PeakMapProxy  # analysis:ignore
 
 from .hdf5.accessors import Hdf5TableReader
 from .hdf5.lru import LruDict
 
 from base_classes import ImmutableTable
+
+from hdf5.install_profile import profile
 
 
 class UfuncWrapper(object):
@@ -68,17 +71,17 @@ class Hdf5TableProxy(ImmutableTable):
 
             if isinstance(filter_function, UfuncWrapper):
 
-                col_values, missing_values = self.reader.get_raw_col_values(col_name)
-                keep = set(np.where(filter_function(col_values))[0])
+                values, missing_values = self.reader.get_raw_col_values(col_name)
+                keep = set(np.where(filter_function(values))[0])
                 keep -= set(missing_values)
                 rows_to_remain = keep
 
             else:
-                col_values = self.reader.get_col_values(col_name)
+                values = self.reader.get_col_values(col_name)
                 rows_to_remain = set()
 
                 for row_idx in range(len(self)):
-                    v = col_values[row_idx]
+                    v = values[row_idx]
                     if v is not None:
                         match = filter_function(v)
                         if match:
@@ -96,6 +99,7 @@ class Hdf5TableProxy(ImmutableTable):
     def sortBy(self, colNames, ascending=True):
         raise RuntimeError("in place sort not supported !")
 
+    @profile
     def sortPermutation(self, colNames, ascending=True):
         """
         sorts table in respect of column named *colName* **in place**.
@@ -109,12 +113,15 @@ class Hdf5TableProxy(ImmutableTable):
         can have only one index per table.
         """
         if isinstance(colNames, basestring):
-            colNames = [colNames]
+            colNames = (colNames,)
 
         if ascending in (True, False):
-            ascending = [ascending] * len(colNames)
+            ascending = (ascending,) * len(colNames)
 
-        assert len(colNames) == len(ascending)
+        msg = "got colNames=%r and ascending=%r" % (colNames, ascending)
+
+        if len(colNames) != len(ascending):
+            raise ValueError("number of column names and ascending option mismatch: %s" % msg)
 
         if not len(self):
             return []   # empty permutation
@@ -124,9 +131,37 @@ class Hdf5TableProxy(ImmutableTable):
         for order in ascending:
             assert isinstance(order, bool)
 
-        for col_name, order in reversed(zip(colNames, ascending)):
-            values = self.reader.get_col_values(col_name)
-            perm = [i for (v, i) in sorted(zip(values, itertools.count()), reverse=not order)]
+        def fill_in(values, ascending):
+            if isinstance(values.dtype.type(0), np.integer):
+                info = np.iinfo(values.dtype)
+                return info.min if ascending else info.max
+            elif isinstance(values.dtype.type(0), np.floating):
+                info = np.finfo(values.dtype)
+                return info.min if ascending else info.max
+            return None
+
+        perm = range(len(self))
+        all_values = dict()
+        for col_name, asc in reversed(zip(colNames, ascending)):
+            t = self.getColType(col_name)
+            if t in (int, float, long):
+                values, missing_values = self.reader.get_raw_col_values(col_name)
+                missing_values = np.fromiter(missing_values, dtype=int)
+                values[missing_values] = fill_in(values, ascending)
+                all_values[col_name] = values
+            else:
+                values = self.reader.get_col_values(col_name)
+                all_values[col_name] = values
+        if len(all_values) == 1:
+            # mergesort turned out to work best:
+            perm = np.argsort(values, kind="mergesort")
+            if not asc:
+                perm = perm[::-1]
+            return perm
+        all_values["_i"] = perm
+        df = pd.DataFrame(all_values, columns=colNames + ("_i",))
+        df = df.sort_values(list(colNames), ascending=list(ascending))
+        perm = df["_i"].values
         return perm
 
     def setCellValue(self, row_indices, col_indices, values):
