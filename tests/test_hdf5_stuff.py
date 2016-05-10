@@ -134,8 +134,16 @@ def test_round_trip(tproxy, table, regtest):
     for pm0, pm1 in zip(t1.peakmap, table.peakmap):
         assert isinstance(pm0, PeakMapProxy)
         assert isinstance(pm1, PeakMap)
+        rt0, ii0 = pm0.chromatogram(0, 1000, 35, 55)   # fetch lazy
+        rt1, ii1 = pm1.chromatogram(0, 1000, 35, 55)   # data is in memory
+        assert np.all(rt0 == rt1)
+        assert np.all(ii0 == ii1)
         rt0, ii0 = pm0.chromatogram(0, 1000, 0, 1000)   # fetch lazy
         rt1, ii1 = pm1.chromatogram(0, 1000, 0, 1000)   # data is in memory
+        assert np.all(rt0 == rt1)
+        assert np.all(ii0 == ii1)
+        rt0, ii0 = pm0.chromatogram(0, 1000, 1000, 1100)   # fetch lazy
+        rt1, ii1 = pm1.chromatogram(0, 1000, 1000, 1200)   # data is in memory
         assert np.all(rt0 == rt1)
         assert np.all(ii0 == ii1)
 

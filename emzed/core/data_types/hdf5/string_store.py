@@ -68,7 +68,7 @@ class StringStoreBase(object):
         yield s
 
         # store and yield index
-        yield self._write_str(col_index, s).next()
+        yield int(self._write_str(col_index, s).next())
 
     def _write_str(self, col_index, s, index=None):
 
@@ -88,7 +88,6 @@ class StringStoreBase(object):
 
         yield index
 
-    @profile
     def _fetch_column(self, col_index):
         starts = self.starts[col_index][:]
         if not len(starts):
@@ -101,7 +100,6 @@ class StringStoreBase(object):
         rv.append(blobs[starts[-1]:])
         return np.array(rv, dtype=object)
 
-    @profile
     def fetch_column(self, col_index, global_indices):
         strings = self.fetched.get(col_index)
         if strings is None:
@@ -112,7 +110,6 @@ class StringStoreBase(object):
         values = strings[local_indices]
         return values
 
-    @profile
     def _read(self, col_index, index):
 
         starts = self.starts[col_index]

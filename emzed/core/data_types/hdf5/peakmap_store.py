@@ -1,6 +1,7 @@
 # encoding: utf-8
 from __future__ import print_function, division
 
+from collections import defaultdict
 import itertools
 
 from tables import Atom, UInt32Col, Float32Col, UInt8Col, UInt64Col, StringCol
@@ -36,41 +37,42 @@ class PeakMapStore(Store):
         self.setup_peakmap_table()
 
     def setup_blobs(self):
-        if not hasattr(self.node, "mz_blob"):
-            self.file_.create_earray(self.node, "mz_blob",
-                                     Atom.from_dtype(np.dtype("float64")), (0,),
-                                     filters=filters,
-                                     )
+        if not hasattr(self.node, "ms1_mz_blob"):
+            for level in (1, 2):
+                self.file_.create_earray(self.node, "ms%d_mz_blob" % level,
+                                         Atom.from_dtype(np.dtype("float64")), (0,),
+                                         filters=filters,
+                                         )
 
-        if not hasattr(self.node, "ii_blob"):
-            self.file_.create_earray(self.node, "ii_blob",
-                                     Atom.from_dtype(np.dtype("float32")), (0,),
-                                     filters=filters,
-                                     )
+                self.file_.create_earray(self.node, "ms%d_ii_blob" % level,
+                                         Atom.from_dtype(np.dtype("float32")), (0,),
+                                         filters=filters,
+                                         )
 
     def setup_spec_table(self):
-        if not hasattr(self.node, "spec_table"):
-            description = {}
-            description["pm_index"] = UInt32Col(pos=0)
-            description["rt"] = Float32Col(pos=1)
-            description["ms_level"] = UInt8Col(pos=2)
-            description["start"] = UInt64Col(pos=3)
-            description["size"] = UInt32Col(pos=4)
-            spec_table = self.file_.create_table(self.node, 'spec_table', description,
-                                                 filters=filters)
+        if not hasattr(self.node, "ms1_spec_table"):
+            for level in (1, 2):
+                description = {}
+                description["pm_index"] = UInt32Col(pos=0)
+                description["rt"] = Float32Col(pos=1)
+                description["start"] = UInt64Col(pos=3)
+                description["end"] = UInt64Col(pos=4)
+                t = self.file_.create_table(self.node, 'ms%d_spec_table' % level, description,
+                                            filters=filters)
 
-            # every colums which appears in a where method call should/must be indexed !
-            # this is not only for performance but for correct lookup as well (I had strange bugs
-            # else)
-            spec_table.cols.pm_index.create_index()
-            spec_table.cols.rt.create_index()
+                # every colums which appears in a where method call should/must be indexed !
+                # this is not only for performance but for correct lookup as well (I had strange bugs
+                # else)
+                t.cols.pm_index.create_index()
+                t.cols.rt.create_index()
 
     def setup_peakmap_table(self):
         if not hasattr(self.node, "pm_table"):
             description = {}
             description["unique_id"] = StringCol(itemsize=64, pos=0)
             description["index"] = UInt32Col(pos=1)
-            description["ms_levels"] = StringCol(itemsize=self.MSLEVEL_FIELD_SIZE, pos=2)
+            description["ms_levels"] = StringCol(
+                itemsize=self.MSLEVEL_FIELD_SIZE, pos=2)
             description["rtmin"] = Float32Col(pos=3)
             description["rtmax"] = Float32Col(pos=4)
             description["mzmin"] = Float32Col(pos=5)
@@ -84,24 +86,29 @@ class PeakMapStore(Store):
 
     def add_spectrum(self, pm_index, spec):
 
-        start = self.node.mz_blob.nrows
-        self.node.mz_blob.append(spec.peaks[:, 0])
-        self.node.ii_blob.append(spec.peaks[:, 1])
+        level = spec.msLevel
+        mz_blob = getattr(self.node, "ms%d_mz_blob" % level)
+        ii_blob = getattr(self.node, "ms%d_ii_blob" % level)
+
+        start = mz_blob.nrows
+        mz_blob.append(spec.peaks[:, 0])
+        ii_blob.append(spec.peaks[:, 1])
 
         size = spec.peaks.shape[0]
 
-        row = self.node.spec_table.row
+        row = getattr(self.node, "ms%d_spec_table" % level).row
+
         row["pm_index"] = pm_index
         row["rt"] = spec.rt
-        row["ms_level"] = spec.msLevel
         row["start"] = start
-        row["size"] = size
+        row["end"] = start + size
 
         row.append()
 
     def _write(self, col_index, pm):
 
-        # at the moment we ignore col_index, I guess it would not speed up so much
+        # at the moment we ignore col_index, I guess it would not speed up so
+        # much
 
         unique_id = pm.uniqueId()
         # hash key
@@ -109,7 +116,7 @@ class PeakMapStore(Store):
 
         result = list(self.node.pm_table.where("""unique_id == %r""" % unique_id))
         if result:
-            yield result[0]["index"]
+            yield int(result[0]["index"])
             return
 
         ms_levels = sorted(set(pm.getMsLevels()))
@@ -131,10 +138,10 @@ class PeakMapStore(Store):
         row["mzmax"] = mzmax
         row.append()
 
-        for spec in pm.spectra:
+        for spec in sorted(pm.spectra, key=lambda s: s.rt):
             self.add_spectrum(index, spec)
 
-        yield index
+        yield int(index)
 
     def _read(self, col_index, index):
         result = list(self.node.pm_table.where("""index == %r""" % index))
@@ -161,7 +168,8 @@ class PeakMapStore(Store):
 
     def flush(self):
         self.node.pm_table.flush()
-        self.node.spec_table.flush()
+        self.node.ms1_spec_table.flush()
+        self.node.ms2_spec_table.flush()
 
 
 class PeakMapProxy(object):
@@ -169,8 +177,29 @@ class PeakMapProxy(object):
     def __init__(self, **kw):
         for name, value in kw.items():
             setattr(self, name, value)
+        self.setup(kw)
 
+    def setup(self, kw):
         self.meta = {"unique_id": kw.get("unique_id")}
+        rts = defaultdict(list)
+        starts = defaultdict(list)
+        for level in (1, 2):
+            t = getattr(self.node, "ms%d_spec_table" % level)
+            row = None
+            for row in t.where("pm_index == %d" % self.index):
+                rts[level].append(row["rt"])
+                starts[level].append(row["start"])
+            # we save memory and only load starts, for the last item will be helpful for slicing,
+            # row might be None if no spectra of given level are contained in peakmap
+            if row is not None:
+                starts[level].append(row["end"])
+
+        for level in rts:
+            rts[level] = np.array(rts[level], dtype=float)
+            starts[level] = np.array(starts[level], dtype=int)
+
+        self.rts = rts
+        self.starts = starts
 
     def uniqueId(self):
         return self.unique_id
@@ -184,40 +213,40 @@ class PeakMapProxy(object):
     def mzRange(self):
         return self.mzmin, self.mzmax
 
+    @profile
     def _iter_peaks(self, rtmin, rtmax, mzmin, mzmax, ms_level=1):
-        if rtmin is not None and rtmax is not None:
-            query = """(pm_index == %d) & (%f <= rt) & (rt <= %f)""" % (self.index, rtmin, rtmax)
-        elif rtmin is not None:
-            query = """(pm_index == %d) & (%f <= rt)""" % (self.index, rtmin)
-        elif rtmax is not None:
-            query = """(pm_index == %d) & (rt <= %f)""" % (self.index, rtmax)
-        else:
-            query = """(pm_index == %d)""" % (self.index,)
-        mz_blob = self.node.mz_blob
-        ii_blob = self.node.ii_blob
-        for row in self.node.spec_table.where(query):
-            if ms_level != row["ms_level"]:
-                continue
-            rt = row["rt"]
-            i_start = row["start"]
-            i_end = i_start + row["size"]
-            mzs = mz_blob[i_start:i_end]
-            iis = ii_blob[i_start:i_end]
+        if (mzmin is not None) != (mzmax is not None):
+            # mixed settings are not optimized yet !
+            raise ValueError("either mzmin and mzmax are None or both have to be numbers")
+        rts = self.rts[ms_level]
+        i0 = np.searchsorted(rts, rtmin, "left")
+        i1 = np.searchsorted(rts, rtmax, "right")
 
-            flags = True
+        starts = self.starts[ms_level][i0:i1]
+        if not len(starts):
+            return
+        ends = self.starts[ms_level][i0 + 1:i1 + 1]
+        if not len(ends):
+            return
+
+        s0 = starts[0]
+        e0 = ends[-1]
+
+        full_mzs = getattr(self.node, "ms%d_mz_blob" % ms_level)[s0:e0]
+        full_iis = getattr(self.node, "ms%d_ii_blob" % ms_level)[s0:e0]
+
+        for i_start, i_end, rt in itertools.izip(starts, ends, rts[i0:]):
+            mzs = full_mzs[i_start - s0: i_end - s0]
+            iis = full_iis[i_start - s0: i_end - s0]
             if mzmin is not None:
-                flags = flags * (mzmin <= mzs)
-            if mzmax is not None:
-                flags = flags * (mzs <= mzmax)
-
-            if flags is not True:
-                idx = np.where(flags)[0]
-                iis = iis[idx]
-                mzs = mzs[idx]
+                flags = (mzmin <= mzs) & (mzs <= mzmax)
+                iis = iis[flags]
+                mzs = mzs[flags]
 
             yield rt, mzs, iis
 
     @lru_cache(maxsize=1000)
+    @profile
     def chromatogram(self, mzmin=None, mzmax=None, rtmin=None, rtmax=None, ms_level=1):
         rts = []
         intensities = []
@@ -246,6 +275,7 @@ class PeakMapProxy(object):
         return peaks
 
     def get_rts(self, msLevel=1):
+        return self.rts[msLevel]
         t = self.node.spec_table
         pm_indices = t.cols.pm_index[:]
         rts = t.cols.rt[:]

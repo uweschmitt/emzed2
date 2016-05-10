@@ -29,7 +29,7 @@ class ObjectStore(StringStoreBase, Store):
 
         code = cPickle.dumps(obj, protocol=2)
 
-        yield self._write_str(col_index, code).next()
+        yield int(self._write_str(col_index, code).next())
 
     def _resolve(self, col_index, index):
         if (col_index, index) in self.obj_read_cache:
@@ -46,7 +46,6 @@ class ObjectStore(StringStoreBase, Store):
     def _read(self, col_index, index):
         return ObjectProxy(self, col_index, index)
 
-    @profile
     def fetch_column(self, col_index, global_indices):
         codes = StringStoreBase.fetch_column(self, col_index, global_indices)
 

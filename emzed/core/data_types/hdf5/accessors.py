@@ -99,7 +99,6 @@ class Hdf5TableWriter(Hdf5Base):
                     self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
                     if type_ not in self.basic_type_map:
-                        old_value = value
                         value = self.manager.store_object(col_index, value)
                     hdf_row[name] = value
             hdf_row.append()
@@ -284,7 +283,6 @@ class Hdf5TableReader(Hdf5Base):
 
     __getitem__ = fetch_row
 
-    @profile
     def get_col_values(self, col_name):
         if col_name in self.col_cache:
             return self.col_cache[col_name]
@@ -299,19 +297,18 @@ class Hdf5TableReader(Hdf5Base):
         missing = self.missing_values_flags.positions_in_col(col_index)
 
         type_ = self.col_type_of_name[col_name]
+        col_values = col_values.astype(object)
         if type_ not in self.basic_type_map:
             for i, v in enumerate(col_values):
                 if v == 0:
                     col_values[i] = None
                 else:
-                    col_values[i] = self.manager.fetch(col_index, v)
+                    col_values[i] = self.manager.fetch(col_index, int(v))
         else:
-            col_values = col_values.astype(object)
             col_values[np.fromiter(missing, dtype=int)] = None
         self.col_cache[col_name] = col_values
         return col_values
 
-    @profile
     def get_raw_col_values(self, col_name):
         if col_name in self.col_cache_raw:
             return self.col_cache_raw[col_name]

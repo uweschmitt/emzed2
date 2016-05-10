@@ -1,4 +1,4 @@
-[None, 2, 3, 3, None, None, 2, 3, 3, None, None, 2, 3, 3, None]
+[None 2 3 3 None None 2 3 3 None None 2 3 3 None]
 ['1'
  '2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222'
  None 'a' 'b' '1'
@@ -6,6 +6,21 @@
  None 'a' 'b' '1'
  '2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222'
  None 'a' 'b']
-[True, False, None, True, False, True, False, None, True, False, True, False, None, True, False]
+[True False None True False True False None True False True False None True
+ False]
 [<emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>, <emzed.core.data_types.hdf5.object_store.ObjectProxyCodeLoaded object at 0x?????????>]
-[<emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>, <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>]
+[ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>
+ <emzed.core.data_types.hdf5.peakmap_store.PeakMapProxy object at 0x?????????>]

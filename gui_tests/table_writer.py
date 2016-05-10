@@ -23,7 +23,13 @@ def main():
         print("running%s needed %.2f seconds" % (title, needed))
 
     with measure("load pm"):
-        pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
+        # pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
+        pm = emzed.io.loadPeakMap("Danu.mzML")
+
+    t0 = emzed.utils.toTable("peakmap", (pm,), type_=object)
+    path = "pm_only.hdf5"
+    with atomic_hdf5_writer(path) as add:
+        add(t0)
 
     # create modified copy
     pm2 = copy.deepcopy(pm)
@@ -60,11 +66,20 @@ def main():
             t.addColumn("tuples_%d" % i, t.apply(lambda: random.choice(tuples), ()), type_=object)
             t.addColumn("peakmaps_%d" % i, pms[i % 2], type_=object)
 
+        target_ids = [None] * n
+        for i in range(0, n, 100):
+            target_ids[i] = "target_%d" % i
+            target_ids[i + 1] = "target_%d" % i
+            target_ids[i + 2] = "target_%d" % i
+            target_ids[i + 3] = "target_%d" % i
+
+        t.addColumn("target_id", target_ids, type_=str)
+
     n, m = t.shape
-    for fac in (1, 10, 100):
+    for fac in (1, 10):
         n0 = n * fac
         with measure("write hdf5 table with %d rows and %d cols" % (n0, m)):
-            path = "test_%d.hdft" % (n * fac)
+            path = "test_%d.hdf5" % (n * fac)
             with atomic_hdf5_writer(path) as add:
                 for i in range(fac):
                     print(i, "out of", fac)

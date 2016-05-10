@@ -101,7 +101,6 @@ class Store(object):
                 return global_id
         raise TypeError("no store manager for %r found" % obj)
 
-    @profile
     def fetch(self, col_index, global_id):
         if global_id == 0:
             return None
@@ -129,7 +128,6 @@ class Store(object):
     def _write(self, col_index, obj):
         raise NotImplementedError()
 
-    @profile
     def read(self, col_index, global_id):
         local_id = (global_id - 1) >> 3
         result = self.read_cache.get((col_index, local_id))

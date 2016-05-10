@@ -61,7 +61,7 @@ class Hdf5TableProxy(ImmutableTable):
             ranges.
         """
 
-        indices_of_fitting_rows = set(range(len(self)))
+        indices_of_fitting_rows = None # set(range(len(self)))
         print(filters)
 
         for col_name, filter_function in filters:
@@ -78,15 +78,17 @@ class Hdf5TableProxy(ImmutableTable):
 
             else:
                 values = self.reader.get_col_values(col_name)
-                rows_to_remain = set()
 
-                for row_idx in range(len(self)):
-                    v = values[row_idx]
-                    if v is not None:
-                        match = filter_function(v)
-                        if match:
-                            rows_to_remain.add(row_idx)
-            indices_of_fitting_rows = indices_of_fitting_rows.intersection(rows_to_remain)
+                iflags = (values > None) # trick
+                subset = values[iflags]
+                subflags = filter_function(subset)
+                iflags[iflags] = subflags
+                keep = set(np.where(iflags)[0])
+
+            if indices_of_fitting_rows is not None:
+                indices_of_fitting_rows = indices_of_fitting_rows.intersection(keep)
+            else:
+                indices_of_fitting_rows = keep
 
         return indices_of_fitting_rows
 
@@ -99,7 +101,6 @@ class Hdf5TableProxy(ImmutableTable):
     def sortBy(self, colNames, ascending=True):
         raise RuntimeError("in place sort not supported !")
 
-    @profile
     def sortPermutation(self, colNames, ascending=True):
         """
         sorts table in respect of column named *colName* **in place**.
