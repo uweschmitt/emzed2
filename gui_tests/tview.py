@@ -21,7 +21,8 @@ def main():
     import os.path
 
     here = os.path.dirname(os.path.abspath(__file__))
-    tproxy = Hdf5TableProxy(os.path.join(here, "test_100000.hdf5"))
+    tproxy = Hdf5TableProxy(os.path.join(here, "test_1000000.hdf5"))
+    tproxy.info()
 
     # tproxy.filter_("floats_0", 400, 450)
     #print("sort")

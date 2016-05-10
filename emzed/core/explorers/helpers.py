@@ -1,6 +1,10 @@
+import contextlib
 import datetime
 import functools
+import functools
 import new
+import time
+
 
 from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 
@@ -52,3 +56,20 @@ def set_datetime_formating_on_x_axis(plot):
     a = QwtScaleDraw()
     a.label = new.instancemethod(label, plot, QwtScaleDraw)
     plot.setAxisScaleDraw(plot.xBottom, a)
+
+
+@contextlib.contextmanager
+def timer(name=""):
+    started = time.time()
+    yield
+    needed = time.time() - started
+    print name, "needed %.5fs" % needed
+
+def timethis(function):
+
+    @functools.wraps(function)
+    def inner(*a, **kw):
+        with timer(function.__name__):
+            return function(*a, **kw)
+    return inner
+

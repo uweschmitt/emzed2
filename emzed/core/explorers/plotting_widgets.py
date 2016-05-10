@@ -14,8 +14,6 @@ from datetime import datetime
 
 from helpers import protect_signal_handler
 
-from emzed_optimizations.sample import sample_peaks
-
 
 def find_datetime_split_pos(datetimes):
     if len(datetimes) == 0:

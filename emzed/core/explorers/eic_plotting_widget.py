@@ -260,8 +260,7 @@ class EicPlottingWidget(CurveWidget):
     def set_range_selection_limits(self, xleft, xright):
         if self.range_ is None:
             return
-        timethis(self.range_.move_point_to)(0, (xleft, 0))
-        timethis(self.range_.move_point_to)(1, (xright, 0))
+        timethis(self.range_.set_range)(xleft, xright)
 
     def reset_intensity_limits(self, imin=None, imax=None, fac=1.1, rtmin=None, rtmax=None):
         self.plot.reset_y_limits(imin, imax, fac, rtmin, rtmax)

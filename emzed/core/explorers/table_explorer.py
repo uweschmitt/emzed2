@@ -18,7 +18,8 @@ from ts_plotting_widget import TimeSeriesPlottingWidget
 from ..data_types import Table, PeakMap, CallBack, CheckState
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
-from .table_explorer_model import (TableModel, isUrl, IntegrateAction, timethis)
+from .table_explorer_model import (TableModel, isUrl, IntegrateAction)
+from .helpers import timethis
 
 from helpers import protect_signal_handler
 
@@ -1001,12 +1002,18 @@ class TableExplorer(EmzedDialog):
             self.model.integrate(data_row_idx, postfix, method, rtmin, rtmax)
 
     @protect_signal_handler
-    @timethis
     def rowClicked(self, widget_row_idx):
+
+        print
+        print "row clicked !"
+        print
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
         if group_by_idx > 0:
             self.select_rows_in_group(widget_row_idx, group_by_idx)
+            print
+            print "row click done"
+            print
             return
 
         @timethis
@@ -1027,6 +1034,9 @@ class TableExplorer(EmzedDialog):
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
+            print
+            print "row click done"
+            print
 
         # we need to keep gui responsive to handle key clicks:
         self.async_runner.run_async(handle_row_click, (),

@@ -18,7 +18,7 @@ install_requires = ["guidata<=1.6.2",
                     "pyopenms",
                     "pytest",
                     "scikit-learn",
-                    "emzed_optimizations>=0.5.0",
+                    "emzed_optimizations>=0.6.0",
                     "pycryptodome<=3.3",
                     ]
 

@@ -4,10 +4,10 @@ from __future__ import print_function, division
 from collections import defaultdict
 import itertools
 
-from tables import Atom, UInt32Col, Float32Col, UInt8Col, UInt64Col, StringCol
+from tables import Atom, UInt32Col, Float32Col, UInt64Col, StringCol
 import numpy as np
 
-from emzed_optimizations import sample_peaks as optim_sample_peaks
+from emzed_optimizations import sample_peaks_from_lists
 
 from .. import PeakMap, Spectrum
 
@@ -15,6 +15,8 @@ from .store_base import Store, filters
 from .lru import LruDict, lru_cache
 
 from .install_profile import profile
+
+from .helpers import timethis
 
 
 class PeakMapStore(Store):
@@ -71,8 +73,7 @@ class PeakMapStore(Store):
             description = {}
             description["unique_id"] = StringCol(itemsize=64, pos=0)
             description["index"] = UInt32Col(pos=1)
-            description["ms_levels"] = StringCol(
-                itemsize=self.MSLEVEL_FIELD_SIZE, pos=2)
+            description["ms_levels"] = StringCol(itemsize=self.MSLEVEL_FIELD_SIZE, pos=2)
             description["rtmin"] = Float32Col(pos=3)
             description["rtmax"] = Float32Col(pos=4)
             description["mzmin"] = Float32Col(pos=5)
@@ -247,6 +248,7 @@ class PeakMapProxy(object):
 
     @lru_cache(maxsize=1000)
     @profile
+    @timethis
     def chromatogram(self, mzmin=None, mzmax=None, rtmin=None, rtmax=None, ms_level=1):
         rts = []
         intensities = []
@@ -258,27 +260,25 @@ class PeakMapProxy(object):
         perm = np.argsort(rts)
         rts = rts[perm]
         intensities = intensities[perm]
+        print("chromo=", rts, intensities)
         return rts, intensities
 
     @lru_cache(maxsize=1000)
+    @timethis
+    @profile
     def sample_peaks(self, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level):
-        spectra = []
-        for rt, mzs, iis in self._iter_peaks(rtmin, rtmax, mzmin, mzmax, ms_level):
-            peaks = np.vstack((mzs, iis)).T
-            spectrum = Spectrum(peaks, rt, ms_level, "0", [])
-            spectra.append(spectrum)
+
         if rtmin <= rtmax and mzmin < mzmax:
-            peaks = optim_sample_peaks(PeakMap(spectra),
-                                       rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            all_mzs = []
+            all_iis = []
+            for rt, mzs, iis in self._iter_peaks(rtmin, rtmax, None, None, ms_level):
+                all_mzs.append(mzs)
+                all_iis.append(iis)
+            peaks = sample_peaks_from_lists(all_mzs, all_iis, mzmin, mzmax, npeaks)
         else:
             peaks = np.zeros((0, 2))
+        print("peaks=", peaks)
         return peaks
 
     def get_rts(self, msLevel=1):
         return self.rts[msLevel]
-        t = self.node.spec_table
-        pm_indices = t.cols.pm_index[:]
-        rts = t.cols.rt[:]
-        ms_levels = t.cols.ms_level[:]
-        return [r for (r, i, l) in itertools.izip(rts, pm_indices, ms_levels) if i == self.index and
-                l == msLevel]

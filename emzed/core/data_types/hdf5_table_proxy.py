@@ -62,7 +62,6 @@ class Hdf5TableProxy(ImmutableTable):
         """
 
         indices_of_fitting_rows = None # set(range(len(self)))
-        print(filters)
 
         for col_name, filter_function in filters:
 
@@ -90,6 +89,8 @@ class Hdf5TableProxy(ImmutableTable):
             else:
                 indices_of_fitting_rows = keep
 
+        if indices_of_fitting_rows is None:
+            return set(range(len(self)))
         return indices_of_fitting_rows
 
     def __len__(self):

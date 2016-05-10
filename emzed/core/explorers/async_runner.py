@@ -4,6 +4,8 @@ from __future__ import print_function, division
 from collections import defaultdict
 import itertools
 
+from .helpers import timethis
+
 
 from PyQt4.QtCore import (QObject, QThread, Qt, pyqtSignal, pyqtSlot, QString)
 

@@ -15,7 +15,7 @@ from guiqwt.builder import make
 
 from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
 
-from helpers import protect_signal_handler
+from helpers import protect_signal_handler, timethis
 
 
 def patch_inner_plot_object(widget, plot_clz):
@@ -465,10 +465,9 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             return
 
         # move_point_to always emits both limits, so we block the first signalling:
-        item.blockSignals(True)
-        item.move_point_to(0, (mid, 0))
-        item.blockSignals(False)
-        item.move_point_to(1, (mid, 0))
+        item.set_range(mid, mid)
+        #item.move_point_to(0, (mid, 0), True)
+        #item.move_point_to(1, (mid, 0), False)
         filter.plot.replot()
 
     @protect_signal_handler
@@ -502,10 +501,9 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
         if new_min is not None and new_max is not None:
             # move_point_to always emits both limits, so we block the first signalling:
-            item.blockSignals(True)
-            item.move_point_to(0, (new_min, 0))
-            item.blockSignals(False)
-            item.move_point_to(1, (new_max, 0))
+            item.set_range(new_min, new_max)
+            #item.move_point_to(0, (new_min, 0), True)
+            #item.move_point_to(1, (new_max, 0), False)
 
         filter_.plot.replot()
 
@@ -691,7 +689,7 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
             npeaks = npeaks or 3000
 
-            peaks = pm.sample_peaks(rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
+            peaks = timethis(pm.sample_peaks)(rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             yield i, peaks
 
     def plot_peakmap_ranges(self, peakmap_ranges, configs, titles):
@@ -832,9 +830,6 @@ class SnappingRangeSelection(XRangeSelection):
         p.symbol.size = 8
         p.update_range(self)
 
-    def blockSignals(self, do_block):
-        self._x.blockSignals(do_block)
-
     def get_xvals(self):
         xvals = []
         for item in self.plot().get_items():
@@ -842,7 +837,11 @@ class SnappingRangeSelection(XRangeSelection):
                 xvals.extend(np.array(item.get_data()[0]))
         return np.sort(np.unique(xvals))
 
-    def move_point_to(self, hnd, pos):
+    def set_range(self, xmin, xmax):
+        self.move_point_to(0, (xmin, 0), True)
+        self.move_point_to(1, (xmax, 0), False)
+
+    def move_point_to(self, hnd, pos, block):
         xvals = self.get_xvals()
         x, y = pos
 
@@ -871,7 +870,8 @@ class SnappingRangeSelection(XRangeSelection):
                 self._min = new_min
                 self._max = new_max
 
-        self.SELECTED_RANGE_CHANGED.emit(self._min, self._max)
+        if not block:
+            self.SELECTED_RANGE_CHANGED.emit(self._min, self._max)
 
     def get_neighbour_xvals(self, x):
         """ used for moving boundaries """

@@ -35,6 +35,8 @@ def main():
     pm2 = copy.deepcopy(pm)
     pm2.spectra = pm2.spectra[1:]
 
+    rtmin, rtmax = pm.rtRange()
+
     pms = [pm, pm2]
 
     n = 100000
@@ -54,9 +56,9 @@ def main():
         t.addColumn(
             "mzmax", t.apply(lambda mzmin: mzmin + 0.1 * np_random(), (t.mzmin,)), type_=float)
 
-        t.addColumn("rtmin", t.apply(lambda: 50 + 1000 * np_random(), ()), type_=float)
+        t.addColumn("rtmin", t.apply(lambda: rtmin + (rtmax - rtmin) * np_random(), ()), type_=float)
         t.addColumn(
-            "rtmax", t.apply(lambda rtmin: rtmin + 10 + 60 * np_random(), (t.rtmin,)), type_=float)
+            "rtmax", t.apply(lambda rtmin: rtmin + 30 + 300 * np_random(), (t.rtmin,)), type_=float)
         t.addColumn("peakmap", t.apply(lambda: random.choice(pms), ()), type_=object)
 
         for i in range(10):
