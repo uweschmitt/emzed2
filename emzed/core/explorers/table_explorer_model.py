@@ -389,13 +389,11 @@ class TableModel(QAbstractTableModel):
             if mzmin is None or mzmax is None or rtmin is None or rtmax is None:
                 chromo = [], []
             else:
-                chromo = pm.chromatogram(mzmin, mzmax)
+                chromo = pm.chromatogram(mzmin, mzmax, rtmin, rtmax)
                 mzmins.append(mzmin)
                 mzmaxs.append(mzmax)
                 rtmins.append(rtmin)
                 rtmaxs.append(rtmax)
-            print list(chromo[0]) == sorted(chromo[0])
-            print
             eics.append(chromo)
             allrts.extend(chromo[0])
         if not mzmins:

@@ -1004,6 +1004,7 @@ class TableExplorer(EmzedDialog):
     @protect_signal_handler
     def rowClicked(self, widget_row_idx):
 
+        start = time.time()
         print
         print "row clicked !"
         print
@@ -1022,11 +1023,13 @@ class TableExplorer(EmzedDialog):
             self.model.set_selected_widget_rows(to_select)
             return to_select
 
-        def update(to_select):
+        def update(to_select, start=start):
             if to_select is not None:
                 self.model.set_selected_widget_rows(to_select)
             if not self.has_time_series:
+                self.choose_spec.blockSignals(True)
                 self.setup_spectrum_chooser()
+                self.choose_spec.blockSignals(False)
 
             if self.eic_only_mode:
                 self.plot_eics_only()
@@ -1034,8 +1037,10 @@ class TableExplorer(EmzedDialog):
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
+
+            needed = time.time() - start
             print
-            print "row click done"
+            print "row click done, needed %.2f s" % needed
             print
 
         # we need to keep gui responsive to handle key clicks:
@@ -1264,6 +1269,7 @@ class TableExplorer(EmzedDialog):
 
         #TODO: async, dafür braucht hdf5 zeugs aber locks !
         self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
+        self.mz_plotter.replot()
 
 
 def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callback=None):
