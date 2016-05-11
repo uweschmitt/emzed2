@@ -7,7 +7,7 @@ import itertools
 from .helpers import timethis
 
 
-from PyQt4.QtCore import (QObject, QThread, Qt, pyqtSignal, pyqtSlot, QString)
+from PyQt4.QtCore import (QObject, QThread, Qt, pyqtSignal, pyqtSlot, QString, QTimer)
 
 
 class Worker(QObject):
@@ -36,8 +36,9 @@ class Worker(QObject):
 
 class AsyncRunner(object):
 
-    def __init__(self):
+    def __init__(self, parent):
         self.workers = defaultdict(list)
+        self.parent = parent
 
     def print_error(self, e):
         print(e)
@@ -75,13 +76,20 @@ class AsyncRunner(object):
         worker.finished.connect(thread.deleteLater)
         thread.finished.connect(worker.deleteLater)
 
-        if blocked:
-            self.setCursor(Qt.WaitCursor)
+        def unblock():
+            self.parent.setCursor(Qt.ArrowCursor)
 
-            def unblock():
-                self.setCursor(Qt.ArrowCursor)
+        thread.finished.connect(unblock)
 
-            thread.finished.connect(unblock)
+        def set_waiting_cursor():
+            self.parent.setCursor(Qt.WaitCursor)
+
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(set_waiting_cursor)
+
+        thread.finished.connect(timer.stop)
+        timer.start(200)
 
         if call_back is not None:
             worker.result.connect(call_back)

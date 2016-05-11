@@ -233,7 +233,7 @@ class TableExplorer(EmzedDialog):
 
         self.hadFeatures = None
 
-        self.async_runner = AsyncRunner()
+        self.async_runner = AsyncRunner(self)
 
         self.setupWidgets()
         self.setupLayout()
@@ -1037,6 +1037,8 @@ class TableExplorer(EmzedDialog):
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
+            if True or self.has_spectra:
+                self.plot_spectra()
 
             needed = time.time() - start
             print
@@ -1096,6 +1098,8 @@ class TableExplorer(EmzedDialog):
                     self.plot_chromatograms()
                 if self.has_time_series:
                     self.plot_time_series()
+                if True or self.has_spectra:
+                    self.plot_spectra()
             finally:
                 self.tableView.blockSignals(False)
                 self.setCursor(Qt.ArrowCursor)
@@ -1195,7 +1199,7 @@ class TableExplorer(EmzedDialog):
             if reset:
                 timethis(self.eic_plotter.set_rt_axis_limits)(rtmin - w, rtmax + w)
 
-            timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax)
+            timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax, True)
 
             timethis(self.eic_plotter.reset_intensity_limits)(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
 
@@ -1228,6 +1232,13 @@ class TableExplorer(EmzedDialog):
                 windows.append(window)
         if not self.has_time_series:
             timethis(self.plot_spectra_from_peakmaps)(peakmaps, windows)
+
+    def plot_spectra(self):
+        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
+        windows = []
+        for idx in self.model.selected_data_rows:
+            windows.extend(self.model.getEICWindows(idx))
+        timethis(self.plot_spectra_from_peakmaps)(peakmaps, windows)
 
     def plot_ms1_spectra(self):
         peakmaps = [

@@ -845,11 +845,11 @@ class SnappingRangeSelection(XRangeSelection):
                 xvals.extend(np.array(item.get_data()[0]))
         return np.sort(np.unique(xvals))
 
-    def set_range(self, xmin, xmax):
+    def set_range(self, xmin, xmax, block_signals=False):
         self.move_point_to(0, (xmin, 0), True)
-        self.move_point_to(1, (xmax, 0), False)
+        self.move_point_to(1, (xmax, 0), block_signals)
 
-    def move_point_to(self, hnd, pos, block):
+    def move_point_to(self, hnd, pos, block_signals=False):
         xvals = self.get_xvals()
         x, y = pos
 
@@ -878,7 +878,7 @@ class SnappingRangeSelection(XRangeSelection):
                 self._min = new_min
                 self._max = new_max
 
-        if not block:
+        if not block_signals:
             self.SELECTED_RANGE_CHANGED.emit(self._min, self._max)
 
     def get_neighbour_xvals(self, x):

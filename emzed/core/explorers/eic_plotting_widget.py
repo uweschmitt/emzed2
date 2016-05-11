@@ -257,10 +257,10 @@ class EicPlottingWidget(CurveWidget):
             return None, None
         return sorted((self.range_._min, self.range_._max))
 
-    def set_range_selection_limits(self, xleft, xright):
+    def set_range_selection_limits(self, xleft, xright, block_signals=False):
         if self.range_ is None:
             return
-        timethis(self.range_.set_range)(xleft, xright)
+        timethis(self.range_.set_range)(xleft, xright, block_signals)
 
     def reset_intensity_limits(self, imin=None, imax=None, fac=1.1, rtmin=None, rtmax=None):
         self.plot.reset_y_limits(imin, imax, fac, rtmin, rtmax)
