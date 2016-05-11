@@ -219,6 +219,27 @@ class PeakMapProxy(object):
         if (mzmin is not None) != (mzmax is not None):
             # mixed settings are not optimized yet !
             raise ValueError("either mzmin and mzmax are None or both have to be numbers")
+
+        """
+        this two step process over two iterators increases cache hits because in one row of
+        table explore we run it once with mzmin = None and one with mzmin set, but rtmin,
+        rtmax and ms_level are the same !
+        """
+
+        if mzmin is None:
+            for data in self._iter_full_spectra(rtmin, rtmax, ms_level):
+                yield data
+        else:
+            for rt, mzs, iis in self._iter_full_spectra(rtmin, rtmax, ms_level):
+                flags = (mzmin <= mzs) & (mzs <= mzmax)
+                iis = iis[flags]
+                mzs = mzs[flags]
+                yield rt, mzs, iis
+
+
+    @lru_cache(maxsize=1000)
+    def _iter_full_spectra(self, rtmin, rtmax, ms_level):
+
         rts = self.rts[ms_level]
         i0 = np.searchsorted(rts, rtmin, "left")
         i1 = np.searchsorted(rts, rtmax, "right")
@@ -239,16 +260,10 @@ class PeakMapProxy(object):
         for i_start, i_end, rt in itertools.izip(starts, ends, rts[i0:]):
             mzs = full_mzs[i_start - s0: i_end - s0]
             iis = full_iis[i_start - s0: i_end - s0]
-            if mzmin is not None:
-                flags = (mzmin <= mzs) & (mzs <= mzmax)
-                iis = iis[flags]
-                mzs = mzs[flags]
-
             yield rt, mzs, iis
 
     @lru_cache(maxsize=1000)
     @profile
-    @timethis
     def chromatogram(self, mzmin=None, mzmax=None, rtmin=None, rtmax=None, ms_level=1):
         rts = []
         intensities = []
@@ -264,7 +279,6 @@ class PeakMapProxy(object):
         return rts, intensities
 
     @lru_cache(maxsize=1000)
-    @timethis
     @profile
     def sample_peaks(self, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level):
 

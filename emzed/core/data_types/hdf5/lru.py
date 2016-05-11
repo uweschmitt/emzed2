@@ -1,8 +1,12 @@
 # encoding: utf-8, division
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 
-import functools
 from collections import OrderedDict
+import functools
+from itertools import tee
+
+from types import GeneratorType
+
 
 
 class LruDict(object):
@@ -31,17 +35,26 @@ class LruDict(object):
 
 def lru_cache(maxsize):
 
+    Tee = tee([], 1)[0].__class__
+
     def wrapper(fun):
         cache = LruDict(maxsize)
 
         @functools.wraps(fun)
         def inner(*args, **kwargs):
             key = args + tuple(kwargs.items())
-            if key in cache:
-                return cache[key]
-            result = fun(*args, **kwargs)
-            cache[key] = result
-            return result
+
+            if key not in cache:
+                result = fun(*args, **kwargs)
+                cache[key] = result
+
+            if isinstance(cache[key], (GeneratorType, Tee)):
+                # the original can't be used any more,
+                # so we need to change the cache as well
+                cache[key], r = tee(cache[key])
+                return r
+            return cache[key]
+
         return inner
 
     return wrapper
