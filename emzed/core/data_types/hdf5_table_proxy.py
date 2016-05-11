@@ -80,7 +80,7 @@ class Hdf5TableProxy(ImmutableTable):
 
                 iflags = (values > None) # trick, "!=" does not work !
                 subset = values[iflags]
-                subflags = filter_function(subset)
+                subflags = np.vectorize(filter_function)(subset)
                 iflags[iflags] = subflags
                 keep = set(np.where(iflags)[0])
 

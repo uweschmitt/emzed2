@@ -9,6 +9,7 @@ from PyQt4 import QtCore, QtGui
 from _filter_criteria_widget import _FilterCriteriaWidget
 
 from ...data_types.hdf5_table_proxy import UfuncWrapper
+from ...data_types.col_types import CheckState
 
 from fnmatch import fnmatch
 
@@ -187,9 +188,31 @@ class StringFilterPattern(_StringFilter):
         pattern = unicode(self.pattern.text())
         if pattern == u"":
             return self.name, None
+
+        # some optimzations for faster comparison functions !
+        if "?" not in pattern:
+
+            if "*" not in pattern:
+                def _filter(v, pattern=pattern):
+                    return v == pattern
+                return self.name, _filter
+
+            if pattern.endswith("*") and "*" not in pattern[:-1]:
+                def _filter(v, prefix=pattern[:-1]):
+                    return v.startswith(prefix)
+                return self.name, _filter
+
+            elif pattern.startswith("*") and "*" not in pattern[1:]:
+                def _filter(v, postfix=pattern[1:]):
+                    return v.endswith(postfix)
+                return self.name, _filter
+
+            elif pattern.startswith("*") and pattern.endswith("*") and "*" not in pattern[1:-1]:
+                def _filter(v, stem=pattern[1:-1]):
+                    return stem in v
+                return self.name, _filter
+
         def _filter(v, pattern=pattern):
-            if v is None:
-                return False
             return fnmatch(str(v), pattern)
         return self.name, _filter
 
@@ -239,7 +262,7 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
                 ch = None
                 if type_ == float:
                     ch = self._setup_float_chooser(name, i, t)
-                elif type_ == bool:
+                elif type_ in (bool, CheckState):
                     ch = ChooseValue(name, t, [True, False])
                 elif type_ in (int, long):
                     ch = ChooseIntRange(name, t)
