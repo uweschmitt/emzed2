@@ -466,8 +466,6 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
         # move_point_to always emits both limits, so we block the first signalling:
         item.set_range(mid, mid)
-        #item.move_point_to(0, (mid, 0), True)
-        #item.move_point_to(1, (mid, 0), False)
         filter.plot.replot()
 
     @protect_signal_handler
@@ -484,6 +482,8 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         ctrl_pressed = evt.modifiers() & Qt.ControlModifier
 
         item = self.get_unique_item(SnappingRangeSelection)
+        if item is None:
+            return
 
         n_iter = 5 if ctrl_pressed else 1
 
@@ -502,8 +502,6 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         if new_min is not None and new_max is not None:
             # move_point_to always emits both limits, so we block the first signalling:
             item.set_range(new_min, new_max)
-            #item.move_point_to(0, (new_min, 0), True)
-            #item.move_point_to(1, (new_max, 0), False)
 
         filter_.plot.replot()
 
@@ -527,6 +525,8 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     def set_rt(self, rt):
         # sets cursor
         marker = self.get_unique_item(Marker)
+        if marker is None:
+            return
         marker.setXValue(rt)
         self.replot()
 
@@ -579,6 +579,8 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         mz, I = self.next_peak_to(mz)
         if mz is not None and I is not None:
             marker = self.get_unique_item(Marker)
+            if marker is None:
+                return
             marker.setValue(mz, I)  # avoids sending signal
             self.replot()
 
@@ -629,7 +631,7 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     @protect_signal_handler
     def do_move_marker(self, evt):
         marker = self.get_unique_item(Marker)
-        if marker:
+        if marker is not None:
             marker.move_local_point_to(0, evt.pos())
             marker.setVisible(True)
             self.replot()
@@ -641,7 +643,10 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         """
 
         if not hasattr(self, "centralMz") or self.centralMz is None:
-            mz = self.get_unique_item(Marker).xValue()
+            marker = self.get_unique_item(Marker)
+            if marker is None:
+                return
+            mz = marker.xValue()
         else:
             mz = self.centralMz
 
@@ -660,6 +665,8 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         current_coord = self.next_peak_to(mz, I)
 
         line = self.get_unique_item(SegmentShape)
+        if line is None:
+            return
         line.set_rect(self.start_coord[0], self.start_coord[1], current_coord[0], current_coord[1])
         line.setVisible(1)
 
@@ -668,8 +675,9 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     @protect_signal_handler
     def stop_drag_mode(self, filter_, evt):
         line = self.get_unique_item(SegmentShape)
-        line.setVisible(0)
-        self.replot()
+        if line is not None:
+            line.setVisible(0)
+            self.replot()
 
     def _extract_peaks(self, mz_limits=None):
         for i, (pm, rtmin, rtmax, mzmin, mzmax, npeaks) in enumerate(self.peakmap_ranges):

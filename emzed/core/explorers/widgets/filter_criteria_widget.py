@@ -45,17 +45,6 @@ class _ChooseNumberRange(_ChooseRange):
         pass
 
 
-def range_filter(v1, v2):
-    if v1 is None and v2 is None:
-        return None
-
-    def filter(v, v1=v1, v2=v2):
-        if v is None:
-            return False
-        return (v1 is None or v1 <= v) and (v2 is None or v <= v2)
-    return filter
-
-
 def ufunc_range_filter(v1, v2):
     if v1 is None and v2 is None:
         return None
@@ -158,8 +147,6 @@ class ChooseValue(_ChooseValue):
 
     def update(self):
         before = self.values.currentText()
-        #values = set(self.table.getColumn(self.name).values)
-        #values = sorted("-" if v is None else v for v in values)
         self.pure_values = [None] + self.choices
         new_items = [u""] + map(unicode, self.choices)
 

@@ -78,7 +78,7 @@ class Hdf5TableProxy(ImmutableTable):
             else:
                 values = self.reader.get_col_values(col_name)
 
-                iflags = (values > None) # trick
+                iflags = (values > None) # trick, "!=" does not work !
                 subset = values[iflags]
                 subflags = filter_function(subset)
                 iflags[iflags] = subflags

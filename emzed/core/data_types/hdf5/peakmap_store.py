@@ -275,7 +275,6 @@ class PeakMapProxy(object):
         perm = np.argsort(rts)
         rts = rts[perm]
         intensities = intensities[perm]
-        print("chromo=", rts, intensities)
         return rts, intensities
 
     @lru_cache(maxsize=1000)
@@ -291,7 +290,6 @@ class PeakMapProxy(object):
             peaks = sample_peaks_from_lists(all_mzs, all_iis, mzmin, mzmax, npeaks)
         else:
             peaks = np.zeros((0, 2))
-        print("peaks=", peaks)
         return peaks
 
     def get_rts(self, msLevel=1):
