@@ -1,6 +1,7 @@
 # encoding: utf-8
 from __future__ import print_function
 
+import itertools
 import new
 
 from PyQt4.QtCore import pyqtSignal, Qt
@@ -9,6 +10,8 @@ from PyQt4.Qwt5 import QwtScaleDraw, QwtText
 from .table_explorer_model import timethis
 
 from PyQt4.QtGui import QPen
+
+from guidata import qapplication
 
 from guiqwt.plot import CurveWidget, PlotManager
 from guiqwt.builder import make
@@ -200,30 +203,35 @@ class EicPlottingWidget(CurveWidget):
         self.plot.overall_x_min = rtmin
         self.plot.overall_x_max = rtmax
 
-    def add_eics(self, data, labels=None, configs=None):
-        """ do not forget to call replot() after calling this function ! """
-        allrts = list()
-
-        if configs is None:
-            configs = [{"color": getColor(i)} for i in range(len(data))]
-        if labels is None:
-            labels = [""] * len(data)
+    def eic_plotter(self):
+        """generator which receives plot items"""
 
         unique_labels = set()
-        # items_with_label = []
         seen = set()
-        for i, (rts, chromatogram) in enumerate(data):
-            # we do not plot duplicates, which might happen if multiple lines in the
-            # table explorer are sellected !
+        allrts = []
+
+        for i in itertools.count():
+
+            item = yield
+
+            if item is None:
+                break
+
+            label, curve, config = item
+            if config is None:
+                config = {"color": getColor(i), "linewidth": 1.5}
+
+            rts, chromatogram = curve
             if (id(rts), id(chromatogram)) in seen:
                 continue
             seen.add((id(rts), id(chromatogram)))
-            config = configs[i]
-            label = "<pre>%s</pre>" % labels[i]
+            label = "<pre>%s</pre>" % label
             unique_labels.add(label)
             curve = make_unselectable_curve(rts, chromatogram, title=label, **config)
             allrts.extend(rts)
             self.plot.add_item(curve)
+            self.plot.replot()
+            qapplication().processEvents()
 
         self.plot.add_item(self.label)
         self.plot.set_x_values(sorted(set(allrts)))
@@ -231,9 +239,29 @@ class EicPlottingWidget(CurveWidget):
         self.marker.attach(self.plot)
         self.plot.add_item(self.marker)
 
-        # self._add_legend(unique_labels, items_with_label)
         if self.range_ is not None:
             self.plot.add_item(self.range_)
+        self.plot.replot()
+
+        yield  # avoids StopIteration
+
+    def add_eics(self, data, labels=None, configs=None):
+        """ do not forget to call replot() after calling this function ! """
+
+        plotter = self.eic_plotter()
+        plotter.next()
+
+        if labels is None:
+            labels = itertools.repeat("")
+
+        if configs is None:
+            configs = itertools.repeat(None)
+
+        for label, (rts, chromatogram), config in itertools.izip(labels, data, configs):
+            plotter.send((label, rts, chromatogram, config))
+
+        plotter.send(None)
+        plotter.close()
 
     def _add_legend(self, unique_labels, items_with_label):
         # überbleibsel von zeitreihen plott

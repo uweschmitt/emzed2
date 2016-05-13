@@ -55,18 +55,10 @@ def time_series_curves(model):
 
 
 def _eic_fetcher(model, fetcher):
-    curves = []
-    rtmins, rtmaxs = [], []
     for idx in model.selected_data_rows:
         eics, rtmin, rtmax, allrts = fetcher(idx)
-        if rtmin is not None:
-            rtmins.append(rtmin)
-        if rtmax is not None:
-            rtmaxs.append(rtmax)
-        curves.extend(eics)
-    if not rtmins or not rtmaxs:
-        return None, None, []
-    return min(rtmins), max(rtmaxs), curves
+        for eic in eics:
+            yield rtmin, rtmax, eic
 
 
 @timethis
@@ -114,8 +106,11 @@ def turn_light(color):
 
 
 def configsForEics(eics):
-    n = len(eics)
-    return [dict(linewidth=1.5, color=getColors(i)) for i in range(n)]
+    return [configForEic(i) for i in range(len(eics))]
+
+
+def configForEic(i):
+    return dict(linewidth=1.5, color=getColors(i))
 
 
 def configsForTimeSeries(eics):
@@ -567,7 +562,7 @@ class TableExplorer(EmzedDialog):
         self.has_chromatograms = hasFeatures
         self.allow_integration = isIntegrated and self.model.implements("integrate")
         self.has_time_series = hasTimeSeries
-        self.has_spectra = hasSpectra
+        self.has_spectra = hasSpectra or hasFeatures
 
         self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
         self.eic_plotter.enable_range(not self.eic_only_mode)
@@ -1024,12 +1019,15 @@ class TableExplorer(EmzedDialog):
             return to_select
 
         def update(to_select, start=start):
+
             if to_select is not None:
                 self.model.set_selected_widget_rows(to_select)
             if not self.has_time_series:
                 self.choose_spec.blockSignals(True)
-                self.setup_spectrum_chooser()
-                self.choose_spec.blockSignals(False)
+                try:
+                    self.setup_spectrum_chooser()
+                finally:
+                    self.choose_spec.blockSignals(False)
 
             if self.eic_only_mode:
                 self.plot_eics_only()
@@ -1037,9 +1035,10 @@ class TableExplorer(EmzedDialog):
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
-            if True or self.has_spectra:
+            if self.has_spectra:
                 self.plot_spectra()
 
+            # self.setCursor(Qt.ArrowCursor)
             needed = time.time() - start
             print
             print "row click done, needed %.2f s" % needed
@@ -1047,8 +1046,9 @@ class TableExplorer(EmzedDialog):
 
         # we need to keep gui responsive to handle key clicks:
         self.async_runner.run_async(handle_row_click, (),
-                       id_="select_rows",
-                       only_one_worker=True, call_back=update)
+                                    id_="select_rows",
+                                    blocked=True,
+                                    only_one_worker=True, call_back=update)
 
     @timethis
     def select_rows_in_group(self, widget_row_idx, group_by_idx):
@@ -1072,8 +1072,9 @@ class TableExplorer(EmzedDialog):
 
             # expand selection
 
-            self.tableView.blockSignals(True)
-            self.setCursor(Qt.WaitCursor)
+            self.setEnabled(False)
+            # self.tableView.blockSignals(True)
+            # self.setCursor(Qt.WaitCursor)
             try:
                 mode_before = self.tableView.selectionMode()
                 scrollbar_before = self.tableView.verticalScrollBar().value()
@@ -1090,7 +1091,11 @@ class TableExplorer(EmzedDialog):
                 if to_select is not None:
                     self.model.set_selected_widget_rows(to_select)
                 if not self.has_time_series:
-                    self.setup_spectrum_chooser()
+                    self.choose_spec.blockSignals(True)
+                    try:
+                        self.setup_spectrum_chooser()
+                    finally:
+                        self.choose_spec.blockSignals(False)
 
                 if self.eic_only_mode:
                     self.plot_eics_only()
@@ -1098,16 +1103,16 @@ class TableExplorer(EmzedDialog):
                     self.plot_chromatograms()
                 if self.has_time_series:
                     self.plot_time_series()
-                if True or self.has_spectra:
+                if self.has_spectra:
                     self.plot_spectra()
             finally:
+                self.setEnabled(True)
                 self.tableView.blockSignals(False)
-                self.setCursor(Qt.ArrowCursor)
 
         self.async_runner.run_async(find_rows, (),
-                       id_="select_rows",
-                       blocked=True,
-                       only_one_worker=True, call_back=mark_rows)
+                                    id_="select_rows",
+                                    blocked=True,
+                                    only_one_worker=True, call_back=mark_rows)
 
     def setup_spectrum_chooser(self):
         self.choose_spec.clear()
@@ -1169,31 +1174,64 @@ class TableExplorer(EmzedDialog):
         # todo: plot chromatograms async for huge tables !
         self.eic_plotter.del_all_items()
         if self.has_eic:
-            rtmin, rtmax, curves = eic_curves(self.model)
+            source = eic_curves(self.model)
         elif self.has_chromatograms:
-            rtmin, rtmax, curves = compute_eics(self.model)
+            source  = compute_eics(self.model)
         else:
             return
 
+        plotter = self.eic_plotter.eic_plotter()
+        plotter.next()
+
+        n = len(self.model.selected_data_rows)
+        if n > 3:
+            dlg = QProgressDialog("compute chromatograms", QString(""), 0, n, parent=self)
+            dlg.setCancelButton(None)
+            dlg.show()
+        else:
+            dlg = None
+
+        try:
+            overall_rtmin = None
+            for i, (rtmin, rtmax, curve) in itertools.izip(itertools.count(), source):
+                if overall_rtmin is None:
+                    overall_rtmin = rtmin
+                    overall_rtmax = rtmax
+                else:
+                    overall_rtmin = min(overall_rtmin, rtmin)
+                    overall_rtmax = max(overall_rtmax, rtmax)
+                config = configForEic(i)
+                plotter.send((None, curve, config))
+                if reset:
+                    w = (overall_rtmax - overall_rtmin)
+                    timethis(self.eic_plotter.set_rt_axis_limits)(overall_rtmin - w, overall_rtmax + w)
+                if dlg is not None:
+                    dlg.setValue(i)
+
+        finally:
+            if dlg is not None:
+                dlg.close()
+
+        plotter.send(None)
+        plotter.close()
+
         f_shapes = fit_shapes(self.model)
-        configs = configsForEics(curves)
 
-        timethis(self.eic_plotter.add_eics)(curves, configs=configs)
-
-        for (chromo, baseline), config in zip(f_shapes, configs):
+        for (chromo, baseline), i in zip(f_shapes, itertools.count()):
             if chromo is None:
                 continue
             rts, iis = chromo
             if baseline is None:
                 baseline = 0.0
 
+            config = configForEic(i)
             eic_color = config["color"]
             color = turn_light(eic_color)
             timethis(self.eic_plotter.add_eic_filled)(rts, iis, baseline, color)
 
         # allrts are sorted !
-        if rtmin is not None and rtmax is not None:
-            w = rtmax - rtmin
+        if overall_rtmin is not None and overall_rtmax is not None:
+            w = overall_rtmax - overall_rtmin
             if w == 0:
                 w = 30.0  # seconds
             if reset:
@@ -1201,7 +1239,8 @@ class TableExplorer(EmzedDialog):
 
             timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax, True)
 
-            timethis(self.eic_plotter.reset_intensity_limits)(fac=1.1, rtmin=rtmin - w, rtmax=rtmax + w)
+            timethis(self.eic_plotter.reset_intensity_limits)(fac=1.1, rtmin=overall_rtmin - w,
+                                                              rtmax=overall_rtmax + w)
 
         timethis(self.eic_plotter.replot)()
 
@@ -1256,6 +1295,7 @@ class TableExplorer(EmzedDialog):
     def plot_spectra_from_peakmaps(self, peakmaps, windows):
 
         if not peakmaps or not windows:
+            print("empty peakmaps or windows")
             return
 
         data = []
@@ -1274,12 +1314,26 @@ class TableExplorer(EmzedDialog):
         postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
         titles = map(repr, postfixes)
 
-        def update_plot(*a):
+        n = len(data)
+        if n < 5:
+            self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
             self.mz_plotter.reset_mz_limits(mzmin, mzmax)
             self.mz_plotter.replot()
+            return
 
-        #TODO: async, dafür braucht hdf5 zeugs aber locks !
-        self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
+        dlg = QProgressDialog("extract spectra", QString(""), 0, n, parent=self)
+        dlg.setCancelButton(None)
+        dlg.show()
+        try:
+            plot_iter = self.mz_plotter.plot_peakmaps_iter(data, configs,
+                                                           titles if len(titles) > 1 else None)
+            for i, _ in itertools.izip(itertools.count(), plot_iter):
+                dlg.setValue(i)
+                guidata.qapplication().processEvents()
+
+        finally:
+            dlg.close()
+
         self.mz_plotter.replot()
 
 

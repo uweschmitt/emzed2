@@ -13,6 +13,8 @@ from guiqwt.events import ZoomHandler, PanHandler, MoveHandler
 from guiqwt.tools import InteractiveTool
 from guiqwt.builder import make
 
+from guidata import qapplication
+
 from guiqwt.shapes import Marker, SegmentShape, XRangeSelection
 
 from helpers import protect_signal_handler, timethis
@@ -700,10 +702,11 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             peaks = timethis(pm.sample_peaks)(rtmin, rtmax, mzmin, mzmax, npeaks, ms_level)
             yield i, peaks
 
-    def plot_peakmap_ranges(self, peakmap_ranges, configs, titles):
+    def plot_peakmap_ranges_iter(self, peakmap_ranges, configs, titles):
         collected_peaks = []
         self.sticks = []
         self.peakmap_ranges = peakmap_ranges
+
         for i, peaks in self._extract_peaks():
             collected_peaks.append(peaks)
             config = configs[i]
@@ -712,8 +715,15 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             curve.set_data(peaks[:, 0], peaks[:, 1])
             self.add_item(curve)
             self.sticks.append(curve)
+            self.replot()
+            yield
 
         self.set_visible_peaks(collected_peaks)
+
+    def plot_peakmap_ranges(self, peakmap_ranges, configs, titles):
+        for _ in self.plot_peakmap_ranges_iter(peakmap_ranges, configs, titles):
+            yield
+        self.replot()
 
     def resample_peaks(self, mzmin, mzmax):
         if mzmin == self.latest_mzmin and mzmax == self.latest_mzmax:

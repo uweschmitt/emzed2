@@ -120,8 +120,7 @@ class MzPlottingWidget(CurveWidget):
         self.plot.overall_x_min = mzmin
         self.plot.overall_x_max = mzmax
 
-    def plot_peakmaps(self, peakmap_ranges, configs=None, titles=None):
-
+    def plot_peakmaps_iter(self, peakmap_ranges, configs=None, titles=None):
         has_titles = titles is not None
         configs, titles = self._setup_configs_and_titles(configs, titles, len(peakmap_ranges))
 
@@ -131,8 +130,15 @@ class MzPlottingWidget(CurveWidget):
             self.plot.add_item(make.legend("TL"))
         self.plot.add_item(self.label)
 
-        self.plot.plot_peakmap_ranges(peakmap_ranges, configs, titles)
+        for _ in self.plot.plot_peakmap_ranges_iter(peakmap_ranges, configs, titles):
+            yield
         self.plot.add_item(self.line)
+
+
+    def plot_peakmaps(self, peakmap_ranges, configs=None, titles=None):
+
+        for _ in self.plot_peakmaps_iter(peakmap_ranges, configs, titles):
+            pass
 
     def set_cursor_pos(self, mz):
         self.plot.set_mz(mz)
