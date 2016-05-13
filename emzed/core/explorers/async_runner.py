@@ -3,6 +3,7 @@ from __future__ import print_function, division
 
 from collections import defaultdict
 import itertools
+import time
 
 from .helpers import timethis
 
@@ -40,57 +41,42 @@ class AsyncRunner(object):
         self.workers = defaultdict(list)
         self.parent = parent
 
-    def print_error(self, e):
-        print(e)
-
     def run_async_chained(self, functions, first_args):
 
         def start(i, args):
             if i >= len(functions):
                 return None
             f = functions[i]
+
             def call_back(result):
                 start(i + 1, (result,))
             self.run_async(f, args, call_back=call_back)
 
         start(0, first_args)
 
-    def run_async(self, function, args, id_=None, only_one_worker=False, call_back=None,
-                  blocked=False):
-
-        if only_one_worker:
-            for i, (thread, worker) in enumerate(self.workers[id_]):
+    def _kill_running_workers(self, id_):
+        for i, (thread, worker) in enumerate(self.workers[id_]):
+            try:
                 if thread.isRunning():
                     timethis(thread.quit)()
                     try:
                         del self.workers[id_][i]
                     except IndexError:
                         pass
+            except RuntimeError:
+                # happens if underlying c++ object is already killed
+                pass
+
+    def _setup_worker_and_move_to_new_thread(self, id_, function, args, call_back):
 
         thread = QThread()
         worker = Worker(function, args)
         worker.moveToThread(thread)
-        worker.error.connect(self.print_error)
         thread.started.connect(worker.process)
+        worker.error.connect(print)
         worker.finished.connect(thread.quit)
         worker.finished.connect(thread.deleteLater)
         thread.finished.connect(worker.deleteLater)
-
-        def unblock():
-            self.parent.setCursor(Qt.ArrowCursor)
-
-        thread.finished.connect(unblock)
-
-        def set_waiting_cursor():
-            self.parent.setCursor(Qt.WaitCursor)
-
-        timer = QTimer()
-        timer.setSingleShot(True)
-        timer.timeout.connect(set_waiting_cursor)
-
-        thread.finished.connect(timer.stop)
-        timer.start(200)
-
         if call_back is not None:
             worker.result.connect(call_back)
 
@@ -98,7 +84,31 @@ class AsyncRunner(object):
         # is finished, which crashs the application:
         self.workers[id_].append((thread, worker))
 
-        def remove(workers=self.workers, id_=id_, thread=thread):
+        return worker, thread
+
+    def _schedule_waiting_cursor(self, thread, blocked):
+        # if the worker runs more than 500 msec we set the cursor to WaitCursor,
+        def set_waiting_cursor(thread=thread, blocked=blocked, parent=self.parent):
+            try:
+                if thread is not None and thread.isRunning():
+                    parent.setCursor(Qt.WaitCursor)
+                    if blocked:
+                        parent.setEnabled(False)
+            except RuntimeError:
+                # happens if underlying c++ object is already killed
+                pass
+
+        def reset_cursor(thread=thread, parent=self.parent):
+            print("reset cursor + unblock gui")
+            parent.setCursor(Qt.ArrowCursor)
+            parent.setEnabled(True)
+
+        thread.finished.connect(reset_cursor)
+        QTimer.singleShot(200, set_waiting_cursor)
+
+    def _setup_thread_cleanup(self, id_, thread):
+
+        def remove(workers=self.workers, id_=id_, thread=thread, self=self):
             while True:
                 try:
                     # sometimes the c++ object already died, then we get
@@ -118,6 +128,17 @@ class AsyncRunner(object):
                         pass  # might happen in race situations.
 
         thread.finished.connect(remove)
+
+    def run_async(self, function, args, id_=None, only_one_worker=False, call_back=None,
+                  blocked=False):
+
+        if only_one_worker:
+            self._kill_running_workers(id_)
+
+        worker, thread = self._setup_worker_and_move_to_new_thread(id_, function, args, call_back)
+        self._setup_thread_cleanup(id_, thread)
+        self._schedule_waiting_cursor(thread, blocked)
+
         thread.start()
 
 
