@@ -62,6 +62,21 @@ def _eic_fetcher(model, fetcher):
             yield rtmin, rtmax, eic
 
 
+def current_rt_limits(model):
+    rtmins = []
+    rtmaxs = []
+    for idx in model.selected_data_rows:
+        windows = model.getEICWindows(idx)
+        rtmin = min(w[0] for w in windows)
+        rtmax = max(w[1] for w in windows)
+        rtmins.append(rtmin)
+        rtmaxs.append(rtmax)
+    if rtmins:
+        return min(rtmins), max(rtmaxs)
+    else:
+        return None, None
+
+
 @timethis
 def compute_eics(model):
     return _eic_fetcher(model, model.computeEics)
@@ -1180,8 +1195,12 @@ class TableExplorer(EmzedDialog):
         else:
             return
 
+        overall_rtmin, overall_rtmax = current_rt_limits(self.model)
+
         plotter = self.eic_plotter.eic_plotter()
         plotter.next()
+        w = (overall_rtmax - overall_rtmin) / 2.0
+        timethis(self.eic_plotter.set_rt_axis_limits)(overall_rtmin - w, overall_rtmax + w)
 
         n = len(self.model.selected_data_rows)
         if n > 3:
@@ -1192,19 +1211,9 @@ class TableExplorer(EmzedDialog):
             dlg = None
 
         try:
-            overall_rtmin = None
             for i, (rtmin, rtmax, curve) in itertools.izip(itertools.count(), source):
-                if overall_rtmin is None:
-                    overall_rtmin = rtmin
-                    overall_rtmax = rtmax
-                else:
-                    overall_rtmin = min(overall_rtmin, rtmin)
-                    overall_rtmax = max(overall_rtmax, rtmax)
                 config = configForEic(i)
                 plotter.send((None, curve, config))
-                if reset:
-                    w = (overall_rtmax - overall_rtmin)
-                    timethis(self.eic_plotter.set_rt_axis_limits)(overall_rtmin - w, overall_rtmax + w)
                 if dlg is not None:
                     dlg.setValue(i)
 
@@ -1231,11 +1240,11 @@ class TableExplorer(EmzedDialog):
 
         # allrts are sorted !
         if overall_rtmin is not None and overall_rtmax is not None:
-            w = overall_rtmax - overall_rtmin
+            w = (overall_rtmax - overall_rtmin) / 2.0
             if w == 0:
                 w = 30.0  # seconds
             if reset:
-                timethis(self.eic_plotter.set_rt_axis_limits)(rtmin - w, rtmax + w)
+                timethis(self.eic_plotter.set_rt_axis_limits)(overall_rtmin - w, overall_rtmax + w)
 
             timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax, True)
 
