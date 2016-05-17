@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
+import contextlib
 from collections import defaultdict
 import itertools
 import traceback
@@ -300,7 +301,8 @@ class TableExplorer(EmzedDialog):
         return w
 
     def limits_changed(self, filters):
-        timethis(self.model.limits_changed)(filters)
+        with self.execute_blocked(self):
+            timethis(self.model.limits_changed)(filters)
 
     def set_delegates(self):
         bd = ButtonDelegate(self.tableView, self)
@@ -567,9 +569,7 @@ class TableExplorer(EmzedDialog):
         self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
         self.eic_plotter.enable_range(not self.eic_only_mode)
 
-        if self.has_time_series:
-            show_mz = False
-        elif self.has_chromatograms or self.has_spectra:
+        if self.has_chromatograms or self.has_spectra:
             show_mz = True
         else:
             show_mz = False

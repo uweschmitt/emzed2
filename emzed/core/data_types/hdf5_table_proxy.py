@@ -40,8 +40,6 @@ class Hdf5TableProxy(ImmutableTable):
 
     def setup(self):
         self.perm = None
-        self.row_cache = LruDict(10000)
-        self.col_cache = LruDict(10)
 
         r = self.reader
         self._ghost_table = Table(r.col_names, r.col_types, r.col_formats,
