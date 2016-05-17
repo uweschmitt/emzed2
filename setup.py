@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 26, 15)
+version = (2, 26, 16)
 
 
 install_requires = ["guidata<=1.6.2",
