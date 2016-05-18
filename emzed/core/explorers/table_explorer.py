@@ -736,10 +736,7 @@ class TableExplorer(EmzedDialog):
     def export_table(self, *a):
         path = askForSave(extensions=["csv"])
         if path is not None:
-            t = self.model.extract_visible_table()
-            if os.path.exists(path):
-                os.remove(path)
-            t.storeCSV(path, as_printed=True)
+            self.model.store_table_as_csv(path)
 
     @protect_signal_handler
     def handle_double_click(self, idx):

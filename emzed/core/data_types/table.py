@@ -1076,7 +1076,7 @@ class Table(MutableTable):
     def __len__(self):
         return len(self.rows)
 
-    def storeCSV(self, path, as_printed=True):
+    def storeCSV(self, path, as_printed=True, row_indices=None):
         """writes the table in .csv format. The ``path`` has to end with
            '.csv'.
 
@@ -1084,6 +1084,9 @@ class Table(MutableTable):
         """
         if not os.path.splitext(path)[1].upper() == ".CSV":
             raise Exception("%s has wrong file type extension" % path)
+
+        if row_indices is None:
+            row_indices = xrange(len(self))
 
         with open(path, "wb") as fp:   # binary is needed for correct line endings on win
             writer = csv.writer(fp, delimiter=";")
@@ -1095,7 +1098,8 @@ class Table(MutableTable):
                 noop = lambda x: x
                 formatters = [noop for n in colNames]
             writer.writerow(colNames)
-            for row in self.rows:
+            for row_index in row_indices:
+                row = self.rows[row_index]
                 data = [f(self.getValue(row, v))
                         for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)

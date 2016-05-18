@@ -472,11 +472,8 @@ class TableModel(QAbstractTableModel):
         n_visible = len(self.widgetRowToDataRow)
         self.VISIBLE_ROWS_CHANGE.emit(len(self.table), n_visible)
 
-    def extract_visible_table(self):
-        # TODO: show warning if table too long !, not supported by TableProxy yet !
-        # row_idxs = [didx for (widx, didx) in sorted(self.widgetRowToDataRow.items())]
-        row_idxs = self.widgetRowToDataRow
-        return self.table[row_idxs]
+    def store_table_as_csv(self, path):
+        self.table.storeCSV(path, as_printed=True, row_indices=self.widgetRowToDataRow)
 
     def columnames_with_visibility(self):
         avail = self.indizesOfVisibleCols

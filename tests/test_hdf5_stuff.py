@@ -361,13 +361,20 @@ def test_bit_matrix(tmpdir):
         file_.close()
 
 
-def test_perm(regtest, tmpdir):
+@pytest.fixture
+def proxy_small_table(tmpdir):
     t = toTable("a", (1, 1, 2, 2, None), type_=int)
     t.addColumn("d", map(str, (4, 4, 2, 1, None)), type_=str)
     path = tmpdir.join("test.hdf5").strpath
     to_hdf5(t, path)
 
     prox = Hdf5TableProxy(path)
+    return prox
+
+
+def test_perm(regtest, proxy_small_table):
+
+    prox = proxy_small_table
 
     t = prox.toTable()
 
@@ -400,3 +407,19 @@ def test_perm(regtest, tmpdir):
     print("descending", file=regtest)
     print(perm, file=regtest)
     print(t[perm], file=regtest)
+
+
+def test_csv_write(regtest, tmpdir, proxy_small_table):
+
+    csv_path = tmpdir.join("test.csv").strpath
+    proxy_small_table.storeCSV(csv_path)
+    regtest.write(open(csv_path, "r").read())
+
+    proxy_small_table.storeCSV(csv_path, row_indices=(1, 3))
+    regtest.write(open(csv_path, "r").read())
+
+
+def test_rows_access(regtest, proxy_small_table):
+
+    for row in proxy_small_table.rows:
+        print(row, file=regtest)

@@ -1,7 +1,10 @@
 # encoding: utf-8, division
 from __future__ import print_function, division
 
+import csv
 import itertools
+import time
+import types
 
 import numpy as np
 import pandas as pd
@@ -29,7 +32,32 @@ class UfuncWrapper(object):
         return self.f(*a, **kw)
 
 
+class LogAll(object):
+
+    """this can be used as __metaclass__ of Hdf5TableProxy to see how long
+    method calls take. This is helpful during development.
+    """
+
+    def __new__(clz, name, bases, attributes):
+
+        def wrapper(f):
+            def run(*a, **kw):
+                started = time.time()
+                result = f(*a, **kw)
+                needed = time.time() - started
+                print("calling", f.__name__, "needed %.4f secs" % needed)
+                return result
+            return run
+
+        wrapped_methods = {name: wrapper(a) for (name, a) in attributes.items() if callable(a)}
+        attribs = {name: a for (name, a) in attributes.items() if not callable(a)}
+        attribs.update(wrapped_methods)
+        return type(name, bases, attribs)
+
+
 class Hdf5TableProxy(ImmutableTable):
+
+    # __metaclass__ = LogAll
 
     def __init__(self, path):
         self.reader = Hdf5TableReader(path)
@@ -44,7 +72,23 @@ class Hdf5TableProxy(ImmutableTable):
         r = self.reader
         self._ghost_table = Table(r.col_names, r.col_types, r.col_formats,
                                   meta=r.meta, rows=[])
+
+        # we add rows later, because the Table constructor tries to setup column expressions
+        # which is expensive for large hdf5 tables:
+        self._ghost_table.rows = self.reader
+
+        # we forbid to call _setupColumnAttributes, which would destroy
+        # all the benefits of hdf5 proxy tables. we do this to prevent slow
+        # operations and to enforce reimplementation here if needed.
+        def _not_allowed(self, *a, **kw):
+            raise NotImplementedError("this method call is not allowed yet !")
+        # to patch a method we first must bound the free function to the instance:
+        not_allowed = types.MethodType(_not_allowed, self._ghost_table)
+        self._ghost_table._setupColumnAttributes = not_allowed
         self.hdf5_meta = r.hdf5_meta
+
+    def resetInternals(self):
+        raise NotImplementedError()
 
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,
