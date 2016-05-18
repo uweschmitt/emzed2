@@ -901,7 +901,7 @@ class TestTable(unittest.TestCase):
         s = Spectrum(numpy.arange(12, dtype="float64").reshape(-1,2), 1.0, 1, "+")
         pm2 = PeakMap([s])
 
-        t = toTable("pm", [pm, pm2])
+        t = toTable("pm", [pm, pm2], type_=object)
         assert len(set(map(id, t.pm.values))) == 2
         t.compressPeakMaps()
         assert len(set(map(id, t.pm.values))) == 1

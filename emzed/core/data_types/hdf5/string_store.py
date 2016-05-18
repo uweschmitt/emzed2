@@ -93,11 +93,14 @@ class StringStoreBase(object):
         if not len(starts):
             return []
         blobs = self.blobs[col_index][:].tostring()
+        print(self, blobs)
+        print(self, starts[:])
         rv = [None]
         i = 0
         for i, s, e in itertools.izip(itertools.count(), starts, starts[1:]):
             rv.append(blobs[s:e])
         rv.append(blobs[starts[-1]:])
+        print(self, rv)
         return np.array(rv, dtype=object)
 
     def fetch_column(self, col_index, global_indices):
@@ -106,7 +109,8 @@ class StringStoreBase(object):
             strings = self._fetch_column(col_index)
             self.fetched[col_index] = strings
         global_indices = np.array(global_indices)
-        local_indices = np.array(global_indices + 1) >> 3
+        local_indices = ((global_indices - 1) >> 3) + 1
+        local_indices[global_indices == 0] = 0
         values = strings[local_indices]
         return values
 
@@ -135,4 +139,39 @@ class StringStore(StringStoreBase, Store):
 
     ID_FLAG = 6
     HANDLES = str
+
+
+class UnicodeStore(StringStoreBase, Store):
+
+    ID_FLAG = 5
+    HANDLES = unicode
+
+    def __init__(self, file_, node, blob_name_stem="unicode_blob", **kw):
+        super(UnicodeStore, self).__init__(file_, node, blob_name_stem, **kw)
+
+    def _write_str(self, col_index, s, index=None):
+        utf8 = s.encode("utf-8")
+        for i in super(UnicodeStore, self)._write_str(col_index, utf8, index):
+            yield i
+        self.blobs[0].flush()
+        self.starts[0].flash()
+
+    def _fetch_column(self, col_index):
+        starts = self.starts[col_index][:]
+        if not len(starts):
+            return []
+        blobs = unicode(self.blobs[col_index][:].tostring(), "utf-8")
+        print(self, blobs)
+        print(self, starts[:])
+        rv = [None]
+        i = 0
+        for i, s, e in itertools.izip(itertools.count(), starts, starts[1:]):
+            rv.append(blobs[s:e])
+        rv.append(blobs[starts[-1]:])
+        print(self, rv)
+        return np.array(rv, dtype=object)
+
+    def _read(self, col_index, index):
+        utf8 = super(UnicodeStore, self)._read(col_index, index)
+        return unicode(utf8, "utf-8")
 

@@ -53,7 +53,7 @@ class Hdf5TableWriter(Hdf5Base):
 
 
         def store_meta(what):
-            meta_index = self.manager.store_object("meta", what)
+            meta_index = self.manager.store_object("meta", what, object)
             row = self.meta_table.row
             row["index"] = meta_index
             row.append()
@@ -99,7 +99,7 @@ class Hdf5TableWriter(Hdf5Base):
                     self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
                     if type_ not in self.basic_type_map:
-                        value = self.manager.store_object(col_index, value)
+                        value = self.manager.store_object(col_index, value, type_)
                     hdf_row[name] = value
             hdf_row.append()
 
@@ -218,7 +218,7 @@ class Hdf5TableReader(Hdf5Base):
         self._remove_missing_value_entries_in_column(col_index, row_selection)
 
         if type_ not in (int, long, float, bool):
-            value = self.manager.store_object(col_index, value)
+            value = self.manager.store_object(col_index, value, type_)
 
         name = self.col_names[col_index]
         if row_selection is None:
@@ -258,7 +258,7 @@ class Hdf5TableReader(Hdf5Base):
         name = self.col_names[col_index]
 
         if type_ not in self.basic_type_map:
-            value = self.manager.store_object(col_index, value)
+            value = self.manager.store_object(col_index, value, type_)
 
         row[name] = value
         row.update()

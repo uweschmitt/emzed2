@@ -8,7 +8,7 @@ from datetime import datetime
 
 import numpy as np
 
-from emzed.core.data_types import TimeSeries, CheckState
+from emzed.core.data_types import TimeSeries, CheckState, PeakMap
 from emzed.core.data_types.hdf5_table_writer import to_hdf5, append_to_hdf5, atomic_hdf5_writer
 from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, PeakMapProxy
 from emzed.core.data_types.ms_types import PeakMap, Spectrum
@@ -44,7 +44,7 @@ def table():
     t0.addColumn("check", (True, False, None, True, False), type_=CheckState)
     t0.addColumn("str", ("1", "2" * 100, None, "a", "b"), type_=str)
     t0.addColumn("object", ({1}, dict(a=2), None, (1,), [1, 2]), type_=object)
-    t0.addColumn("peakmap", pm, type_=object)
+    t0.addColumn("peakmap", pm, type_=PeakMap)
     t0.addColumn("i1", [1, None, 2, None, 3], type_=int)
     t0.addColumn("i2", [None, 1, None, 2, None], type_=int)
 
@@ -423,3 +423,25 @@ def test_rows_access(regtest, proxy_small_table):
 
     for row in proxy_small_table.rows:
         print(row, file=regtest)
+
+
+def test_write_unicode(tmpdir, regtest):
+
+    table = toTable("a", ("x", None, u"", "" , u"ccccäää##c"), type_=unicode)
+    table.addColumn("b", ("x", "asbcder", None, None, ""), type_=str)
+    table.addColumn("c", ("x", "asbcder", 1, (1,), ""), type_=object)
+    path = tmpdir.join("t.hdf5").strpath
+    to_hdf5(table, path)
+    prox = Hdf5TableProxy(path)
+    print(prox.toTable(), file=regtest)
+    print(prox.reader.get_col_values("a"), file=regtest)
+    print(prox.reader.get_col_values("b"), file=regtest)
+    print([i.load() for i in prox.reader.get_col_values("c")], file=regtest)
+
+"""
+todo: adduct anno neu
+    ppm bei suche zu groß
+    blank: auch zukunft
+    global_peak_ids !
+    """
+

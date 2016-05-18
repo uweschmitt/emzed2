@@ -2,7 +2,7 @@
 [4] [ 100.]
 <empty TimeSeries>
 id       ts
-int      emzed.core.data_types.col_types.TimeSeries
+int      TimeSeries
 ------   ------
 1        <TimeSeries, time=1..4, values=nan..nan>
 1        <TimeSeries, time=1..4, values=nan..nan>

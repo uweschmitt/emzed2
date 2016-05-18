@@ -54,7 +54,8 @@ class ObjectStore(StringStoreBase, Store):
             strings = self._fetch_column(col_index)
             self.fetched[col_index] = strings
         global_indices = np.array(global_indices)
-        local_indices = np.array(global_indices + 1) >> 3
+        local_indices = ((global_indices - 1) >> 3) + 1
+        local_indices[global_indices == 0] = 0
         return map(ObjectProxyCodeLoaded, strings[local_indices])
 
 

@@ -182,11 +182,11 @@ def guessFormatFor(name, type_):
 def computekey(o):
     if isinstance(o, np.number):
         o = o.tolist()   # converts singel number to python equivalent !
-    if type(o) in [int, float, str, long]:
+    if type(o) in (int, float, str, unicode, bool, long):
         return o
     if type(o) == dict:
         return computekey(sorted(o.items()))
-    if type(o) in [list, tuple]:
+    if type(o) in (list, tuple):
         return tuple(computekey(oi) for oi in o)
     return id(o)
 
@@ -206,7 +206,7 @@ def getPostfix(colName):
 
 def convert_list_to_overall_type(li):
     ct = common_type_for(li)
-    if ct in (int, float, long, bool, str):
+    if ct in (int, float, long, bool, str, unicode):
         return [None if x is None else ct(x) for x in li]
     return li
 
@@ -825,7 +825,7 @@ class Table(MutableTable):
 
         # check for conversion !
         for i, (v, t) in enumerate(zip(row, self._colTypes)):
-            if v is not None and t in [int, float, long, str]:
+            if v is not None and t in (int, float, long, str, bool, unicode):
                 row[i] = t(v)
             else:
                 row[i] = v
@@ -1338,7 +1338,6 @@ class Table(MutableTable):
             key = computekey([self.getValue(row, n) for n in colNames])
             groups.add(key)
 
-
         # preserve order of rows
         subTables = collections.OrderedDict()
         for row in self.rows:
@@ -1575,6 +1574,10 @@ class Table(MutableTable):
         self._colTypes.insert(col_, type_)
         self._colFormats.insert(col_, format_)
         for row, v in zip(self.rows, values):
+            try:
+                value = type_(value)
+            except Exception:
+                pass
             row.insert(col_, v)
 
         self.resetInternals()
@@ -2057,10 +2060,18 @@ class Table(MutableTable):
 
         _p([self._colNames[i] for i in ix])
         print >> out
-        ct = [self._colTypes[i] for i in ix]
 
-        _p(re.match("<(type|class) '((\w|[.])+)'>|(\w+)", str(n)).groups()[1] or str(n)
-           for n in ct)
+        ct = [self._colTypes[i] for i in ix]
+        ct = [re.match("<(type|class) '((\w|[.])+)'>|(\w+)", str(n)).groups()[1] or str(n)
+              for n in ct]
+        def strip(s, prefix):
+            if s.startswith(prefix):
+                s = s[len(prefix):]
+            return s
+        ct = [strip(t, "emzed.core.data_types.col_types.") for t in ct]
+        ct = [strip(t, "emzed.core.data_types.ms_types.") for t in ct]
+
+        _p(ct)
         print >> out
         _p(["------"] * len(ix))
         print >> out
@@ -2631,7 +2642,7 @@ class Table(MutableTable):
                 col_types[i] = t
 
         _formats = {
-            int: "%d", float: "%f", str: "%s", object: None, bool: "%s"}
+            int: "%d", float: "%f", str: "%s", unicode: "%s", object: None, bool: "%s"}
         if formats is not None:
             _formats.update(formats)
 
@@ -2662,7 +2673,7 @@ class Table(MutableTable):
         rows = []
         for row in table.rows[:]:
             for i, t in enumerate(col_types):
-                if t in (int, float, str):
+                if t in (int, float, str, unicode, bool):
                     val = row[i]
                     if val is not None:
                         row[i] = t(val)

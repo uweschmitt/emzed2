@@ -68,6 +68,8 @@ class Store(object):
     HANDLES = None
 
     def __init__(self, file_, node, **kw):
+
+        assert self.__class__ == Store, "do not call __init__ from subclass !!"
         self.file_ = file_
         self.node = node
         self._flags = {}
@@ -82,9 +84,9 @@ class Store(object):
             flag = store_class.ID_FLAG
             handles = store_class.HANDLES
             if flag is None:
-                raise TypeError("%s does not implemen ID_FLAG attribute" % store_class)
+                raise TypeError("%s does not implement ID_FLAG attribute" % store_class)
             if handles is None:
-                raise TypeError("%s does not implemen HANDLES attribute" % store_class)
+                raise TypeError("%s does not implement HANDLES attribute" % store_class)
             assert 0 <= flag < 8
             store = store_class(file_, node, **kw)
             self._flags[flag] = store
@@ -92,11 +94,12 @@ class Store(object):
             for column in store.available_columns():
                 self._store_for_column[column] = store
 
-    def store_object(self, col_index, obj):
-        if any(isinstance(obj, type_) for type_ in basic_type_map):
+    def store_object(self, col_index, obj, type_):
+        if type_ in basic_type_map:
+        #if any(isinstance(obj, type_) for type_ in basic_type_map):
             raise ValueError("something went wrong, you try to store a basic type in an object store")
         for (handles, store) in self._handlers:
-            if isinstance(obj, handles):
+            if type_ is handles:
                 global_id = store.write(col_index, obj)
                 return global_id
         raise TypeError("no store manager for %r found" % obj)

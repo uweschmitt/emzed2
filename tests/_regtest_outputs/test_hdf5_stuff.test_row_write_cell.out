@@ -1,5 +1,5 @@
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4711     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -8,7 +8,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 -        -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -17,7 +17,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 -        -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -26,7 +26,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 4713     -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -35,7 +35,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 -        -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -44,7 +44,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 4713     -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -53,7 +53,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 -        -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     True     1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1
@@ -62,7 +62,7 @@ int      float    bool     emzed.core.data_types.col_types.CheckState str       
 -        -        False    False    b                                                                                                    3        -
 
 int      float    bool     check    str                                                                                                  i1       i2
-int      float    bool     emzed.core.data_types.col_types.CheckState str                                                                                                  int      int
+int      float    bool     CheckState str                                                                                                  int      int
 ------   ------   ------   ------   ------                                                                                               ------   ------
 4712     1.00     True     -        1                                                                                                    1        -
 2        2.00     False    False    2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222 -        1

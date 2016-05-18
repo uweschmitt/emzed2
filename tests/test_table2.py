@@ -716,6 +716,20 @@ def test_uniuqe_id():
     ti = emzed.utils.toTable("id", [1, 1, 2])
     t = emzed.utils.toTable("t", (ti, ti, None))
     # peakmap unique id already tested by compression of peakmap:
+    t.addColumn("pm", PeakMap([]), type_=object)
+    t.addColumn("blob", Blob("data"))
+    assert t.uniqueId() == "cb786c8bcfd7287459f8ba0b6a10cb7e845798c9fcdbea76dcb695e2c22d76a4"
+
+    ti = emzed.utils.toTable("id", [1, 1, 2])
+    t = emzed.utils.toTable("t", (ti, ti, None))
+    # peakmap unique id already tested by compression of peakmap:
+    t.addColumn("pm", PeakMap([]), type_=PeakMap)
+    t.addColumn("blob", Blob("data"))
+    assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
+
+    ti = emzed.utils.toTable("id", [1, 1, 2])
+    t = emzed.utils.toTable("t", (ti, ti, None))
+    # peakmap unique id already tested by compression of peakmap:
     t.addColumn("pm", PeakMap([]))
     t.addColumn("blob", Blob("data"))
     assert t.uniqueId() == "a03470ffc2876f1c12becb55e5f82f4fd59d9f906afe6f07484755755c4807e0"
