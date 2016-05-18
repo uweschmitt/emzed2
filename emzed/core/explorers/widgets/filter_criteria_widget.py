@@ -46,18 +46,24 @@ class _ChooseNumberRange(_ChooseRange):
         pass
 
 
+from functools import partial
+
+
 def ufunc_range_filter(v1, v2):
     if v1 is None and v2 is None:
         return None
 
+    def cond_v1_v2(vec, v1=v1, v2=v2):
+        return np.logical_and(np.greater_equal(v2, vec), np.greater_equal(vec, v1))
+
     if v2 is None:
-        f = lambda vec, v1=v1: np.greater(vec, v1)
+        f = partial(np.less_equal, v1)
     elif v1 is None:
-        f = lambda vec, v2=v2: np.greater(v2, vec)
+        f = partial(np.greater_equal, v2)
     elif v1 == v2:
-        f = lambda vec, v2=v2: np.equal(v2, vec)
+        f = partial(np.equal, v2)
     else:
-        f = lambda vec, v1=v1, v2=v2: np.logical_and(np.greater(v2, vec), np.greater(vec, v1))
+        f = cond_v1_v2
 
     return UfuncWrapper(f)
 
