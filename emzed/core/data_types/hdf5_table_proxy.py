@@ -3,6 +3,7 @@ from __future__ import print_function, division
 
 import csv
 import itertools
+import re
 import time
 import types
 
@@ -57,8 +58,6 @@ class LogAll(object):
 
 class Hdf5TableProxy(ImmutableTable):
 
-    # __metaclass__ = LogAll
-
     def __init__(self, path):
         self.reader = Hdf5TableReader(path)
         self.setup()
@@ -85,10 +84,40 @@ class Hdf5TableProxy(ImmutableTable):
         # to patch a method we first must bound the free function to the instance:
         not_allowed = types.MethodType(_not_allowed, self._ghost_table)
         self._ghost_table._setupColumnAttributes = not_allowed
+        self._ghost_table.getColumn = not_allowed
         self.hdf5_meta = r.hdf5_meta
 
     def resetInternals(self):
         raise NotImplementedError()
+
+    def info(self):
+        """
+        prints some table information and some table statistics
+        """
+
+        import emzed.utils
+
+        def extract_type(col_name):
+            type_ = self.getColType(col_name)
+            match = re.match("<(type|class) '(.+)'>", str(type_))
+            if match is not None:
+                type_str = match.group(2).split(".")[-1]
+            else:
+                type_str = str(type_)
+            return type_str
+
+        def extract_format(col_name):
+            return self.getColFormat(col_name)
+
+        table = emzed.utils.toTable("name", self._colNames, type_=str)
+        table.addEnumeration()
+        table.addColumn("type", table.name.apply(extract_type), type_=str)
+        table.addColumn("format", table.name.apply(extract_format), type_=str, format_="%r")
+        table.addColumn("diff values", "(unknown)", type_=str)
+        table.addColumn("nones", "(unknown)", type_=str)
+
+        print
+        table.print_(max_lines=None)
 
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,

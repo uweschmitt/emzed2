@@ -375,6 +375,9 @@ class TableModel(QAbstractTableModel):
     def numbersOfEicsPerRow(self):
         return len(self.table.supportedPostfixes(self.eicColNames()))
 
+    def __len__(self):
+        return len(self.widgetRowToDataRow)
+
     def computeEics(self, data_row_idx):
         eics = []
         mzmins = []

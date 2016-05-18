@@ -734,6 +734,13 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def export_table(self, *a):
+        n = len(self.model)
+        if n > 1000:
+            answer = QMessageBox.question(self, "Are you sure ?", "the final table would contain "
+                                                "%d lines. Are you sure to continue ?" % n,
+                                                QMessageBox.Ok | QMessageBox.Cancel)
+            if answer == QMessageBox.Cancel:
+                return
         path = askForSave(extensions=["csv"])
         if path is not None:
             self.model.store_table_as_csv(path)
