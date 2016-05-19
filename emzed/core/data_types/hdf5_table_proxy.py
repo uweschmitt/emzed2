@@ -158,7 +158,14 @@ class Hdf5TableProxy(ImmutableTable):
             else:
                 values = self.reader.get_col_values(col_name)
 
-                iflags = (values > None) # trick, "!=" does not work !
+                # trick, "!=" does not work, but all not None values are larger than None !
+                iflags = (values > None) 
+
+                # somehow this happened once, although I do not understand how, the only reason
+                # can be when self.reader.get_col_values(..) above retured a single bool:
+                if isinstance(iflags, bool):
+                    iflags = np.array([iflags], dtype=bool)
+
                 subset = values[iflags]
                 subflags = np.vectorize(filter_function)(subset)
                 iflags[iflags] = subflags
