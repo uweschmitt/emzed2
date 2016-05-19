@@ -218,6 +218,7 @@ class EicPlottingWidget(CurveWidget):
                 break
 
             label, curve, config = item
+
             if config is None:
                 config = {"color": getColor(i), "linewidth": 1.5}
 
@@ -258,7 +259,7 @@ class EicPlottingWidget(CurveWidget):
             configs = itertools.repeat(None)
 
         for label, (rts, chromatogram), config in itertools.izip(labels, data, configs):
-            plotter.send((label, rts, chromatogram, config))
+            plotter.send((label, (rts, chromatogram), config))
 
         plotter.send(None)
         plotter.close()
