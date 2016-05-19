@@ -168,15 +168,6 @@ def test_round_trip_objects(tmpdir, regtest):
 
     tback = tproxy.toTable()
     print(tback, file=regtest)
-    """
-    TODO: get_col_values checken
-          timing string lesen neu !
-          speed sort checken: df construction + sort, else: auf lexsort zruück falls möglich
-          sort mit vielen missing values: evtl teil sortieren ? (target_column)
-          sort nur innerhalb von view
-
-    """
-
 
 def test_get_index(tproxy):
 
@@ -439,7 +430,10 @@ def test_write_unicode(tmpdir, regtest):
     print([i.load() for i in prox.reader.get_col_values("c")], file=regtest)
 
 """
-todo: adduct anno neu
+todo:
+    unicode handling in substance tables !
+    hdf stores refac: to many simliarities in ObjectSTore, StringStore and UnicodeStires
+    adduct anno neu
     ppm bei suche zu groß
     blank: auch zukunft
     global_peak_ids !
