@@ -143,35 +143,7 @@ class: center, middle, inverse
 
 # LCMS workflows the easy way
 
----
-
-class: center, middle, inverse
-
-#  e**mz**ed
----
-
-class: center, middle, inverse
-
-#  e **m/z** ed
-
----
-
-class: center, middle, inverse
-# **m/z** is the unit
-
-# of x-axis of mass spectra
-
----
-
-class: center, middle, inverse
-# germans spell "**mz**" as "emzed"
-
----
-
-class: center, middle, inverse
-# no idea how native speakers pronounce
-
-# **emzed**
+### Uwe Schmitt, May 19, 2016
 
 
 ---
@@ -182,34 +154,8 @@ class: center, middle, inverse
 
 ---
 
-# Setting the stage
 
-- LCMS = Liquid Chromatography Mass Spectroscopy
-
-- Mathematicans have coffee machines ...
-
-- ... modern biologists and chemists have LCMS machines
-
-- LCMS changed a lot in these sciences
-
---
-
-# Software
-
-- Hardware is progressing very fast
-
-- but vendor software is (always) behind or very simple
-
-- There is a big demand for software
-
-- Every researcher has special needs
-
--  "one for all" software unfeasible
-
-
----
-
-# Software landscape in year 1 BE (before emzed):
+# Software landscape:
 
 - Applications: closed boxed solutions with a GUI, easy to use but rigid
 
@@ -219,117 +165,107 @@ class: center, middle, inverse
 
 - In the lab: mixture of tools, self written scripts (Matlab, R, Perl), Excel sheets
 
-
 --
-
-# Consequences:
-
-- Error prone semiautomatic "workflows"
-
-- Results are hardly to reproduce
-
-- Good ideas from users never got implemented
-
-
----
-
-# Software wishlist:
-
-- flexible
-
-- easy to use
-
-- integrative
-
-- interactive graphical data inspection tools
-
---
-
-# emzed concepts:
-
-- flexible: workflows are Python scripts
-
-- easy to use: workflows compose emzed functions
-
-- easy to use: matlab like workbench
-
-- integrative: bridges to R and OpenMS
-
-- good tools for interactive data analysis
-
----
 
 # How did it start ?
 
-- Julia Vorholt and Patrick Kiefer asked for assistance in 2012.
+- Prof Julia Vorholt and Patrick Kiefer asked for assistance in 2012.
 
 - Stategic IT fund of DBIOL payed 4 months of work for emzed 1
 
-- Since then incremental improvements
 
-- Now emzed 2.7.0
+---
+
+# emzed concepts:
+
+- development speed over runtime speed !
+
+- cherry pick existing and approved solutions
+
+- workflows are Python scripts
+
+- workflows compose emzed functions
+
+- simple API ("internal DSL")
+
+- bridges to R and OpenMS
+
+- matlab like workbench
+
+- tools for interactive data analysis
+
+
 ---
 
 class: center, middle, inverse
 
-# About emzed
-
----
-
-class: center, middle
-
-# If you start emzed:
-
-![](emzed_workbench_overview.png)
-
-This is the emzed workbench.
+# Examples, examples !
 
 ---
 
 
-# emzed functions overview
-
-- I/O: lcms data formats, csv
-
-- Cherry picked lcms algorithms
-
-- Sql like relational tables
-
-- Interactive data inspection
-
-- Access to chemical data(bases)
-
-- Easy GUI creation for minimalistic workflow frontends
-
-- Packaging system for distributing workflows (aka emzed modules)
-
----
-class: center, middle, inverse
-
-# API Examples
-
----
-
-# Example: I/O + peak picking
+# API Example: I/O
 
 ````python
 >>> import emzed
 >>> data = emzed.io.loadPeakmap("abc.mzML")
 >>> print len(data)
 2332
-
->>> peaks = emzed.ff.runMetaboFeatureFinder(data, config="std")
->>> print len(peaks)
-122
 ````
-
+--
+````python
+>>> first_spec = data[0]
+>>> print first_spec.rt
+31.2
+````
+--
+````python
+>>> print first_spec.peaks
+NDArrayProxy([[  202.07313538,   877.50109863],
+       [  205.15945435,  3462.20507812],
+       [  206.21429443,  1030.83874512],
+       ...,
+       [  617.32702637,  1036.15905762],
+       [  618.3394165 ,  3995.85131836],
+       [  619.34265137,  8363.46191406]])
+````
+--
+````python
+>>> data = data.extract(imin = 1000)
+>>> emzed.io.storePeakmap(data, "abc.mzML")
+````
 
 ---
 
-# Example: Table handling
+# API Example: peak picker from OpenMS
+
+````python
+>>> peaks = emzed.ff.runMetaboFeatureFinder(data, config="std")
+
+>>> print peaks
+
+id       feature_id mz         rt       intensity quality   fwhm
+int      int        float      float    float     float     float
+------   ------     ------     ------   ------    ------    ------
+0        0          505.98672  15.33m   2.22e+07  3.67e-02  0.21m
+1        0          506.99009  15.33m   2.22e+07  3.67e-02  0.21m
+2        0          507.99120  15.33m   2.22e+07  3.67e-02  0.21m
+3        1          332.05749  13.14m   1.16e+07  1.82e-02  0.20m
+4        1          333.05777  13.14m   1.16e+07  1.82e-02  0.20m
+5        1          334.06153  13.14m   1.16e+07  1.82e-02  0.20m
+6        2          372.08188  13.13m   1.16e+07  1.80e-02  0.22m
+7        3          616.23003  15.68m   1.09e+07  1.78e-02  0.14m
+8        3          617.23205  15.68m   1.09e+07  1.78e-02  0.14m
+...
+
+````
+---
+
+# API Example: Table handling
 
 ````python
 >>> targets = emzed.io.loadCSV("targets.csv")
+
 >>> print targets
 name       mf
 str        str
@@ -337,12 +273,16 @@ str        str
 water      H2O
 sodium     NaCl
 fullerene  C60
-cryptonite Kr
 
 >>> print emzed.mass.of("H2O")
 18.0105650638
-
+````
+--
+````python
 >>> targets.addColumn("m0", targets.mf.apply(emzed.mass.of))
+````
+--
+````python
 >>> print targets
 name       mf       m0
 str        str      float
@@ -350,57 +290,109 @@ str        str      float
 water      H2O      18.01057
 sodium     NaCl     57.95862
 fullerene  C60      720.00000
-cryptonite Kr       -
 ````
-
 ---
 
-# Example: Table handling continued
+# API Example: Table handling continued
 
 ````python
->>> on_earth = targets.filter(targets.m0.isNotNone())
->>> print on_earth
+>>> small = targets.filter(targets.m0 < 700)
+
+>>> print small
+
 name       mf       m0
 str        str      float
 ------     ------   ------
 water      H2O      18.01057
 sodium     NaCl     57.95862
-fullerene  C60      720.00000
+````
+--
+````python
+>>> hits = peaks.join(small, peaks.mz.approxEqual(small.mz, 1e-3))
 
->>> hits = peaks.join(on_earth, peaks.mz.approxEqual(on_earth.mz, 1e-3)
 >>> print hits
+
 mz        rt        name__0    mf__0    m0__0
 float     float     str        str      float
 ------    -----     ------     ------   ------
 18.0105   2.21m     water      H2O      18.01057
+````
 
->>> emzed.gui.inspect(hits)
+---
+# API Example: Table handling continued
+
+````python
+>>> print t
+
+component_id mass
+int          float
+------       ------
+1            10.0
+1            40.0
+2            20.0
+2            50.0
+3            30.0
+````
+--
+````python
+>>> t.addColumn("mean_mass", t.mass.mean.group_by(t.component_id))
+````
+
+--
+````python
+>>> print t
+
+component_id mass     mean_mass
+int          float    float
+------       ------   ------
+1            10.0     25.0
+1            40.0     25.0
+2            20.0     35.0
+2            50.0     35.0
+3            30.0     30.0
 ````
 
 ---
 
-class: center, middle
+# API Example: Dialog builder
 
-# Result from last command is similar to
+````python
+>>> b = emzed.gui.DialogBuilder(title="Please provide data")
+>>> b.addInstruction("For Algorithm A please provide")
+>>> b.addInt("Level")
+>>> b.addFloat("Threshold")
+>>> b.addFileOpen("Input File")
+
+>>> user_input = b.show()
+````
+
+--
+
+<center>
+<img src="dialogbuilder.png" class="center">
+</center>
+--
+
+````python
+>>> user_input = b.show()
+>>> print user_input
+(10, 1.02, 'C:/Dokumente und Einstellungen/e001.mzML')
+````
+
+---
+
+# Visual inspection tools
+
+### table explorer example
 
 ![Centered image](table_explorer.png)
 
 ---
 
-# Impact
-
-- Users report more trust in analysis results
-
-- emzed as a playground for testing with new analysis strategies
-
-- Several publications from DBIOL related to emzed
-
----
-class: center, middle, inverse
-
-# emzed online
-
-# http://emzed.ethz.ch
+# Patched spyder as IDE for emzed (emzed workbench)
+<center>
+<img src="workbenc.png" class="center" width="700">
+</center>
 
 ---
 # emzed internals:
@@ -415,26 +407,16 @@ class: center, middle, inverse
 
 - Workbench is patched **Spyder**
 
-- R bridge uses **ruype** (stdio/stdout pipes to R subprocess)
+- R bridge uses **rPype** (stdio/stdout pipes to R subprocess)
 
 - Bridge to **OpenMS** uses Cython (pyOpenMS)
 
-
 ---
+class: center, middle
 
-# Plans
+# emzed online
 
-- Algorithms for merging several measurement modes
-
-- Algorithms for MSMS measurements
-
-- Refactor wrapped EAWAG algorithms as emzed extensions
-
-- Backporting some modules to emzed: pacer, presettr
-
-- Faster R bridge (based on pyRserve)
-
-- Rewrite table data structures using pandas.
+# http://emzed.ethz.ch
 
 ---
 
