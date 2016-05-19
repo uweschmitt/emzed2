@@ -48,15 +48,7 @@ class ObjectStore(StringStoreBase, Store):
 
     def fetch_column(self, col_index, global_indices):
         codes = StringStoreBase.fetch_column(self, col_index, global_indices)
-
-        strings = self.fetched.get(col_index)
-        if strings is None:
-            strings = self._fetch_column(col_index)
-            self.fetched[col_index] = strings
-        global_indices = np.array(global_indices)
-        local_indices = ((global_indices - 1) >> 3) + 1
-        local_indices[global_indices == 0] = 0
-        return map(ObjectProxyCodeLoaded, strings[local_indices])
+        return map(ObjectProxyCodeLoaded, codes)
 
 
 class ObjectProxy(object):

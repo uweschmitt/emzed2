@@ -88,31 +88,50 @@ class StringStoreBase(object):
 
         yield index
 
-    def _fetch_column(self, col_index):
+    def _fetch_full_string_blob(self, col_index):
+        return self.blobs[col_index][:].tostring()
+
+    def _fetch_strings(self, col_index):
+        """ we create an array which has None as first entry then the
+        strings from the blob. This makes later fetching None values fast in case
+        of many None values in the store.
+        """
         starts = self.starts[col_index][:]
         if not len(starts):
             return []
-        blobs = self.blobs[col_index][:].tostring()
-        print(self, blobs)
-        print(self, starts[:])
-        rv = [None]
-        i = 0
-        for i, s, e in itertools.izip(itertools.count(), starts, starts[1:]):
-            rv.append(blobs[s:e])
-        rv.append(blobs[starts[-1]:])
-        print(self, rv)
-        return np.array(rv, dtype=object)
+        blobs = self._fetch_full_string_blob(col_index)
+
+        def _iter():
+            yield None
+            for s, e in itertools.izip(starts, starts[1:]):
+                yield blobs[s:e]
+            yield blobs[starts[-1]:]
+
+        # avoid appending to a list, np.fromiter does not work for dtype=object:
+        rv = np.zeros((len(starts) + 1,), dtype=object)
+        for i, o in itertools.izip(itertools.count(), _iter()):
+            rv[i] = o
+
+        return rv
 
     def fetch_column(self, col_index, global_indices):
         strings = self.fetched.get(col_index)
         if strings is None:
-            strings = self._fetch_column(col_index)
+            strings = self._fetch_strings(col_index)
             self.fetched[col_index] = strings
-        global_indices = np.array(global_indices)
-        local_indices = ((global_indices - 1) >> 3) + 1
-        local_indices[global_indices == 0] = 0
-        values = strings[local_indices]
-        return values
+
+        # we assume that _fetch_strings returns an array where the first
+        # item is None (index 0) and then the strings start with index 1
+        # this makes the global_index -> string_index computation a little
+        # complex, because (0 - 1) >> 3 underflows here:
+        global_indices = np.array(global_indices, dtype=int)
+
+        # the first term is the "global to local" index computation, then we
+        # add 1 because strings[] starts with None as described above:
+        string_indices = ((global_indices - 1) >> 3) + 1
+        # we fix the underflow:
+        string_indices[global_indices == 0] = 0
+        return strings[string_indices]
 
     def _read(self, col_index, index):
 
@@ -156,20 +175,9 @@ class UnicodeStore(StringStoreBase, Store):
         self.blobs[0].flush()
         self.starts[0].flash()
 
-    def _fetch_column(self, col_index):
-        starts = self.starts[col_index][:]
-        if not len(starts):
-            return []
-        blobs = unicode(self.blobs[col_index][:].tostring(), "utf-8")
-        print(self, blobs)
-        print(self, starts[:])
-        rv = [None]
-        i = 0
-        for i, s, e in itertools.izip(itertools.count(), starts, starts[1:]):
-            rv.append(blobs[s:e])
-        rv.append(blobs[starts[-1]:])
-        print(self, rv)
-        return np.array(rv, dtype=object)
+    def _fetch_full_string_blob(self, col_index):
+        return unicode(self.blobs[col_index][:].tostring(), "utf-8")
+
 
     def _read(self, col_index, index):
         utf8 = super(UnicodeStore, self)._read(col_index, index)

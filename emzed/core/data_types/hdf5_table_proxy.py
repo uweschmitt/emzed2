@@ -67,8 +67,6 @@ class LogAll(object):
 
 class Hdf5TableProxy(ImmutableTable):
 
-    __metaclass__ = LogAll
-
     def __init__(self, path):
         self.reader = Hdf5TableReader(path)
         self.setup()
