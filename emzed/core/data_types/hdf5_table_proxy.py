@@ -23,6 +23,8 @@ from base_classes import ImmutableTable
 
 from hdf5.install_profile import profile
 
+from .range_set import RangeSet
+
 
 class UfuncWrapper(object):
 
@@ -41,22 +43,31 @@ class LogAll(object):
 
     def __new__(clz, name, bases, attributes):
 
-        def wrapper(f):
-            def run(*a, **kw):
+        def wrap(f):
+            """wrap methods to report execution time"""
+
+            # this produces A LOT of output and the corresponding access to the ghost table
+            # should be very fast...
+            if f.__name__ == "__getattr__":
+                return f
+
+            def decorated(*a, **kw):
                 started = time.time()
                 result = f(*a, **kw)
                 needed = time.time() - started
                 print("calling", f.__name__, "needed %.4f secs" % needed)
                 return result
-            return run
+            return decorated
 
-        wrapped_methods = {name: wrapper(a) for (name, a) in attributes.items() if callable(a)}
+        wrapped_methods = {name: wrap(a) for (name, a) in attributes.items() if callable(a)}
         attribs = {name: a for (name, a) in attributes.items() if not callable(a)}
         attribs.update(wrapped_methods)
         return type(name, bases, attribs)
 
 
 class Hdf5TableProxy(ImmutableTable):
+
+    __metaclass__ = LogAll
 
     def __init__(self, path):
         self.reader = Hdf5TableReader(path)
@@ -132,7 +143,7 @@ class Hdf5TableProxy(ImmutableTable):
             ranges.
         """
 
-        indices_of_fitting_rows = None # set(range(len(self)))
+        indices_of_fitting_rows = RangeSet(0, len(self))
 
         for col_name, filter_function in filters:
 
@@ -155,13 +166,10 @@ class Hdf5TableProxy(ImmutableTable):
                 iflags[iflags] = subflags
                 keep = set(np.where(iflags)[0])
 
-            if indices_of_fitting_rows is not None:
-                indices_of_fitting_rows = indices_of_fitting_rows.intersection(keep)
-            else:
-                indices_of_fitting_rows = keep
+            indices_of_fitting_rows = indices_of_fitting_rows.intersection(keep)
 
-        if indices_of_fitting_rows is None:
-            return set(range(len(self)))
+        # prevent speed deterioration:
+        assert isinstance(indices_of_fitting_rows, (set, RangeSet))
         return indices_of_fitting_rows
 
     def __len__(self):

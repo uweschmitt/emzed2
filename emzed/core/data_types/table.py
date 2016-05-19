@@ -19,6 +19,24 @@ import dill
 import numpy as np
 import pyopenms
 
+from .range_set import RangeSet
+
+from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
+                          common_type_for, is_numpy_number_type,
+                          Lookup)
+
+from .base_classes import MutableTable
+
+from . import tools
+
+from hdf5.object_store import ObjectProxy
+
+from .ms_types import PeakMap, PeakMapProxy
+
+__doc__ = """
+
+"""
+
 
 def try_to_move(from_, to):
 
@@ -52,21 +70,6 @@ def atomic_open_for_write(path, flags):
     try_to_move(temp_path, path)
 
 
-from .expressions import (BaseExpression, ColumnExpression, Value, _basic_num_types,
-                          common_type_for, is_numpy_number_type,
-                          Lookup)
-
-from .base_classes import MutableTable
-
-from . import tools
-
-from hdf5.object_store import ObjectProxy
-
-from .ms_types import PeakMap, PeakMapProxy
-
-__doc__ = """
-
-"""
 
 
 def relative_path(from_, to):
@@ -971,7 +974,7 @@ class Table(MutableTable):
             ranges.
         """
 
-        indices_of_fitting_rows = set(range(len(self)))
+        indices_of_fitting_rows = RangeSet(0, len(self))
 
         for name, filter_function in filters:
 

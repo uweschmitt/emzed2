@@ -462,7 +462,7 @@ class TableModel(QAbstractTableModel):
             else:
                 filters = self.last_filters
 
-        visible_rows = set(self.table.findMatchingRows(filters.items()))
+        visible_rows = self.table.findMatchingRows(filters.items())
 
         if force_reset or visible_rows != self.visible_rows:
             self.visible_rows = visible_rows
