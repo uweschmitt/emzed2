@@ -24,11 +24,8 @@ from .helpers import timethis
 
 
 def isUrl(what):
-    if isinstance(what, QString):
-        what = str(what)
-    if isinstance(what, basestring):
-        return what.startswith("http://") or what.startswith("https://")
-    return False
+    what = unicode(what)
+    return what.startswith(u"http://") or what.startswith(u"https://")
 
 
 class TableModel(QAbstractTableModel):
@@ -562,7 +559,7 @@ class MutableTableModel(TableModel):
     def data(self, index, role=Qt.DisplayRole):
         if role == Qt.EditRole:
             shown = super(MutableTableModel, self).data(index, Qt.DisplayRole)
-            print(shown)
+            print(repr(shown))
             return unicode(shown)
         else:
             return super(MutableTableModel, self).data(index, role)

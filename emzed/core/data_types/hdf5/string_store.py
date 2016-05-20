@@ -82,7 +82,13 @@ class StringStoreBase(object):
 
         start = blob.nrows
 
-        blob.append(np.fromstring(s, dtype=np.uint8))
+        try:
+            blob.append(np.fromstring(s, dtype=np.uint8))
+        except UnicodeEncodeError:
+            try:
+                raise UnicodeEncodeError("%r (%s)" % (s, s))
+            except:
+                raise UnicodeEncodeError(repr(s))
         index = starts.nrows
         starts.append([start])
 

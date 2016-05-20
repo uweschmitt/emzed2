@@ -219,7 +219,7 @@ class StringFilterPattern(_StringFilter):
                 return self.name, _filter
 
         def _filter(v, pattern=pattern):
-            return fnmatch(str(v), pattern)
+            return fnmatch(v, pattern)
         return self.name, _filter
 
 
