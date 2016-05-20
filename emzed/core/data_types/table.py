@@ -984,9 +984,10 @@ class Table(MutableTable):
             col_values = self.getColumn(name).values
             rows_to_remain = set()
             for j, v in enumerate(col_values):
-                match = filter_function(v)
-                if match:
-                    rows_to_remain.add(j)
+                if v is not None:
+                    match = filter_function(v)
+                    if match:
+                        rows_to_remain.add(j)
             indices_of_fitting_rows = indices_of_fitting_rows.intersection(rows_to_remain)
 
         return indices_of_fitting_rows
@@ -2302,7 +2303,7 @@ class Table(MutableTable):
 
     @staticmethod
     def _check_if_compatible(tables):
-        assert all(isinstance(o, Table) for o in tables), "only tables allowed"
+        assert all(isinstance(o, Table) for o in tables), "only tables allowed: %s" % tables
 
         def diff_message(l1, l2, txt, names=None):
             msgs = []
