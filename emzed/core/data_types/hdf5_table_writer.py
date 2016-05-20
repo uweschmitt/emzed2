@@ -51,6 +51,11 @@ def atomic_hdf5_writer(path):
     adder = _Adder(temp_path)
     try:
         yield adder
+    except Exception, e:
+        # do not keep an partially written file in case of errors:
+        adder.close()
+        os.remove(temp_path)
+        raise e
     finally:
         adder.close()
 
