@@ -20,6 +20,9 @@ install_requires = ["guidata<=1.6.2",
                     "scikit-learn",
                     "emzed_optimizations>=0.6.0",
                     "pycryptodome<=3.3",
+                    "xlwt",
+                    "xlrd",
+                    "openpyxl",
                     ]
 
 # if we install pyreadline on ubuntu14 we run into trouble:

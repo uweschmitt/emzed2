@@ -76,3 +76,20 @@ def loadBlob(path=None):
     __, ext = os.path.splitext(path)
     type_ = ext[1:].upper()   # remove leading "."
     return Blob(data, type_)
+
+
+def loadExcel(path=None, types=None, formats=None):
+    """types is either None or a dictionary mapping column names
+    to their types.
+    formats is either None or a dictionary mapping column names to formats.
+    """
+    path = _prepare_path(path, None)
+    if path is None:
+        return None
+
+    from emzed.core.data_types import Table
+    import pandas
+    import os.path
+
+    df = pandas.read_excel(path)
+    return Table.from_pandas(df, types=types, formats=formats)

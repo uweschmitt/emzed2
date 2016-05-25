@@ -2639,6 +2639,17 @@ class Table(MutableTable):
 
         rows = [map(Table._conv_nan, row) for row in rows]
 
+        def convert(row):
+            for  (t, c) in zip(col_types, row):
+                if c is not None and t is not object:
+                    try:
+                        c = t(c)
+                    except TypeError:
+                        c = None
+                yield c
+
+        rows = [list(convert(row)) for row in rows]
+
         for i, t in enumerate(col_types[:]):
             if t in (object, None):
                 column = [row[i] for row in rows]

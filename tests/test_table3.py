@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import emzed
 
 
@@ -63,3 +65,21 @@ def test_invalidated_peakmaps():
     before = t.uniqueId()
     spec.rt += 1
     assert t.uniqueId() != before
+
+
+def test_excel_io(tmpdir, regtest):
+    t = emzed.utils.toTable("a", (0, 2, 3, None), type_=int)
+    t.addColumn("b", t.a.apply(str) + "_", type_=str)
+    t.addColumn("c", t.a.apply(unicode) + "_", type_=unicode)
+    t.addColumn("d", t.a + .1, type_=float)
+    t.addColumn("e", t.a.apply(bool), type_=bool)
+
+    print(t, file=regtest)
+
+    path = tmpdir.join("table.xlsx").strpath
+    emzed.io.storeExcel(t, path)
+
+    types = {"a": int, "e": bool, "b": str}
+    formats = {"d": "%+.1f"}
+    tn = emzed.io.loadExcel(path, types=types, formats=formats)
+    print(tn, file=regtest)
