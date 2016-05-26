@@ -389,7 +389,7 @@ class TableModel(QAbstractTableModel):
             mzmax = values["mzmax" + p]
             rtmin = values["rtmin" + p]
             rtmax = values["rtmax" + p]
-            if mzmin is None or mzmax is None or rtmin is None or rtmax is None:
+            if mzmin is None or mzmax is None or rtmin is None or rtmax is None or pm is None:
                 chromo = [], []
             else:
                 chromo = pm.chromatogram(mzmin, mzmax, rtmin, rtmax)
