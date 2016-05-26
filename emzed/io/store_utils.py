@@ -75,4 +75,4 @@ def storeExcel(tab, path=None):
     assert ext in (".xls", ".xlsx"), "invalid file extension %s" % ext
 
     df = tab.to_pandas()
-    df.to_excel(path)
+    df.to_excel(path, index=False)
