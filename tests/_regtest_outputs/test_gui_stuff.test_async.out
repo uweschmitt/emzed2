@@ -1,0 +1,10 @@
+run f (0,)
+emitted 1
+run f (1,)
+emitted 2
+run f (2,)
+emitted 3
+run f (3,)
+emitted 4
+run f (4,)
+emitted 5

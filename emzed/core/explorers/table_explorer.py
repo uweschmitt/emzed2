@@ -1065,9 +1065,8 @@ class TableExplorer(EmzedDialog):
 
         # we need to keep gui responsive to handle key clicks:
         self.async_runner.run_async(handle_row_click, (),
-                                    id_="select_rows",
                                     blocked=True,
-                                    only_one_worker=True, call_back=update)
+                                    call_back=update)
 
     @timethis
     def select_rows_in_group(self, widget_row_idx, group_by_idx):
@@ -1129,9 +1128,8 @@ class TableExplorer(EmzedDialog):
                 self.tableView.blockSignals(False)
 
         self.async_runner.run_async(find_rows, (),
-                                    id_="select_rows",
                                     blocked=True,
-                                    only_one_worker=True, call_back=mark_rows)
+                                    call_back=mark_rows)
 
     def setup_spectrum_chooser(self):
         self.choose_spec.clear()
