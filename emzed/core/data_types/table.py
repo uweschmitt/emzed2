@@ -2358,7 +2358,8 @@ class Table(MutableTable):
         return meta
 
     def appendTable(self, other):
-        assert len(self) == len(other), "numbe of table rows does not fit"
+        """horizontal inplace appending"""
+        assert len(self) == len(other), "number of table rows does not fit"
         if set(self._colNames) & set(other._colNames):
             raise ValueError("names of tables intersect")
 
