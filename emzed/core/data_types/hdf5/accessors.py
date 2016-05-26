@@ -209,6 +209,7 @@ class Hdf5TableReader(Hdf5Base):
         col_name = self.col_names[col_index]
         if col_name in self.col_cache:
             del self.col_cache[col_name]
+        if col_name in self.col_cache_raw:
             del self.col_cache_raw[col_name]
 
         if value is None:
@@ -217,7 +218,7 @@ class Hdf5TableReader(Hdf5Base):
 
         self._remove_missing_value_entries_in_column(col_index, row_selection)
 
-        if type_ not in (int, long, float, bool):
+        if type_ not in self.basic_type_map:
             value = self.manager.store_object(col_index, value, type_)
 
         name = self.col_names[col_index]
@@ -243,6 +244,7 @@ class Hdf5TableReader(Hdf5Base):
         col_name = self.col_names[col_index]
         if col_name in self.col_cache:
             del self.col_cache[col_name]
+        if col_name in self.col_cache_raw:
             del self.col_cache_raw[col_name]
 
         if value is None:
