@@ -222,7 +222,7 @@ def _merge_spectra(spectra, mode, mz_tolerance, verbose):
     return spectra
 
 def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, verbose=True):
-    """takes *peak_table* with columns "id", "rtmin", "rtmax", "mzmin", "mzmax" and "peakmap"
+    """takes *peak_table* with columns "rtmin", "rtmax", "mzmin", "mzmax" and "peakmap"
     and extracts the ms2 spectra for these peaks.
 
     the *peak_table* is modified in place, an extra column "ms2_spectra" is added.
@@ -246,7 +246,7 @@ def attach_ms2_spectra(peak_table, peak_map, mode="union", mz_tolerance=1.3e-3, 
 
     assert mode in ("all", "max_range", "max_energy", "union", "intersection")
 
-    peak_table.ensureColNames(("id", "rtmin", "rtmax", "mzmin", "mzmax"))
+    peak_table.ensureColNames(("rtmin", "rtmax", "mzmin", "mzmax"))
     assert "spectra_ms2" not in peak_table.getColNames()
 
     lookup = LookupMS2(peak_map)
