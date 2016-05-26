@@ -1356,7 +1356,7 @@ class Table(MutableTable):
 
     def append(self, *tables):
         """
-        appends ``tables`` to the existing table **in place**. Can be called as ::
+        appends ``tables`` horizontally to the existing table **in place**. Can be called as ::
 
               t1.append(t2, t3)
               t1.append([t2, t3])
@@ -1375,12 +1375,15 @@ class Table(MutableTable):
                 raise Exception("can not join object %r" % table)
 
         names = set((tuple(t._colNames)) for t in alltables)
+        names.add(tuple(self._colNames))
         if len(names) > 1:
             raise Exception("the column names do not match")
 
         types = set((tuple(t._colTypes)) for t in alltables)
+        types.add(tuple(self._colTypes))
         if len(types) > 1:
             raise Exception("the column types do not match")
+
         for t in alltables:
             self.rows.extend(t.rows)
         self.resetInternals()
