@@ -3,7 +3,7 @@ ascending, ascending
 a        d
 int      str
 ------   ------
--        None
+-        -
 1        4
 1        4
 2        1
@@ -18,14 +18,14 @@ int      str
 2        2
 1        4
 1        4
--        None
+-        -
 
 ascending, descending
 [4 0 1 2 3]
 a        d
 int      str
 ------   ------
--        None
+-        -
 1        4
 1        4
 2        2
@@ -40,14 +40,14 @@ int      str
 2        1
 1        4
 1        4
--        None
+-        -
 
 ascending
 [4 0 1 2 3]
 a        d
 int      str
 ------   ------
--        None
+-        -
 1        4
 1        4
 2        2
@@ -62,5 +62,5 @@ int      str
 2        2
 1        4
 1        4
--        None
+-        -
 

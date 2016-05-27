@@ -8,10 +8,10 @@ from datetime import datetime
 
 import numpy as np
 
-from emzed.core.data_types import TimeSeries, CheckState, PeakMap
-from emzed.core.data_types.hdf5_table_writer import to_hdf5, append_to_hdf5, atomic_hdf5_writer
+from emzed.core import TimeSeries, CheckState, PeakMap, Spectrum
+from emzed.io import to_hdf5, append_to_hdf5, atomic_hdf5_writer
+
 from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, PeakMapProxy
-from emzed.core.data_types.ms_types import PeakMap, Spectrum
 
 from emzed.core.data_types.hdf5.accessors import (Hdf5TableWriter, Hdf5TableAppender,
                                                   Hdf5TableReader)
@@ -21,9 +21,8 @@ from emzed.core.data_types.hdf5.bit_matrix import (BitMatrix,)
 
 from emzed.utils import toTable
 
-from pytest import fixture, raises, yield_fixture, mark
+from pytest import fixture, raises, yield_fixture
 import pytest
-
 
 
 @fixture()
@@ -153,13 +152,13 @@ def test_round_trip(tproxy, table, regtest):
 
 def test_round_trip_objects(tmpdir, regtest):
     # test roundtrip:
-    col = [{i : i + 1} for i in range(5)]
+    col = [{i: i + 1} for i in range(5)]
     t0 = toTable("dicts", col, type_=object)
 
-    col = [{i : i + 2} for i in range(5)]
+    col = [{i: i + 2} for i in range(5)]
     t0.addColumn("dicts_1", col, type_=object)
     t0.addColumn("strs", map(str, range(5)), type_=str)
-    t0.addColumn("strs_1", t0.strs * 3 + "_x" , type_=str)
+    t0.addColumn("strs_1", t0.strs * 3 + "_x", type_=str)
 
     print(t0, file=regtest)
     path = tmpdir.join("test.hdf5").strpath
@@ -168,6 +167,7 @@ def test_round_trip_objects(tmpdir, regtest):
 
     tback = tproxy.toTable()
     print(tback, file=regtest)
+
 
 def test_get_index(tproxy):
 
@@ -355,7 +355,7 @@ def test_bit_matrix(tmpdir):
 @pytest.fixture
 def proxy_small_table(tmpdir):
     t = toTable("a", (1, 1, 2, 2, None), type_=int)
-    t.addColumn("d", map(str, (4, 4, 2, 1, None)), type_=str)
+    t.addColumn("d", ("4", "4", "2", "1", None), type_=str)
     path = tmpdir.join("test.hdf5").strpath
     to_hdf5(t, path)
 
@@ -418,7 +418,7 @@ def test_rows_access(regtest, proxy_small_table):
 
 def test_write_unicode(tmpdir, regtest):
 
-    table = toTable("a", ("x", None, u"", "" , u"ccccäää##c"), type_=unicode)
+    table = toTable("a", ("x", None, u"", "", u"ccccäää##c"), type_=unicode)
     table.addColumn("b", ("x", "asbcder", None, None, ""), type_=str)
     table.addColumn("c", ("x", "asbcder", 1, (1,), ""), type_=object)
     path = tmpdir.join("t.hdf5").strpath
@@ -429,13 +429,27 @@ def test_write_unicode(tmpdir, regtest):
     print(prox.reader.get_col_values("b"), file=regtest)
     print([i.load() for i in prox.reader.get_col_values("c")], file=regtest)
 
+
+def test_unique_col_value(proxy_small_table, regtest):
+    values = proxy_small_table.getUniqueValues("a")
+    assert sorted(set(values)) == sorted(values)
+    assert None not in values
+    print(sorted(values), file=regtest)
+
+    values = proxy_small_table.getUniqueValues("d")
+    assert sorted(set(values)) == sorted(values)
+    assert None not in values
+    print(sorted(values), file=regtest)
+
+
+def test_unique_col_value_extended(tproxy, regtest):
+    values = tproxy.getUniqueValues("time_series")
+    for v in values:
+        assert isinstance(v, TimeSeries)
+    ids = [ts.uniqueId() for ts in values]
+    print(sorted(ids), file=regtest)
+
 """
 todo:
-    unicode handling in substance tables !
-    hdf stores refac: to many simliarities in ObjectSTore, StringStore and UnicodeStires
-    adduct anno neu
-    ppm bei suche zu groß
     blank: auch zukunft
-    global_peak_ids !
     """
-

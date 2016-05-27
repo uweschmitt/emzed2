@@ -107,7 +107,7 @@ class Store(object):
     def fetch(self, col_index, global_id):
         if global_id == 0:
             return None
-        assert isinstance(global_id, (int, long))
+        assert isinstance(global_id, (int, long, np.number))
         flag = Store.compute_flag(global_id)
         reader = self._flags.get(flag)
         if reader is None:
