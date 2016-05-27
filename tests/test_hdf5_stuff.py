@@ -445,9 +445,26 @@ def test_unique_col_value(proxy_small_table, regtest):
 def test_unique_col_value_extended(tproxy, regtest):
     values = tproxy.getUniqueValues("time_series")
     for v in values:
-        assert isinstance(v, TimeSeries)
-    ids = [ts.uniqueId() for ts in values]
+        assert v is None or isinstance(v, TimeSeries)
+    ids = [ts.uniqueId() for ts in values if ts is not None]
     print(sorted(ids), file=regtest)
+    print(file=regtest)
+
+    values = tproxy.getUniqueValues("int")
+    for v in values:
+        assert v is None or isinstance(v, int)
+    print(sorted(values), file=regtest)
+    print(file=regtest)
+
+    ints, tss = tproxy.getUniqueValues("int", "time_series")
+    for v in ints:
+        assert v is None or isinstance(v, int)
+    for v in tss:
+        assert v is None or isinstance(v, TimeSeries)
+
+    ids = [ts.uniqueId() if ts is not None else None for ts in tss]
+    print(sorted(ids), file=regtest)
+    print(sorted(ints), file=regtest)
 
 """
 todo:

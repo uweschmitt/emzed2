@@ -320,25 +320,36 @@ class Hdf5TableReader(Hdf5Base):
         self.col_cache_raw[col_name] = (col_values, missing)
         return col_values, missing
 
-    def get_unique_col_values_not_none(self, col_name):
+    def get_unique_tuples(self, col_names):
 
-        if col_name in self.col_cache:
-            result = set(self.col_cache[col_name])
-            result.discard(None)
+        assert isinstance(col_names, (list, tuple))
+        assert len(col_names) > 0
+        col_indices = [self.col_names.index(col_name) for col_name in col_names]
+        col_types = [self.col_type_of_name[col_name] for col_name in col_names]
 
-        col_index = self.col_names.index(col_name)
-        col_type = self.col_type_of_name[col_name]
-        # eg TimeSeriesStore does not implement the available_columns method and so the
-        # following method returns None for TimeSeries:
-        store = self.manager.fetch_store(col_index)
-        col_values = set(getattr(self.row_table.cols, col_name))
-        if store is not None:
-            col_values = set(store.fetch_column(col_index, sorted(col_values)))
-        elif col_type not in self.basic_type_map:
-            # this happens eg for TimeSeries, see comment above
-            col_values = set(self.manager.fetch(col_index, global_id) for global_id in col_values)
-        col_values.discard(None)
-        return col_values
+        cols = [getattr(self.row_table.cols, col_name) for col_name in col_names]
+
+        # zip cols to list of tuples:
+        tuples = zip(*cols)
+
+        # compute unique tuples:
+        tuples = set(tuples)
+
+        # "transpose" list of tuples: [ (a, b), (d, c), (e, f) ] -> [(a, d, e), (b, c, f)]:
+        all_col_values = zip(*tuples)
+
+        resolved_col_values = []
+        for col_values, col_type, col_index in zip(all_col_values, col_types, col_indices):
+            # eg TimeSeriesStore does not implement the available_columns method and so the
+            # following method returns None for TimeSeries:
+            store = self.manager.fetch_store(col_index)
+            if store is not None:
+                col_values = store.fetch_column(col_index, col_values)
+            elif col_type not in self.basic_type_map:
+                # this happens eg for TimeSeries, see comment above
+                col_values = list(self.manager.fetch(col_index, global_id) for global_id in col_values)
+            resolved_col_values.append(col_values)
+        return resolved_col_values
 
 
 class Hdf5TableAppender(Hdf5TableWriter, Hdf5TableReader):

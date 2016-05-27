@@ -128,8 +128,11 @@ class Hdf5TableProxy(ImmutableTable):
         print
         table.print_(max_lines=None)
 
-    def getUniqueValues(self, col_name):
-        return self.reader.get_unique_col_values_not_none(col_name)
+    def getUniqueValues(self, col_name, *extra_col_names):
+        result = self.reader.get_unique_tuples((col_name,) + extra_col_names)
+        if len(extra_col_names) == 0:
+            return result[0]
+        return result
 
     def findMatchingRows(self, filters):
         """accepts list of column names and functions operating on those columns,
