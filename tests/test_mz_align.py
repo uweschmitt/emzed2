@@ -7,7 +7,6 @@ MMU = 0.001
 
 def testMzAlign(path, tmpdir, monkeypatch):
 
-
     if 0 and sys.platform != "win32":
         import matplotlib
         old = matplotlib.get_backend()

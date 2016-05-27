@@ -1,13 +1,15 @@
 # encoding: utf-8
 from __future__ import print_function, division, absolute_import
 
-import time
-
+import guidata
 from emzed.core.explorers.async_runner import AsyncRunner
 
+import pytest
+
+
+@pytest.mark.skipif(False, reason="crashes on new mac when qapplication is called")
 def test_async(regtest):
 
-    import  guidata
     app = guidata.qapplication()  # singleton !
 
     def f(x):
@@ -20,5 +22,5 @@ def test_async(regtest):
         print(msg, file=regtest)
 
     runner = AsyncRunner(reporter=report)
-    runner.run_async_chained((f, f,f,f,f,g), (0,))
+    runner.run_async_chained((f, f, f, f, f, g), (0,))
     app.exec_()
