@@ -21,7 +21,8 @@ def main():
     import os.path
 
     here = os.path.dirname(os.path.abspath(__file__))
-    tproxy = Hdf5TableProxy(os.path.join(here, "test_1000000.hdf5"))
+    #tproxy = Hdf5TableProxy(os.path.join(here, "test_1000000.hdf5"))
+    tproxy = Hdf5TableProxy(os.path.join(here, "peaks.hdf5"))
     tproxy.info()
 
     # tproxy.filter_("floats_0", 400, 450)
@@ -29,50 +30,6 @@ def main():
     #tproxy.sortBy(["floats_0"], [True])
 
     emzed.gui.inspect(tproxy)
-    return
-
-    app = QApplication(sys.argv)
-    w = MyWindow(tproxy)
-    w.show()
-    sys.exit(app.exec_())
-
-
-class MyWindow(QWidget):
-
-    def __init__(self, tproxy, *args):
-        QWidget.__init__(self, *args)
-
-        tablemodel = MyTableModel(tproxy, self)
-        tableview = QTableView()
-        tableview.setModel(tablemodel)
-
-        layout = QVBoxLayout(self)
-        layout.addWidget(tableview)
-        self.setLayout(layout)
-
-
-class MyTableModel(QAbstractTableModel):
-
-    def __init__(self, tproxy, parent=None, *args):
-        QAbstractTableModel.__init__(self, parent, *args)
-        self.tproxy = tproxy
-        self.n_cols = len(tproxy[0])
-
-    def rowCount(self, parent):
-        return len(self.tproxy)
-
-    def columnCount(self, parent):
-        return self.n_cols
-
-    def data(self, index, role):
-        if not index.isValid():
-            return QVariant()
-        elif role != Qt.DisplayRole:
-            return QVariant()
-        cell_value = self.tproxy[index.row()][index.column()]
-        if cell_value is None:
-            return "-"
-        return str(cell_value)
 
 if __name__ == "__main__":
     main()

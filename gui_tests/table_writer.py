@@ -6,8 +6,10 @@ import contextlib
 import time
 
 
-from emzed.core.data_types.hdf5_table_writer import atomic_hdf5_writer, to_hdf5
-from emzed.core.data_types.col_types import CheckState
+from emzed.io import atomic_hdf5_writer, to_hdf5
+from emzed.core import CheckState
+from emzed.ff import  runMetaboFeatureFinder
+from emzed.utils import  integrate
 
 
 def main():
@@ -31,8 +33,15 @@ def main():
     with atomic_hdf5_writer(path) as add:
         add(t0)
 
+    peaks = runMetaboFeatureFinder(pm)
+    peaks = integrate(peaks)
+    peaks.info()
+    with atomic_hdf5_writer("peaks.hdf5") as add:
+        add(peaks)
+
+    return
+
     # create modified copy
-    pm2 = copy.deepcopy(pm)
     pm2.spectra = pm2.spectra[1:]
 
     rtmin, rtmax = pm.rtRange()
