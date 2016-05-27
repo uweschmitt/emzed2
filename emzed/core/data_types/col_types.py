@@ -78,13 +78,28 @@ class TimeSeries(object):
         self.x = np.array(x, dtype="object")
         self.y = np.array(y, dtype="float64")
         self._unique_id = None
+        self._unique_ids_cutted = {}
         self.label = label
         self.is_blank = blank_flags
 
     def uniqueId(self):
         if self._unique_id is None:
-            self._unique_id = unique_id_from((self.x, self.y, self.is_blank, self.label))
+            self._unique_id = unique_id_from(self.x, self.y, self.is_blank, self.label)
         return self._unique_id
+
+    def _unique_id_cutted(self, n):
+        """computes unique id of time series truncated by last entries
+        """
+        if n not in self._unique_ids_cutted:
+            id_ = unique_id_from(self.x[:n], self.y[:n], self.is_blank[:n], self.label)
+            self._unique_ids_cutted[n] = id_
+        return self._unique_ids_cutted[n]
+
+    def continues(self, other):
+        """checks if other "is a prefix" of self. So if we compute a new time series we can
+        detect if it is a continuation of another already existing time series
+        """
+        return len(self) > len(other) and self._unique_id_cutted(len(other)) == other.uniqueId()
 
     def __len__(self):
         return len(self.x)

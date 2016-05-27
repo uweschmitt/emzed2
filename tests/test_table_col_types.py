@@ -22,6 +22,11 @@ def test_0(regtest):
 
     print(TimeSeries(time_stamps, values).uniqueId(), file=regtest)
 
+    ts0 = TimeSeries(time_stamps, values, blank_flags=[True] * n)
+    for i in (1, 2, 3, 99, 100):
+        tsi = TimeSeries(time_stamps[:-i], values[:-i], blank_flags=[True] * (n - i))
+        assert ts0.continues(tsi)
+
 
 def test_checked():
     from emzed.core.data_types.col_types import CheckState
