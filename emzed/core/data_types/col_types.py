@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import cPickle
 
@@ -73,7 +74,8 @@ class TimeSeries(object):
 
     def __init__(self, x, y, label=None, blank_flags=None):
         assert len(x) == len(y)
-        self.x = np.array(x)
+        assert all(isinstance(xi, datetime.datetime) or xi is None for xi in x)
+        self.x = np.array(x, dtype="object")
         self.y = np.array(y, dtype="float64")
         self._unique_id = None
         self.label = label

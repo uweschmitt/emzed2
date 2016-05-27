@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from datetime import datetime
 import os
 
 from emzed.core.data_types import Table, PeakMap, Blob, TimeSeries
@@ -737,8 +738,10 @@ def test_uniuqe_id():
 
 def test_ts(regtest_redirect):
     t = emzed.utils.toTable("id", [1, 1, 2])
-    # peakmap unique id already tested by compression of peakmap:
+
     x = [None, 1, 2, 3, 4, None, None, 4, None]
+    x = [None if xi is None else datetime.fromordinal(xi) for xi in x]
+
     y = [None, 11, 12, 14, 13, None, None, 100, None]
     ts = TimeSeries(x, y)
     t.addColumn("ts", ts, format_="%s")
