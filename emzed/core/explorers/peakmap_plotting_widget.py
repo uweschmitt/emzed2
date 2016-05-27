@@ -592,6 +592,8 @@ class ModifiedImagePlot(ImagePlot):
         axis_ids_horizontal = (self.get_axis_id("bottom"), self.get_axis_id("top"))
         axis_ids_vertical = (self.get_axis_id("left"), self.get_axis_id("right"))
 
+        rtmin = rtmax = mzmin = mzmax = None
+
         for (direction, x1, x0, start, width), axis_id in axes_to_update:
             lbound, hbound = self.get_axis_limits(axis_id)
             if not lock_aspect_ratio:
@@ -625,7 +627,8 @@ class ModifiedImagePlot(ImagePlot):
             self.set_axis_limits(axis_id, vmin, vmax)
 
         self.setAutoReplot(auto)
-        self.NEW_IMAGE_LIMITS.emit(rtmin, rtmax, mzmin, mzmax)
+        if None not in (rtmin, rtmax, mzmin, mzmax):
+            self.NEW_IMAGE_LIMITS.emit(rtmin, rtmax, mzmin, mzmax)
         self.replot()
 
     @protect_signal_handler
