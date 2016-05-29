@@ -107,37 +107,32 @@ class MzPlottingWidget(CurveWidget):
         else:
             self.plot.all_peaks = np.zeros((0, 2))
 
-    def _setup_configs_and_titles(self, configs, titles, n):
-        configs = configs if configs is not None else [None] * n
-        titles = titles if titles is not None else [""] * n
-
-        def default(i):
-            return dict(color=getColor(i))
-        configs = [ci if ci is not None else default(i) for (i, ci) in enumerate(configs)]
-        return configs, titles
-
-    def set_overall_range(self, mzmin, mzmax):
+    def set_zoom_limits(self, mzmin, mzmax):
         self.plot.overall_x_min = mzmin
         self.plot.overall_x_max = mzmax
 
-    def plot_peakmaps_iter(self, peakmap_ranges, configs=None, titles=None):
-        has_titles = titles is not None
-        configs, titles = self._setup_configs_and_titles(configs, titles, len(peakmap_ranges))
+    def sample_spectra_from_peakmaps_iter(self, peakmap_ranges, configs, titles):
 
         self.plot.del_all_items()
         self.plot.add_item(self.marker)
-        if has_titles:
+        if titles:
             self.plot.add_item(make.legend("TL"))
         self.plot.add_item(self.label)
+
+        mzs = []
+        for r in peakmap_ranges:
+            pm = r[0]
+            mzs.extend(pm.mzRange(None))  # None: autodetect dominant ms level
+        if mzs:
+            self.set_zoom_limits(min(mzs), max(mzs))
 
         for _ in self.plot.plot_peakmap_ranges_iter(peakmap_ranges, configs, titles):
             yield
         self.plot.add_item(self.line)
 
+    def sample_spectra_from_peakmaps(self, peakmap_ranges, configs, titles):
 
-    def plot_peakmaps(self, peakmap_ranges, configs=None, titles=None):
-
-        for _ in self.plot_peakmaps_iter(peakmap_ranges, configs, titles):
+        for _ in self.sample_spectra_from_peakmaps_iter(peakmap_ranges, configs, titles):
             pass
 
     def set_cursor_pos(self, mz):

@@ -263,6 +263,9 @@ class TableModel(QAbstractTableModel):
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
 
+    def getEicPostfixes(self):
+        return self.table.supportedPostfixes(self.eicColNames())
+
     def hasFeatures(self):
         return self.checkForAny(*self.eicColNames())
 
@@ -341,7 +344,21 @@ class TableModel(QAbstractTableModel):
             peakMaps.append(pm)
         return peakMaps
 
-    def getEICWindows(self, data_row_idx):
+    def getPeakMap(self, data_row_idx, postfix):
+        pm = self.table.getValue(self.table.rows[data_row_idx], "peakmap" + postfix)
+        return pm
+
+    def getEicWindow(self, data_row_idx, postfix):
+        rtmin = self.table.getValue(self.table.rows[data_row_idx], "rtmin" + postfix)
+        rtmax = self.table.getValue(self.table.rows[data_row_idx], "rtmax" + postfix)
+        mzmin = self.table.getValue(self.table.rows[data_row_idx], "mzmin" + postfix)
+        mzmax = self.table.getValue(self.table.rows[data_row_idx], "mzmax" + postfix)
+        if all((rtmin is not None, rtmax is not None, mzmin is not None, mzmax is not None)):
+            return rtmin, rtmax, mzmin, mzmax
+        else:
+            return None
+
+    def getEicWindows(self, data_row_idx):
         windows = []
         for p in self.table.supportedPostfixes(["rtmin", "rtmax", "mzmin", "mzmax"]):
             rtmin = self.table.getValue(self.table.rows[data_row_idx], "rtmin" + p)

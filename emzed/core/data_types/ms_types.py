@@ -685,7 +685,6 @@ class PeakMap(object):
 
     def getMsLevels(self):
         """returns list of ms levels in current peak map"""
-
         return sorted(set(spec.msLevel for spec in self.spectra))
 
     def msNPeaks(self, n, rtmin=None, rtmax=None):
@@ -725,6 +724,10 @@ class PeakMap(object):
 
     def mzRange(self, msLevel=1):
         """returns mz-range *(mzmin, mzmax)* of current peakmap """
+
+        # msLevel None: autodetect dominant msLevel
+        if msLevel is None:
+            msLevel = min(self.getMsLevels())
         mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
         if len(mzranges) == 0:
             return (None, None)

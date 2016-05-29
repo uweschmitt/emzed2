@@ -201,8 +201,25 @@ class PositiveValuedCurvePlot(CurvePlot):
             - handler for backspace, called by RtSelectionTool and MzSelectionTool
     """
 
-    overall_x_min = None
-    overall_x_max = None
+    @property
+    def overall_x_min(self):
+        if not hasattr(self, "_overall_x_min"):
+            self._overall_x_min = None
+        return self._overall_x_min
+
+    @overall_x_min.setter
+    def overall_x_min(self, xmin):
+        self._overall_x_min = xmin
+
+    @property
+    def overall_x_max(self):
+        if not hasattr(self, "_overall_x_max"):
+            self._overall_x_max = None
+        return self._overall_x_max
+
+    @overall_x_max.setter
+    def overall_x_max(self, xmax):
+        self._overall_x_max = xmax
 
     @protect_signal_handler
     def do_zoom_view(self, dx, dy, lock_aspect_ratio=False):
@@ -274,7 +291,6 @@ class PositiveValuedCurvePlot(CurvePlot):
         # the signal MUST be emitted after replot, otherwise
         # we receiver won't see the new bounds (don't know why?)
         self.replot()
-        # self.emit(SIG_PLOT_AXIS_CHANGED, self)
         self.VIEW_RANGE_CHANGED.emit(final_xmin, final_xmax)
 
     @protect_signal_handler
@@ -560,8 +576,6 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
     latest_mzmax = None
     image_plot = None
     visible_peaks = ()
-    overall_x_min = 0
-    overall_x_max = 1000
 
     def label_info(self, x, y):
         # label next to cursor turned off:
@@ -710,9 +724,14 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         for i, peaks in self._extract_peaks():
             collected_peaks.append(peaks)
             config = configs[i]
-            title = titles[i]
+            if titles:
+                title = titles[i]
+            else:
+                title = ""
             curve = make_unselectable_curve([], [], title=title, curvestyle="Sticks", **config)
-            curve.set_data(peaks[:, 0], peaks[:, 1])
+            mzs = peaks[:, 0]
+            iis = peaks[:, 1]
+            curve.set_data(mzs, iis)
             self.add_item(curve)
             self.sticks.append(curve)
             self.replot()

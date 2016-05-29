@@ -199,7 +199,7 @@ class EicPlottingWidget(CurveWidget):
     def set_cursor_pos(self, rt):
         self.plot.set_rt(rt)
 
-    def set_overall_range(self, rtmin, rtmax):
+    def set_zoom_limits(self, rtmin, rtmax):
         self.plot.overall_x_min = rtmin
         self.plot.overall_x_max = rtmax
 

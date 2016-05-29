@@ -29,6 +29,8 @@ from .widgets.image_scaling_widget import ImageScalingWidget
 from .widgets.spectra_selector_widget import SpectraSelectorWidget
 from .widgets.view_range_widget import ViewRangeWidget
 
+from .colors import getColors
+
 
 grey_line = dict(linewidth=1.5, color="#666666")
 blue_line = dict(linewidth=1.5, color="#aaaa00")
@@ -273,8 +275,8 @@ class PeakMapExplorer(EmzedDialog):
         self.peakmap_plotter.set_logarithmic_scale(1)
         self.peakmap_plotter.set_gamma(self.gamma)
 
-        self.eic_plotter.set_overall_range(self.rtmin, self.rtmax)
-        self.mz_plotter.set_overall_range(self.mzmin, self.mzmax)
+        self.eic_plotter.set_zoom_limits(self.rtmin, self.rtmax)
+        self.mz_plotter.set_zoom_limits(self.mzmin, self.mzmax)
 
 
     def setup_layout(self):
@@ -466,7 +468,10 @@ class PeakMapExplorer(EmzedDialog):
             configs = [dict(color="#aaaa00"), dict(color="#0000aa")]
             self.mz_plotter.plot_peakmaps(data, configs)
         else:
-            self.mz_plotter.plot_peakmaps([(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)])
+            data = [(self.peakmap, rtmin, rtmax, mzmin, mzmax, 3000)]
+            configs = [dict(color=getColors(0))]
+            titles = None
+            self.mz_plotter.sample_spectra_from_peakmaps(data, configs, titles)
 
         self.mz_plotter.shrink_and_replot(mzmin, mzmax)
         self.view_range_widget.set_view_range(rtmin, rtmax, mzmin, mzmax)

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
 
-import contextlib
-from collections import defaultdict
 import itertools
 import traceback
 
@@ -16,7 +13,7 @@ from eic_plotting_widget import EicPlottingWidget
 from mz_plotting_widget import MzPlottingWidget
 from ts_plotting_widget import TimeSeriesPlottingWidget
 
-from ..data_types import Table, PeakMap, CallBack, CheckState
+from ..data_types import Table, PeakMap, CallBack, CheckState, Spectrum
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 
 from .table_explorer_model import (TableModel, isUrl, IntegrateAction)
@@ -66,7 +63,7 @@ def current_rt_limits(model):
     rtmins = []
     rtmaxs = []
     for idx in model.selected_data_rows:
-        windows = model.getEICWindows(idx)
+        windows = model.getEicWindows(idx)
         rtmin = min(w[0] for w in windows)
         rtmax = max(w[1] for w in windows)
         rtmins.append(rtmin)
@@ -106,19 +103,7 @@ def button(txt=None, parent=None):
     return btn
 
 
-def getColors(i, light=False):
-    colors = [(0, 0, 200), (70, 70, 70), (0, 150, 0), (200, 0, 0), (200, 200, 0), (100, 70, 0)]
-    c = colors[i % len(colors)]
-    color = "#" + "".join("%02x" % v for v in c)
-    if light:
-        color = turn_light(color)
-    return color
-
-
-def turn_light(color):
-    rgb = [int(color[i:i + 2], 16) for i in range(1, 6, 2)]
-    rgb_light = [min(ii + 50, 255) for ii in rgb]
-    return "#" + "".join("%02x" % v for v in rgb_light)
+from .colors import getColors, turn_light
 
 
 def configsForEics(eics):
@@ -579,7 +564,7 @@ class TableExplorer(EmzedDialog):
         self.has_chromatograms = hasFeatures
         self.allow_integration = isIntegrated and self.model.implements("integrate")
         self.has_time_series = hasTimeSeries
-        self.has_spectra = hasSpectra or hasFeatures
+        self.has_spectra = (hasSpectra or hasFeatures) and not self.eic_only_mode
 
         self.eic_plotter.setVisible(self.eic_only_mode or self.has_chromatograms)
         self.eic_plotter.enable_range(not self.eic_only_mode)
@@ -968,10 +953,11 @@ class TableExplorer(EmzedDialog):
 
             chosen = menu.exec_(appearAt)
             if chosen == check_all_action:
-                self.async_runner.run_async(self.model.set_all, (widget_col_index, CheckState(True)), blocked=True)
+                self.async_runner.run_async(
+                    self.model.set_all, (widget_col_index, CheckState(True)), blocked=True)
             if chosen == uncheck_all_action:
-                self.async_runner.run_async(self.model.set_all, (widget_col_index, CheckState(False)), blocked=True)
-
+                self.async_runner.run_async(
+                    self.model.set_all, (widget_col_index, CheckState(False)), blocked=True)
 
     @protect_signal_handler
     def openContextMenuVerticalHeader(self, point):
@@ -1041,7 +1027,7 @@ class TableExplorer(EmzedDialog):
 
             if to_select is not None:
                 self.model.set_selected_widget_rows(to_select)
-            if not self.has_time_series:
+            if not self.has_time_series and not self.eic_only_mode:
                 self.choose_spec.blockSignals(True)
                 try:
                     self.setup_spectrum_chooser()
@@ -1049,13 +1035,13 @@ class TableExplorer(EmzedDialog):
                     self.choose_spec.blockSignals(False)
 
             if self.eic_only_mode:
-                self.plot_eics_only()
+                self.plot_chromatograms()
             elif self.has_chromatograms:
                 self.plot_chromatograms()
             if self.has_time_series:
                 self.plot_time_series()
             if self.has_spectra:
-                self.plot_spectra()
+                self.spectrumChosen()
 
             # self.setCursor(Qt.ArrowCursor)
             needed = time.time() - start
@@ -1085,7 +1071,7 @@ class TableExplorer(EmzedDialog):
             N = 50
             if len(to_select) > N:
                 QMessageBox.warning(self, "Warning", "multiselect would mark %d lines. "
-                                        "reduced number of lines to %d" % (len(to_select), N))
+                                    "reduced number of lines to %d" % (len(to_select), N))
                 to_select = to_select[:N]
 
             # expand selection
@@ -1099,7 +1085,8 @@ class TableExplorer(EmzedDialog):
 
                 self.tableView.setSelectionMode(QAbstractItemView.MultiSelection)
                 for i in to_select:
-                    if i != widget_row_idx:      # avoid "double click !" wich de-selects current row
+                    # avoid "double click !" wich de-selects current row
+                    if i != widget_row_idx:
                         self.tableView.selectRow(i)
                 self.tableView.setSelectionMode(mode_before)
                 self.tableView.verticalScrollBar().setValue(scrollbar_before)
@@ -1108,7 +1095,7 @@ class TableExplorer(EmzedDialog):
 
                 if to_select is not None:
                     self.model.set_selected_widget_rows(to_select)
-                if not self.has_time_series:
+                if not self.has_time_series and not self.eic_only_mode:
                     self.choose_spec.blockSignals(True)
                     try:
                         self.setup_spectrum_chooser()
@@ -1122,7 +1109,7 @@ class TableExplorer(EmzedDialog):
                 if self.has_time_series:
                     self.plot_time_series()
                 if self.has_spectra:
-                    self.plot_spectra()
+                    self.spectrumChosen()
             finally:
                 self.setEnabled(True)
                 self.tableView.blockSignals(False)
@@ -1132,20 +1119,22 @@ class TableExplorer(EmzedDialog):
                                     call_back=mark_rows)
 
     def setup_spectrum_chooser(self):
+
+        former_indices = [i.row() for i in self.choose_spec.selectedIndexes()]
+
         self.choose_spec.clear()
 
-        spectra = []
+        data = []
         labels = []
+        for pf in self.model.getEicPostfixes():
+            data.append(pf)
+            labels.append("peaks from peakmap%s" % pf)
+            self.spec_chooser_has_specs_from_chromatograms = True
+        self.ms_chooser_offset = len(labels)
 
-        if self.has_chromatograms:
-            labels.append("spectra from peak")
-            spectra.append(None)   # place holder as ms1 spec is computed from peakmap on demand !
-            self.first_spec_in_choser_is_ms1 = True
-        else:
-            self.first_spec_in_choser_is_ms1 = False
+        rows = self.model.selected_data_rows
 
-        num_extra_spectra = 0
-        for idx in self.model.selected_data_rows:
+        for idx in rows:
             pf, s = self.model.getMS2Spectra(idx)
             for pfi, si in zip(pf, s):
                 if si is not None:
@@ -1155,17 +1144,26 @@ class TableExplorer(EmzedDialog):
                             mz, I = sii.precursors[0]
                             label += " pre=(%.5f, %.2e)" % (mz, I)
                         labels.append(label)
-                        spectra.append(sii)
-                        num_extra_spectra += 1
+                        data.append(sii)
 
-        self.spectra_listed_in_chooser = spectra
-        self.choose_spec.setVisible(len(spectra) > 0)
+        self.data_in_choser = data
+        self.choose_spec.setVisible(len(data) > 0)
 
         for label in labels:
             self.choose_spec.addItem(label)
 
-        if self.first_spec_in_choser_is_ms1:
-            self.choose_spec.setCurrentRow(0)
+        if self.spec_chooser_has_specs_from_chromatograms:
+            for former_index in former_indices:
+                if former_index < self.ms_chooser_offset:
+                    item = self.choose_spec.item(former_index)
+                    self.choose_spec.blockSignals(True)
+                    item.setSelected(True)
+                    self.choose_spec.blockSignals(False)
+            if not former_indices and data:
+                item = self.choose_spec.item(0)
+                self.choose_spec.blockSignals(True)
+                item.setSelected(True)
+                self.choose_spec.blockSignals(False)
         else:
             self.choose_spec.selectAll()
 
@@ -1179,6 +1177,8 @@ class TableExplorer(EmzedDialog):
         self.ts_plotter.replot()
 
     def plot_eics_only(self):
+        for rtmin, rtmax, curve in eic_curves(self.model):
+            pass
         rtmin, rtmax, curves = eic_curves(self.model)
         configs = configsForEics(curves)
         self.eic_plotter.reset()
@@ -1188,12 +1188,11 @@ class TableExplorer(EmzedDialog):
     @timethis
     def plot_chromatograms(self, reset=True):
 
-        # todo: plot chromatograms async for huge tables !
         self.eic_plotter.del_all_items()
         if self.has_eic:
             source = eic_curves(self.model)
         elif self.has_chromatograms:
-            source  = compute_eics(self.model)
+            source = compute_eics(self.model)
         else:
             return
 
@@ -1257,53 +1256,58 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def spectrumChosen(self):
-        spectra = [self.spectra_listed_in_chooser[idx.row()]
-                   for idx in self.choose_spec.selectedIndexes()]
+        selected_data = [self.data_in_choser[idx.row()]
+                         for idx in self.choose_spec.selectedIndexes()]
         labels = [str(item.data(0).toString()) for item in self.choose_spec.selectedItems()]
-        ms2_data = [(l, s) for (l, s) in zip(labels, spectra) if s is not None and l is not None]
-        if ms2_data:
-            labels, spectra = zip(*ms2_data)  # unzip, works only if ms2_data is not empty
-            self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)
+        spectra_labels = []
+        spectra = []
+        for (label, data_item) in zip(labels, selected_data):
+            if isinstance(data_item, Spectrum):
+                spectra_labels.append(label)
+                spectra.append(data_item)
+
+        if spectra:
+            self.mz_plotter.plot_spectra([s.peaks for s in spectra], spectra_labels)
             self.mz_plotter.resetAxes()
             self.mz_plotter.replot()
         else:
-            self.plot_ms1_spectra()
+            self.sample_and_plot_spectra()
+
+    def selected_postfixes(self):
+        selected_data = [self.data_in_choser[idx.row()]
+                         for idx in self.choose_spec.selectedIndexes()]
+        return sorted(set(d for d in selected_data if isinstance(d, str)))
 
     def eic_selection_changed(self, rtmin, rtmax):
-        if self.has_time_series or not self.first_spec_in_choser_is_ms1:
-            return
-        self.choose_spec.setCurrentRow(0)
-        peakmaps = [
-            pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        windows = []
-        for idx in self.model.selected_data_rows:
-            for (__, __, mzmin, mzmax) in self.model.getEICWindows(idx):
-                window = (rtmin, rtmax, mzmin, mzmax)
-                windows.append(window)
-        if not self.has_time_series:
-            timethis(self.plot_spectra_from_peakmaps)(peakmaps, windows)
+        self.sample_and_plot_spectra(rtmin, rtmax)
 
-    def plot_spectra(self):
-        peakmaps = [pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        windows = []
-        for idx in self.model.selected_data_rows:
-            windows.extend(self.model.getEICWindows(idx))
-        timethis(self.plot_spectra_from_peakmaps)(peakmaps, windows)
-
-    def plot_ms1_spectra(self):
-        peakmaps = [
-            pm for idx in self.model.selected_data_rows for pm in self.model.getPeakmaps(idx)]
-        windows = [
-            w for idx in self.model.selected_data_rows for w in self.model.getEICWindows(idx)]
+    def sample_and_plot_spectra(self, rtmin=None, rtmax=None):
+        """rtmin and rtmax may overwrite the values from the selected rows !"""
         if not self.has_time_series:
-            self.plot_spectra_from_peakmaps(peakmaps, windows)
+            postfixes = self.selected_postfixes()
+            peakmaps = []
+            windows = []
+            labels = []
+            for idx in self.model.selected_data_rows:
+                for pf in postfixes:
+                    peakmap = self.model.getPeakMap(idx, pf)
+                    window = self.model.getEicWindow(idx, pf)
+                    if rtmin is not None:
+                        window = (rtmin,) + window[1:]
+                    if rtmax is not None:
+                        window = (window[0], rtmax) + window[2:]
+                    if peakmap is not None and None not in window:
+                        peakmaps.append(peakmap)
+                        windows.append(window)
+                        labels.append(pf)
+            self.plot_spectra_from_peakmaps(peakmaps, windows, labels)
 
     def plot_ms2_spectra(self, spectra, labels):
         self.mz_plotter.plot_spectra([s.peaks for s in spectra], labels)
         self.mz_plotter.resetAxes()
         self.mz_plotter.replot()
 
-    def plot_spectra_from_peakmaps(self, peakmaps, windows):
+    def plot_spectra_from_peakmaps(self, peakmaps, windows, labels):
 
         if not peakmaps or not windows:
             print("empty peakmaps or windows")
@@ -1311,10 +1315,12 @@ class TableExplorer(EmzedDialog):
 
         data = []
         mzs = []
-        for (rtmin, rtmax, mzmin, mzmax), pm in zip(windows, peakmaps):
+        titles = []
+        for (rtmin, rtmax, mzmin, mzmax), pm, label in zip(windows, peakmaps, labels):
             mzs.append(mzmin)
             mzs.append(mzmax)
             data.append((pm, rtmin, rtmax, mzmin, mzmax, 3000))
+            titles.append(label or " ")
 
         if not mzs:
             return
@@ -1322,12 +1328,17 @@ class TableExplorer(EmzedDialog):
         mzmax = max(mzs)
 
         configs = configsForSpectra(len(peakmaps))
-        postfixes = self.model.table.supportedPostfixes(self.model.eicColNames())
-        titles = map(repr, postfixes)
+
+        """
+        todo: current plot ms1 is broken, I expect wrong limits because ms_level is not considered
+        todo: move eic windows working ?
+        todo: peakmap inspector, incl window setting !
+        todo: profile hdf5 writer
+        """
 
         n = len(data)
         if n < 5:
-            self.mz_plotter.plot_peakmaps(data, configs, titles if len(titles) > 1 else None)
+            self.mz_plotter.sample_spectra_from_peakmaps(data, configs, titles)
             self.mz_plotter.reset_mz_limits(mzmin, mzmax)
             self.mz_plotter.replot()
             return
@@ -1336,8 +1347,7 @@ class TableExplorer(EmzedDialog):
         dlg.setCancelButton(None)
         dlg.show()
         try:
-            plot_iter = self.mz_plotter.plot_peakmaps_iter(data, configs,
-                                                           titles if len(titles) > 1 else None)
+            plot_iter = self.mz_plotter.sample_spectra_from_peakmaps_iter(data, configs, titles)
             for i, _ in itertools.izip(itertools.count(), plot_iter):
                 dlg.setValue(i)
                 guidata.qapplication().processEvents()
