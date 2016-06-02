@@ -11,7 +11,7 @@ import numpy as np
 from emzed.core import TimeSeries, CheckState, PeakMap, Spectrum
 from emzed.io import to_hdf5, append_to_hdf5, atomic_hdf5_writer
 
-from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, PeakMapProxy
+from emzed.core.data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy, Hdf5PeakMapProxy
 
 from emzed.core.data_types.hdf5.accessors import (Hdf5TableWriter, Hdf5TableAppender,
                                                   Hdf5TableReader)
@@ -131,7 +131,7 @@ def test_round_trip(tproxy, table, regtest):
     assert t1.meta == table.meta
 
     for pm0, pm1 in zip(t1.peakmap, table.peakmap):
-        assert isinstance(pm0, PeakMapProxy)
+        assert isinstance(pm0, Hdf5PeakMapProxy)
         assert isinstance(pm1, PeakMap)
         rt0, ii0 = pm0.chromatogram(0, 1000, 35, 55)   # fetch lazy
         rt1, ii1 = pm1.chromatogram(0, 1000, 35, 55)   # data is in memory
@@ -145,6 +145,14 @@ def test_round_trip(tproxy, table, regtest):
         rt1, ii1 = pm1.chromatogram(0, 1000, 1000, 1200)   # data is in memory
         assert np.all(rt0 == rt1)
         assert np.all(ii0 == ii1)
+
+        assert pm0.mzRange(1) == pm1.mzRange(1)
+        assert pm0.mzRange(2) == pm1.mzRange(2)
+        assert pm0.mzRange(None) == pm1.mzRange(None)
+
+        assert pm0.rtRange(1) == pm1.rtRange(1)
+        assert pm0.rtRange(2) == pm1.rtRange(2)
+        assert pm0.rtRange(None) == pm1.rtRange(None)
 
     print(t1, file=regtest)
     return

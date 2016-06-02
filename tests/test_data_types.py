@@ -37,7 +37,7 @@ class TestMSTypes(object):
         pm = PeakMap.fromMSExperiment(exp)
         assert os.path.basename(pm.meta["source"]) == basename
 
-        rtmin, rtmax = pm.rtRange()
+        rtmin, rtmax = pm.rtRange(None)
         ms1s = pm.msNPeaks(1, rtmin, rtmax)
         assert ms1s.shape == (1797, 2), ms1s.shape
 
@@ -51,7 +51,8 @@ class TestMSTypes(object):
         assert len(list(spec)) == len(spec)  # calls iter
 
         allrts = pm.allRts()
-        assert (allrts[0], allrts[-1]) == pm.rtRange()
+        assert allrts[0] <= pm.rtRange()[0]
+        assert allrts[-1] >= pm.rtRange()[1]
         assert len(allrts) == 41, len(allrts)
 
         level1 = pm.levelNSpecs(1, 1)

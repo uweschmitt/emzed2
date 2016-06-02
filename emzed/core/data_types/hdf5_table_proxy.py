@@ -12,9 +12,9 @@ import pandas as pd
 
 from .table import Table
 
-# PeakMapProxy no needed here, but convenient if it can be importet the same way as ObjectProxy:
+# Hdf5PeakMapProxy no needed here, but convenient if it can be importet the same way as ObjectProxy:
 from .hdf5.object_store import ObjectProxy
-from .hdf5.peakmap_store import PeakMapProxy  # analysis:ignore
+from .hdf5.peakmap_store import Hdf5PeakMapProxy  # analysis:ignore
 
 from .hdf5.accessors import Hdf5TableReader
 from .hdf5.lru import LruDict

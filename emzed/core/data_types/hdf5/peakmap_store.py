@@ -4,7 +4,7 @@ from __future__ import print_function, division
 from collections import defaultdict
 import itertools
 
-from tables import Atom, UInt32Col, Float32Col, UInt64Col, StringCol
+from tables import Atom, UInt32Col, Float64Col, Float32Col, UInt64Col, StringCol
 import numpy as np
 
 from emzed_optimizations import sample_peaks_from_lists
@@ -74,10 +74,14 @@ class PeakMapStore(Store):
             description["unique_id"] = StringCol(itemsize=64, pos=0)
             description["index"] = UInt32Col(pos=1)
             description["ms_levels"] = StringCol(itemsize=self.MSLEVEL_FIELD_SIZE, pos=2)
-            description["rtmin"] = Float32Col(pos=3)
-            description["rtmax"] = Float32Col(pos=4)
-            description["mzmin"] = Float32Col(pos=5)
-            description["mzmax"] = Float32Col(pos=6)
+            description["rtmin_1"] = Float32Col(pos=3)
+            description["rtmax_1"] = Float32Col(pos=4)
+            description["rtmin_2"] = Float32Col(pos=5)
+            description["rtmax_2"] = Float32Col(pos=6)
+            description["mzmin_1"] = Float64Col(pos=7)
+            description["mzmax_1"] = Float64Col(pos=8)
+            description["mzmin_2"] = Float64Col(pos=9)
+            description["mzmax_2"] = Float64Col(pos=10)
             pm_table = self.file_.create_table(self.node, 'pm_table', description, filters=filters)
             # every colums which appears in a where method call should/must be indexed !
             # this is not only for performance but for correct lookup as well (I had strange bugs
@@ -125,18 +129,24 @@ class PeakMapStore(Store):
         if len(as_str) > self.MSLEVEL_FIELD_SIZE:
             raise ValueError("ms level description %r is to long" % as_str)
 
-        rtmin, rtmax = pm.rtRange()
-        mzmin, mzmax = pm.mzRange()
+        rtmin_1, rtmax_1 = pm.rtRange(1)
+        rtmin_2, rtmax_2 = pm.rtRange(2)
+        mzmin_1, mzmax_1 = pm.mzRange(1)
+        mzmin_2, mzmax_2 = pm.mzRange(2)
 
         index = self.node.pm_table.nrows
         row = self.node.pm_table.row
         row["unique_id"] = unique_id
         row["index"] = index
         row["ms_levels"] = as_str
-        row["rtmin"] = rtmin
-        row["rtmax"] = rtmax
-        row["mzmin"] = mzmin
-        row["mzmax"] = mzmax
+        row["rtmin_1"] = rtmin_1
+        row["rtmax_1"] = rtmax_1
+        row["rtmin_2"] = rtmin_2
+        row["rtmax_2"] = rtmax_2
+        row["mzmin_1"] = mzmin_1
+        row["mzmax_1"] = mzmax_1
+        row["mzmin_2"] = mzmin_2
+        row["mzmax_2"] = mzmax_2
         row.append()
 
         for spec in sorted(pm.spectra, key=lambda s: s.rt):
@@ -150,21 +160,29 @@ class PeakMapStore(Store):
             raise ValueError("index %d not in table" % index)
 
         ms_levels = result[0]["ms_levels"]
-        rtmin = result[0]["rtmin"]
-        rtmax = result[0]["rtmax"]
-        mzmin = result[0]["mzmin"]
-        mzmax = result[0]["mzmax"]
+        rtmin_1 = result[0]["rtmin_1"]
+        rtmax_1 = result[0]["rtmax_1"]
+        mzmin_1 = result[0]["mzmin_1"]
+        mzmax_1 = result[0]["mzmax_1"]
+        rtmin_2 = result[0]["rtmin_2"]
+        rtmax_2 = result[0]["rtmax_2"]
+        mzmin_2 = result[0]["mzmin_2"]
+        mzmax_2 = result[0]["mzmax_2"]
         unique_id = result[0]["unique_id"]
         ms_levels = map(int, ms_levels.split(","))
 
-        result = PeakMapProxy(node=self.node,
-                              index=index,
-                              ms_levels=ms_levels,
-                              rtmin=rtmin,
-                              rtmax=rtmax,
-                              mzmin=mzmin,
-                              mzmax=mzmax,
-                              unique_id=unique_id)
+        result = Hdf5PeakMapProxy(node=self.node,
+                                  index=index,
+                                  ms_levels=ms_levels,
+                                  rtmin_1=rtmin_1,
+                                  rtmax_1=rtmax_1,
+                                  mzmin_1=mzmin_1,
+                                  mzmax_1=mzmax_1,
+                                  rtmin_2=rtmin_2,
+                                  rtmax_2=rtmax_2,
+                                  mzmin_2=mzmin_2,
+                                  mzmax_2=mzmax_2,
+                                  unique_id=unique_id)
         return result
 
     def flush(self):
@@ -173,7 +191,7 @@ class PeakMapStore(Store):
         self.node.ms2_spec_table.flush()
 
 
-class PeakMapProxy(object):
+class Hdf5PeakMapProxy(object):
 
     def __init__(self, **kw):
         for name, value in kw.items():
@@ -208,11 +226,23 @@ class PeakMapProxy(object):
     def getMsLevels(self):
         return self.ms_levels
 
-    def rtRange(self):
-        return self.rtmin, self.rtmax
+    def rtRange(self, msLevel=1):
+        assert msLevel in (1, 2, None)
+        if msLevel == 1:
+            return self.rtmin_1, self.rtmax_1
+        elif msLevel == 2:
+            return self.rtmin_2, self.rtmax_2
+        else:
+            return min(self.rtmin_1, self.rtmin_2), max(self.rtmax_1, self.rtmax_2)
 
-    def mzRange(self):
-        return self.mzmin, self.mzmax
+    def mzRange(self, msLevel=1):
+        assert msLevel in (1, 2, None)
+        if msLevel == 1:
+            return self.mzmin_1, self.mzmax_1
+        elif msLevel == 2:
+            return self.mzmin_2, self.mzmax_2
+        else:
+            return min(self.mzmin_1, self.mzmin_2), max(self.mzmax_1, self.mzmax_2)
 
     @profile
     def _iter_peaks(self, rtmin, rtmax, mzmin, mzmax, ms_level=1):
@@ -235,7 +265,6 @@ class PeakMapProxy(object):
                 iis = iis[flags]
                 mzs = mzs[flags]
                 yield rt, mzs, iis
-
 
     @lru_cache(maxsize=1000)
     def _iter_full_spectra(self, rtmin, rtmax, ms_level):

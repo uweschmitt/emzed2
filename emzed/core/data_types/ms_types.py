@@ -735,11 +735,16 @@ class PeakMap(object):
         mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
         return (float(mzmin), float(mzmax))
 
-    def rtRange(self):
+    def rtRange(self, msLevel=1):
         """ returns rt-range *(rtmin, tax)* of current peakmap """
-        rtmin = min(s.rt for s in self.spectra) if len(self.spectra) else 1e300
-        rtmax = max(s.rt for s in self.spectra) if len(self.spectra) else 1e300
-        return rtmin, rtmax
+        # msLevel None: autodetect dominant msLevel
+        if msLevel is not None:
+            rts = [s.rt for s in self if s.msLevel == msLevel]
+        else:
+            rts = [s.rt for s in self]
+        if len(rts) == 0:
+            return None, None
+        return min(rts), max(rts)
 
     @classmethod
     def fromMSExperiment(clz, mse):
