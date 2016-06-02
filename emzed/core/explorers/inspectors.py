@@ -1,3 +1,5 @@
+import os
+
 from ..data_types import PeakMap, Table
 from ..data_types.col_types import Blob
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy
@@ -7,7 +9,21 @@ def has_inspector(clz):
     return clz in (PeakMap, Table, Blob, Hdf5TableProxy)
 
 
+def try_to_load(path):
+    ext = os.path.splitext(path)[1]
+    if ext.upper() in (".MZXML", ".MZML", ".MZDATA"):
+        return emzed.io.loadPeakMap(path)
+    elif ext == ".table":
+        return emzed.io.loadTable(path)
+    elif ext == ".hdf5":
+        return Hdf5TableProxy(path)
+    else:
+        raise ValueError("I can not handle %s files" % ext)
+
+
 def inspector(obj, *a, **kw):
+    if isinstance(obj, basestring):
+        obj = try_to_load(obj)
     if isinstance(obj, PeakMap):
         from peakmap_explorer import inspectPeakMap
         return lambda: inspectPeakMap(obj, *a, **kw)
