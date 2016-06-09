@@ -226,8 +226,23 @@ class Hdf5PeakMapProxy(object):
     def getMsLevels(self):
         return self.ms_levels
 
-    def rtRange(self, msLevel=1):
+    def _try_to_fix_for_unique_ms_level(self, msLevel):
+        """if msLevel is None: return 1 if only MS1 are present,
+                               return 2 if only MS2 are present,
+                               return None if both are present
+        """
         assert msLevel in (1, 2, None)
+        if msLevel is None and 2 not in self.ms_levels:
+            return 1
+        elif msLevel is None and 1 not in self.ms_levels:
+            return 2
+        else:
+            return msLevel
+
+    def rtRange(self, msLevel=1):
+        msLevel = self._try_to_fix_for_unique_ms_level(msLevel)
+        if msLevel is not None and msLevel not in self.ms_levels:
+            return None, None
         if msLevel == 1:
             return self.rtmin_1, self.rtmax_1
         elif msLevel == 2:
@@ -236,7 +251,7 @@ class Hdf5PeakMapProxy(object):
             return min(self.rtmin_1, self.rtmin_2), max(self.rtmax_1, self.rtmax_2)
 
     def mzRange(self, msLevel=1):
-        assert msLevel in (1, 2, None)
+        msLevel = self._try_to_fix_for_unique_ms_level(msLevel)
         if msLevel == 1:
             return self.mzmin_1, self.mzmax_1
         elif msLevel == 2:

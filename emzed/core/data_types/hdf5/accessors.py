@@ -33,7 +33,7 @@ class Hdf5Base(object):
 
 class Hdf5TableWriter(Hdf5Base):
 
-    LATEST_HDF5_TABLE_VERSION = (2, 26, 13)
+    LATEST_HDF5_TABLE_VERSION = (2, 26, 20)
 
     def __init__(self, path):
         self._initial_setup(path, "w")
@@ -159,9 +159,9 @@ class Hdf5TableReader(Hdf5Base):
                         for row, col in itertools.izip(rows, cols):
                             self.missing_values_flags.set_bit(int(row), int(col))
                     self.missing_values_flags.flush()
-                message = ("you read from / append to a hdf5 table which has version %s and older "
-                           "as the current version %s, you might have problems...." %
-                           (self.hdf5_table_version, expected))
+            message = ("you read from / append to a hdf5 table which has version %s and older "
+                        "as the current version %s, you might have problems...." %
+                        (self.hdf5_table_version, expected))
 
             warnings.warn(message, UserWarning, stacklevel=2)
 

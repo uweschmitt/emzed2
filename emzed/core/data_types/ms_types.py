@@ -722,28 +722,46 @@ class PeakMap(object):
             spec.rt += delta
         return self
 
+    def _try_to_fix_for_unique_ms_level(self, msLevel):
+        """if msLevel is None: return 1 if only MS1 are present,
+                               return 2 if only MS2 are present,
+                               return None if both are present
+        """
+        assert msLevel in (1, 2, None)
+        ms_levels = self.getMsLevels()
+        if msLevel is None and 2 not in ms_levels:
+            return 1
+        elif msLevel is None and 1 not in ms_levels:
+            return 2
+        else:
+            return msLevel
+
     def mzRange(self, msLevel=1):
         """returns mz-range *(mzmin, mzmax)* of current peakmap """
 
+        msLevel = self._try_to_fix_for_unique_ms_level(msLevel)
+
         # msLevel None: autodetect dominant msLevel
-        if msLevel is None:
-            msLevel = min(self.getMsLevels())
-        mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
-        if len(mzranges) == 0:
-            return (None, None)
-        mzmin = min(mzmin for (mzmin, mzmax) in mzranges if mzmin is not None)
-        mzmax = max(mzmax for (mzmin, mzmax) in mzranges if mzmax is not None)
-        return (float(mzmin), float(mzmax))
+        if msLevel is not None:
+            mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
+        else:
+            mzranges = [s.mzRange() for s in self.spectra]
+        if not mzranges:
+            return  None, None 
+
+        mzmins, mzmaxs = zip(*mzranges)
+        return float(min(mzmins)), float(max(mzmaxs))
 
     def rtRange(self, msLevel=1):
         """ returns rt-range *(rtmin, tax)* of current peakmap """
-        # msLevel None: autodetect dominant msLevel
+        msLevel = self._try_to_fix_for_unique_ms_level(msLevel)
+
         if msLevel is not None:
-            rts = [s.rt for s in self if s.msLevel == msLevel]
+            rts = [s.rt for s in self.spectra if s.msLevel == msLevel]
         else:
-            rts = [s.rt for s in self]
-        if len(rts) == 0:
-            return None, None
+            rts = [s.rt for s in self.spectra]
+        if not rts:
+            return  None, None
         return min(rts), max(rts)
 
     @classmethod
