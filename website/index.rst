@@ -6,7 +6,7 @@
 What is emzed ?
 ===============
 
-  *emzed* is an open source framework for rapid and interactive development of
+  *emzed* is an open source toolbox for rapid and interactive development of
   LCMS data analysis workflows in `Python <http://www.python.org>`_.
 
 
@@ -27,7 +27,8 @@ Fundamental principles of emzed
    <http://xkcd.com/353/>`_.
 
 3. In order to strengthen the trust in analysis results, emzed provides **interactive
-   visualization** of input data, as well as inspection of intermediate and final results.
+   visualization** tools for intermediate and final results. So an *emzed* workflow can deliver
+   more information than just a bunch of numbers or static plots.
 
 4. *emzed* ships with **emzed workbench** which is an `integrated development environment (IDE) 
    <http://en.wikipedia.org/wiki/Integrated_development_environment#Overview>`_ to
