@@ -73,7 +73,7 @@ class Store(object):
         self.file_ = file_
         self.node = node
         self._flags = {}
-        self._handlers = []
+        self._handlers = {}
         self._store_for_column = {}
 
         # ObjectStore as fall back store must always have ID_FLAG 7 !!!
@@ -90,18 +90,19 @@ class Store(object):
             assert 0 <= flag < 8
             store = store_class(file_, node, **kw)
             self._flags[flag] = store
-            self._handlers.append((handles, store))
+            self._handlers[handles] = store
             for column in store.available_columns():
                 self._store_for_column[column] = store
 
+    @profile
     def store_object(self, col_index, obj, type_):
         if type_ in basic_type_map:
         #if any(isinstance(obj, type_) for type_ in basic_type_map):
             raise ValueError("something went wrong, you try to store a basic type in an object store")
-        for (handles, store) in self._handlers:
-            if type_ is handles:
-                global_id = store.write(col_index, obj)
-                return global_id
+        store = self._handlers.get(type_)
+        if store is not None:
+            global_id = store.write(col_index, obj)
+            return global_id
         raise TypeError("no store manager for %r found" % obj)
 
     def fetch(self, col_index, global_id):
@@ -117,6 +118,7 @@ class Store(object):
     def fetch_store(self, col_index):
         return self._store_for_column.get(col_index)
 
+    @profile
     def write(self, col_index, obj):
         writer = self._write(col_index, obj)
         hash_key = writer.next()
@@ -143,6 +145,7 @@ class Store(object):
     def _read(col_index, index):
         raise NotImplementedError()
 
+    @profile
     def flush(self):
         for store in self._flags.values():
             store.flush()

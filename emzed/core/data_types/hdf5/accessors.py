@@ -13,7 +13,7 @@ from .store_manager import setup_manager
 from .bit_matrix import BitMatrix
 from .lru import LruDict
 
-from install_profile import profile
+from .install_profile import profile
 
 
 filters = Filters(complib="blosc", complevel=9)
@@ -84,6 +84,7 @@ class Hdf5TableWriter(Hdf5Base):
         self.row_table = file_.create_table(file_.root, "rows", description=description,
                                             filters=filters)
 
+    @profile
     def _add_rows(self, table):
 
         col_names = table.getColNames()

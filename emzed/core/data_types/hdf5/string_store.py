@@ -56,12 +56,16 @@ class StringStoreBase(object):
 
         blob = self.file_.create_earray(self.node, "%s__%s" % (self.blob_name_stem, col_index),
                                         Atom.from_dtype(np.dtype("uint8")), (0,),
-                                        filters=filters)
+                                        filters=filters,
+                                        chunkshape=(50000,))
+
         starts = self.file_.create_earray(self.node, "%s_starts__%s" % (self.blob_name_stem, col_index),
                                           Atom.from_dtype(np.dtype("uint64")), (0,),
-                                          filters=filters)
+                                          filters=filters,
+                                          chunkshape=(10000,))
         return blob, starts
 
+    @profile
     def _write(self, col_index, s):
 
         # hash key
@@ -70,6 +74,7 @@ class StringStoreBase(object):
         # store and yield index
         yield int(self._write_str(col_index, s).next())
 
+    @profile
     def _write_str(self, col_index, s, index=None):
 
         if col_index not in self.blobs:
@@ -83,7 +88,8 @@ class StringStoreBase(object):
         start = blob.nrows
 
         try:
-            blob.append(np.fromstring(s, dtype=np.uint8))
+            str_data = np.fromstring(s, dtype=np.uint8)
+            blob.append(str_data)
         except UnicodeEncodeError:
             try:
                 raise UnicodeEncodeError("%r (%s)" % (s, s))
@@ -153,6 +159,7 @@ class StringStoreBase(object):
         else:
             raise ValueError("invalid index ! %d out of %d" % (index, starts.nrows))
 
+    @profile
     def flush(self):
         for node in self.blobs.values():
             node.flush()
@@ -174,6 +181,7 @@ class UnicodeStore(StringStoreBase, Store):
     def __init__(self, file_, node, blob_name_stem="unicode_blob", **kw):
         super(UnicodeStore, self).__init__(file_, node, blob_name_stem, **kw)
 
+    @profile
     def _write_str(self, col_index, s, index=None):
         utf8 = s.encode("utf-8")
         for i in super(UnicodeStore, self)._write_str(col_index, utf8, index):

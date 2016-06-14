@@ -22,6 +22,7 @@ class ObjectStore(StringStoreBase, Store):
         StringStoreBase.__init__(self, file_, node, "object_blob")
         self.obj_read_cache = LruDict(10000)
 
+    @profile
     def _write(self, col_index, obj):
 
         # hash key

@@ -11,18 +11,27 @@ from emzed.core import CheckState
 from emzed.ff import  runMetaboFeatureFinder
 from emzed.utils import  integrate
 
+try:
+    profiler
+except NameError:
+    def profiler(fun):
+        return run
 
+
+@contextlib.contextmanager
+def measure(title=""):
+    if title:
+        title = " " + title
+    print("start%s" % title)
+    started = time.time()
+    yield
+    needed = time.time() - started
+    print("running%s needed %.2f seconds" % (title, needed))
+
+
+
+@profile
 def main():
-
-    @contextlib.contextmanager
-    def measure(title=""):
-        if title:
-            title = " " + title
-        print("start%s" % title)
-        started = time.time()
-        yield
-        needed = time.time() - started
-        print("running%s needed %.2f seconds" % (title, needed))
 
     with measure("load pm"):
         # pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
@@ -39,8 +48,16 @@ def main():
     with atomic_hdf5_writer("peaks.hdf5") as add:
         add(peaks)
 
-    return
+    # return
 
+@profile
+def main():
+
+    with measure("load pm"):
+        # pm = emzed.io.loadPeakMap("141208_pos001.mzXML")
+        pm = emzed.io.loadPeakMap("Danu.mzML")
+
+    pm2 = copy.deepcopy(pm)
     # create modified copy
     pm2.spectra = pm2.spectra[1:]
 
@@ -48,7 +65,7 @@ def main():
 
     pms = [pm, pm2]
 
-    n = 100000
+    n = 10000
     integers = list(reversed(range(n)))
     for k in range(0, n, 10):
         integers[k] = None
@@ -87,7 +104,8 @@ def main():
         t.addColumn("target_id", target_ids, type_=str)
 
     n, m = t.shape
-    for fac in (1, 10):
+    #for fac in (1, 10):
+    for fac in (1, ):
         n0 = n * fac
         with measure("write hdf5 table with %d rows and %d cols" % (n0, m)):
             path = "test_%d.hdf5" % (n * fac)

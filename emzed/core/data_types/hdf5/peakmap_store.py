@@ -89,6 +89,7 @@ class PeakMapStore(Store):
             pm_table.cols.unique_id.create_index()
             pm_table.cols.index.create_index()
 
+    @profile
     def add_spectrum(self, pm_index, spec):
 
         level = spec.msLevel
@@ -110,6 +111,7 @@ class PeakMapStore(Store):
 
         row.append()
 
+    @profile
     def _write(self, col_index, pm):
 
         # at the moment we ignore col_index, I guess it would not speed up so
@@ -259,7 +261,6 @@ class Hdf5PeakMapProxy(object):
         else:
             return min(self.mzmin_1, self.mzmin_2), max(self.mzmax_1, self.mzmax_2)
 
-    @profile
     def _iter_peaks(self, rtmin, rtmax, mzmin, mzmax, ms_level=1):
         if (mzmin is not None) != (mzmax is not None):
             # mixed settings are not optimized yet !
@@ -307,7 +308,6 @@ class Hdf5PeakMapProxy(object):
             yield rt, mzs, iis
 
     @lru_cache(maxsize=1000)
-    @profile
     def chromatogram(self, mzmin=None, mzmax=None, rtmin=None, rtmax=None, ms_level=1):
         rts = []
         intensities = []
@@ -322,7 +322,6 @@ class Hdf5PeakMapProxy(object):
         return rts, intensities
 
     @lru_cache(maxsize=1000)
-    @profile
     def sample_peaks(self, rtmin, rtmax, mzmin, mzmax, npeaks, ms_level):
 
         if rtmin <= rtmax and mzmin < mzmax:

@@ -70,6 +70,7 @@ class TimeSeriesStore(Store):
         self.ts_index.cols.unique_id.create_index()
         self.ts_index.cols.index.create_index()
 
+    @profile
     def _write(self, col_index, obj):
 
         unique_id = obj.uniqueId()

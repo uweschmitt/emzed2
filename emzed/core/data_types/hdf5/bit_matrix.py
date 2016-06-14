@@ -7,6 +7,8 @@ import numpy as np
 from .store_base import filters
 from .lru import LruDict
 
+from .install_profile import profile
+
 
 class BitMatrix(object):
 
@@ -49,6 +51,7 @@ class BitMatrix(object):
         effective_row = row - idx * self.cache_block_size
         return effective_row, data_block
 
+    @profile
     def set_bit(self, row, col):
         assert row < self.n_rows, "resize first !"
 
@@ -57,6 +60,7 @@ class BitMatrix(object):
         bit = col % 8
         data_block[byte] |= (1 << bit)
 
+    @profile
     def unset_bit(self, row, col):
         assert row < self.n_rows, "resize first !"
 
@@ -85,6 +89,7 @@ class BitMatrix(object):
             result.update(found)
         return result
 
+    @profile
     def flush(self):
         for (block, start, end) in self.cache.values():
             self.data[start:end] = block
