@@ -20,9 +20,23 @@ class IntegrationWidget(_IntegrationWidget):
 
     def set_integration_methods(self, names):
         self._methods.clear()
+        self._methods.addItem("-")
         for name in names:
             self._methods.addItem(name)
         self.setEnabled(True)
+
+    def set_integration_method(self, name, block_signals=True):
+        if block_signals:
+            self._methods.blockSignals(True)
+        try:
+            if name is None:
+                name = "-"
+            index = self._methods.findText(name)
+            if index != -1:
+                self._methods.setCurrentIndex(index)
+        finally:
+            if block_signals:
+                self._methods.blockSignals(False)
 
     def set_postfixes(self, postfixes):
         self._postfixes.clear()

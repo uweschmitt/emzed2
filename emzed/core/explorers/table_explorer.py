@@ -1042,6 +1042,8 @@ class TableExplorer(EmzedDialog):
                 self.plot_time_series()
             if self.has_spectra:
                 self.spectrumChosen()
+            if self.allow_integration:
+                self.setup_integration_widget()
 
             # self.setCursor(Qt.ArrowCursor)
             needed = time.time() - start
@@ -1110,6 +1112,8 @@ class TableExplorer(EmzedDialog):
                     self.plot_time_series()
                 if self.has_spectra:
                     self.spectrumChosen()
+                if self.allow_integration:
+                    self.setup_integration_widget()
             finally:
                 self.setEnabled(True)
                 self.tableView.blockSignals(False)
@@ -1117,6 +1121,17 @@ class TableExplorer(EmzedDialog):
         self.async_runner.run_async(find_rows, (),
                                     blocked=True,
                                     call_back=mark_rows)
+
+    def setup_integration_widget(self):
+        rows = self.model.selected_data_rows
+        methods = set(self.model.getMethod(row) for row in rows)
+        methods.discard(None)
+        if len(methods) == 1:
+            method = methods.pop()
+            self.integration_widget.set_integration_method(method)
+        else:
+            self.integration_widget.set_integration_method(None)
+
 
     def setup_spectrum_chooser(self):
 

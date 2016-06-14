@@ -435,6 +435,13 @@ class TableModel(QAbstractTableModel):
     def transform_row_idx_widget_to_model(self, row_idxs):
         return [self.widgetRowToDataRow[i] for i in row_idxs]
 
+    def getMethod(self, data_row_idx):
+        row = self.table.getValues(self.table.rows[data_row_idx])
+        if "method" in row:
+            return row.method
+        else:
+            return None
+
     def getEics(self, data_row_idx):
         eics = []
         rtmins = []
