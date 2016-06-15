@@ -132,7 +132,7 @@ manually as described now:
         (emzed2)$ pip install "guidata<1.7.0" --allow-external guidata --allow-unverified guidata
         (emzed2)$ pip install sphinx
         (emzed2)$ easy_innstall ipython==0.10
-        (emzed2)$ pip install emzed
+        (emzed2)$ pip install http://emzed.ethz.ch/downloads/emzed.zip
         (emzed2)$ deactivate
 
    Now you should be able to start *emzed workbench*::
@@ -189,7 +189,7 @@ To get emzed with pyqt and pyqwt running on Mac OS X, we need to install it with
     $ pip install "guiqwt<2.4.0" --allow-external guiqwt --allow-unverified guiqwt
     $ pip install sphinx
     $ easy_install http://pypi.python.org/packages/2.7/r/readline/readline-6.2.2-py2.7-macosx-10.7-intel.egg#md5=25383d860632d4a1521961ba68a52fe2
-    $ pip install emzed
+    $ pip install http://emzed.ethz.ch/downloads/emzed.zip
 
 5. add workaround for matplotlib in virtualenv
 

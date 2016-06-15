@@ -34,7 +34,7 @@ pip install -U dill
 @echo.
 pip install "pycryptodome<=3.3"
 @echo.
-pip install emzed
+pip install http://emzed.ethz.ch/downloads/emzed.zip
 
 REM sometimes matplotlib setup is broken, this should fix this:
 set MPLCONFIGDIR=%APPDATA%\matplotlib_config
