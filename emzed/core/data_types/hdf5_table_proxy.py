@@ -279,6 +279,9 @@ class Hdf5TableProxy(ImmutableTable):
     def selectedRowValues(self, name, rowIndices):
         return [self.reader.get_col_values(name)[i] for i in rowIndices]
 
+    def getColValues(self, name):
+        return self.reader.get_col_values(name)
+
     def toTable(self):
         rows = []
         for row in self.reader:
