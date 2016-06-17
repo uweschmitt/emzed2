@@ -727,9 +727,17 @@ class TableExplorer(EmzedDialog):
                                                 QMessageBox.Ok | QMessageBox.Cancel)
             if answer == QMessageBox.Cancel:
                 return
-        path = askForSave(extensions=["csv"])
+        path = askForSave(extensions=["csv", "xlsx", "xls"])
         if path is not None:
-            self.model.store_table_as_csv(path)
+            self.setEnabled(False)
+            self.setCursor(Qt.WaitCursor)
+            self.blockSignals(True)
+            try:
+                self.model.store_table(path)
+            finally:
+                self.setEnabled(True)
+                self.setCursor(Qt.ArrowCursor)
+                self.blockSignals(False)
 
     @protect_signal_handler
     def handle_double_click(self, idx):

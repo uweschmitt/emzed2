@@ -502,8 +502,15 @@ class TableModel(QAbstractTableModel):
         n_visible = len(self.widgetRowToDataRow)
         self.VISIBLE_ROWS_CHANGE.emit(len(self.table), n_visible)
 
-    def store_table_as_csv(self, path):
-        self.table.storeCSV(path, as_printed=True, row_indices=self.widgetRowToDataRow)
+    def store_table(self, path):
+        ext = os.path.splitext(path)[1]
+        if ext == ".csv":
+            self.table.storeCSV(path, as_printed=True, row_indices=self.widgetRowToDataRow)
+        elif ext in (".xls", ".xlsx"):
+            import emzed
+            emzed.io.storeExcel(self.table, path)
+        else:
+            raise RuntimeError("extension of type %s can not be handled" % ext)
 
     def columnames_with_visibility(self):
         avail = self.indizesOfVisibleCols
