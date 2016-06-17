@@ -2595,7 +2595,7 @@ class Table(MutableTable):
         """ converts table to pandas DataFrame object """
         import pandas
         data = dict((name, getattr(self, name).values)
-                    for name in self.getColNames())
+                    for name in self.getColNames() if self.getColFormat(name) is not None)
         return pandas.DataFrame(data, columns=self.getColNames())
 
     @staticmethod
