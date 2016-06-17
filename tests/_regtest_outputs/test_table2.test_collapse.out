@@ -25,10 +25,10 @@ int      emzed.core.data_types.table.Table
 2        <TProxy to 0x????????? with 1 row>
 
 5 [[1, <TProxy to 0x????????? with 2 rows>], [2, <TProxy to 0x????????? with 1 row>]]
-6 (1, 2, 3)
-7 (3, 4, 5)
-8 (1, 2, 3)
-9 (3, 4, 5)
+6 (1, 2)
+7 (3, 4)
+8 (3,)
+9 (5,)
 10 id       a        b
 int      int      int
 ------   ------   ------

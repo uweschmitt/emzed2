@@ -1,0 +1,75 @@
+group_id collapsed
+int      emzed.core.data_types.table.Table
+------   ------
+1        <TProxy to 0x????????? with 2 rows>
+2        <TProxy to 0x????????? with 2 rows>
+3        <TProxy to 0x????????? with 1 row>
+
+group_id data
+int      float
+------   ------
+1        0.00
+1        1.00
+
+group_id data
+int      float
+------   ------
+2        2.00
+2        3.00
+
+group_id data
+int      float
+------   ------
+3        4.00
+
+group_id collapsed
+int      emzed.core.data_types.table.Table
+------   ------
+1        <TProxy to 0x????????? with 2 rows>
+2        <TProxy to 0x????????? with 2 rows>
+3        <TProxy to 0x????????? with 1 row>
+
+group_id data
+int      float
+------   ------
+1        1.00
+1        1.00
+
+group_id data
+int      float
+------   ------
+2        2.00
+2        3.00
+
+group_id data
+int      float
+------   ------
+3        4.00
+
+group_id collapsed
+int      emzed.core.data_types.table.Table
+------   ------
+1        <TProxy to 0x????????? with 2 rows>
+2        <TProxy to 0x????????? with 2 rows>
+3        <TProxy to 0x????????? with 1 row>
+
+group_id data
+int      float
+------   ------
+1        2.00
+1        2.00
+
+(1.0, 1.0)
+group_id data
+int      float
+------   ------
+2        2.00
+2        3.00
+
+(2, 3)
+group_id data
+int      float
+------   ------
+3        4.00
+
+(4,)

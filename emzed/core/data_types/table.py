@@ -1017,7 +1017,9 @@ class Table(MutableTable):
     def _renameColumnsUnchecked(self, *dicts, **keyword_args):
         for d in dicts:
             keyword_args.update(d)
-        self._colNames = [keyword_args.get(n, n) for n in self._colNames]
+        # inplace update, self might be a Tproxy, if we re assign self._colNames things get out of
+        # sync:
+        self._colNames[:] = [keyword_args.get(n, n) for n in self._colNames]
         self.resetInternals()
 
     def renameColumn(self, old_name, new_name):
@@ -1196,7 +1198,9 @@ class Table(MutableTable):
             conflicts = ", ".join(conflicts)
             msg = "this renaming would produce conflicts as it generates new names %s" % conflicts
             raise Exception(msg)
-        self._colNames = new_names
+        # inplace update, self might be a Tproxy, if we re assign self._colNames things get out of
+        # sync:
+        self._colNames[:] = new_names
         self.resetInternals()
 
     @staticmethod
@@ -1436,11 +1440,9 @@ class Table(MutableTable):
         #      add tempcol, then delete oldcol, then rename tempcol -> oldcol
         # this is easier to implement, has no code duplication, but maybe a
         # bit slower. but that does not matter at this point of time:
-        rv = self._addColumnWithoutNameCheck(name + "__tmp", what, type_, format_,
-                                             insertBefore=name)
+        self._addColumnWithoutNameCheck(name + "__tmp", what, type_, format_, insertBefore=name)
         self.dropColumns(name)
         self._renameColumnsUnchecked(**{name + "__tmp": name})
-        return rv
 
     def _updateColumnWithoutNameCheck(self, name, what, type_=None, format_="",
                                       insertBefore=None, insertAfter=None):
@@ -1653,6 +1655,7 @@ class Table(MutableTable):
             if key not in keysSeen:
                 result.rows.append(row[:])
                 keysSeen.add(key)
+        result.resetInternals()
         return result
 
     def filter(self, expr, debug=False):
@@ -1683,6 +1686,7 @@ class Table(MutableTable):
                 self), "result of filter expression does not match table size"
             filteredTable.rows = [self.rows[n][:]
                                   for n, i in enumerate(flags) if i]
+        filteredTable.resetInternals()
         return filteredTable
 
     def removePostfixes(self, *postfixes):
@@ -1826,6 +1830,7 @@ class Table(MutableTable):
             cmdlineProgress.progress(ii)
         cmdlineProgress.finish()
         table.rows = rows
+        table.resetInternals()
         return table
 
     def leftJoin(self, t, expr=True, debug=False, title=None):
@@ -1890,6 +1895,7 @@ class Table(MutableTable):
         cmdlineProgress.finish()
 
         table.rows = rows
+        table.resetInternals()
         return table
 
     def _prepare_fast_join(self, other, column_name, column_name_other, rel_tol, abs_tol):
@@ -1948,6 +1954,7 @@ class Table(MutableTable):
             cmdlineProgress.progress(ii)
         cmdlineProgress.finish()
         table.rows = rows
+        table.resetInternals()
         return table
 
     def fastLeftJoin(self, other, column_name, column_name_other=None, rel_tol=None, abs_tol=None):
@@ -1972,6 +1979,7 @@ class Table(MutableTable):
             cmdlineProgress.progress(ii)
         cmdlineProgress.finish()
         table.rows = rows
+        table.resetInternals()
         return table
 
     def _postfixValues(self):
@@ -2698,6 +2706,7 @@ class Table(MutableTable):
                         row[i] = t(val)
             rows.append(row)
         table.rows = rows
+        table.resetInternals()
         return table
 
     def apply(self, fun, args, keep_nones=False):
@@ -2766,7 +2775,7 @@ class TProxy(Table):
     def __getattr__(self, name):
         if name in self._t._colNames:
             ix = self._t.getIndex(name)
-            col = ColumnExpression(self._t, name, ix, self._t._colTypes[ix])
+            col = ColumnExpression(self._t, name, ix, self._t._colTypes[ix], rows=self._rows)
             return col
         return getattr(self._t, name)
 

@@ -83,3 +83,29 @@ def test_excel_io(tmpdir, regtest):
     formats = {"d": "%+.1f"}
     tn = emzed.io.loadExcel(path, types=types, formats=formats)
     print(tn, file=regtest)
+
+
+def test_collapse_stuff(tmpdir, regtest):
+    t = emzed.utils.toTable("group_id", (1, 1, 2, 2, 3), type_=int)
+    t.addColumn("data", range(5), type_=float)
+    tn = t.collapse("group_id")
+
+    print(tn, file=regtest)
+    for subt in tn.collapsed:
+        subt.data
+        subt.data.values
+        print(subt, file=regtest)
+
+    tn.collapsed[0].replaceColumn("data", 1.0, type_=float)
+
+    print(tn, file=regtest)
+    for subt in tn.collapsed:
+        print(subt, file=regtest)
+
+    for row in tn.collapsed[0]:
+        row.data = 2
+
+    print(tn, file=regtest)
+    for subt in tn.collapsed:
+        print(subt, file=regtest)
+        print(subt.data.values, file=regtest)

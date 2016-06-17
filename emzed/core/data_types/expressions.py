@@ -1643,8 +1643,9 @@ class ColumnExpression(BaseExpression):
 
     """
 
-    def __init__(self, table, colname, idx, type_):
+    def __init__(self, table, colname, idx, type_, rows=None):
         self.table = table
+        self.rows = rows if rows is not None else table.rows
         self.colname = colname
         self.idx = idx
         self.type_ = type_
@@ -1652,7 +1653,7 @@ class ColumnExpression(BaseExpression):
     def _setupValues(self):
         # delayed lazy evaluation
         if not hasattr(self, "_values"):
-            self._values = tuple(row[self.idx] for row in self.table.rows)
+            self._values = tuple(row[self.idx] for row in self.rows)
 
     @property
     def values(self):

@@ -706,6 +706,8 @@ def test_collapse(regtest):
     print(5, tneu.rows, file=regtest)
     ts0 = tneu.collapsed.values[0]
     ts1 = tneu.collapsed.values[1]
+    assert len(ts0.a.values) == len(ts0) == 2
+    assert len(ts1.a.values) == len(ts1) == 1
     print(6, ts0.a.values, file=regtest)
     print(7, ts0.b.values, file=regtest)
     print(8, ts1.a.values, file=regtest)
