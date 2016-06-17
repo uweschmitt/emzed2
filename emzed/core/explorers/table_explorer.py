@@ -641,15 +641,16 @@ class TableExplorer(EmzedDialog):
         self.export_table_button.clicked.connect(self.export_table)
 
         for sort_field_w in self.sort_fields_widgets:
-            sort_field_w.currentIndexChanged.connect(self.sort_fields_changed)
+            sort_field_w.activated.connect(self.sort_fields_changed)
 
         for sort_order_w in self.sort_order_widgets:
-            sort_order_w.currentIndexChanged.connect(self.sort_fields_changed)
+            sort_order_w.activated.connect(self.sort_fields_changed)
 
         self.eic_plotter.SELECTED_RANGE_CHANGED.connect(self.eic_selection_changed)
 
     @protect_signal_handler
     def sort_fields_changed(self, __):
+        print("sort_fields_changed")
         sort_data = [(str(f0.currentText()),
                       str(f1.currentText())) for f0, f1 in zip(self.sort_fields_widgets,
                                                                self.sort_order_widgets)]
@@ -791,7 +792,6 @@ class TableExplorer(EmzedDialog):
         main_widget = self.sort_fields_widgets[0]
         idx = main_widget.findText(name)
         main_widget.setCurrentIndex(idx)
-        self.sort_order_widgets[0].setCurrentIndex(bool(is_ascending))
         for i in range(1, len(self.sort_fields_widgets)):
             self.sort_fields_widgets[i].setCurrentIndex(0)
 
@@ -799,6 +799,8 @@ class TableExplorer(EmzedDialog):
             f.blockSignals(False)
         for f in self.sort_order_widgets:
             f.blockSignals(False)
+
+        self.sort_order_widgets[0].setCurrentIndex(bool(is_ascending))
 
     def group_column_selected(self, idx):
         self.tableView.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -1141,6 +1143,7 @@ class TableExplorer(EmzedDialog):
 
         data = []
         labels = []
+        self.spec_chooser_has_specs_from_chromatograms = False
         for pf in self.model.getEicPostfixes():
             data.append(pf)
             labels.append("peaks from peakmap%s" % pf)

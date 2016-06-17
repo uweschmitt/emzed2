@@ -21,6 +21,11 @@ class RangeSet(object):
     def __len__(self):
         return self.imax - self.imin
 
+    def __getitem__(self, ix):
+        if 0 <= ix < self.imax - self.imin:
+            return ix + self.imin
+        raise IndexError("%d out of bounds %d .. %d" % (ix, self.imin, self.imax))
+
     def intersection(self, other):
         return {i for i in other if self.imin <= i < self.imax}
 

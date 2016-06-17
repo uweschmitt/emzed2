@@ -54,9 +54,9 @@ class DeleteRowsAction(TableAction):
         rows_to_del = sorted(self.data_row_indices)
         table = self.model.table
         permutation = self.model.get_row_permutation()
-        self.memory = (permutation, [(i, table.rows[i]) for i in rows_to_del])
+        self.memory = (permutation[:], [(i, table.rows[i]) for i in rows_to_del])
 
-        # right order matters: (realy ?)
+        # right order matters:
         for row_to_del in reversed(rows_to_del):
             del table.rows[row_to_del]
             # update permutation: remove entry and decrement succeeding data_row values:
@@ -280,7 +280,6 @@ class IntegrateAction(TableAction):
         self.notifyGUI()
 
     def notifyGUI(self):
-        print(self.widget_row)
         tl = self.model.createIndex(self.widget_row, 0)
         tr = self.model.createIndex(self.widget_row, self.model.columnCount() - 1)
         # this one updates plots

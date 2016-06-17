@@ -67,6 +67,7 @@ class TableModel(QAbstractTableModel):
         return self.row_permutation
 
     def update_row_view(self):
+        """handles changes in permutation (sorting) and filtering of rows"""
         self.widgetRowToDataRow = [row_idx for row_idx in self.row_permutation if row_idx in
                                    self.visible_rows]
         self.dataRowToWidgetRow = {row: i for (i, row) in enumerate(self.widgetRowToDataRow)}
@@ -115,10 +116,12 @@ class TableModel(QAbstractTableModel):
     def set_all(self, widget_col_index, value):
         data_col_index = self.widgetColToDataCol[widget_col_index]
         data_row_indices = self.widgetRowToDataRow
+        self.beginResetModel()
         done = self.runAction(ChangeAllValuesInColumnAction, widget_col_index, data_row_indices,
                               data_col_index, value)
         if done:
             self.update_visible_rows_for_given_limits()
+        self.beginResetModel()
         return done
 
     def row(self, index):
@@ -218,8 +221,9 @@ class TableModel(QAbstractTableModel):
             action = self.actions.pop()
             self.beginResetModel()
             action.undo()
-            self.update_visible_rows_for_given_limits()  # does endResetModel
+            self.update_visible_rows_for_given_limits(force_reset=True) 
             self.redoActions.append(action)
+            self.endResetModel()
             self.emit_updated_actions()
 
     def redoLastAction(self):
@@ -227,10 +231,10 @@ class TableModel(QAbstractTableModel):
             action = self.redoActions.pop()
             self.beginResetModel()
             action.do()
-            self.update_visible_rows_for_given_limits()  # does endResetModel
+            self.update_visible_rows_for_given_limits(force_reset=True)  # does endResetModel
             self.actions.append(action)
+            self.endResetModel()
             self.emit_updated_actions()
-            return
 
     def sort(self, colIdx, order=Qt.AscendingOrder):
         # the counter is a dirty hack: during startup of table explorer the sort method is
@@ -257,8 +261,10 @@ class TableModel(QAbstractTableModel):
 
     def sort_by(self, sort_data):
         data_cols = [(name, order.startswith("asc")) for (name, order) in sort_data]
+        self.beginResetModel()
         self.runAction(SortTableAction, data_cols)
-        self.update_visible_rows_for_given_limits(force_reset=True)
+        self.update_row_view()
+        self.endResetModel()
 
     def eicColNames(self):
         return ["peakmap", "mzmin", "mzmax", "rtmin", "rtmax"]
@@ -643,8 +649,6 @@ class MutableTableModel(TableModel):
                         guidata.qapplication().beep()
                         return False
             done = self.runAction(ChangeValueAction, index, ridx, cidx, value)
-            if done:
-                self.update_visible_rows_for_given_limits()
             return done
         return False
 
@@ -681,7 +685,6 @@ class MutableTableModel(TableModel):
                        widget_row_idx)
         self.dataChanged.emit(self.index(widget_row_idx, 0),
                               self.index(widget_row_idx, self.columnCount() - 1))
-        self.update_visible_rows_for_given_limits()
 
     def setNonEditable(self, colBaseName, group):
         for postfix in self.table.supportedPostfixes(group):
@@ -691,6 +694,8 @@ class MutableTableModel(TableModel):
     def restrict_to_filtered(self):
         shown_data_rows = self.widgetRowToDataRow
         delete_data_rows = set(range(len(self.table))) - set(shown_data_rows)
+        self.beginResetModel()
         self.runAction(DeleteRowsAction, [], delete_data_rows)
         self.update_visible_rows_for_given_limits()
+        self.endResetModel()
         return True
