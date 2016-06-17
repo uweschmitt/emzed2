@@ -3,6 +3,7 @@ import datetime
 import functools
 import functools
 import new
+import os
 import time
 
 
@@ -27,7 +28,8 @@ def protect_signal_handler(fun):
             return fun(*a, **kw)
         except:
             import traceback
-            traceback.print_exc()
+            if debug_mode:
+                traceback.print_exc()
             msg = traceback.format_exc()
             import emzed
             emzed.gui.showWarning(msg)
@@ -58,12 +60,17 @@ def set_datetime_formating_on_x_axis(plot):
     plot.setAxisScaleDraw(plot.xBottom, a)
 
 
+debug_mode = os.environ.get("DEBUG", 0)
+
+
 @contextlib.contextmanager
-def timer(name=""):
+def timer(name="", debug_mode=debug_mode):
     started = time.time()
     yield
     needed = time.time() - started
-    print name, "needed %.5fs" % needed
+    if debug_mode:
+        print name, "needed %.5fs" % needed
+
 
 def timethis(function):
 

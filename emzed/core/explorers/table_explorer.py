@@ -19,7 +19,7 @@ from ..data_types.hdf5_table_proxy import Hdf5TableProxy
 from .table_explorer_model import (TableModel, isUrl, IntegrateAction)
 from .helpers import timethis
 
-from helpers import protect_signal_handler
+from helpers import protect_signal_handler, debug_mode
 
 from inspectors import has_inspector, inspector
 
@@ -650,7 +650,7 @@ class TableExplorer(EmzedDialog):
 
     @protect_signal_handler
     def sort_fields_changed(self, __):
-        print("sort_fields_changed")
+        print "sort_fields_changed"
         sort_data = [(str(f0.currentText()),
                       str(f1.currentText())) for f0, f1 in zip(self.sort_fields_widgets,
                                                                self.sort_order_widgets)]
@@ -1007,16 +1007,10 @@ class TableExplorer(EmzedDialog):
     def rowClicked(self, widget_row_idx):
 
         start = time.time()
-        print
-        print "row clicked !"
-        print
 
         group_by_idx = self.chooseGroupColumn.currentIndex()
         if group_by_idx > 0:
             self.select_rows_in_group(widget_row_idx, group_by_idx)
-            print
-            print "row click done"
-            print
             return
 
         @timethis
@@ -1049,9 +1043,8 @@ class TableExplorer(EmzedDialog):
 
             # self.setCursor(Qt.ArrowCursor)
             needed = time.time() - start
-            print
-            print "row click done, needed %.2f s" % needed
-            print
+            if debug_mode:
+                print "row click done, needed %.2f s" % needed
 
         # we need to keep gui responsive to handle key clicks:
         self.async_runner.run_async(handle_row_click, (),
@@ -1328,7 +1321,7 @@ class TableExplorer(EmzedDialog):
     def plot_spectra_from_peakmaps(self, peakmaps, windows, labels):
 
         if not peakmaps or not windows:
-            print("empty peakmaps or windows")
+            print "empty peakmaps or windows"
             return
 
         data = []
