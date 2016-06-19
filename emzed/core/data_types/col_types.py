@@ -46,7 +46,7 @@ class Blob(object):
     def __init__(self, data, type_=None):
         self.data = data
         self._unique_id = None
-        if type_ is None:
+        if type_ is None and data:
             if data.startswith("\x89PNG"):
                 type_ = "PNG"
             elif data[0] == "\xff":
