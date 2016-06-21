@@ -9,6 +9,8 @@ from dialog_builder import (showWarning, showInformation, DialogBuilder, RunJobB
 from dialog_builder_items import *
 # order of the previous two imports is importang, see remark above  ##########################
 
+from progressbar import ProgressBar
+
 from ..core.explorers.inspectors import inspect
 
 
@@ -32,3 +34,7 @@ try:
 except:
     pass
 
+try:
+    del progressbar
+except:
+    pass
