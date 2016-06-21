@@ -100,7 +100,7 @@ def numpy_to_python_number(v):
 
 def common_type_for(li):
 
-    types = set(type(x) for x in li if x is not None)
+    types = set(type(x) for x in li if x is not None and x != "-")
 
     reduced = set()
 

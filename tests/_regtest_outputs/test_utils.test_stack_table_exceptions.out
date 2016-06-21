@@ -1,13 +1,12 @@
 detected incompatibilities:
        0/1 col(number=0, name=a): <type 'int'> vs None
-       0/1 col(number=0, name=a): %d vs %r
+       0/1 col(number=0, name=a): %d vs %s
        1/2 col(number=0, name=a): None vs <type 'str'>
-       1/2 col(number=0, name=a): %r vs %s
 tables 0 and 1 have different number columns (2 and 1)
 column names do not fit:
   column  0: a vs c
 detected incompatibilities:
        0/1 col(number=0, name=a): <type 'int'> vs None
-       0/1 col(number=0, name=a): %4d vs %r
+       0/1 col(number=0, name=a): %4d vs %s
        1/2 col(number=0, name=a): None vs <type 'int'>
-       1/2 col(number=0, name=a): %r vs %d
+       1/2 col(number=0, name=a): %s vs %d

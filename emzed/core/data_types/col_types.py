@@ -15,7 +15,13 @@ def unique_id_from(*args):
     return h.hexdigest()
 
 
-class CheckState(object):
+class SpecialColType(object):
+
+    pass
+
+
+
+class CheckState(SpecialColType):
 
     def __init__(self, is_checked):
         self._is_checked = bool(is_checked)
@@ -41,7 +47,7 @@ class CheckState(object):
         return not (self == other)
 
 
-class Blob(object):
+class Blob(SpecialColType):
 
     def __init__(self, data, type_=None):
         self.data = data
@@ -70,7 +76,7 @@ class Blob(object):
         return self._unique_id
 
 
-class TimeSeries(object):
+class TimeSeries(SpecialColType):
 
     def __init__(self, x, y, label=None, blank_flags=None):
         assert len(x) == len(y)
@@ -105,15 +111,7 @@ class TimeSeries(object):
         return len(self.x)
 
     def __str__(self):
-        try:
-            min_y = min(yi for yi in self.y if yi is not None)
-        except ValueError:  # for empty sequencd
-            return "<empty TimeSeries>"
-        else:
-            max_y = max(yi for yi in self.y if yi is not None)
-            min_x = min(xi for xi in self.x if xi is not None)
-            max_x = max(xi for xi in self.x if xi is not None)
-            return "<TimeSeries, time=%s..%s, values=%s..%s>" % (min_x, max_x, min_y, max_y)
+        return "<TimeSeries %#x of length %d>" % (id(self), len(self))
 
     @staticmethod
     def detect_segments(x, y):
@@ -147,4 +145,3 @@ class TimeSeries(object):
         seg_xy = segments(signal_xy)
         seg_blanks = [(x, y, dict(linestyle="DashLine")) for (x, y) in segments(blank_xy)]
         return seg_xy + seg_blanks
-

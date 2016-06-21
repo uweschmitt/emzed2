@@ -68,6 +68,7 @@ class LogAll(object):
 class Hdf5TableProxy(ImmutableTable):
 
     def __init__(self, path):
+        self.path = path
         self.reader = Hdf5TableReader(path)
         self.setup()
 
@@ -301,6 +302,9 @@ class Hdf5TableProxy(ImmutableTable):
 
     def __getattr__(self, name):
         return getattr(self._ghost_table, name)
+
+    def __str__(self):
+        return "<Hdf5TableProxy %r>" % self.path
 
 
 def main():

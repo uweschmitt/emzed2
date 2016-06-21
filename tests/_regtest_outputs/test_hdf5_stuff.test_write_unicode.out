@@ -1,11 +1,11 @@
 a          b        c
 unicode    str      object
 ------     ------   ------
-x          x        'x'
--          asbcder  'asbcder'
+x          x        x
+-          asbcder  asbcder
            -        1
            -        (1,)
-ccccäää##c          ''
+ccccäää##c
 
 [u'x' None u'' u'' u'cccc\xe4\xe4\xe4##c']
 ['x' 'asbcder' None None '']

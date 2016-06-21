@@ -64,7 +64,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
 
 
 def loadBlob(path=None):
-    path = _prepare_path(path, None)
+    path = _prepare_path(path, extensions=None)
     if path is None:
         return None
 
@@ -78,18 +78,21 @@ def loadBlob(path=None):
     return Blob(data, type_)
 
 
-def loadExcel(path=None, types=None, formats=None):
-    """types is either None or a dictionary mapping column names
-    to their types.
-    formats is either None or a dictionary mapping column names to formats.
+def loadExcel(path=None, sheetname=0, types=None, formats=None):
+    """`sheetname` is either an intger or string for indicating the sheet which will be extracted
+    from the .xls or .xlsx file. The index 0 refers to the first sheet.
+
+    `types` is either None or a dictionary mapping column names to their types.
+
+    `formats` is either None or a dictionary mapping column names to formats.
     """
-    path = _prepare_path(path, None)
+    path = _prepare_path(path, extensions=["xls", "xlsx"])
     if path is None:
         return None
 
     from emzed.core.data_types import Table
     import pandas
-    import os.path
 
-    df = pandas.read_excel(path)
+    # sheetname is reuqired for pandas < 0.14.0, later versions have default 0
+    df = pandas.read_excel(path, sheetname=sheetname)
     return Table.from_pandas(df, types=types, formats=formats)

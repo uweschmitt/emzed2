@@ -79,9 +79,33 @@ def test_excel_io(tmpdir, regtest):
     path = tmpdir.join("table.xlsx").strpath
     emzed.io.storeExcel(t, path)
 
-    types = {"a": int, "e": bool, "b": str}
+    types = {"a": int, "e": bool, "b": str, "d": float}
     formats = {"d": "%+.1f"}
     tn = emzed.io.loadExcel(path, types=types, formats=formats)
+    print(tn, file=regtest)
+
+
+def test_excel_io_2(tmpdir, regtest):
+
+    CheckState = emzed.core.CheckState
+    PeakMap = emzed.core.PeakMap
+    TimeSeries = emzed.core.TimeSeries
+    Blob = emzed.core.Blob
+
+    t = emzed.utils.toTable("a", (0, 2, 3, None), type_=int)
+    t.addColumn("checked", (t.a < 2), type_=CheckState)
+    t.addColumn("checked2", (t.a < 2), type_=CheckState)
+    t.addColumn("pm", PeakMap([]), type_=PeakMap)
+    t.addColumn("ts", TimeSeries([], []), type_=TimeSeries)
+    t.addColumn("blob", Blob(""), type_=Blob)
+
+    print(t, file=regtest)
+
+    path = tmpdir.join("table.xlsx").strpath
+    emzed.io.storeExcel(t, path)
+
+    types = {"a": int, "checked": bool, "checked2": CheckState}
+    tn = emzed.io.loadExcel(path, types=types)
     print(tn, file=regtest)
 
 
@@ -109,3 +133,22 @@ def test_collapse_stuff(tmpdir, regtest):
     for subt in tn.collapsed:
         print(subt, file=regtest)
         print(subt.data.values, file=regtest)
+
+
+def test_special_col_conversion(regtest):
+    from emzed.core import CheckState, PeakMap, TimeSeries, Blob
+
+    pm = PeakMap([])
+    ts = TimeSeries([], [])
+    blob = Blob("")
+
+    t = emzed.utils.toTable("group_id", (1, 1, 2, 2, 3), type_=int)
+    t.addColumn("data", range(5), type_=float)
+    t.addColumn("checked", (t.group_id == 1).thenElse(None, t.group_id == 2), type_=CheckState)
+    t.addColumn("pm", (t.group_id == 1).thenElse(None, pm), type_=PeakMap)
+    t.addColumn("ts", (t.group_id == 2).thenElse(None, ts), type_=TimeSeries)
+    t.addColumn("blob", (t.group_id == 3).thenElse(None, blob), type_=Blob)
+
+    print(t, file=regtest)
+    df = t.to_pandas(do_format=True)
+    print(df, file=regtest)

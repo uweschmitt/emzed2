@@ -1,13 +1,13 @@
 [datetime.datetime(1, 1, 1, 0, 0) datetime.datetime(1, 1, 2, 0, 0)
  datetime.datetime(1, 1, 3, 0, 0) datetime.datetime(1, 1, 4, 0, 0)] [ 11.  12.  14.  13.]
 [datetime.datetime(1, 1, 4, 0, 0)] [ 100.]
-<empty TimeSeries>
+<TimeSeries 0x????????? of length 0>
 id       ts
 int      TimeSeries
 ------   ------
-1        <TimeSeries, time=0001-01-01 00:00:00..0001-01-04 00:00:00, values=nan..nan>
-1        <TimeSeries, time=0001-01-01 00:00:00..0001-01-04 00:00:00, values=nan..nan>
-2        <TimeSeries, time=0001-01-01 00:00:00..0001-01-04 00:00:00, values=nan..nan>
+1        <TimeSeries 0x????????? of length 9>
+1        <TimeSeries 0x????????? of length 9>
+2        <TimeSeries 0x????????? of length 9>
 
 ac96b64c4f594c434383111bc18724c0e35c33be84ffc4464eff932d8e836701
 28feb71ec0fd6d59ec4517fded09d6d0a2630ee652cc27201e10a33b856da0f7

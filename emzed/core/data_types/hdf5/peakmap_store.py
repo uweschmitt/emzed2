@@ -9,14 +9,12 @@ import numpy as np
 
 from emzed_optimizations import sample_peaks_from_lists
 
-from .. import PeakMap, Spectrum
+from .. import PeakMap
 
 from .store_base import Store, filters
 from .lru import LruDict, lru_cache
 
 from .install_profile import profile
-
-from .helpers import timethis
 
 
 class PeakMapStore(Store):
@@ -227,6 +225,9 @@ class Hdf5PeakMapProxy(object):
 
     def getMsLevels(self):
         return self.ms_levels
+
+    def __str__(self):
+        return "<Hdf5PeakmapProxy unique_id=%s>" % self.unique_id
 
     def _try_to_fix_for_unique_ms_level(self, msLevel):
         """if msLevel is None: return 1 if only MS1 are present,

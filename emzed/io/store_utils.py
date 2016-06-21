@@ -1,7 +1,5 @@
 # encoding: utf-8
 
-import os.path
-
 from utils import _prepare_path
 
 
@@ -71,5 +69,5 @@ def storeExcel(tab, path=None):
     if path is None:
         return None
 
-    df = tab.to_pandas()
+    df = tab.to_pandas(do_format=True)
     df.to_excel(path, index=False)

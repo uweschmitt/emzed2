@@ -32,6 +32,7 @@ from . import tools
 from hdf5.object_store import ObjectProxy
 
 from .ms_types import PeakMap, PeakMapProxy
+from .col_types import SpecialColType
 
 __doc__ = """
 
@@ -179,7 +180,7 @@ def guessFormatFor(name, type_):
             return "%.5f"
         if name.startswith("rt"):
             return fms
-    return standardFormats.get(type_, "%r")
+    return standardFormats.get(type_, "%s")
 
 
 def computekey(o):
@@ -1583,10 +1584,6 @@ class Table(MutableTable):
         self._colTypes.insert(col_, type_)
         self._colFormats.insert(col_, format_)
         for row, v in zip(self.rows, values):
-            try:
-                value = type_(value)
-            except Exception:
-                pass
             row.insert(col_, v)
 
         self.resetInternals()
@@ -2079,6 +2076,7 @@ class Table(MutableTable):
         ct = [self._colTypes[i] for i in ix]
         ct = [re.match("<(type|class) '((\w|[.])+)'>|(\w+)", str(n)).groups()[1] or str(n)
               for n in ct]
+
         def strip(s, prefix):
             if s.startswith(prefix):
                 s = s[len(prefix):]
@@ -2196,6 +2194,9 @@ class Table(MutableTable):
         # now convert columns to their common type:
         for row in rows:
             for i, (v, t) in enumerate(zip(row, types)):
+                if t is None:
+                    t = str
+                    types[i] = str
                 if v is not None:
                     row[i] = t(v)
 
@@ -2591,12 +2592,23 @@ class Table(MutableTable):
         except Exception:
             return val
 
-    def to_pandas(self):
+    def to_pandas(self, do_format=False):
         """ converts table to pandas DataFrame object """
         import pandas
-        data = dict((name, getattr(self, name).values)
-                    for name in self.getColNames() if self.getColFormat(name) is not None)
-        return pandas.DataFrame(data, columns=self.getColNames())
+        data = {}
+        for name in self.getColNames():
+            if self.getColFormat(name) is not None:
+                values = getattr(self, name)
+                if do_format:
+                    idx = self.getIndex(name)
+                    f = self.colFormatters[idx]
+                    values = map(f, values)
+                else:
+                    values = list(values)
+                data[name] = values
+
+        df = pandas.DataFrame(data, columns=self.getColNames())
+        return df
 
     @staticmethod
     def from_pandas(df, title=None, meta=None, types=None, formats=None):
@@ -2652,11 +2664,13 @@ class Table(MutableTable):
         rows = [map(Table._conv_nan, row) for row in rows]
 
         def convert(row):
-            for  (t, c) in zip(col_types, row):
-                if c is not None and t is not object:
+            for (t, c) in zip(col_types, row):
+                if c is not None and t is bool:
+                    c = None if c == "-" else (str(c).upper() == "TRUE")
+                elif c is not None and t is not object:
                     try:
                         c = t(c)
-                    except TypeError:
+                    except (TypeError, ValueError):
                         c = None
                 yield c
 
@@ -2668,8 +2682,10 @@ class Table(MutableTable):
                 t = common_type_for(column)
                 col_types[i] = t
 
-        _formats = {
+        _std_formats = {
             int: "%d", float: "%f", str: "%s", unicode: "%s", object: None, bool: "%s"}
+
+        _formats = {name: _std_formats.get(type_) for (name, type_) in zip(col_names, col_types)}
         if formats is not None:
             _formats.update(formats)
 

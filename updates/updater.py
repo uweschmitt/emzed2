@@ -5,6 +5,9 @@ def version():
     return (2, 26, 19)
 
 
+is_experimental = True
+
+
 def description():
     msg = """
     release 2.26.19:
@@ -19,10 +22,6 @@ def description():
 
 def run_update(locally=True):
     import pip
-                    "pycryptodome<=3.3",
-                    "xlwt",
-                    "xlrd",
-                    "openpyxl",
 
     pip.main("install pycryptodome<=3.3".split())
     pip.main("install emzed_optimizations>=0.6.0".split())

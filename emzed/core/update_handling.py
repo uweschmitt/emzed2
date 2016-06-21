@@ -231,10 +231,12 @@ class EmzedUpdateImpl(AbstractUpdaterImpl):
     def query_update_info(self, limit):
         updater = load_updater_from_website()
         latest_version = updater.version()
+        is_experimental = getattr(updater, "is_experimental", True)
         if latest_version > version.version:
             description = updater.description()
             version_str = ".".join(map(str, latest_version))
-            return "new emzed version %s available\n%s" % (version_str, description), True
+            what = "EXPERIMENTAL emzed" if is_experimental else "emzed"
+            return "new %s version %s available\n%s" % (what, version_str, description), True
         return "emzed still up to date", False
 
     def do_update(self, limit):

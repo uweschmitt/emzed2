@@ -4,15 +4,15 @@
 id       peakmap
 int      object
 ------   ------
-1        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
-2        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
-3        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+1        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
+2        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
+3        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
 
 41
 id       peakmap
 int      object
 ------   ------
-1        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
-2        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
-3        <emzed.core.data_types.ms_types.PeakMapProxy object at 0x?????????>
+1        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
+2        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
+3        <PeakMapProxy 0x????????? to 'peak_map_cfe02970c65b7d5c2280a37566cf19ce3650832f8fbb268d40a599aba5ee775b.pickle'>
 

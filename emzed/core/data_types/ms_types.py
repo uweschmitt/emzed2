@@ -12,6 +12,8 @@ import zlib
 
 from emzed_optimizations.sample import sample_peaks
 
+from .col_types import SpecialColType
+
 OPTIMIZATIONS_INSTALLED = False
 try:
     import emzed_optimizations
@@ -71,7 +73,7 @@ class NDArrayProxy(np.ndarray):
     __ixor__ = wrap("__ixor__")
 
 
-class Spectrum(object):
+class Spectrum(SpecialColType):
 
     """
     MS Spectrum Type
@@ -449,7 +451,7 @@ class Spectrum(object):
             self._setup_peaks(peaks)
 
 
-class PeakMap(object):
+class PeakMap(SpecialColType):
 
     """
         This is the container object for spectra of type :py:class:`~.Spectrum`.
@@ -747,7 +749,7 @@ class PeakMap(object):
         else:
             mzranges = [s.mzRange() for s in self.spectra]
         if not mzranges:
-            return  None, None 
+            return None, None
 
         mzmins, mzmaxs = zip(*mzranges)
         return float(min(mzmins)), float(max(mzmaxs))
@@ -761,7 +763,7 @@ class PeakMap(object):
         else:
             rts = [s.rt for s in self.spectra]
         if not rts:
-            return  None, None
+            return None, None
         return min(rts), max(rts)
 
     @classmethod
@@ -962,6 +964,9 @@ class PeakMapProxy(PeakMap):
     def __setstate__(self, dd):
         self._path, self.meta = dd
         self._loaded = False
+
+    def __str__(self):
+        return "<PeakMapProxy %#x to %r>" % (id(self), os.path.basename(self._path))
 
     def squeeze(self):
         self._loaded = False
