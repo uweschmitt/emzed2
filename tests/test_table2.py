@@ -715,7 +715,7 @@ def test_collapse(regtest):
     print(10, ts0, file=regtest)
 
 
-def test_uniuqe_id(regtest):
+def test_unique_id(regtest):
     ti = emzed.utils.toTable("id", [1, 1, 2])
     t = emzed.utils.toTable("t", (ti, ti, None))
     # peakmap unique id already tested by compression of peakmap:

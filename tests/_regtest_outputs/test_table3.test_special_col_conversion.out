@@ -1,0 +1,22 @@
+group_id data     checked  pm                                   ts                                   blob
+int      float    CheckState PeakMap                              TimeSeries                           Blob
+------   ------   ------   ------                               ------                               ------
+1        0.00     -        -                                    <TimeSeries 0x????????? of length 0> <Blob 0x????????? of unknown type>
+1        1.00     -        -                                    <TimeSeries 0x????????? of length 0> <Blob 0x????????? of unknown type>
+2        2.00     True     <PeakMap 0x????????? with 0 spectra> -                                    <Blob 0x????????? of unknown type>
+2        3.00     True     <PeakMap 0x????????? with 0 spectra> -                                    <Blob 0x????????? of unknown type>
+3        4.00     False    <PeakMap 0x????????? with 0 spectra> <TimeSeries 0x????????? of length 0> -
+
+  group_id  data checked                                    pm  \
+0        1  0.00       -                                     -
+1        1  1.00       -                                     -
+2        2  2.00    True  <PeakMap 0x????????? with 0 spectra>
+3        2  3.00    True  <PeakMap 0x????????? with 0 spectra>
+4        3  4.00   False  <PeakMap 0x????????? with 0 spectra>
+
+                                     ts                                blob
+0  <TimeSeries 0x????????? of length 0>  <Blob 0x????????? of unknown type>
+1  <TimeSeries 0x????????? of length 0>  <Blob 0x????????? of unknown type>
+2                                     -  <Blob 0x????????? of unknown type>
+3                                     -  <Blob 0x????????? of unknown type>
+4  <TimeSeries 0x????????? of length 0>                                   -
