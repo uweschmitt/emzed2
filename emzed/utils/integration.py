@@ -68,7 +68,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print
 
     if n_cpus == 1:
-        result = _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress,))
+        __, result = _integrate((0, ftable, supportedPostfixes, integratorid, msLevel, showProgress,))
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
@@ -77,11 +77,13 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             subt = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
             args.append(
-                (subt, supportedPostfixes, integratorid, msLevel, show_progress))
+                (i, subt, supportedPostfixes, integratorid, msLevel, show_progress))
             all_pms.append(subt.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
-        tables = pool.map_async(_integrate, args).get()
+        results = pool.map_async(_integrate, args).get()
+        results.sort()  # by first entry which is the index
+        tables = [t for (i, t) in results]
 
         # as peakmaps are serialized/unserialized for paralell execution, lots of duplicate
         # peakmaps come back after. we reset those columns to their state before spreading
@@ -108,7 +110,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
     return result
 
 
-def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)):
+def _integrate((idx, ftable, supportedPostfixes, integratorid, msLevel, showProgress)):
     from ..algorithm_configs import peakIntegrators
     from ..core.data_types import Table
     import sys
@@ -184,4 +186,4 @@ def _integrate((ftable, supportedPostfixes, integratorid, msLevel, showProgress)
     resultTable.meta["integrated"] = True, "\n"
     resultTable.title = "integrated: " + (resultTable.title or "")
     resultTable.resetInternals()
-    return resultTable
+    return idx, resultTable

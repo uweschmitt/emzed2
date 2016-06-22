@@ -28,33 +28,35 @@ def _compare_tables(t1, t2):
         assert cPickle.dumps(v1) == cPickle.dumps(v2)
 
 
-def testIntegration(path):
+def testIntegration(path, regtest):
 
     for integrator_id in ("trapez", "max", "emg_exact"):
-        t1 = _testIntegration(path, 1, integrator_id, check_values=True)
-        t2 = _testIntegration(path, 2, integrator_id, check_values=True)
+        t1 = _testIntegration(path, 1, integrator_id, check_values=True, regtest=regtest)
+        t2 = _testIntegration(path, 2, integrator_id, check_values=True, regtest=regtest)
 
         _compare_tables(t1, t2)
 
-        t3 = _testIntegration(path, 4, integrator_id, check_values=True)
+        t3 = _testIntegration(path, 4, integrator_id, check_values=True, regtest=regtest)
         _compare_tables(t1, t3)
 
-    t1 = _testIntegration(path, 1, "no_integration", check_values=False)
-    t2 = _testIntegration(path, 2, "no_integration", check_values=False)
+    t1 = _testIntegration(path, 1, "no_integration", check_values=False, regtest=regtest)
+    t2 = _testIntegration(path, 2, "no_integration", check_values=False, regtest=regtest)
 
     _compare_tables(t1, t2)
 
-    t3 = _testIntegration(path, 4, "no_integration", check_values=False)
+    t3 = _testIntegration(path, 4, "no_integration", check_values=False, regtest=regtest)
     _compare_tables(t1, t3)
 
 
-def _testIntegration(path, n_cpus, integrator_id, check_values=True):
+def _testIntegration(path, n_cpus, integrator_id, check_values, regtest):
 
     # test with and without unicode:
     ft = io.loadTable(path("data/features.table"))
     # an invalid row should not stop integration, but result
     # in None values for emzed.utils.integrate generated columns
     ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
+    print(ftr, file=regtest)
+
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -80,6 +82,9 @@ def _testIntegration(path, n_cpus, integrator_id, check_values=True):
     ft.addColumn("peakmapX", ft.peakmap)
 
     ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
+
+
+
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
