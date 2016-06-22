@@ -1230,6 +1230,7 @@ class TableExplorer(EmzedDialog):
         else:
             dlg = None
 
+        rtmin = rtmax = None
         try:
             for i, (rtmin, rtmax, curve) in itertools.izip(itertools.count(), source):
                 config = configForEic(i)
@@ -1265,6 +1266,11 @@ class TableExplorer(EmzedDialog):
                 w = 30.0  # seconds
             if reset:
                 timethis(self.eic_plotter.set_rt_axis_limits)(overall_rtmin - w, overall_rtmax + w)
+
+            if rtmin is None:
+                rtmin = overall_rtmin
+            if rtmax is None:
+                rtmax = overall_rtmax
 
             timethis(self.eic_plotter.set_range_selection_limits)(rtmin, rtmax, True)
 
