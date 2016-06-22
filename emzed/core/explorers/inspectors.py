@@ -12,8 +12,10 @@ def has_inspector(clz):
 def try_to_load(path):
     ext = os.path.splitext(path)[1]
     if ext.upper() in (".MZXML", ".MZML", ".MZDATA"):
+        import emzed
         return emzed.io.loadPeakMap(path)
     elif ext == ".table":
+        import emzed
         return emzed.io.loadTable(path)
     elif ext == ".hdf5":
         return Hdf5TableProxy(path)
