@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+import sys
+import multiprocessing
+
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
               min_size_for_parallel_execution=500):
@@ -14,17 +17,12 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             n_cpus = -1 means "use all but one cpu cores", etc
 
     """
-    from ..core.data_types.table import Table, PeakMap
-
-    # assert isinstance(ftable, Table)
 
     neededColumns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
     supportedPostfixes = ftable.supportedPostfixes(neededColumns)
     if not supportedPostfixes:
         raise Exception("is no feature table")
 
-    import sys
-    import multiprocessing
     if sys.platform == "win32":
         # if subprocesses use python.exe a console window pops up for each
         # subprocess. this is quite ugly..
@@ -34,31 +32,11 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
                                        "pythonw.exe")
                                        )
     import time
+    from ..core.data_types import Table
 
     started = time.time()
 
-    messages = []
-    if multiprocessing.current_process().daemon and n_cpus != 1:
-        messages.append("WARNING: you choose n_cpus = %d but integrate already runs inside a "
-                        "daemon process which is not allowed. therefore set n_cpus = 1" % n_cpus)
-        n_cpus = 1
-
-    if n_cpus < 0:
-        n_cpus = multiprocessing.cpu_count() + n_cpus
-
-    if n_cpus <= 0:
-        messages.append("WARNING: you requested to use %d cores, "
-                        "we use single core instead !" % n_cpus)
-        n_cpus = 1
-
-    if n_cpus > 1 and len(ftable) < min_size_for_parallel_execution:
-        messages.append("INFO: as the table has les thann %d rows, we switch to one cpu mode"
-                        % min_size_for_parallel_execution)
-        n_cpus = 1
-
-    elif n_cpus > multiprocessing.cpu_count():
-        messages.append("WARNING: more processes demanded than available cpu cores, this might be "
-                        "inefficient")
+    messages, n_cpus = check_num_cpus(n_cpus, len(ftable), min_size_for_parallel_execution)
 
     if showProgress:
         print
@@ -74,15 +52,16 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         args = []
         all_pms = []
         for i in range(n_cpus):
-            subt = ftable[i::n_cpus]
+            partial = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
             args.append(
-                (i, subt, supportedPostfixes, integratorid, msLevel, show_progress))
-            all_pms.append(subt.peakmap.values)
+                (i, partial, supportedPostfixes, integratorid, msLevel, show_progress))
+            all_pms.append(partial.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C
         results = pool.map_async(_integrate, args).get()
-        results.sort()  # by first entry which is the index
+
+        results.sort()  # sorts by first entry which is the index of the partial table
         tables = [t for (i, t) in results]
 
         # as peakmaps are serialized/unserialized for paralell execution, lots of duplicate
@@ -112,7 +91,6 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
 def _integrate((idx, ftable, supportedPostfixes, integratorid, msLevel, showProgress)):
     from ..algorithm_configs import peakIntegrators
-    from ..core.data_types import Table
     import sys
 
     integrator = dict(peakIntegrators).get(integratorid)
@@ -187,3 +165,31 @@ def _integrate((idx, ftable, supportedPostfixes, integratorid, msLevel, showProg
     resultTable.title = "integrated: " + (resultTable.title or "")
     resultTable.resetInternals()
     return idx, resultTable
+
+
+def check_num_cpus(n_cpus, table_size, min_table_size):
+
+    messages = []
+    if multiprocessing.current_process().daemon and n_cpus != 1:
+        messages.append("WARNING: you choose n_cpus = %d but integrate already runs inside a "
+                        "daemon process which is not allowed. therefore set n_cpus = 1" % n_cpus)
+        n_cpus = 1
+
+    if n_cpus < 0:
+        n_cpus = multiprocessing.cpu_count() + n_cpus
+
+    if n_cpus <= 0:
+        messages.append("WARNING: you requested to use %d cores, "
+                        "we use single core instead !" % n_cpus)
+        n_cpus = 1
+
+    if n_cpus > 1 and table_size < min_table_size:
+        messages.append("INFO: as the table has les thann %d rows, we switch to one cpu mode"
+                        % min_table_size)
+        n_cpus = 1
+
+    elif n_cpus > multiprocessing.cpu_count():
+        messages.append("WARNING: more processes demanded than available cpu cores, this might be "
+                        "inefficient")
+
+    return messages, n_cpus
