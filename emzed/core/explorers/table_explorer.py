@@ -1374,6 +1374,7 @@ class TableExplorer(EmzedDialog):
         finally:
             dlg.close()
 
+        self.mz_plotter.reset_mz_limits(mzmin, mzmax)
         self.mz_plotter.replot()
 
 
