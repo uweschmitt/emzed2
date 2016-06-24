@@ -1,13 +1,12 @@
 # encoding: utf-8, division
 from __future__ import print_function, division
 
-from collections import defaultdict
 import itertools
 import warnings
 
 import numpy as np
 
-from tables import open_file, Filters, Int64Col, Float64Col, BoolCol, UInt64Col, UInt32Col
+from tables import open_file, Filters, UInt64Col, UInt32Col
 
 from .store_manager import setup_manager
 from .bit_matrix import BitMatrix
@@ -15,13 +14,12 @@ from .lru import LruDict
 
 from .install_profile import profile
 
+from .types import basic_type_map, none_replacements
 
 filters = Filters(complib="blosc", complevel=9)
 
 
 class Hdf5Base(object):
-
-    from types import basic_type_map
 
     def _initial_setup(self, path, mode):
         self.file_ = open_file(path, mode)
@@ -51,7 +49,6 @@ class Hdf5TableWriter(Hdf5Base):
                                              description=dict(index=UInt64Col()),
                                              filters=filters)
 
-
         def store_meta(what):
             meta_index = self.manager.store_object("meta", what, object)
             row = self.meta_table.row
@@ -76,7 +73,7 @@ class Hdf5TableWriter(Hdf5Base):
 
         description = {}
         for (pos, name, type_) in zip(itertools.count(), col_names, col_types):
-            tables_type = self.basic_type_map.get(type_)
+            tables_type = basic_type_map.get(type_)
             if tables_type is None:
                 tables_type = UInt32Col
             description[name] = tables_type(pos=pos)
@@ -99,7 +96,7 @@ class Hdf5TableWriter(Hdf5Base):
                 if value is None:
                     self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
-                    if type_ not in self.basic_type_map:
+                    if type_ not in basic_type_map:
                         value = self.manager.store_object(col_index, value, type_)
                     hdf_row[name] = value
             hdf_row.append()
@@ -161,8 +158,8 @@ class Hdf5TableReader(Hdf5Base):
                             self.missing_values_flags.set_bit(int(row), int(col))
                     self.missing_values_flags.flush()
             message = ("you read from / append to a hdf5 table which has version %s and older "
-                        "as the current version %s, you might have problems...." %
-                        (self.hdf5_table_version, expected))
+                       "as the current version %s, you might have problems...." %
+                       (self.hdf5_table_version, expected))
 
             warnings.warn(message, UserWarning, stacklevel=2)
 
@@ -185,7 +182,7 @@ class Hdf5TableReader(Hdf5Base):
         for (col_idx, value, type_) in zip(itertools.count(), values, self.col_types):
             if col_idx in missing:
                 value = None
-            elif type_ not in self.basic_type_map:
+            elif type_ not in basic_type_map:
                 value = self.manager.fetch(col_idx, value)
             row.append(value)
         self.row_cache[row_index] = row
@@ -205,6 +202,10 @@ class Hdf5TableReader(Hdf5Base):
         self.missing_values_flags.flush()
 
     def replace_column(self, col_index, value, row_selection=None):
+
+        # todo: generator type
+        value_is_iterable = isinstance(value, (list, tuple))
+
         type_ = self.col_types[col_index]
         self.row_cache.clear()
         col_name = self.col_names[col_index]
@@ -218,19 +219,38 @@ class Hdf5TableReader(Hdf5Base):
             return
 
         self._remove_missing_value_entries_in_column(col_index, row_selection)
+        if value_is_iterable:
+            self._replace_column_with_missing_values(col_index,
+                                                     (i for (i, value) in enumerate(value)
+                                                      if value is None))
 
-        if type_ not in self.basic_type_map:
-            value = self.manager.store_object(col_index, value, type_)
+        if value_is_iterable:
+            if type_ not in basic_type_map:
+                value = [0 if vi is None else self.manager.store_object(col_index, vi, type_)
+                         for vi in value]
+            else:
+                sentinel = none_replacements[type_]
+                value = [sentinel if vi is None else vi for vi in value]
+
+        else:
+            if type_ not in basic_type_map:
+                value = self.manager.store_object(col_index, value, type_)
 
         name = self.col_names[col_index]
         if row_selection is None:
             n = self.row_table.nrows
-            bulk_size = 10000
+            bulk_size = 100000
             for start in range(0, n, bulk_size):
                 stop = min(n, start + bulk_size)
-                data = [value] * (stop - start)
+                if value_is_iterable:
+                    data = value[start:stop]
+                else:
+                    data = [value] * (stop - start)
                 self.row_table.modify_column(start=start, stop=stop, colname=name, column=data)
         else:
+            if value_is_iterable:
+                raise NotImplementedError("replace column by iterable for seleted rows not "
+                                          "implemented yet")
             col = getattr(self.row_table.cols, name)
             for row_index in row_selection:
                 col[row_index] = value
@@ -260,7 +280,7 @@ class Hdf5TableReader(Hdf5Base):
         row = row_iter.next()
         name = self.col_names[col_index]
 
-        if type_ not in self.basic_type_map:
+        if type_ not in basic_type_map:
             value = self.manager.store_object(col_index, value, type_)
 
         row[name] = value
@@ -301,7 +321,7 @@ class Hdf5TableReader(Hdf5Base):
 
         type_ = self.col_type_of_name[col_name]
         col_values = col_values.astype(object)
-        if type_ not in self.basic_type_map:
+        if type_ not in basic_type_map:
             for i, v in enumerate(col_values):
                 if v == 0:
                     col_values[i] = None
@@ -346,9 +366,10 @@ class Hdf5TableReader(Hdf5Base):
             store = self.manager.fetch_store(col_index)
             if store is not None:
                 col_values = store.fetch_column(col_index, col_values)
-            elif col_type not in self.basic_type_map:
+            elif col_type not in basic_type_map:
                 # this happens eg for TimeSeries, see comment above
-                col_values = list(self.manager.fetch(col_index, global_id) for global_id in col_values)
+                col_values = list(self.manager.fetch(col_index, global_id)
+                                  for global_id in col_values)
             resolved_col_values.append(col_values)
         return resolved_col_values
 

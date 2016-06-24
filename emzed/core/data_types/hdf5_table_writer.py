@@ -54,7 +54,8 @@ def atomic_hdf5_writer(path):
     except Exception, e:
         # do not keep an partially written file in case of errors:
         adder.close()
-        os.remove(temp_path)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
         raise e
     finally:
         adder.close()

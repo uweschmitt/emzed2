@@ -268,9 +268,6 @@ class Hdf5TableProxy(ImmutableTable):
             raise NotImplementedError("argument type_ not supported yet")
         if "format_" in kw:
             raise NotImplementedError("argument format_ not supported yet")
-        if what is not None and not isinstance(what, (bool, int, long, str)):
-            raise NotImplementedError(
-                "what argument must be constant value, no iterables supported")
 
         self.reader.replace_column(self.getIndex(name), what)
 
@@ -301,7 +298,10 @@ class Hdf5TableProxy(ImmutableTable):
         return self.reader
 
     def __getattr__(self, name):
-        return getattr(self._ghost_table, name)
+        try:
+            return getattr(self._ghost_table, name)
+        except AttributeError:
+            raise AttributeError("%s has no attribute %r" % (self, name))
 
     def __str__(self):
         return "<Hdf5TableProxy %r>" % self.path
