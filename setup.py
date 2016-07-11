@@ -19,6 +19,8 @@ install_requires = ["guidata<=1.6.2",
                     "pytest",
                     "scikit-learn",
                     "emzed_optimizations>=0.6.0",
+                    "sphinx",           # needed by spyder
+                    "colorama>=0.3.5",  # needed by sphinx
                     "pycryptodome<=3.3",
                     "xlwt",
                     "xlrd",
@@ -34,7 +36,7 @@ elif sys.platform != "linux2":
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
-      version="%d.%d.%d" % version,
+      version="%s.%s.%s" % version,
       keywords=["alpha", ],
       description="Rewrite of emzed framework for LCMS data analysis",
       entry_points={
