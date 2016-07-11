@@ -49,17 +49,6 @@ def timeit(function):
     return inner
 
 
-
-def setup_manager(file_, node=None):
-
-    if node is None:
-        node = file_.root
-
-    manager = Store(file_, node)
-    return manager
-
-
-
 class Store(object):
 
     __metaclass__ = abc.ABCMeta

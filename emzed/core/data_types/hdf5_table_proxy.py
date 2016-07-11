@@ -1,8 +1,6 @@
 # encoding: utf-8, division
 from __future__ import print_function, division
 
-import csv
-import itertools
 import re
 import time
 import types
@@ -17,7 +15,6 @@ from .hdf5.object_store import ObjectProxy
 from .hdf5.peakmap_store import Hdf5PeakMapProxy  # analysis:ignore
 
 from .hdf5.accessors import Hdf5TableReader
-from .hdf5.lru import LruDict
 
 from base_classes import ImmutableTable
 
@@ -73,14 +70,17 @@ class Hdf5TableProxy(ImmutableTable):
         self.setup()
 
     def close(self):
+        self.reader.flush()
         self.reader.close()
+
+    def flush(self):
+        self.reader.flush()
 
     def setup(self):
         self.perm = None
 
         r = self.reader
-        self._ghost_table = Table(r.col_names, r.col_types, r.col_formats,
-                                  meta=r.meta, rows=[])
+        self._ghost_table = Table(r.col_names, r.col_types, r.col_formats, meta=r.meta, rows=[])
 
         # we add rows later, because the Table constructor tries to setup column expressions
         # which is expensive for large hdf5 tables:
@@ -160,13 +160,12 @@ class Hdf5TableProxy(ImmutableTable):
                 values, missing_values = self.reader.get_raw_col_values(col_name)
                 keep = set(np.where(filter_function(values))[0])
                 keep -= set(missing_values)
-                rows_to_remain = keep
 
             else:
                 values = self.reader.get_col_values(col_name)
 
                 # trick, "!=" does not work, but all not None values are larger than None !
-                iflags = (values > None) 
+                iflags = (values > None)
 
                 # somehow this happened once, although I do not understand how, the only reason
                 # can be when self.reader.get_col_values(..) above retured a single bool:
@@ -310,7 +309,6 @@ class Hdf5TableProxy(ImmutableTable):
 def main():
     proxy = Hdf5TableProxy("hdf5/test.hdf5")
     print(len(proxy))
-    import time
 
     proxy.filter_("floats_0", 400, 450)
     proxy.sortBy(["floats_0"], [True])

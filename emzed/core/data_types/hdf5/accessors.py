@@ -26,7 +26,9 @@ class Hdf5Base(object):
         self.manager = setup_manager(self.file_)
 
     def close(self):
+        self.manager.flush()
         self.manager.close()
+        self.file_.close()
 
 
 class Hdf5TableWriter(Hdf5Base):
@@ -102,7 +104,9 @@ class Hdf5TableWriter(Hdf5Base):
             hdf_row.append()
 
         self.row_offset += len(table)
+        self.flush()
 
+    def flush(self):
         self.missing_values_flags.flush()
         self.row_table.flush()
         self.manager.flush()
@@ -255,8 +259,7 @@ class Hdf5TableReader(Hdf5Base):
             for row_index in row_selection:
                 col[row_index] = value
 
-        self.row_table.flush()
-        self.manager.flush()
+        self.flush()
 
     def _replace_cell(self, row_index, col_index, value):
         type_ = self.col_types[col_index]
