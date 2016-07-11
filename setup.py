@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 # no import emzed here, causes trouble when installing on win, as missing packages
 # are needed when importing emzed
-version = (2, 24, 6)
+version = (2, 24, "6fix1")
 
 
 install_requires = [
@@ -19,7 +19,8 @@ install_requires = [
                     "pyopenms",
                     "pytest",
                     "scikit-learn",
-
+                    "sphinx",           # needed by spyder
+                    "colorama>=0.3.5",  # needed by sphinx
                     "emzed_optimizations>=0.5.0",
                     "pycryptodome<=3.3",
                     ]
@@ -33,7 +34,7 @@ elif sys.platform != "linux2":
 
 setup(name="emzed",
       packages=find_packages(exclude=["tests", "sandbox"]),
-      version="%d.%d.%d" % version,
+      version="%s.%s.%s" % version,
       keywords=["alpha", ],
       description="Rewrite of emzed framework for LCMS data analysis",
       entry_points={
