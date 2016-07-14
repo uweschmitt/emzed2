@@ -600,12 +600,14 @@ class Table(MutableTable):
                     start = ix.start if ix.start is not None else 0
                     end = ix.stop if ix.stop is not None else n
                     stepsize = ix.step if ix.step is not None else 1
-                    if stepsize < 0:
-                        start, end = end - 1, start - 1
 
                     # handle negative indices:
                     start = wraparound(start, n)
                     end = wraparound(end, n)
+
+                    if stepsize < 0:
+                        start, end = end - 1, start - 1
+
                     # capture "out of bounds" indexing:
                     start = min(start, n)
                     end = min(end, n)
