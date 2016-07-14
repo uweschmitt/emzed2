@@ -32,11 +32,6 @@ from . import tools
 from hdf5.object_store import ObjectProxy
 
 from .ms_types import PeakMap, PeakMapProxy
-from .col_types import SpecialColType
-
-__doc__ = """
-
-"""
 
 
 def try_to_move(from_, to):
@@ -635,7 +630,8 @@ class Table(MutableTable):
             for i in ix:
                 imod = wraparound(i, n)
                 if not 0 <= imod < n:
-                    raise IndexError("you tried to access %s with out of bounds index %d" % (mode, i))
+                    raise IndexError(
+                        "you tried to access %s with out of bounds index %d" % (mode, i))
             return [li[i] for i in ix]
 
         prototype = self.buildEmptyClone(icol)

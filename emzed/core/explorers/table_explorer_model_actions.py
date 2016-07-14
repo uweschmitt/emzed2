@@ -258,14 +258,18 @@ class IntegrateAction(TableAction):
         # to table.rows:
         self.memory = table.rows[self.data_row_idx][:]
 
+        names = ("method", "rtmin", "rtmax", "area", "rmse", "params", "baseline")
+        values = [self.method, self.rtmin, self.rtmax, area, rmse, params, baseline]
 
-        names = ("method", "rtmin", "rtmax", "area", "rmse", "params", "eic", "baseline")
-        values = (self.method, self.rtmin, self.rtmax, area, rmse, params, eic, baseline)
-
-        col_indices= []
+        col_indices = []
         for name in names:
             idx = table.getIndex(name)
             col_indices.append(idx)
+
+        if table.hasColumn("eic"):
+            idx = table.getIndex("eic")
+            col_indices.append(idx)
+            values.append(eic)
 
         row_indices = [self.data_row_idx]
         table.setCellValue(row_indices, col_indices, [values])
