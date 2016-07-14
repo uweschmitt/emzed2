@@ -71,8 +71,6 @@ def atomic_open_for_write(path, flags):
     try_to_move(temp_path, path)
 
 
-
-
 def relative_path(from_, to):
     def split(p):
         result = []
@@ -596,6 +594,9 @@ class Table(MutableTable):
         else:
             irow = ix
 
+        def wraparound(i, n):
+            return i + n if i < 0 else i
+
         def _setup(ix, n):
             if ix is not None:
                 if isinstance(ix, np.ndarray):
@@ -606,6 +607,14 @@ class Table(MutableTable):
                     stepsize = ix.step if ix.step is not None else 1
                     if stepsize < 0:
                         start, end = end - 1, start - 1
+
+                    # handle negative indices:
+                    start = wraparound(start, n)
+                    end = wraparound(end, n)
+                    # capture "out of bounds" indexing:
+                    start = min(start, n)
+                    end = min(end, n)
+
                     ix = range(start, end, stepsize)
                 elif isinstance(ix, (int, long)):
                     ix = [ix]
@@ -615,17 +624,37 @@ class Table(MutableTable):
                 ix = range(0, n)
             return ix
 
-        icol = _setup(icol, len(self._colNames))
-        irow = _setup(irow, len(self))
+        nrows, ncols = self.shape
 
-        def select(li, ix):
-            return li[:] if ix is None else [li[i] for i in ix]
+        icol = _setup(icol, ncols)
+        irow = _setup(irow, nrows)
+
+        def select(li, ix, n, mode):
+            if ix is None:
+                return li[:]
+            for i in ix:
+                imod = wraparound(i, n)
+                if not 0 <= imod < n:
+                    raise IndexError("you tried to access %s with out of bounds index %d" % (mode, i))
+            return [li[i] for i in ix]
 
         prototype = self.buildEmptyClone(icol)
-        for row in select(self.rows, irow):
-            prototype.rows.append(select(row, icol))
+        for row in select(self.rows, irow, nrows, "row"):
+            prototype.rows.append(select(row, icol, ncols, "column"))
         prototype.resetInternals()
         return prototype
+
+    def __eq__(self, other):
+        if not isinstance(other, Table):
+            return False
+        return self._colNames == other._colNames and \
+            len(self) == len(other) and \
+            self._colTypes == other._colTypes and \
+            self._colFormats == other._colFormats and \
+            self.rows == other.rows
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def overwrite(self, other):
         Table._check_if_compatible((self, other))
@@ -1629,7 +1658,9 @@ class Table(MutableTable):
         self._setupColumnAttributes()
         self._resetUniqueId()
 
-        self.shape = (len(self), len(self._colNames))
+    @property
+    def shape(self):
+        return len(self), len(self._colNames)
 
     def uniqueRows(self, byColumns=None):
         """

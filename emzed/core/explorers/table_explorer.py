@@ -141,7 +141,7 @@ class ButtonDelegate(QItemDelegate):
     A delegate that places a fully functioning QPushButton in every
     cell of the column to which it's applied
 
-    we have to distinguis view and parent here: using the view as parent does not work
+    we have to distinguish view and parent here: using the view as parent does not work
     in connection with modal dialogs opened in the click handler !
     """
 

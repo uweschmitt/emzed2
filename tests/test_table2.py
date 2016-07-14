@@ -1535,3 +1535,34 @@ def test_append(regtest):
     t0 = emzed.utils.toTable("b", (0, 0, None), type_=int)
     t.appendTable(t0)
     print(t, file=regtest)
+
+
+def test_table_slicing():
+    t = emzed.utils.toTable("a", (1, 2, 3, 4), type_=int)
+    t.addColumn("b", t.a + 10, type_=int)
+
+    assert t[:] == t
+    assert len(t[0]) == 1
+    assert len(t[:1]) == 1
+    assert t[:1] == t[0]
+
+    assert len(t[0:2]) == 2
+    assert len(t[:2]) == 2
+    assert t[0:2] == t[:2]
+
+    assert len(t[2:]) == 2
+    assert len(t[-2:]) == 2
+    assert t[-2:] == t[2:]
+    assert t[-2:-1] == t[2:3]
+
+    assert t[-1:] != t[2:]
+    assert t[-2:-1] != t[2:5]
+
+    assert t[0:4] == t
+    assert t[0:5] == t
+    assert t[0:6] == t
+    assert t[0:16] == t
+    assert t[-4] == t[0]
+
+    assert len(t[2:5]) == len(t[2:])
+
