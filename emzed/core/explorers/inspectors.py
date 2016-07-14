@@ -60,5 +60,3 @@ def inspect(obj, *a, **kw):
         return insp()
     else:
         raise Exception("no inspector for %r" % obj)
-
-

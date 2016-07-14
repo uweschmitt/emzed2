@@ -13,6 +13,7 @@ import guidata
 from ..data_types import PeakMap, CheckState
 from ..data_types.table import create_row_class
 from ..data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy
+from ..data_types.range_set import RangeSet
 
 from ... import algorithm_configs
 
@@ -66,8 +67,21 @@ class TableModel(QAbstractTableModel):
     def get_row_permutation(self):
         return self.row_permutation
 
-    def update_row_view(self):
+    def transform_table(self, function):
+        self.beginResetModel()
+        try:
+            new_table = function(self.table)
+            if not isinstance(self, (TableModel, Hdf5TableProxy)):
+                raise ValueError("the callback %s did not return a valid emzed table." % function)
+            self.table.resetInternals()
+            self.update_row_view(reset=True)
+        finally:
+            self.endResetModel()
+
+    def update_row_view(self, reset=False):
         """handles changes in permutation (sorting) and filtering of rows"""
+        if reset:
+            self.visible_rows = RangeSet(0, len(self.table))
         self.widgetRowToDataRow = [row_idx for row_idx in self.row_permutation if row_idx in
                                    self.visible_rows]
         self.dataRowToWidgetRow = {row: i for (i, row) in enumerate(self.widgetRowToDataRow)}
@@ -110,7 +124,16 @@ class TableModel(QAbstractTableModel):
 
     def cell_value(self, index):
         ridx, cidx = self.table_index(index)
-        value = self.table.rows[ridx][cidx]
+
+        try:
+            row = self.table.rows[ridx]
+        except IndexError:
+            raise IndexError("invalid access of row %d of table of length %d" % (ridx, len(self.table)))
+        try:
+            value = row[cidx]
+        except IndexError:
+            raise IndexError("invalid access of column %d of row of length %d" % (ridx, len(row)))
+
         return value
 
     def set_all(self, widget_col_index, value):

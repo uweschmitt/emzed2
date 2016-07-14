@@ -94,7 +94,7 @@ def fit_shapes(model):
     return fit_shapes
 
 
-def button(txt=None, parent=None):
+def create_button(txt=None, parent=None):
     btn = QPushButton(parent=parent)
     if txt is not None:
         btn.setText(txt)
@@ -207,8 +207,18 @@ class EmzedTableView(QTableView):
 
 class TableExplorer(EmzedDialog):
 
-    def __init__(self, tables, offerAbortOption, parent=None, close_callback=None):
+    def __init__(self, tables, offerAbortOption, parent=None, close_callback=None,
+                 custom_buttons_config=None):
         super(TableExplorer, self).__init__(parent)
+
+        if custom_buttons_config is None:
+            custom_buttons_config = []
+
+        if not all(isinstance(item, tuple) for item in custom_buttons_config) or \
+                not all(len(item) == 2 for item in custom_buttons_config):
+            raise ValueError("except list of tuples (label, callback) for custom_buttons_config")
+
+        self.custom_buttons_config = custom_buttons_config
 
         # function which is called when window is closed. the arguments passed are boolean
         # flags indication for every table if it was modified:
@@ -239,7 +249,8 @@ class TableExplorer(EmzedDialog):
         self.setSizePolicy(sizePolicy)
         self.setSizeGripEnabled(True)
 
-        self.setupViewForTable(0)
+        self.current_model_index = 0
+        self.setupViewForTable()
 
     def reject(self):
         super(TableExplorer, self).reject()
@@ -259,6 +270,7 @@ class TableExplorer(EmzedDialog):
         self.setupTableViews()
         self.setupPlottingAndIntegrationWidgets()
         self.setupToolWidgets()
+        self.setupCallbackButtons()  #
         if self.offerAbortOption:
             self.setupAcceptButtons()
 
@@ -291,12 +303,11 @@ class TableExplorer(EmzedDialog):
         self.filters_enabled = False
         for i, model in enumerate(self.models):
             self.tableViews.append(self.setupTableViewFor(model))
-            self.filterWidgets.append(self.setupFilterWidgetFor(model))
+            self.filterWidgets.append(self.setupFilterWidgetFor(model.table))
 
-    def setupFilterWidgetFor(self, model):
-        t = model.table
+    def setupFilterWidgetFor(self, table):
         w = FilterCriteriaWidget(self)
-        w.configure(t)
+        w.configure(table)
         w.LIMITS_CHANGED.connect(self.limits_changed)
         return w
 
@@ -371,7 +382,7 @@ class TableExplorer(EmzedDialog):
         self.chooseGroupColumn = QComboBox(parent=self)
         self.chooseGroupColumn.setMinimumWidth(150)
 
-        self.choose_visible_columns_button = button("Visible columns")
+        self.choose_visible_columns_button = create_button("Visible columns")
 
         # we introduced this invisible button else qt makes the filter_on_button always
         # active on mac osx, that means that as soon we press enter in one of the filter
@@ -380,7 +391,7 @@ class TableExplorer(EmzedDialog):
         # self.dummy = QPushButton()
         # self.dummy.setVisible(False)
 
-        self.filter_on_button = button("Filter rows")
+        self.filter_on_button = create_button("Filter rows")
 
         self.sort_label = QLabel("sort by:", parent=self)
 
@@ -395,16 +406,30 @@ class TableExplorer(EmzedDialog):
             w.setMaximumWidth(60)
             self.sort_order_widgets.append(w)
 
-        self.restrict_to_filtered_button = button("Restrict to filter result")
-        self.remove_filtered_button = button("Remove filter result")
-        self.export_table_button = button("Export table")
+        self.restrict_to_filtered_button = create_button("Restrict to filter result")
+        self.remove_filtered_button = create_button("Remove filter result")
+        self.export_table_button = create_button("Export table")
 
         self.restrict_to_filtered_button.setEnabled(False)
         self.remove_filtered_button.setEnabled(False)
 
+    def setupCallbackButtons(self):
+        self.extra_buttons = []
+        for (label, callback) in self.custom_buttons_config:
+            button = create_button(label, self)
+            self.extra_buttons.append(button)
+
+            def handler(event, callback=callback, self=self):
+                self.model.transform_table(callback)
+                index = self.current_model_index
+                self.filterWidgets[index] = self.setupFilterWidgetFor(self.model.table)
+                self.setupViewForTable()
+
+            button.clicked.connect(handler)
+
     def setupAcceptButtons(self):
-        self.okButton = button("Ok", parent=self)
-        self.abortButton = button("Abort", parent=self)
+        self.okButton = create_button("Ok", parent=self)
+        self.abortButton = create_button("Abort", parent=self)
         self.result = 1  # default for closing
 
     def create_additional_widgets(self, vsplitter):
@@ -526,7 +551,8 @@ class TableExplorer(EmzedDialog):
             h_layout.addWidget(sort_order_w)
 
         column += 1
-        layout.addLayout(h_layout, row, column, alignment=Qt.AlignLeft)
+        # rowspan:1 colspan:9, 9 shoud be enough for a reasonable number of custom buttons
+        layout.addLayout(h_layout, row, column, 1, 9, alignment=Qt.AlignLeft)
 
         row = 1
         column = 0
@@ -539,7 +565,14 @@ class TableExplorer(EmzedDialog):
         layout.addWidget(self.export_table_button, row, column, alignment=Qt.AlignLeft)
         column += 1
 
-        # layout.addWidget(self.dummy, row, column, alignment=Qt.AlignLeft)
+        if self.extra_buttons:
+            layout.addWidget(QLabel("Custom actions:"), row, column, alignment=Qt.AlignRight)
+            column += 1
+
+        for button in self.extra_buttons:
+            layout.addWidget(button, row, column, alignment=Qt.AlignLeft)
+            column += 1
+
         layout.setColumnStretch(column, 1)
         layout.setVerticalSpacing(2)
 
@@ -821,7 +854,12 @@ class TableExplorer(EmzedDialog):
         if redoInfo:
             self.redoAction.setText("Redo: %s" % redoInfo)
 
-    def setupViewForTable(self, i):
+    def setupViewForTable(self, i=None):
+
+        if i is None:
+            i = self.current_model_index
+        self.current_model_index = i
+
         for j, action in enumerate(self.chooseTableActions):
             txt = unicode(action.text())  # QString -> Python unicode
             if txt.startswith("*"):
@@ -1135,7 +1173,6 @@ class TableExplorer(EmzedDialog):
         else:
             self.integration_widget.set_integration_method(None)
 
-
     def setup_spectrum_chooser(self):
 
         former_indices = [i.row() for i in self.choose_spec.selectedIndexes()]
@@ -1384,7 +1421,8 @@ class TableExplorer(EmzedDialog):
         self.mz_plotter.replot()
 
 
-def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callback=None):
+def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callback=None,
+            custom_buttons_config=None):
     """
     allows the inspection and editing of simple or multiple
     tables.
@@ -1393,7 +1431,8 @@ def inspect(what, offerAbortOption=False, modal=True, parent=None, close_callbac
     if isinstance(what, (Table, Hdf5TableProxy)):
         what = [what]
     app = guidata.qapplication()  # singleton !
-    explorer = TableExplorer(what, offerAbortOption, parent=parent, close_callback=close_callback)
+    explorer = TableExplorer(what, offerAbortOption, parent=parent, close_callback=close_callback,
+                             custom_buttons_config=custom_buttons_config)
     if modal:
         explorer.raise_()
         explorer.exec_()
