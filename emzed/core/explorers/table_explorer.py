@@ -14,7 +14,7 @@ from mz_plotting_widget import MzPlottingWidget
 from ts_plotting_widget import TimeSeriesPlottingWidget
 
 from ..data_types import Table, PeakMap, CallBack, CheckState, Spectrum
-from ..data_types.hdf5_table_proxy import Hdf5TableProxy
+from ..data_types.hdf5_table_proxy import Hdf5TableProxy, ObjectProxy
 
 from .table_explorer_model import (TableModel, isUrl, IntegrateAction)
 from .helpers import timethis
@@ -776,6 +776,8 @@ class TableExplorer(EmzedDialog):
     def handle_double_click(self, idx):
         row, col = self.model.table_index(idx)
         cell_value = self.model.cell_value(idx)
+        if isinstance(cell_value, ObjectProxy):
+            cell_value = cell_value.load()
         extra_args = dict()
         if isinstance(cell_value, PeakMap):
             col_name = self.model.column_name(idx)

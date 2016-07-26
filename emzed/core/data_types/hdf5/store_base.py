@@ -86,9 +86,12 @@ class Store(object):
     @profile
     def store_object(self, col_index, obj, type_):
         if type_ in basic_type_map:
-        #if any(isinstance(obj, type_) for type_ in basic_type_map):
             raise ValueError("something went wrong, you try to store a basic type in an object store")
-        store = self._handlers.get(type_)
+        if object in self._handlers:
+            fallback = self._handlers[object]
+        else:
+            fallback = None
+        store = self._handlers.get(type_, fallback)
         if store is not None:
             global_id = store.write(col_index, obj)
             return global_id

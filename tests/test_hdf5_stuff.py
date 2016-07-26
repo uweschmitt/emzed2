@@ -536,7 +536,26 @@ def test_unique_col_value_extended(tproxy, regtest):
     print(sorted(ids), file=regtest)
     print(sorted(ints), file=regtest)
 
-"""
-todo:
-    blank: auch zukunft
-    """
+
+def test_table_in_tables(tmpdir, regtest):
+    t = toTable("id", [1, 1, 2], type_=int)
+    t.addColumn("a", [1, 2, 3], type_=int)
+    t.addColumn("b", [3, 4, 5], type_=int)
+    table = t.collapse("id", efficient=False)
+
+    print(table, file=regtest)
+    print(table.collapsed[0], file=regtest)
+    print(table.collapsed[0], file=regtest)
+
+    path = tmpdir.join("test.hdf5").strpath
+    writer = Hdf5TableWriter(path)
+    writer.write_table(table)
+    writer.close()
+
+    proxy = Hdf5TableProxy(path)
+    from_hdf5 = proxy.toTable()
+    print(from_hdf5, file=regtest)
+    print(from_hdf5.collapsed[0], file=regtest)
+    print(from_hdf5.collapsed[0], file=regtest)
+
+    assert table.uniqueId() == from_hdf5.uniqueId()

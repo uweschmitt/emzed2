@@ -652,9 +652,9 @@ def test_multi_sort(regtest):
 
 
 def test_collapse(regtest):
-    t = emzed.utils.toTable("id", [1, 1, 2])
-    t.addColumn("a", [1, 2, 3])
-    t.addColumn("b", [3, 4, 5])
+    t = emzed.utils.toTable("id", [1, 1, 2], type_=int)
+    t.addColumn("a", [1, 2, 3], type_=int)
+    t.addColumn("b", [3, 4, 5], type_=int)
     print(1, t, file=regtest)
 
     t2 = t.collapse("id", efficient=False)

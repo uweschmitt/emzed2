@@ -98,7 +98,7 @@ class Hdf5TableProxy(ImmutableTable):
         self.hdf5_meta = r.hdf5_meta
 
     def resetInternals(self):
-        raise NotImplementedError()
+        pass
 
     def info(self):
         """

@@ -70,7 +70,7 @@ class TableModel(QAbstractTableModel):
     def transform_table(self, function):
         self.beginResetModel()
         try:
-            new_table = function(self.table)
+            function(self.table)
             if not isinstance(self, (TableModel, Hdf5TableProxy)):
                 raise ValueError("the callback %s did not return a valid emzed table." % function)
             self.table.resetInternals()

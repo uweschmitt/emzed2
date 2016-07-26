@@ -7,15 +7,15 @@ import time
 
 
 from emzed.io import atomic_hdf5_writer, to_hdf5
-from emzed.core import CheckState
+from emzed.core import CheckState, Table
 from emzed.ff import  runMetaboFeatureFinder
 from emzed.utils import  integrate
 
 try:
-    profiler
+    profile
 except NameError:
-    def profiler(fun):
-        return run
+    def profile(fun):
+        return fun
 
 
 @contextlib.contextmanager
@@ -74,9 +74,12 @@ def main():
 
     tuples = [tuple(randint(0, 1000, size=10)) for _ in range(100)]
 
+    tsub = emzed.utils.toTable("a", (1, 2, 3), type_=int)
+
     with measure("create table"):
         t = emzed.utils.toTable("integers", integers, type_=int)
         t.addColumn("check", flags, type_=CheckState)
+        t.addColumn("sub_table", tsub, type_=Table, format_="%r")
         t.addColumn(
             "mzmin", t.apply(lambda: 100 + 900 * np_random() + np_random(), ()), type_=float)
         t.addColumn(

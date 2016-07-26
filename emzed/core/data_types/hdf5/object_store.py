@@ -72,7 +72,7 @@ class ObjectProxyCodeLoaded(ObjectProxy):
         self.code = code
 
     def load(self):
-        return cPickle.loads(self.code)
+        return None if self.code is None else cPickle.loads(self.code)
 
 
 if __name__ == "__main__":
