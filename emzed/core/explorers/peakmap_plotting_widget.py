@@ -78,12 +78,18 @@ def dilate(data, mzmax, mzmin):
     return dilated
 
 
+def dominant_ms_level(peakmaps):
+    ms_levels = set(min(pm.getMsLevels()) for pm in peakmaps)
+    return min(ms_levels)
+
+
 class PeakMapImageBase(object):
 
     def __init__(self, peakmaps):
         self.peakmaps = peakmaps
-        rtmins, rtmaxs = zip(*[pm.rtRange() for pm in peakmaps])
-        mzmins, mzmaxs = zip(*[full_mz_range(pm) for pm in peakmaps])
+        ms_level = dominant_ms_level(peakmaps)
+        rtmins, rtmaxs = zip(*[pm.rtRange(ms_level) for pm in peakmaps])
+        mzmins, mzmaxs = zip(*[pm.mzRange(ms_level) for pm in peakmaps])
         self.rtmin = min(rtmins)
         self.rtmax = max(rtmaxs)
         self.mzmin = min(mzmins)
@@ -427,10 +433,21 @@ class ModifiedImagePlot(ImagePlot):
             self.key_left()
 
     def set_limits(self, rtmin, rtmax, mzmin, mzmax):
-        self.rtmin = rtmin = max(rtmin, self.peakmap_range[0])
-        self.rtmax = rtmax = min(rtmax, self.peakmap_range[1])
-        self.mzmin = mzmin = min(max(mzmin, self.peakmap_range[2]), self.peakmap_range[3])
-        self.mzmax = mzmax = max(min(mzmax, self.peakmap_range[3]), self.peakmap_range[2])
+        if self.peakmap_range[0] is not None:
+            rtmin = max(rtmin, self.peakmap_range[0])
+        self.rtmin = rtmin
+
+        if self.peakmap_range[1] is not None:
+            rtmax = min(rtmax, self.peakmap_range[1])
+        self.rtmax = rtmax
+
+        if self.peakmap_range[2] is not None and self.peakmap_range[3] is not None:
+            mzmin = min(max(mzmin, self.peakmap_range[2]), self.peakmap_range[3])
+            mzmax = max(min(mzmax, self.peakmap_range[3]), self.peakmap_range[2])
+
+        self.mzmin = mzmin
+        self.mzmax = mzmax
+
         if mzmin == mzmax:
             mzmin *= (1.0 - 1e-5)  # - 10 ppm
             mzmax *= (1.0 + 1e-5)  # + 10 ppm
