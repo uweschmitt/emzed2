@@ -1,14 +1,17 @@
-import pyopenms
-import numpy as np
-import os.path
-import sys
-import time
+
+from collections import defaultdict
 import copy
 import hashlib
-from collections import defaultdict
+import os.path
+import re
+import sys
+import time
 import warnings
 import weakref
 import zlib
+
+import pyopenms
+import numpy as np
 
 from emzed_optimizations.sample import sample_peaks
 
@@ -79,7 +82,7 @@ class Spectrum(SpecialColType):
     MS Spectrum Type
     """
 
-    def __init__(self, peaks, rt, msLevel, polarity, precursors=None, meta=None):
+    def __init__(self, peaks, rt, msLevel, polarity, precursors=None, meta=None, scan_number=None):
         """Initialize instance
 
         - peaks
@@ -126,6 +129,7 @@ class Spectrum(SpecialColType):
         self._msLevel = msLevel
         self._polarity = polarity
         self._precursors = precursors
+        self._scan_number = scan_number
 
         self.meta = meta
         self._parent = None
@@ -165,6 +169,7 @@ class Spectrum(SpecialColType):
     msLevel = _create_prop("msLevel")
     polarity = _create_prop("polarity")
     precursors = _create_prop("precursors")
+    scan_number = _create_prop("scan_number")
 
     def __eq__(self, other):
         """Method to compare two instances of class Spectrum"""
@@ -186,6 +191,7 @@ class Spectrum(SpecialColType):
             # peaks.data is binary representation of numpy array peaks:
             h.update(str(self.peaks.tostring()))
             h.update(str(self.polarity))
+            h.update(str(self.scan_number))
             for mz, ii in self.precursors:
                 h.update("%.6e" % mz)
                 h.update("%.6e" % ii)
@@ -202,11 +208,22 @@ class Spectrum(SpecialColType):
                pyopenms.IonSource.Polarity.NEGATIVE: '-'
                }.get(mspec.getInstrumentSettings().getPolarity())
         peaks = mspec.get_peaks()
+
+        native_id = mspec.getNativeID()
+        match = re.search("scan=(\d+)", native_id)
+        scan_number = None
+        if match:
+            match = match.groups()[0]
+            try:
+                scan_number = int(match)
+            except ValueError:
+                scan_number = "failed to parse %r" % native_id
+
         if IS_PYOPENMS_2:
             # signature changed in pyopenms
             mzs, iis = peaks
             peaks = np.vstack((mzs.flatten(), iis.flatten())).T.astype(np.float64)
-        res = clz(peaks, mspec.getRT(), mspec.getMSLevel(), pol, pcs)
+        res = clz(peaks, mspec.getRT(), mspec.getMSLevel(), pol, pcs, scan_number=scan_number)
         return res
 
     def __str__(self):
@@ -433,21 +450,28 @@ class Spectrum(SpecialColType):
         return state
 
     def __getstate__(self):
-        return (self.meta, self.rt, self.msLevel, self.polarity, self.precursors,
-                np.asarray(self.peaks))
+        return (self.meta, self._rt, self._msLevel, self._polarity, self._precursors,
+                np.asarray(self.peaks), self._scan_number)
 
     def __setstate__(self, state):
         if isinstance(state, dict):
             state = self._fix_for_unpickling_older_files(state)
             self.__dict__.update(state)
             self._setup_peaks(self.peaks)
+            if "_parent" not in self.__dict__:
+                self._parent = None
+            if "scan_number" not in self.__dict__:
+                self.scan_number = None
         else:
             self._parent = None
             self.meta = state[0]
             # here we have properties which access self.meta, this why we first set
             # selt.meta (no property) and then the following properties:
-            self.rt, self.msLevel, self.polarity, self.precursors, peaks = state[1:]
-            self.meta = state[0]
+            self.meta, self.rt, self.msLevel, self.polarity, self.precursors, peaks = state[:6]
+            if len(state) == 7:
+                self.scan_number = state[6]
+            else:
+                self.scan_number = None
             self._setup_peaks(peaks)
 
 

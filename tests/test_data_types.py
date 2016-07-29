@@ -309,3 +309,12 @@ class TestMSTypes(object):
         s.peaks = s.peaks[1:-1:2]
         assert s.uniqueId()
 
+
+        spec_new = loads(dumps(spec))
+        assert spec_new.scan_number == spec.scan_number
+        assert spec_new.rt == spec.rt
+        assert spec_new.msLevel == spec.msLevel
+        assert spec_new.precursors == spec.precursors
+        assert spec_new.polarity == spec.polarity
+        assert np.linalg.norm(spec_new.peaks - spec.peaks) == 0.0
+
