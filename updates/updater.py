@@ -2,7 +2,7 @@
 from __future__ import print_function
 
 def version():
-    return (2, 27, 1)
+    return (2, 27, "1post1")
 
 
 is_experimental = False
@@ -10,13 +10,8 @@ is_experimental = False
 
 def description():
     msg = """
-    release 2.17.1
-       - emzed.gui.inspect how accepts a string hold the path to a file to inspect (.table, .hdf5,
-         .mzML, etc)
-       - emezd.io now supports reading and writing of Excel .xls and .xlsx files
-       - improvements on table explorer
-       - fixed issue with plain MS2 peakmap in table explorer
-       - minor fixes
+    release 2.17.1post1
+        - added "scan_number" attribute to spectra
     """
     return msg
 
