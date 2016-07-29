@@ -17,3 +17,5 @@ dist/
 .coverage
 .pytest
 .DS_Store
+backups
+moved
