@@ -11,6 +11,9 @@ if not getattr(sys, "frozen", False):
         except ValueError:
             pass
         version[i] = vi
+
+    if len(version) < 4:
+        version.append(0)
     version = tuple(version)
 
 else:
