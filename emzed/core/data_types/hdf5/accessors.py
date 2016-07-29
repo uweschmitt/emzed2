@@ -2,6 +2,9 @@
 from __future__ import print_function, division
 
 import itertools
+
+izip = itertools.izip
+
 import warnings
 
 import numpy as np
@@ -74,7 +77,7 @@ class Hdf5TableWriter(Hdf5Base):
         self.meta_table.flush()
 
         description = {}
-        for (pos, name, type_) in zip(itertools.count(), col_names, col_types):
+        for (pos, name, type_) in izip(itertools.count(), col_names, col_types):
             tables_type = basic_type_map.get(type_)
             if tables_type is None:
                 tables_type = UInt32Col
@@ -94,7 +97,7 @@ class Hdf5TableWriter(Hdf5Base):
 
         for row_index, row in enumerate(table.rows):
             hdf_row = self.row_table.row
-            for col_index, value, name, type_ in zip(itertools.count(), row, col_names, col_types):
+            for col_index, value, name, type_ in izip(itertools.count(), row, col_names, col_types):
                 if value is None:
                     self.missing_values_flags.set_bit(num_rows_exisiting + row_index, col_index)
                 else:
@@ -138,7 +141,7 @@ class Hdf5TableReader(Hdf5Base):
         self.col_types = fetch_next()
         self.col_formats = fetch_next()
 
-        self.col_type_of_name = dict(zip(self.col_names, self.col_types))
+        self.col_type_of_name = dict(izip(self.col_names, self.col_types))
 
         try:
             self.hdf5_meta = fetch_next()
@@ -158,7 +161,7 @@ class Hdf5TableReader(Hdf5Base):
                         rows = mv.cols.row_index[s: s + 10000]
                         cols = mv.cols.col_index[s: s + 10000]
                         self.missing_values_flags.resize(int(max(rows)) + 1)
-                        for row, col in itertools.izip(rows, cols):
+                        for row, col in itertools.iizip(rows, cols):
                             self.missing_values_flags.set_bit(int(row), int(col))
                     self.missing_values_flags.flush()
             message = ("you read from / append to a hdf5 table which has version %s and older "
@@ -183,7 +186,7 @@ class Hdf5TableReader(Hdf5Base):
         values = self.row_table[row_index].tolist()
         row = []
         missing = self.missing_values_flags.positions_in_row(row_index)
-        for (col_idx, value, type_) in zip(itertools.count(), values, self.col_types):
+        for (col_idx, value, type_) in izip(itertools.count(), values, self.col_types):
             if col_idx in missing:
                 value = None
             elif type_ not in basic_type_map:
@@ -209,6 +212,9 @@ class Hdf5TableReader(Hdf5Base):
 
         # todo: generator type
         value_is_iterable = isinstance(value, (list, tuple))
+        if value_is_iterable and row_selection is not None:
+            if len(value) != len(row_selection):
+                raise ValueError("values and row_selection do not fit")
 
         type_ = self.col_types[col_index]
         self.row_cache.clear()
@@ -252,12 +258,11 @@ class Hdf5TableReader(Hdf5Base):
                     data = [value] * (stop - start)
                 self.row_table.modify_column(start=start, stop=stop, colname=name, column=data)
         else:
-            if value_is_iterable:
-                raise NotImplementedError("replace column by iterable for seleted rows not "
-                                          "implemented yet")
             col = getattr(self.row_table.cols, name)
-            for row_index in row_selection:
-                col[row_index] = value
+            if not value_is_iterable:
+                value = itertools.repeat(value)
+            for row_index, v in izip(row_selection, value):
+                col[row_index] = v
 
         self.flush()
 
@@ -363,7 +368,7 @@ class Hdf5TableReader(Hdf5Base):
         all_col_values = zip(*tuples)
 
         resolved_col_values = []
-        for col_values, col_type, col_index in zip(all_col_values, col_types, col_indices):
+        for col_values, col_type, col_index in izip(all_col_values, col_types, col_indices):
             # eg TimeSeriesStore does not implement the available_columns method and so the
             # following method returns None for TimeSeries:
             store = self.manager.fetch_store(col_index)

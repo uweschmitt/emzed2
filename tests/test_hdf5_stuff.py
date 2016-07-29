@@ -379,7 +379,22 @@ def test_replace_selected_rows(tproxy, regtest):
     tproxy.replaceSelectedRows("int", 3, range(5))
     print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
 
+    tproxy.replaceSelectedRows("int", range(5), range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
 
+    tproxy.replaceSelectedRows("int", [None] * 5, range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    tproxy.replaceSelectedRows("int", [None, 1, None, 1, None], range(5))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    with pytest.raises(ValueError):
+        tproxy.replaceSelectedRows("int", [None, 1, None, 1, None], range(4))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
+
+    with pytest.raises(ValueError):
+        tproxy.replaceSelectedRows("int", [None, 1, None, 1, None], range(6))
+    print(tproxy.toTable().extractColumns("int", "float", "bool", "str"), file=regtest)
 
 
 def test_selected_col_values(tproxy, regtest):
