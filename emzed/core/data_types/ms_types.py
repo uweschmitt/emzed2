@@ -440,6 +440,8 @@ class Spectrum(SpecialColType):
             spec.set_peaks((mz, I))
         else:
             spec.set_peaks(self.peaks)
+        if self.scan_number is not None:
+            spec.setNativeID("scan=%d" % self.scan_number)
         spec.updateRanges()
         return spec
 
