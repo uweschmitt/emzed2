@@ -5,7 +5,7 @@ import multiprocessing
 
 
 def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpus=-1,
-              min_size_for_parallel_execution=500):
+              min_size_for_parallel_execution=500, post_fixes=None):
     """ integrates features  in ftable.
         returns processed table. ``ftable`` is not changed inplace.
 
@@ -18,10 +18,20 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
 
     """
 
-    neededColumns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
-    supportedPostfixes = ftable.supportedPostfixes(neededColumns)
-    if not supportedPostfixes:
-        raise Exception("is no feature table")
+    needed_columns = ["mzmin", "mzmax", "rtmin", "rtmax", "peakmap"]
+    if post_fixes is None:
+        post_fixes = ftable.supportedPostfixes(needed_columns)
+        if not post_fixes:
+            raise Exception("is no feature table")
+    else:
+        col_names = ftable.getColNames()
+        missing = []
+        for post_fix in post_fixes:
+            for name in needed_columns:
+                if name + post_fix not in col_names:
+                    missing.append(name + post_fix)
+        if missing:
+            raise ValueError("column name(s) %s missing" % (", ".join(missing)))
 
     if sys.platform == "win32":
         # if subprocesses use python.exe a console window pops up for each
@@ -46,7 +56,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
         print
 
     if n_cpus == 1:
-        __, result = _integrate((0, ftable, supportedPostfixes, integratorid, msLevel, showProgress,))
+        __, result = _integrate((0, ftable, post_fixes, integratorid, msLevel, showProgress,))
     else:
         pool = multiprocessing.Pool(n_cpus)
         args = []
@@ -55,7 +65,7 @@ def integrate(ftable, integratorid="std", msLevel=None, showProgress=True, n_cpu
             partial = ftable[i::n_cpus]
             show_progress = (i == 0)  # only first process prints progress status
             args.append(
-                (i, partial, supportedPostfixes, integratorid, msLevel, show_progress))
+                (i, partial, post_fixes, integratorid, msLevel, show_progress))
             all_pms.append(partial.peakmap.values)
 
         # map_async() avoids bug of map() when trying to stop jobs using ^C

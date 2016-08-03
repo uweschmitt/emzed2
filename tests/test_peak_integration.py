@@ -5,6 +5,8 @@ import os.path
 import numpy as np
 import cPickle
 
+import pytest
+
 import emzed.utils as utils
 import emzed.io as io
 from emzed.algorithm_configs import peakIntegrators
@@ -132,7 +134,14 @@ def _testIntegration(path, n_cpus, integrator_id, check_values, regtest):
         assert ftr.methodX.values[1] is not None
         # assert len(ftr.eicX.values[1]) == 2
 
-    # test with empty chromatograms
+    ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1,
+                          post_fixes=["X", "__0", ""])
+    with pytest.raises(ValueError) as e:
+        ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1,
+                              post_fixes=["Z", "__0", ""])
+
+    assert e.value.message == 'column name(s) mzminZ, mzmaxZ, rtminZ, rtmaxZ, peakmapZ missing'
+
     s0 = ft.peakmap.values[0].spectra[0]
     rt0 = s0.rt
     pm = PeakMap([s0])
