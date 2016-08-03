@@ -4,7 +4,7 @@ from __future__ import print_function, division
 from collections import defaultdict
 import itertools
 
-from tables import Atom, UInt32Col, Float64Col, Float32Col, UInt64Col, StringCol
+from tables import Atom, UInt32Col, Float64Col, Float32Col, UInt64Col, StringCol, Int32Col
 import numpy as np
 
 from emzed_optimizations import sample_peaks_from_lists
@@ -55,6 +55,7 @@ class PeakMapStore(Store):
                 description = {}
                 description["pm_index"] = UInt32Col(pos=0)
                 description["rt"] = Float32Col(pos=1)
+                description["scan_number"] = Int32Col(pos=2)
                 description["start"] = UInt64Col(pos=3)
                 description["end"] = UInt64Col(pos=4)
                 t = self.file_.create_table(self.node, 'ms%d_spec_table' % level, description,
@@ -104,6 +105,8 @@ class PeakMapStore(Store):
 
         row["pm_index"] = pm_index
         row["rt"] = spec.rt
+        sn = spec.scan_number
+        row["scan_number"] = -1 if sn is None else sn
         row["start"] = start
         row["end"] = start + size
 
@@ -202,12 +205,18 @@ class Hdf5PeakMapProxy(object):
         self.meta = {"unique_id": kw.get("unique_id")}
         rts = defaultdict(list)
         starts = defaultdict(list)
+        scan_numbers = defaultdict(list)
         for level in (1, 2):
             t = getattr(self.node, "ms%d_spec_table" % level)
+            has_scan_number = "scan_number" in t.colnames
             row = None
             for row in t.where("pm_index == %d" % self.index):
                 rts[level].append(row["rt"])
                 starts[level].append(row["start"])
+                if has_scan_number:
+                    scan_numbers[level].append(row["scan_number"])
+                else:
+                    scan_numbers[level].append(-1)
             # we save memory and only load starts, for the last item will be helpful for slicing,
             # row might be None if no spectra of given level are contained in peakmap
             if row is not None:
@@ -216,9 +225,11 @@ class Hdf5PeakMapProxy(object):
         for level in rts:
             rts[level] = np.array(rts[level], dtype=float)
             starts[level] = np.array(starts[level], dtype=int)
+            scan_numbers[level] = np.array(scan_numbers[level], dtype=int)
 
         self.rts = rts
         self.starts = starts
+        self.scan_numbers = scan_numbers
 
     def uniqueId(self):
         return self.unique_id
