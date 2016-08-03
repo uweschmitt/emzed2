@@ -210,14 +210,18 @@ class Spectrum(SpecialColType):
         peaks = mspec.get_peaks()
 
         native_id = mspec.getNativeID()
-        match = re.search("scan=(\d+)", native_id)
-        scan_number = None
-        if match:
-            match = match.groups()[0]
-            try:
-                scan_number = int(match)
-            except ValueError:
-                scan_number = "failed to parse %r" % native_id
+
+        for pattern in ("scan=(\d+)", "spectrum=(\d+)"):
+            match = re.search(pattern, native_id)
+            if match:
+                match = match.groups()[0]
+                try:
+                    scan_number = int(match)
+                except ValueError:
+                    scan_number = "failed to parse %r" % native_id
+                break
+        else:
+            scan_number = None
 
         if IS_PYOPENMS_2:
             # signature changed in pyopenms
