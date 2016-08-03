@@ -67,10 +67,10 @@ class TableModel(QAbstractTableModel):
     def get_row_permutation(self):
         return self.row_permutation
 
-    def transform_table(self, function):
+    def transform_table(self, function, parent):
         self.beginResetModel()
         try:
-            function(self.table)
+            function(self.table, parent=parent)
             if not isinstance(self, (TableModel, Hdf5TableProxy)):
                 raise ValueError("the callback %s did not return a valid emzed table." % function)
             self.table.resetInternals()

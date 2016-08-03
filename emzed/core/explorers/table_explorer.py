@@ -420,7 +420,13 @@ class TableExplorer(EmzedDialog):
             self.extra_buttons.append(button)
 
             def handler(event, callback=callback, self=self):
-                self.model.transform_table(callback)
+                try:
+                    #self.setEnabled(False)
+                    #self.setCursor(Qt.WaitCursor)
+                    self.model.transform_table(callback, parent=self)
+                finally:
+                    self.setEnabled(True)
+                    self.setCursor(Qt.ArrowCursor)
                 index = self.current_model_index
                 self.filterWidgets[index] = self.setupFilterWidgetFor(self.model.table)
                 self.setupViewForTable()
