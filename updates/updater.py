@@ -1,8 +1,9 @@
 # encoding: utf-8
 from __future__ import print_function
 
+
 def version():
-    return (2, 27, "1post1")
+    return (2, 28, 0)
 
 
 is_experimental = False
@@ -10,8 +11,12 @@ is_experimental = False
 
 def description():
     msg = """
-    release 2.17.1post1
-        - added "scan_number" attribute to spectra
+
+    ! EXPERIMENTAL UPDATE !
+    ! ONLY INSTALL THIS UPDATE IF YOU WERE ASKED TO INSTALL IT !
+
+    release 2.28.0
+        - some experimental extensions
     """
     return msg
 
@@ -29,12 +34,16 @@ def run_update(locally=True):
     pip.main("install et-xmlfile".split())
     pip.main("install openpyxl".split())
 
-    pip.main("install emzed==2.27.1".split())
+    v = version()
+    if len(v) == 4:
+        v_str = "%d.%d.%dpost%d" % v
+    else:
+        v_str = "%d.%d.%d" % v
+
+    pip.main(["install", "emzed==%s" % v_str])
 
 
 if __name__ == "__main__":
     import os
     is_venv = os.getenv("VIRTUAL_ENV") is not None
     run_update(locally=not is_venv)
-
-
