@@ -7,9 +7,9 @@ import cPickle
 
 import emzed.utils as utils
 import emzed.io as io
-import emzed._algorithm_configs
-from  emzed.core.data_types import Spectrum, PeakMap
-from  emzed.core.peak_integration import *
+from emzed.algorithm_configs import peakIntegrators
+from emzed.core.data_types import Spectrum, PeakMap
+from emzed.core.peak_integration import *
 
 
 def _compare_tables(t1, t2):
@@ -83,8 +83,6 @@ def _testIntegration(path, n_cpus, integrator_id, check_values, regtest):
 
     ftr = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
 
-
-
     assert len(ftr) == len(ft)
     assert "area" in ftr.getColNames()
     assert "rmse" in ftr.getColNames()
@@ -144,22 +142,18 @@ def _testIntegration(path, n_cpus, integrator_id, check_values, regtest):
     ft.replaceColumn("peakmap", pm)
     ft.replaceColumn("rtmin", rt0 + 10)
     ft.replaceColumn("rtmax", rt0 + 20)
-    ftr2 = utils.integrate(ft, integrator_id,  n_cpus=n_cpus, min_size_for_parallel_execution=1)
-
-    # assert  set(ftr2.eic.values) == {None}
 
     return ftr
 
 
-
 def run(integrator, regtest):
-    assert len(str(integrator))>0
+    assert len(str(integrator)) > 0
 
     try:
         ds = run.ds
-    except:
+    except AttributeError:
         here = os.path.dirname(os.path.abspath(__file__))
-        ds = run.ds =  io.loadPeakMap(os.path.join(here, "data", "SHORT_MS2_FILE.mzData"))
+        ds = run.ds = io.loadPeakMap(os.path.join(here, "data", "SHORT_MS2_FILE.mzData"))
 
     integrator.setPeakMap(ds)
 
@@ -187,7 +181,7 @@ def run(integrator, regtest):
 
 def testNoIntegration():
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["no_integration"]
+    integrator = dict(peakIntegrators)["no_integration"]
     integrator.setPeakMap(PeakMap([]))
     result = integrator.integrate(0.0, 100.0, 0, 300, 1)
     assert result.get("area") is None
@@ -203,7 +197,7 @@ def testNoIntegration():
 
 
 def test_with_baseline(regtest):
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_with_baseline"]
+    integrator = dict(peakIntegrators)["emg_with_baseline"]
     rts = np.arange(0.0, 10.0, 0.1)
     chromo = np.exp(-(rts - 5.0) ** 2 / 3.0) * 20
     a, b, params = integrator.integrator(rts, chromo, rts, chromo)
@@ -212,7 +206,7 @@ def test_with_baseline(regtest):
     for i, pi in enumerate(params):
         print("param %d = %.3f" % (i, pi), file=regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez_with_baseline"]
+    integrator = dict(peakIntegrators)["trapez_with_baseline"]
     rts = np.arange(0.0, 10.0, 0.1)
     chromo = np.exp(-(rts - 5.0) ** 2 / 3.0) * 20
     a, b, params = integrator.integrator(rts[30:-30], chromo[30:-30], rts, chromo)
@@ -227,40 +221,43 @@ def test_with_baseline(regtest):
 
 def testPeakIntegration(regtest):
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["asym_gauss"]
+    integrator = dict(peakIntegrators)["asym_gauss"]
     run(integrator, regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_exact"]
+    integrator = dict(peakIntegrators)["emg_exact"]
     run(integrator, regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["emg_with_baseline"]
+    integrator = dict(peakIntegrators)["emg_with_baseline"]
     run(integrator, regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
+    integrator = dict(peakIntegrators)["trapez"]
     run(integrator, regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["std"]
+    integrator = dict(peakIntegrators)["std"]
     run(integrator, regtest)
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["max"]
+    integrator = dict(peakIntegrators)["max"]
+    run(integrator, regtest)
+
+    integrator = dict(peakIntegrators)["sum"]
     run(integrator, regtest)
 
 
 def testTrapezIntegrationSimple():
 
-    p0 = np.array((1.0, 1.0, 2.0, 2.0)).reshape(-1,2)
-    p1 = np.array((2.0, 2.0, 3.0, 3.0)).reshape(-1,2)
-    p2 = np.array((1.0, 1.0, 2.0, 2.0, 3.0, 3.0)).reshape(-1,2)
-    p3 = np.array((3.0, 3.0)).reshape(-1,2)
+    p0 = np.array((1.0, 1.0, 2.0, 2.0)).reshape(-1, 2)
+    p1 = np.array((2.0, 2.0, 3.0, 3.0)).reshape(-1, 2)
+    p2 = np.array((1.0, 1.0, 2.0, 2.0, 3.0, 3.0)).reshape(-1, 2)
+    p3 = np.array((3.0, 3.0)).reshape(-1, 2)
 
     s0 = Spectrum(p0, 0.0, 1, '0')
     s1 = Spectrum(p1, 1.0, 1, '0')
     s2 = Spectrum(p2, 2.0, 1, '0')
     s3 = Spectrum(p3, 3.0, 1, '0')
 
-    pm = PeakMap([s0,s1,s2,s3])
+    pm = PeakMap([s0, s1, s2, s3])
 
-    integrator = dict(emzed._algorithm_configs.peakIntegrators)["trapez"]
+    integrator = dict(peakIntegrators)["trapez"]
     integrator.setPeakMap(pm)
 
     assert integrator.integrate(1.4, 2.5, 0, 3)["area"] == 5.0
@@ -271,10 +268,9 @@ def testTrapezIntegrationSimple():
 
     assert integrator.integrate(0.4, 3.0, 0, 3)["area"] == 14
 
-
     # one level 2 spec:
     s1 = Spectrum(p1, 1.0, 2, '0')
-    pm = PeakMap([s0,s1,s2,s3])
+    pm = PeakMap([s0, s1, s2, s3])
     integrator.setPeakMap(pm)
 
     assert integrator.integrate(1.4, 2.5, 0, 3, msLevel=1)["area"] == 5.0
@@ -297,11 +293,12 @@ def ex(f):
         e0 = e
     assert e0 is not None
 
+
 def testSg():
     allrts = np.arange(10, 100)
-    rts    = np.arange(1, 10)
+    rts = np.arange(1, 10)
     chromo = np.sin(allrts)
-    chromo[10:]= 0
+    chromo[10:] = 0
 
     ex(lambda: SGIntegrator(order=1, window_size=4).smooth(allrts, rts, chromo))
     ex(lambda: SGIntegrator(order=1, window_size=-1).smooth(allrts, rts, chromo))

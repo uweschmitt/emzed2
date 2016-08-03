@@ -5,4 +5,5 @@ from trapez import TrapezIntegrator, TrapezIntegratorWithBaseline
 from simplified_emg import SimplifiedEMGIntegrator
 from no_integration import NoIntegration
 from max_integrator import MaxIntegrator
+from sum_integrator import SumIntegrator
 
