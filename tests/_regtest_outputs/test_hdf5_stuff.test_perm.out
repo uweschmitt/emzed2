@@ -1,5 +1,5 @@
 ascending, ascending
-[4 0 1 3 2]
+[4, 0, 1, 3, 2]
 a        d
 int      str
 ------   ------
@@ -10,7 +10,7 @@ int      str
 2        2
 
 descending, ascending
-[3 2 0 1 4]
+[3, 2, 0, 1, 4]
 a        d
 int      str
 ------   ------
@@ -21,7 +21,7 @@ int      str
 -        -
 
 ascending, descending
-[4 0 1 2 3]
+[4, 0, 1, 2, 3]
 a        d
 int      str
 ------   ------
@@ -32,7 +32,7 @@ int      str
 2        1
 
 descending, descending
-[2 3 0 1 4]
+[2, 3, 0, 1, 4]
 a        d
 int      str
 ------   ------
@@ -43,7 +43,7 @@ int      str
 -        -
 
 ascending
-[4 0 1 2 3]
+[4, 0, 1, 2, 3]
 a        d
 int      str
 ------   ------
@@ -54,7 +54,7 @@ int      str
 2        1
 
 descending
-[3 2 1 0 4]
+[3, 2, 1, 0, 4]
 a        d
 int      str
 ------   ------

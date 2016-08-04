@@ -249,11 +249,11 @@ class Hdf5TableProxy(ImmutableTable):
             perm = np.argsort(values, kind="mergesort")
             if not asc:
                 perm = perm[::-1]
-            return perm
+            return map(int, perm)    # might contain values of numpy int types
         all_values["_i"] = perm
         df = pd.DataFrame(all_values, columns=colNames + ("_i",))
         df = df.sort_values(list(colNames), ascending=list(ascending))
-        perm = df["_i"].values
+        perm = map(int, df["_i"].values)    # might contain values of numpy int types
         return perm
 
     def setCellValue(self, row_indices, col_indices, values):
