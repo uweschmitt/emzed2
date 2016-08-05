@@ -32,7 +32,7 @@ def table():
     peaks_1 = np.arange(30.0).reshape(-1, 2)
 
     spec_0 = Spectrum(peaks_0[:], 30.0, 1, "+")
-    spec_1 = Spectrum(peaks_1[:], 30.0, 2, "+", [(10, 1000)])
+    spec_1 = Spectrum(peaks_1[:], 30.0, 2, "+", [(10, 1000, 0)])
     spec_2 = Spectrum(peaks_1[:], 40.0, 1, "+")
 
     pm = PeakMap([spec_0, spec_1, spec_2])

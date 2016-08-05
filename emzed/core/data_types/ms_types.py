@@ -99,7 +99,7 @@ class Spectrum(SpecialColType):
                        string of length 1
                        values: 0, + or -
         - precursors
-                       list of floats
+                       list of (float, float, int) for (m/z, intensity, charge)
                        precursor m/z values if msLevel > 1
            """
 
@@ -115,6 +115,9 @@ class Spectrum(SpecialColType):
 
         if precursors is None:
             precursors = []
+
+        # set charge state to 0 for old "usage" without charge state:
+        precursors = [p if len(p) == 3 else p + (0,) for p in precursors]
 
         if meta is None:
             meta = dict()
@@ -192,9 +195,10 @@ class Spectrum(SpecialColType):
             h.update(str(self.peaks.tostring()))
             h.update(str(self.polarity))
             h.update(str(self.scan_number))
-            for mz, ii in self.precursors:
+            for mz, ii, charge in self.precursors:
                 h.update("%.6e" % mz)
                 h.update("%.6e" % ii)
+                h.update("%d" % charge)
             self.meta["unique_id"] = h.hexdigest()
         return self.meta["unique_id"]
 
@@ -202,7 +206,7 @@ class Spectrum(SpecialColType):
     def fromMSSpectrum(clz, mspec):
         """creates Spectrum from pyopenms.MSSpectrum"""
         assert type(mspec) == pyopenms.MSSpectrum, type(mspec)
-        pcs = [(p.getMZ(), p.getIntensity()) for p in mspec.getPrecursors()]
+        pcs = [(p.getMZ(), p.getIntensity(), p.getCharge()) for p in mspec.getPrecursors()]
         pol = {pyopenms.IonSource.Polarity.POLNULL: '0',
                pyopenms.IonSource.Polarity.POSITIVE: '+',
                pyopenms.IonSource.Polarity.NEGATIVE: '-'
@@ -428,10 +432,11 @@ class Spectrum(SpecialColType):
         ins.setPolarity(pol)
         spec.setInstrumentSettings(ins)
         oms_pcs = []
-        for mz, I in self.precursors:
+        for mz, I, charge in self.precursors:
             p = pyopenms.Precursor()
             p.setMZ(mz)
             p.setIntensity(I)
+            p.setCharge(charge)
             oms_pcs.append(p)
         spec.setPrecursors(oms_pcs)
         if IS_PYOPENMS_2:
@@ -473,7 +478,9 @@ class Spectrum(SpecialColType):
             self.meta = state[0]
             # here we have properties which access self.meta, this why we first set
             # selt.meta (no property) and then the following properties:
-            self.meta, self.rt, self.msLevel, self.polarity, self.precursors, peaks = state[:6]
+            self.meta, self.rt, self.msLevel, self.polarity, precursors, peaks = state[:6]
+            # fix for loading spectra where charge state was not present in pre cursor:
+            self.precursors = [p if len(p) == 3 else p + (0,) for p in precursors]
             if len(state) == 7:
                 self.scan_number = state[6]
             else:

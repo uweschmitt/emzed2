@@ -157,7 +157,7 @@ class TestMSTypes(object):
         assert (spec.rt-s0.getRT())/s0.getRT() < 1e-7
         assert spec.msLevel == s0.getMSLevel()
         assert spec.peaks.shape == (s0.size(), 2)
-        assert spec.precursors == [ (1.0, 100) ], spec.precursors
+        assert spec.precursors == [ (1.0, 100, 0) ], spec.precursors
         assert spec.polarity == "+"
 
         assert len(spec) == s0.size()
@@ -284,7 +284,7 @@ class TestMSTypes(object):
 
         check("spec.rt += 1")
         check("spec.msLevel += 1")
-        check("spec.precursors = [(1, 1)]")
+        check("spec.precursors = [(1, 1, 0)]")
         check("spec.polarity = '+'")
 
         pm = PeakMap([spec])

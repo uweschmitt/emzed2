@@ -37,7 +37,7 @@ def test_0():
     ii = np.linspace(1000.0, 2000.0, 21)
     mzs = np.linspace(100.0, 1100.0, 21) + 200
     peaks = np.vstack((mzs, ii)).T
-    s1 = Spectrum(peaks, rt=1.0, msLevel=2, polarity="+", precursors=[(10.0, 1000)])
-    s2 = Spectrum(peaks, rt=1.0, msLevel=2, polarity="+", precursors=[(210.0, 1000)])
+    s1 = Spectrum(peaks, rt=1.0, msLevel=2, polarity="+", precursors=[(10.0, 1000, 0)])
+    s2 = Spectrum(peaks, rt=1.0, msLevel=2, polarity="+", precursors=[(210.0, 1000, 0)])
 
     assert abs(s1.cosine_distance(s2, 0.001, consider_precursor_shift=True) - 0.99986) < 1e-3
