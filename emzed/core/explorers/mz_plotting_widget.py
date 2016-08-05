@@ -89,7 +89,7 @@ class MzPlottingWidget(CurveWidget):
         self.line = line
 
     def plot_spectra(self, all_peaks, labels):
-        self.plot.del_all_items()
+        self.clear()
         self.plot.add_item(self.marker)
         self.plot.add_item(make.legend("TL"))
         self.plot.add_item(self.label)
@@ -113,7 +113,7 @@ class MzPlottingWidget(CurveWidget):
 
     def sample_spectra_from_peakmaps_iter(self, peakmap_ranges, configs, titles):
 
-        self.plot.del_all_items()
+        self.clear()
         self.plot.add_item(self.marker)
         if titles:
             self.plot.add_item(make.legend("TL"))
@@ -145,8 +145,12 @@ class MzPlottingWidget(CurveWidget):
         self.plot.reset_x_limits(xmin, xmax, fac)
 
     def reset(self):
-        self.plot.del_all_items()
+        print("reset")
+        self.clear()
         self.replot()
+
+    def clear(self):
+        self.plot.del_all_items()
 
     def replot(self):
         self.plot.replot()

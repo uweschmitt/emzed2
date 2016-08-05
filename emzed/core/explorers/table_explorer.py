@@ -1380,7 +1380,7 @@ class TableExplorer(EmzedDialog):
     def plot_spectra_from_peakmaps(self, peakmaps, windows, labels):
 
         if not peakmaps or not windows:
-            print "empty peakmaps or windows"
+            self.mz_plotter.reset()
             return
 
         data = []
@@ -1398,13 +1398,6 @@ class TableExplorer(EmzedDialog):
         mzmax = max(mzs)
 
         configs = configsForSpectra(len(peakmaps))
-
-        """
-        todo: current plot ms1 is broken, I expect wrong limits because ms_level is not considered
-        todo: move eic windows working ?
-        todo: peakmap inspector, incl window setting !
-        todo: profile hdf5 writer
-        """
 
         n = len(data)
         if n < 5:
