@@ -33,21 +33,20 @@ from hdf5.object_store import ObjectProxy
 
 from .ms_types import PeakMap, PeakMapProxy
 
+from .symlink import symlink
+
 
 def try_to_move(from_, to):
 
     if os.path.exists(to):
         os.remove(to)
 
-    for attempt in range(10):
-        try:
-            os.rename(from_, to)
-            break
-        except EnvironmentError:
-            time.sleep(.1)
-    else:
-        raise IOError("could not rename %s to %s" % (from_, to))
-
+    try:
+        os.rename(from_, to)
+    except EnvironmentError:
+        # on win the rename might fail because another process (eg virus scanner)
+        # is reading the file, so we just create a "cheap" link instead:
+        symlink(from_, to)
 
 @contextlib.contextmanager
 def atomic_open_for_write(path, flags):

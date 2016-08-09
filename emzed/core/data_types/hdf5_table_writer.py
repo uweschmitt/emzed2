@@ -9,6 +9,8 @@ from hdf5.accessors import Hdf5TableWriter, Hdf5TableAppender
 
 from .table import try_to_move
 
+from .symlink import symlink
+
 
 def to_hdf5(table, path):
     """writes single table"""
@@ -16,10 +18,8 @@ def to_hdf5(table, path):
     writer = Hdf5TableWriter(path + ".incomplete")
     writer.write_table(table)
     writer.close()
+    try_to_move(path + ".incomplete", path)
 
-    if os.path.exists(path):
-        os.remove(path)
-    os.rename(path + ".incomplete", path)
 
 
 class _Adder(object):
