@@ -3,7 +3,16 @@ from __future__ import print_function
 
 
 def version():
-    return (2, 28, 0)
+    return (2, 28, 3)
+
+
+def version_string():
+    v = version()
+    if len(v) == 4:
+        v_str = "%d.%d.%dpost%d" % v
+    else:
+        v_str = "%d.%d.%d" % v
+    return v_str
 
 
 is_experimental = False
@@ -15,7 +24,7 @@ def description():
     ! EXPERIMENTAL UPDATE !
     ! ONLY INSTALL THIS UPDATE IF YOU WERE ASKED TO INSTALL IT !
 
-    release 2.28.0
+    release notes:
         - some experimental extensions
     """
     return msg
@@ -34,13 +43,7 @@ def run_update(locally=True):
     pip.main("install et-xmlfile".split())
     pip.main("install openpyxl".split())
 
-    v = version()
-    if len(v) == 4:
-        v_str = "%d.%d.%dpost%d" % v
-    else:
-        v_str = "%d.%d.%d" % v
-
-    pip.main(["install", "emzed==%s" % v_str])
+    pip.main(["install", "emzed==%s" % version_string()])
 
 
 if __name__ == "__main__":
