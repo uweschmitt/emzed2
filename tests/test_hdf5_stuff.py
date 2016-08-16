@@ -106,8 +106,12 @@ def test_writer_appender_reader(table, tmpdir, regtest):
 
 def test_hdf5_table_appender(table, tmpdir):
     path = tmpdir.join("test.hdf5").strpath
-    to_hdf5(table, path)
+    to_hdf5(table, path, atomic=True)
     append_to_hdf5([table, table, table], path)
+
+    path = tmpdir.join("test_2.hdf5").strpath
+    to_hdf5(table, path, atomic=False)
+    append_to_hdf5([table, table, table], path, atomic=False)
 
 
 def test_atomic_hdf5_writer(table, tmpdir, regtest):
@@ -122,6 +126,19 @@ def test_atomic_hdf5_writer(table, tmpdir, regtest):
 
     t = Hdf5TableProxy(path).toTable()
     print(t.int.values, file=regtest)
+
+    path = tmpdir.join("test_2.hdf5").strpath
+    with atomic_hdf5_writer(path, atomic=False) as add:
+        add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
+        add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
+        add(table)
+        table.replaceColumn("int", table.int + 10, type_=int)
+
+    t = Hdf5TableProxy(path).toTable()
+    print(t.int.values, file=regtest)
+
 
 
 def test_round_trip(tproxy, table, regtest):

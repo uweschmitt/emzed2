@@ -12,7 +12,6 @@ import locale
 import os
 import re
 import sys
-import time
 import warnings
 
 import dill
@@ -46,12 +45,20 @@ def try_to_move(from_, to):
     except EnvironmentError:
         # on win the rename might fail because another process (eg virus scanner)
         # is reading the file, so we just create a "cheap" link instead:
-        symlink(from_, to)
+        try:
+            symlink(from_, to)
+        except EnvironmentError:
+            raise IOError("symlinking %s -> %s failed, deactivate atomic writes" % (from_, to))
+
 
 @contextlib.contextmanager
-def atomic_open_for_write(path, flags):
+def open_for_write(path, flags, atomic=True):
 
-    temp_path = path + ".incomplete"
+    if atomic:
+        temp_path = path + ".incomplete"
+    else:
+        temp_path = path
+
     fh = open(temp_path, flags)
     try:
         yield fh
@@ -59,10 +66,11 @@ def atomic_open_for_write(path, flags):
         fh.flush()
         os.fsync(fh.fileno())
         fh.close()
-    if os.path.exists(path):
-        os.remove(path)
 
-    try_to_move(temp_path, path)
+    if atomic:
+        if os.path.exists(path):
+            os.remove(path)
+        try_to_move(temp_path, path)
 
 
 def relative_path(from_, to):
@@ -1137,7 +1145,7 @@ class Table(MutableTable):
                         for (f, v) in zip(formatters, colNames)]
                 writer.writerow(data)
 
-    def store(self, path, forceOverwrite=False, compressed=True, peakmap_cache_folder=None):
+    def store(self, path, forceOverwrite=False, compressed=True, peakmap_cache_folder=None, atomic=False):
         """Writes the table in binary format. All information, as corresponding peak maps too.
 
         The file name extension in ``path``must be ``.table``.
@@ -1169,7 +1177,7 @@ class Table(MutableTable):
         if peakmap_cache_folder is not None:
             self._introduce_proxies(peakmap_cache_folder, path)
 
-        with atomic_open_for_write(path, "w+b") as fp:
+        with open_for_write(path, "w+b", atomic) as fp:
             fp.write("emzed_version=%s.%s.%s\n" %
                      self._latest_internal_update_with_version)
             data = tuple(getattr(self, a) for a in Table._to_pickle)

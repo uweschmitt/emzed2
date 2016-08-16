@@ -9,17 +9,24 @@ from hdf5.accessors import Hdf5TableWriter, Hdf5TableAppender
 
 from .table import try_to_move
 
-from .symlink import symlink
 
+def to_hdf5(table, path, atomic=True):
+    """writes single table
+    atomic mode assures that only a complete file will show up when the functions returns.
+    On some Windows systems this causes trouble (other procecess as virus scanner may disallow
+    renaming, on other systems creation of symlinks are not allowed for the current user),
+    then the setting "atomic=False" will work at the risk of incomplete files in rare cases.
+    """
 
-def to_hdf5(table, path):
-    """writes single table"""
-
-    writer = Hdf5TableWriter(path + ".incomplete")
-    writer.write_table(table)
-    writer.close()
-    try_to_move(path + ".incomplete", path)
-
+    if atomic:
+        writer = Hdf5TableWriter(path + ".incomplete")
+        writer.write_table(table)
+        writer.close()
+        try_to_move(path + ".incomplete", path)
+    else:
+        writer = Hdf5TableWriter(path)
+        writer.write_table(table)
+        writer.close()
 
 
 class _Adder(object):
@@ -45,9 +52,12 @@ class _Adder(object):
 
 
 @contextlib.contextmanager
-def atomic_hdf5_writer(path):
+def atomic_hdf5_writer(path, atomic=True):
 
-    temp_path = path + ".incomplete"
+    if atomic:
+        temp_path = path + ".incomplete"
+    else:
+        temp_path = path
     adder = _Adder(temp_path)
     try:
         yield adder
@@ -60,10 +70,11 @@ def atomic_hdf5_writer(path):
     finally:
         adder.close()
 
-    try_to_move(temp_path, path)
+    if atomic:
+        try_to_move(temp_path, path)
 
 
-def append_to_hdf5(tables, path):
+def append_to_hdf5(tables, path, atomic=True):
     """appends single table or list of tables"""
 
     if isinstance(tables, Table):
@@ -71,12 +82,16 @@ def append_to_hdf5(tables, path):
 
     assert os.path.exists(path), "you can append to an existing table only"
 
-    temp_path = path + ".inwriting"
-    os.rename(path, temp_path)
+    if atomic:
+        temp_path = path + ".inwriting"
+        os.rename(path, temp_path)
+    else:
+        temp_path = path
 
     appender = Hdf5TableAppender(temp_path)
     for table in tables:
         appender.append_table(table)
     appender.close()
 
-    try_to_move(temp_path, path)
+    if atomic:
+        try_to_move(temp_path, path)
