@@ -421,8 +421,8 @@ class TableExplorer(EmzedDialog):
 
             def handler(event, callback=callback, self=self):
                 try:
-                    #self.setEnabled(False)
-                    #self.setCursor(Qt.WaitCursor)
+                    self.setEnabled(False)
+                    self.setCursor(Qt.WaitCursor)
                     self.model.transform_table(callback, parent=self)
                 finally:
                     self.setEnabled(True)
