@@ -579,7 +579,7 @@ class TableModel(QAbstractTableModel):
             try:
                 with open(path, "r") as fp:
                     for line in fp:
-                        i, name = line.strip().split()
+                        i, name = line.strip().split(" ", 1)
                         if name in names:
                             dd[int(i)] = names.index(name)
                             shown.add(name)
