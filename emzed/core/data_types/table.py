@@ -2192,7 +2192,7 @@ class Table(MutableTable):
         return Table([colName], [type_], [format_], rows, meta=meta)
 
     @staticmethod
-    def loadCSV(path, sep=";", keepNone=False, **specialFormats):
+    def loadCSV(path, sep=";", keepNone=False, dashIsNone=True, **specialFormats):
         """
         loads csv file from path. column separator is given by *sep*.
         If *keepNone* is set to True, "None" strings in file are kept as a string.
@@ -2217,6 +2217,8 @@ class Table(MutableTable):
 
             if keepNone:
                 conv = bestConvert
+            elif dashIsNone:
+                conv = lambda v: None if v == "-" else bestConvert(v)
             else:
                 conv = lambda v: None if v == "None" else bestConvert(v)
 
