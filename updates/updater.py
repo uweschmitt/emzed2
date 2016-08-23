@@ -3,7 +3,7 @@ from __future__ import print_function
 
 
 def version():
-    return (2, 28, 3)
+    return (2, 28, 6)
 
 
 def version_string():
@@ -25,7 +25,8 @@ def description():
     ! ONLY INSTALL THIS UPDATE IF YOU WERE ASKED TO INSTALL IT !
 
     release notes:
-        - some experimental extensions
+        - fixed bug when loading presets for visible table columns
+        - "-" in csv files are read as 'None' now
     """
     return msg
 
