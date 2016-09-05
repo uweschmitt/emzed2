@@ -1,5 +1,6 @@
 from emzed.core.patch_utils import replace, add
 
+
 def _interpret_indexing(self, keys):
     """Internal routine used by __getitem__ and __setitem__"""
 

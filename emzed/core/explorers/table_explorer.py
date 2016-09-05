@@ -1205,8 +1205,12 @@ class TableExplorer(EmzedDialog):
                     for sii in si:
                         label = "spectra%s rt=%.2fm" % (pfi, sii.rt / 60.0)
                         if sii.precursors:
-                            mz, I = sii.precursors[0]
-                            label += " pre=(%.5f, %.2e)" % (mz, I)
+                            mz, I, charge = sii.precursors[0]
+                            if charge != 0:
+                                charge = "%+d" % charge
+                                label += " pre=(%.5f, %.2e, %s)" % (mz, I, charge)
+                            else:
+                                label += " pre=(%.5f, %.2e)" % (mz, I)
                         labels.append(label)
                         data.append(sii)
 
