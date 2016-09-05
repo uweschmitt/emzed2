@@ -107,9 +107,6 @@ def _final_spectrum(peaks, spectra):
     msLevel = 2
     polarity = spectra[0].polarity
 
-    # precursor_mz = np.mean([mz for s in spectra for (mz, ii) in s.precursors])
-    # precursor_ii = np.mean([ii for s in spectra for (mz, ii) in s.precursors])
-    # precursors = [(precursor_mz, precursor_ii)]
     precursors = [p for spec in spectra for p in spec.precursors]
     return Spectrum(np.vstack(peaks), rt, msLevel, polarity, precursors)
 

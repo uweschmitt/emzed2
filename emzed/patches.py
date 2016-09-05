@@ -10,8 +10,10 @@ def _interpret_indexing(self, keys):
     # - the next two lines of import statements
     # - the exception handling for OverflowError below
 
-    from tables.array import numpy, SizeType, is_idx
     import math
+    import operator
+
+    from tables.array import numpy, SizeType, is_idx
 
     maxlen = len(self.shape)
     shape = (maxlen,)
@@ -36,7 +38,7 @@ def _interpret_indexing(self, keys):
                 dim += 1
         elif dim >= maxlen:
             raise IndexError("Too many indices for object '%s'" %
-                                self._v_pathname)
+                             self._v_pathname)
         elif is_idx(key):
             key = operator.index(key)
 
@@ -93,12 +95,15 @@ def _interpret_indexing(self, keys):
 
     return startl, stopl, stepl, shape
 
+
 def apply_():
     # checking for valid values from beginning:
     import guidata.dataset.qtitemwidgets
+
     @replace(guidata.dataset.qtitemwidgets.LineEditWidget.__init__)
     def __init__(self, item, parent_layout):
-        guidata.dataset.qtitemwidgets.LineEditWidget._orig___init__(self, item, parent_layout)
+        guidata.dataset.qtitemwidgets.LineEditWidget._orig___init__(
+            self, item, parent_layout)
         if not item.check_value(item.get()):
             self.edit.setStyleSheet("background-color:rgb(255, 175, 90);")
 
