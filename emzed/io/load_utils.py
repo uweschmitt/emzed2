@@ -41,7 +41,7 @@ def loadTable(path=None, compress_after_load=True):
     return result
 
 
-def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
+def loadCSV(path=None, sep=";", keepNone=False, dashIsNone=True, **specialFormats):
     """
     loads csv file from path. column separator is given by *sep*.
     If *keepNone* is set to True, "None" strings in file are kept as a string.
@@ -59,7 +59,7 @@ def loadCSV(path=None, sep=";", keepNone=False, **specialFormats):
     if path is None:
         return None
 
-    result = Table.loadCSV(path, sep, keepNone, **specialFormats)
+    result = Table.loadCSV(path, sep, keepNone, dashIsNone, **specialFormats)
     return result
 
 

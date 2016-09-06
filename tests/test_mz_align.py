@@ -7,22 +7,9 @@ MMU = 0.001
 
 def testMzAlign(path, tmpdir, monkeypatch):
 
-    if 0 and sys.platform != "win32":
-        import matplotlib
-        old = matplotlib.get_backend()
-        matplotlib.use("Qt4Agg")
-        try:
-            import pylab
-            pylab.figure()
-        except:
-            pass
-            matplotlib.use(old)
-            reload(pylab)
-        else:
-            raise Exception("exepcted exception when opening figure on absent X windows system")
-
     tab = emzed.io.loadTable(path("data/ftab_for_mzalign.table"))
-    reftable = emzed.io.loadCSV(path("data/universal_metabolites_.csv"))
+    reftable = emzed.io.loadCSV(path("data/universal_metabolites_.csv"),
+                                dashIsNone=False)
     reftable.renameColumns(mz_calc="mz_hypot")
     reftable.info()
     pm = tab.peakmap.values[0]
