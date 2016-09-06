@@ -1494,8 +1494,9 @@ class FunctionExpression(BaseExpression):
                 if None in types:
                     types.remove(None)
                 if len(types) > 1:
-                    raise Exception("no unique return type in function result: %r" % types)
-                if types:
+                    type_ = object
+                    # raise Exception("no unique return type in function result: %r" % types)
+                elif types:
                     type_ = types.pop()
                 else:
                     type_ = object
