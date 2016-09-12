@@ -1136,8 +1136,7 @@ class Table(MutableTable):
                 formatters = [_formatter(self.getColFormat(n)) for n in colNames]
             else:
                 colNames = self._colNames
-                noop = lambda x: x
-                formatters = [noop for n in colNames]
+                formatters = [lambda x: x for n in colNames]
             writer.writerow(colNames)
             for row_index in row_indices:
                 row = self.rows[row_index]
@@ -1316,24 +1315,31 @@ class Table(MutableTable):
             self.rows = []
         self.resetInternals()
 
-    def splitByIter(self, *colNames):
+    def splitByIter(self, *colNames, **kw):
         """generator which yields a TProxy for every iteration.
         """
 
         self.ensureColNames(colNames)
 
-        indices = [self.getIndex(n) for n in colNames]
+        use_proxies = kw.get("efficient", False)
+
         sub_rows = collections.OrderedDict()
+        indices = [self.getIndex(n) for n in colNames]
+
         for row in self.rows:
             key = tuple((row[i] for i in indices))
             if key not in sub_rows:
                 sub_rows[key] = []
             sub_rows[key].append(row)
+
         for rows in sub_rows.values():
-            t = TProxy(self, rows)
+            if use_proxies:
+                t = TProxy(self, rows)
+            else:
+                t = self.buildEmptyClone()
+                t.rows = [r[:] for r in rows]
             t.resetInternals()
             yield t
-
 
     def splitBy(self, *colNames, **kw):
         """
@@ -1378,39 +1384,7 @@ class Table(MutableTable):
 
 
         """
-        self.ensureColNames(colNames)
-
-        if kw.get("efficient", False):
-            indices = [self.getIndex(n) for n in colNames]
-            sub_rows = collections.OrderedDict()
-            for row in self.rows:
-                key = tuple((row[i] for i in indices))
-                if key not in sub_rows:
-                    sub_rows[key] = []
-                sub_rows[key].append(row)
-            sub_tables = []
-            for rows in sub_rows.values():
-                t = TProxy(self, rows)
-                t.resetInternals()
-                sub_tables.append(t)
-            return sub_tables
-
-        groups = set()
-        for row in self.rows:
-            key = computekey([self.getValue(row, n) for n in colNames])
-            groups.add(key)
-
-        # preserve order of rows
-        subTables = collections.OrderedDict()
-        for row in self.rows:
-            key = computekey([self.getValue(row, n) for n in colNames])
-            if key not in subTables:
-                subTables[key] = self.buildEmptyClone()
-            subTables[key].rows.append(row[:])
-        splitedTables = subTables.values()
-        for table in splitedTables:
-            table.resetInternals()
-        return splitedTables
+        return list(self.splitByIter(*colNames, **kw))
 
     def append(self, *tables):
         """
