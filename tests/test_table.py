@@ -823,6 +823,9 @@ class TestTable(unittest.TestCase):
         t.addColumn("c", [1,2,1,4])
         t._print()
         subts = t.splitBy("a")
+
+        assert subts == list(t.splitByIter("a"))
+
         assert len(subts) == 3
         res = Table.mergeTables(subts)
         assert len(res) == len(t)
@@ -836,6 +839,8 @@ class TestTable(unittest.TestCase):
             assert subt.getColNames() == [ "a", "b", "c"]
 
         subts = t.splitBy("a", "c")
+        assert subts == list(t.splitByIter("a", "c"))
+
         assert len(subts) == 4
         res = Table.mergeTables(subts)
         assert res.a.values == t.a.values
@@ -845,6 +850,8 @@ class TestTable(unittest.TestCase):
         # check if input tables are not altered
         for subt in subts:
             assert subt.getColNames() == [ "a", "b", "c"]
+
+
 
     def testConstantColumn(self):
         t = toTable("a",[1,2,3])

@@ -1316,6 +1316,25 @@ class Table(MutableTable):
             self.rows = []
         self.resetInternals()
 
+    def splitByIter(self, *colNames):
+        """generator which yields a TProxy for every iteration.
+        """
+
+        self.ensureColNames(colNames)
+
+        indices = [self.getIndex(n) for n in colNames]
+        sub_rows = collections.OrderedDict()
+        for row in self.rows:
+            key = tuple((row[i] for i in indices))
+            if key not in sub_rows:
+                sub_rows[key] = []
+            sub_rows[key].append(row)
+        for rows in sub_rows.values():
+            t = TProxy(self, rows)
+            t.resetInternals()
+            yield t
+
+
     def splitBy(self, *colNames, **kw):
         """
         generates a list of subtables, where the columns given by ``colNames``
