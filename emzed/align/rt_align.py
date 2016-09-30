@@ -118,7 +118,7 @@ def rtAlign(tables, refTable=None, destination=None, nPeaks=-1,
         if refTable in tables:
             refMap = fms[tables.index(refTable)][0]
         else:
-            refMap = refTable.toOpenMSFeatureMap
+            refMap = refTable.toOpenMSFeatureMap()
     results = []
     for fm, table in fms:
         # we do not modify existing table inkl. peakmaps: (rt-values
