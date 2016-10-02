@@ -196,10 +196,12 @@ class EmzedTableView(QTableView):
                 else:
                     row = max_row + 1
                 row = min(max(row, 0), self.model().rowCount() - 1)
-                ix = self.model().index(row, 0)
-                self.setCurrentIndex(ix)
+                current_position = self.currentIndex()
+                ix = self.model().index(row, current_position.column())
                 self.selectRow(row)
                 self.verticalHeader().sectionClicked.emit(row)
+                self.scrollTo(ix)
+                self.setCurrentIndex(ix)
                 # skip event handling:
                 return
         return super(EmzedTableView, self).keyPressEvent(evt)
