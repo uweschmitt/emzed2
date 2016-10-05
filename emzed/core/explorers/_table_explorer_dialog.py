@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'table_explorer_dialog.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -52,10 +52,10 @@ class Ui__TableExporerDialog(object):
     def retranslateUi(self, _TableExporerDialog):
         _TableExporerDialog.setWindowTitle(_translate("_TableExporerDialog", "Dialog", None))
 
-from widgets.integration_widget import IntegrationWidget
 from eic_plotting_widget import EicPlottingWidget
-from widgets.choose_spectra_widget import ChooseSpectraWidget
 from mz_plotting_widget import MzPlottingWidget
+from widgets.choose_spectra_widget import ChooseSpectraWidget
+from widgets.integration_widget import IntegrationWidget
 
 class _TableExporerDialog(QtGui.QDialog, Ui__TableExporerDialog):
     def __init__(self, parent=None, f=QtCore.Qt.WindowFlags()):

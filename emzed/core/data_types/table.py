@@ -1165,8 +1165,14 @@ class Table(MutableTable):
         if not forceOverwrite and os.path.exists(path):
             raise Exception(
                 "%s exists. You may use forceOverwrite=True" % path)
+
         if compressed:
             self.compressPeakMaps()
+
+        if path.endswith(".db"):
+            from .sqlite_helpers import to_db
+            to_db(self, path)
+            return
 
         # if peakmap_cache_folder is "." we introduce relative pathes in the proxies,
         # store the table with these entries and than correct the proxies after storing

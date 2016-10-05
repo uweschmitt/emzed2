@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'spectra_selector_widget.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -27,7 +27,6 @@ class Ui_SpectraSelector(object):
         _SpectraSelectorWidget.setObjectName(_fromUtf8("_SpectraSelectorWidget"))
         _SpectraSelectorWidget.setGeometry(QtCore.QRect(0, 0, 275, 118))
         self._horizontalLayout = QtGui.QHBoxLayout(_SpectraSelectorWidget)
-        self._horizontalLayout.setSpacing(-1)
         self._horizontalLayout.setMargin(0)
         self._horizontalLayout.setObjectName(_fromUtf8("_horizontalLayout"))
         self._frame = QtGui.QFrame(_SpectraSelectorWidget)

@@ -1,8 +1,11 @@
 # encoding: utf-8
 from __future__ import print_function
 
+
 import os
 import shutil
+
+import pytest
 
 import emzed
 
@@ -15,11 +18,17 @@ def test_0(path):
     assert n == 41
 
 
-def test_1(path, tmpdir):
-    from emzed.core.data_types.ms_types import PeakMapProxy
+@pytest.fixture
+def t(path):
     pm = emzed.io.loadPeakMap(path("data/SHORT_MS2_FILE.mzData"))
     t = emzed.utils.toTable("id", (1, 2, 3), type_=int)
     t.addColumn("peakmap", pm, type_=object)
+    return t
+
+
+def test_1(tmpdir, t):
+    from emzed.core.data_types.ms_types import PeakMapProxy
+
     p1 = tmpdir.join("without_comp.table").strpath
     t.store(p1, True, True)
     p2 = tmpdir.join("with_comp.table").strpath

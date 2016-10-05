@@ -12,10 +12,30 @@ from ...data_types.hdf5_table_proxy import UfuncWrapper
 from ...data_types.col_types import CheckState
 
 from fnmatch import fnmatch
+from functools import partial
 
 from _choose_range import ChooseRange as _ChooseRange
 from _choose_value import ChooseValue as _ChooseValue
 from _string_filter import StringFilter as _StringFilter
+
+
+def ufunc_range_filter(name, v1, v2):
+    if v1 is None and v2 is None:
+        return name, None
+
+    def cond_v1_v2(vec, v1=v1, v2=v2):
+        return np.logical_and(np.greater_equal(v2, vec), np.greater_equal(vec, v1))
+
+    if v2 is None:
+        f = partial(np.less_equal, v1)
+    elif v1 is None:
+        f = partial(np.greater_equal, v2)
+    elif v1 == v2:
+        f = partial(np.equal, v2)
+    else:
+        f = cond_v1_v2
+
+    return name, UfuncWrapper(f)
 
 
 class _ChooseNumberRange(_ChooseRange):
@@ -45,32 +65,13 @@ class _ChooseNumberRange(_ChooseRange):
     def update(self):
         pass
 
-
-from functools import partial
-
-
-def ufunc_range_filter(v1, v2):
-    if v1 is None and v2 is None:
-        return None
-
-    def cond_v1_v2(vec, v1=v1, v2=v2):
-        return np.logical_and(np.greater_equal(v2, vec), np.greater_equal(vec, v1))
-
-    if v2 is None:
-        f = partial(np.less_equal, v1)
-    elif v1 is None:
-        f = partial(np.greater_equal, v2)
-    elif v1 == v2:
-        f = partial(np.equal, v2)
-    else:
-        f = cond_v1_v2
-
-    return UfuncWrapper(f)
+    def get_filter(self):
+        return self._get_filter(ufunc_range_filter)
 
 
 class ChooseFloatRange(_ChooseNumberRange):
 
-    def get_filter(self):
+    def _get_filter(self, filter_constructor):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         try:
@@ -81,12 +82,12 @@ class ChooseFloatRange(_ChooseNumberRange):
             v2 = float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, ufunc_range_filter(v1, v2)
+        return filter_constructor(self.name, v1, v2)
 
 
 class ChooseIntRange(_ChooseNumberRange):
 
-    def get_filter(self):
+    def _get_filter(self, filter_constructor):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         try:
@@ -97,7 +98,7 @@ class ChooseIntRange(_ChooseNumberRange):
             v2 = int(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, ufunc_range_filter(v1, v2)
+        return filter_constructor(self.name, v1, v2)
 
 
 class ChooseTimeRange(_ChooseNumberRange):
@@ -106,7 +107,7 @@ class ChooseTimeRange(_ChooseNumberRange):
         super(ChooseTimeRange, self).__init__(name, table, min_, max_, parent)
         self.column_name.setText("%s [m]" % self.name)
 
-    def get_filter(self):
+    def _get_filter(self, filter_constructor):
         v1 = str(self.lower_bound.text()).strip()
         v2 = str(self.upper_bound.text()).strip()
         v1 = v1.rstrip("m").rstrip()
@@ -119,23 +120,22 @@ class ChooseTimeRange(_ChooseNumberRange):
             v2 = 60.0 * float(v2) if v2 else None
         except Exception:
             v2 = None
-        return self.name, ufunc_range_filter(v1, v2)
+        return filter_constructor(self.name, v1, v2)
 
 
-class ChooseValue(_ChooseValue):
+class ChooseBool(_ChooseValue):
 
     INDICATE_CHANGE = QtCore.pyqtSignal(str)
 
-    def __init__(self, name, table, choices, parent=None):
-        super(ChooseValue, self).__init__(parent)
+    def __init__(self, name, table, parent=None):
+        super(ChooseBool, self).__init__(parent)
         self.name = name
         self.table = table
-        self.choices = choices
         self.column_name.setText(self.name)
         self.update()
 
     def setupUi(self, parent):
-        super(ChooseValue, self).setupUi(self)
+        super(ChooseBool, self).setupUi(self)
         self.values.currentIndexChanged.connect(self.choice_changed)
 
     def choice_changed(self, *a):
@@ -148,14 +148,12 @@ class ChooseValue(_ChooseValue):
         if t == "-":
             t = None
 
-        if isinstance(t, (int, float)):
-            return self.name, ufunc_range_filter(t, t)
         return self.name, lambda v: v == t
 
     def update(self):
         before = self.values.currentText()
-        self.pure_values = [None] + self.choices
-        new_items = [u""] + map(unicode, self.choices)
+        self.pure_values = [None, True, False, ""]
+        new_items = [u"", u"True", u"False", u"True or False"]
 
         # block emiting signals, because the setup / update of the values below would
         # trigger emitting a curretnIndexChanged signal !
@@ -190,7 +188,7 @@ class StringFilterPattern(_StringFilter):
     def return_pressed(self):
         self.INDICATE_CHANGE.emit(self.name)
 
-    def get_filter(self, *a):
+    def get_filter(self):
         pattern = unicode(self.pattern.text())
         if pattern == u"":
             return self.name, None
@@ -240,13 +238,6 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
         chooser.INDICATE_CHANGE.connect(self.value_commited)
         self._choosers.append(chooser)
 
-    def value_commited(self, name):
-        limits = {}
-        for chooser in self._choosers:
-            name, filter_function = chooser.get_filter()
-            limits[name] = filter_function
-        self.LIMITS_CHANGED.emit(limits)
-
     def _setup_float_chooser(self, name, i, t):
         fmtter = t.colFormatters[i]
         try:
@@ -259,17 +250,31 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
             ch = ChooseFloatRange(name, t)
         return ch
 
-    def configure(self, emzed_table):
+    def _clear_choosers(self):
+        self._choosers = []
+        for i in reversed(range(self._hlayout.count())): 
+            widget = self._hlayout.itemAt(i).widget()
+            if widget is not None:
+                self._hlayout.removeWidget(widget)
+                widget.setParent(None)
+
+    def configure(self, emzed_table, visible_flags=None):
+        if visible_flags is None:
+            visible_flags = [fmt is not None for fmt in self.getColFormats()]
         t = emzed_table
-        for i, (fmt, name, type_) in enumerate(zip(t.getColFormats(),
-                                                   t.getColNames(),
-                                                   t.getColTypes())):
-            if fmt is not None:
+        self._clear_choosers()
+        for i, (name, is_visible, type_) in enumerate(sorted(zip(t.getColNames(),
+                                                                 visible_flags,
+                                                                 t.getColTypes()
+                                                                 )
+                                                             )
+                                                      ):
+            if is_visible:
                 ch = None
                 if type_ == float:
                     ch = self._setup_float_chooser(name, i, t)
                 elif type_ in (bool, CheckState):
-                    ch = ChooseValue(name, t, [True, False])
+                    ch = ChooseBool(name, t)
                 elif type_ in (int, long):
                     ch = ChooseIntRange(name, t)
                 elif type_ in (str, unicode, basestring):
@@ -292,6 +297,13 @@ class FilterCriteriaWidget(_FilterCriteriaWidget):
             if chooser.name == name:
                 chooser.update()
 
+    def value_commited(self, name):
+        limits = {}
+        for chooser in self._choosers:
+            name, filter_function = chooser.get_filter()
+            limits[name] = filter_function
+        self.LIMITS_CHANGED.emit(limits)
+
 
 if __name__ == "__main__":
     import sys
@@ -300,7 +312,7 @@ if __name__ == "__main__":
     widget.show()
 
     import emzed
-    t = emzed.utils.toTable("a", (1,2, 3), type_=int)
+    t = emzed.utils.toTable("a", (1, 2, 3), type_=int)
     t.addColumn("b", (1, 2, 3), type_=float)
     t.addColumn("c", ("asdf", "asdf", "asdf"), type_=str)
 
@@ -313,4 +325,3 @@ if __name__ == "__main__":
     widget.show()
 
     sys.exit(app.exec_())
-

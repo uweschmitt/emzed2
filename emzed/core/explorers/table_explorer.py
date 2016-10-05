@@ -6,7 +6,6 @@ import traceback
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-
 import guidata
 
 from eic_plotting_widget import EicPlottingWidget
@@ -200,7 +199,6 @@ class EmzedTableView(QTableView):
                 ix = self.model().index(row, current_position.column())
                 self.selectRow(row)
                 self.verticalHeader().sectionClicked.emit(row)
-                self.scrollTo(ix)
                 self.setCurrentIndex(ix)
                 # skip event handling:
                 return

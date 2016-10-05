@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'choose_range.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'string_filter.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -33,8 +33,8 @@ class Ui_StringFilter(object):
         StringFilter.setSizePolicy(sizePolicy)
         StringFilter.setMaximumSize(QtCore.QSize(300, 16777215))
         self.verticalLayout = QtGui.QVBoxLayout(StringFilter)
-        self.verticalLayout.setSpacing(1)
         self.verticalLayout.setMargin(3)
+        self.verticalLayout.setSpacing(1)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.column_name = QtGui.QLabel(StringFilter)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Fixed)

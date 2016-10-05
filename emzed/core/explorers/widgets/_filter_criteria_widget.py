@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'filter_criteria_widget.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -33,8 +33,8 @@ class Ui__FilterCriteriaWidget(object):
         _FilterCriteriaWidget.setSizePolicy(sizePolicy)
         _FilterCriteriaWidget.setMinimumSize(QtCore.QSize(100, 0))
         self._verticalLayout = QtGui.QVBoxLayout(_FilterCriteriaWidget)
-        self._verticalLayout.setSpacing(1)
         self._verticalLayout.setMargin(3)
+        self._verticalLayout.setSpacing(1)
         self._verticalLayout.setObjectName(_fromUtf8("_verticalLayout"))
         self._scrollArea = QtGui.QScrollArea(_FilterCriteriaWidget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.MinimumExpanding)

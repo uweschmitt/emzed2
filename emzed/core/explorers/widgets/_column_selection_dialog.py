@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'column_selection_dialog.ui'
 #
-#      by: PyQt4 UI code generator 4.11.1
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -29,9 +29,9 @@ class Ui_ColumnMultiSelectDialog(object):
         ColumnMultiSelectDialog.setMinimumSize(QtCore.QSize(150, 110))
         ColumnMultiSelectDialog.setSizeGripEnabled(False)
         self.verticalLayout = QtGui.QVBoxLayout(ColumnMultiSelectDialog)
-        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
         self.verticalLayout.setMargin(0)
+        self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.column_names = QtGui.QListView(ColumnMultiSelectDialog)
         self.column_names.setMinimumSize(QtCore.QSize(150, 0))
