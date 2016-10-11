@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import base64
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import copy
 import cPickle
 import json
@@ -37,35 +37,35 @@ def try_to_reactivate(choice_box, text):
     return False
 
 
-
 class ModifiedTableView(QtGui.QTableView):
 
     def showEvent(self, evt):
-        pass
-        # self.resizeColumnsToContents()
-        # self.resizeColumnsToContents()
-        # self.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
+        self.resizeColumnsToContents()
+        self.horizontalHeader().setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
     def keyPressEvent(self, evt):
         if evt.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
             """automatically select full row if user uses cursor up/down keys
             """
-            rows = set(idx.row() for idx in self.selectedIndexes())
-            if rows:
-                min_row = min(rows)
-                max_row = max(rows)
-                if evt.key() == QtCore.Qt.Key_Up:
-                    row = min_row - 1
-                else:
-                    row = max_row + 1
-                row = min(max(row, 0), self.model().rowCount() - 1)
-                current_position = self.currentIndex()
-                ix = self.model().index(row, current_position.column())
-                self.selectRow(row)
-                self.verticalHeader().sectionClicked.emit(row)
-                self.setCurrentIndex(ix)
-                # skip event handling:
-                return
+            modifiers = QtGui.QApplication.keyboardModifiers()
+            allowed = (QtCore.Qt.NoModifier, QtCore.Qt.KeypadModifier)
+            if modifiers in allowed:
+                rows = set(idx.row() for idx in self.selectedIndexes())
+                if rows:
+                    min_row = min(rows)
+                    max_row = max(rows)
+                    if evt.key() == QtCore.Qt.Key_Up:
+                        row = min_row - 1
+                    else:
+                        row = max_row + 1
+                    row = min(max(row, 0), self.model().rowCount() - 1)
+                    current_position = self.currentIndex()
+                    ix = self.model().index(row, current_position.column())
+                    self.selectRow(row)
+                    self.verticalHeader().sectionClicked.emit(row)
+                    self.setCurrentIndex(ix)
+                    # skip event handling:
+                    return
         return super(ModifiedTableView, self).keyPressEvent(evt)
 
 
@@ -74,7 +74,7 @@ class TableConfigHandler(object):
     """manages user specific settings on view as order of columns after drag drop.
     """
 
-    def __init__(self, config_id, dialog):  # table_view, model):
+    def __init__(self, config_id, dialog):
         self.config_id = config_id
         self.dialog = dialog
         self.table_view = dialog.table_view
@@ -152,7 +152,7 @@ class TableConfigHandler(object):
 
 class Sqlite3TableExplorer(_Sqlite3TableExplorer):
 
-    def __init__(self, path, config_id="default", parent=None):
+    def __init__(self, path, config, parent=None):
         super(Sqlite3TableExplorer, self).__init__(parent)
         self.model = Sqlite3Model(path)
 
@@ -164,10 +164,14 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         self.filter_dialog.set_visible_columns(self.visible_flags())
 
         # only minimalistic view:
-        self.plot_frame.setVisible(False)
+        self.show_peaks = config.get("show_peaks", False) and self.model.has_peaks
+        self.plot_frame.setVisible(self.show_peaks)
+        self.eic_plotter.setMinimumSize(100, 100)
+        self.mz_plotter.setMinimumSize(100, 100)
+        self.eic_plotter.VIEW_RANGE_CHANGE_FINISHED.connect(self.rt_range_changed)
 
         self.connect_signals()
-        self.configure_dialog(config_id)
+        self.configure_dialog(config.get("id", "default"))
         self.set_styles()
 
     def configure_dialog(self, config_id):
@@ -180,30 +184,45 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         for i in range(self.model.columnCount(None)):
             self.table_view.setColumnHidden(i, i in self.model.always_invisible)
 
+    def _disable_signals_from_sort_widgets(self):
+        self.first_sort_field.blockSignals(True)
+        self.first_sort_order.blockSignals(True)
+        self.second_sort_field.blockSignals(True)
+        self.second_sort_order.blockSignals(True)
+
+    def _enable_signals_from_sort_widgets(self):
+        self.first_sort_field.blockSignals(False)
+        self.first_sort_order.blockSignals(False)
+        self.second_sort_field.blockSignals(False)
+        self.second_sort_order.blockSignals(False)
+
     def update_sort_widgets(self):
 
         flags = self.visible_flags()
+        self._disable_signals_from_sort_widgets()
 
-        if self.first_sort_field.count():
-            first_col_name = self.first_sort_field.currentText()
-            self.first_sort_field.clear()
-        else:
-            for name in self.model.col_names:
-                if flags[name]:
-                    first_col_name = name
-                    break
+        try:
+            if self.first_sort_field.count():
+                first_col_name = self.first_sort_field.currentText()
+                self.first_sort_field.clear()
+            else:
+                # first visible column_name:
+                first_col_name = (name for name, flag in flags.items() if flag).next()
 
-        if self.second_sort_field.count():
-            second_col_name = self.second_sort_field.currentText()
-            self.second_sort_field.clear()
-        else:
-            second_col_name = ""
+            if self.second_sort_field.count():
+                second_col_name = self.second_sort_field.currentText()
+                self.second_sort_field.clear()
+            else:
+                second_col_name = ""
 
-        self.second_sort_field.addItem("")
-        for name, active in sorted(flags.items()):
-            if active and name not in self.model.object_columns:
-                self.first_sort_field.addItem(unicode(name))
-                self.second_sort_field.addItem(unicode(name))
+            self.second_sort_field.addItem("")
+            for name, active in flags.items():
+                if active and name not in self.model.object_columns:
+                    self.first_sort_field.addItem(unicode(name))
+                    self.second_sort_field.addItem(unicode(name))
+
+        finally:
+            self._enable_signals_from_sort_widgets()
 
         ok = try_to_reactivate(self.first_sort_field, first_col_name)
         if not ok:
@@ -225,7 +244,6 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
 
     def set_filter_expression(self, filter_expression):
         self.current_filter.setPlainText(filter_expression)
-        # self.filter_expression_changed()
 
     def filter_expression_changed(self):
         self.model.update_filter(unicode(self.current_filter.toPlainText()))
@@ -235,20 +253,25 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         if len(fields) != 4:
             return
         f1_name, f1_order, f2_name, f2_order = fields
-        if try_to_reactivate(self.first_sort_field, f1_name):
-            try_to_reactivate(self.first_sort_order, f1_order)
-        if try_to_reactivate(self.second_sort_field, f2_name):
-            try_to_reactivate(self.second_sort_order, f2_order)
+        self._disable_signals_from_sort_widgets()
+        try:
 
+            if try_to_reactivate(self.first_sort_field, f1_name):
+                try_to_reactivate(self.first_sort_order, f1_order)
+            if try_to_reactivate(self.second_sort_field, f2_name):
+                try_to_reactivate(self.second_sort_order, f2_order)
+        finally:
+            self._enable_signals_from_sort_widgets()
         self.sort_settings_changed()
 
     def visible_flags(self):
-        flags = {}
+        flags = OrderedDict()
         for (i, name) in enumerate(self.model.col_names):
             flags[name] = not self.table_view.isColumnHidden(i)
         return flags
 
     def connect_signals(self):
+        self.table_view.selectionModel().selectionChanged.connect(self.handle_activated)
         self.visible_columns_button.clicked.connect(self.choose_visible_columns)
         self.filter_button.clicked.connect(self.set_filter)
         self.reset_filter_button.clicked.connect(self.reset_filter)
@@ -257,6 +280,43 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         self.first_sort_order.currentIndexChanged.connect(self.sort_settings_changed)
         self.second_sort_field.currentIndexChanged.connect(self.sort_settings_changed)
         self.second_sort_order.currentIndexChanged.connect(self.sort_settings_changed)
+
+    def handle_activated(self, new, before):
+        if self.show_peaks:
+            self.update_chromatograms()
+            self.eic_plotter.replot()
+
+    def selected_rows(self):
+        return set(idx.row() for idx in self.table_view.selectionModel().selectedRows())
+
+    def rt_range_changed(self, rtmin, rtmax):
+        # eventhandler, rtmin, rtmax are in seconds
+        __, __, imin, imax = self.eic_plotter.get_limits()
+        self.update_chromatograms(rtmin / 60.0, rtmax / 60.0, reset_limits=False)
+        self.eic_plotter.set_intensity_axis_limits(imin, imax)
+        self.eic_plotter.replot()
+
+    def update_chromatograms(self, rtmin=None, rtmax=None, reset_limits=True):
+        eics = []
+        labels = []
+        rt_bounds = []
+        for row in self.selected_rows():
+            rts, intensities, label = self.model.get_chromatogram(row, rtmin=rtmin, rtmax=rtmax)
+            if len(rts):
+                rts = rts * 60
+                rt_bounds.append(min(rts))
+                rt_bounds.append(max(rts))
+                eics.append((rts, intensities))
+                labels.append(label)
+        self.eic_plotter.del_all_items()
+
+        if not eics:
+            return
+
+        self.eic_plotter.add_eics(eics, labels)
+        if reset_limits:
+            overall_rtmin, overall_rtmax = min(rt_bounds), max(rt_bounds)
+            self.eic_plotter.set_rt_axis_limits(overall_rtmin, overall_rtmax)
 
     def set_styles(self):
         self.table_view.setFont(std_font())
@@ -277,7 +337,6 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
             if msg is not None:
                 QtGui.QMessageBox.critical(self, "syntax error in filter expression", msg)
             else:
-                # self.model.update_filter(dlg.expression)
                 self.current_filter.setPlainText(dlg.expression)
 
     def reset_filter(self, *a):
@@ -289,7 +348,7 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         if not col_names:
             return
 
-        flags = sorted(self.visible_flags().items())
+        flags = self.visible_flags().items()
         sorted_col_names, currently_visible = zip(*flags)  # unzip
 
         dlg = ColumnMultiSelectDialog(sorted_col_names, currently_visible)
@@ -299,7 +358,6 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         for (name, __, v) in dlg.column_settings:
             i = col_names.index(name)
             self.table_view.setColumnHidden(i, not v)
-        # self.config_handler.update_config()
         self.update_sort_widgets()
 
     def sort_settings_changed(self):
@@ -361,9 +419,13 @@ class Sqlite3Model(QtCore.QAbstractTableModel):
             self.endResetModel()
 
     def setup_compatibility_api(self):
-        self.getColFormats = lambda: self.col_formats
-        self.getColNames = lambda: self.col_names
-        self.getColTypes = lambda: self.col_types
+        def getter(attribute):
+            def inner():
+                return attribute
+            return inner
+        self.getColFormats = getter(self.col_formats)
+        self.getColNames = getter(self.col_names)
+        self.getColTypes = getter(self.col_types)
         self.colFormatters = [lambda x: _formatter(f)(x) for f in self.col_formats]
 
     def data(self, index, role):
@@ -398,7 +460,7 @@ class Sqlite3Model(QtCore.QAbstractTableModel):
     def table_info_identifier(self):
         id_ = "__".join(self.col_names)
         id_ += "!" + "__".join(map(str, self.col_types))
-        id_ += "!" + "__".join(self.col_formats)
+        id_ += "!" + "__".join(map(str, self.col_formats))
         return id_
 
     def headerData(self, section, orientation, role):
@@ -453,6 +515,25 @@ class Sqlite3Model(QtCore.QAbstractTableModel):
         if row_index < len(self.loaded_rows):
             return self.loaded_rows[row_index]
         raise IndexError()
+
+    @property
+    def has_peaks(self):
+        return all(name in self.col_names for name in ("mzmin", "mzmax", "rtmin", "rtmax",
+                                                       "peakmap"))
+
+    def lookup(self, row, name):
+        return row[self.col_names.index(name)]
+
+    def get_chromatogram(self, row_index, rtmin=None, rtmax=None):
+        row = self.get_row(row_index)
+        if rtmin is None:
+            rtmin = self.lookup(row, "rtmin")
+        if rtmax is None:
+            rtmax = self.lookup(row, "rtmax")
+        mzmin, mzmax, peakmap = (self.lookup(row, name) for name in ("mzmin", "mzmax", "peakmap"))
+        rts, iis = self.db_proxy.get_chromatogram(rtmin, rtmax, mzmin, mzmax, peakmap)
+        label = self.lookup(row, "peak_id")
+        return rts, iis, label
 
 
 if __name__ == "__main__":

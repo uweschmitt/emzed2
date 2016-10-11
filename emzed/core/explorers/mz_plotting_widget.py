@@ -51,6 +51,8 @@ class MzPlottingWidget(CurveWidget):
         patch_inner_plot_object(self, MzPlot)
         self.plot.centralMz = None
 
+        self.setMinimumSize(150, 150)
+
         def label(self, x):
             # label with full precision:
             return QwtText(str(x))

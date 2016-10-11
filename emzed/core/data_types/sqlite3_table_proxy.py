@@ -5,7 +5,7 @@ import operator
 import sqlite3
 
 
-from .sqlite_helpers import unpickle_object
+from .sqlite_helpers import unpickle_object, chromatogram
 
 
 class Sqlite3TableProxy(object):
@@ -65,3 +65,6 @@ class Sqlite3TableProxy(object):
             return str(e)
         return None
 
+    def get_chromatogram(self, rtmin, rtmax, mzmin, mzmax, peakmap_entry):
+        peakmap_id = int(peakmap_entry.split("!")[0])
+        return chromatogram(self.conn, peakmap_id, rtmin, rtmax, mzmin, mzmax)

@@ -306,7 +306,14 @@ def sort_permutation(db_name, filter_, fields, reverse_indicators):
     return
 
 if True:
-    t = emzed.io.loadTable("peak_table.table")
+    t = emzed.io.loadTable("t.table")
+    t.replaceColumn("rtmin", t.rtmin / 60, format_="%.1fm", type_=float)
+    t.replaceColumn("rtmax", t.rtmax / 60, format_="%.1fm", type_=float)
+    t.replaceColumn("rt", t.rt / 60, format_="%.1fm", type_=float)
+
+    emzed.io.storeTable(t, "peaks.db", True)
+    import sys
+    sys.exit(0)
 
     def generate(i):
         if i % 3 == 0:

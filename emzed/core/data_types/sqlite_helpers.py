@@ -12,6 +12,8 @@ import time
 from contextlib import contextmanager
 from collections import namedtuple
 
+import numpy as np
+
 from .table import Table
 from .ms_types import PeakMap, PeakMapProxy
 
@@ -103,7 +105,7 @@ def _pickle_peakmap(obj, conn):
 
     for spectrum in obj:
         if spectrum.msLevel == 1:
-            rt = int(round(spectrum.rt * 10))
+            rt = int(round(spectrum.rt / 60.0 * 100))
             for (mz, ii) in spectrum.peaks:
                 iie = int(math.log10(ii))
                 iifrac = int((ii / 10 ** iie) * 1000)
@@ -132,7 +134,7 @@ def _pickle_peakmap(obj, conn):
     for spectrum in obj:
         if spectrum.msLevel == 2:
             precursor = spectrum.precursors[0][0]
-            rt = int(round(spectrum.rt * 10))
+            rt = int(round(spectrum.rt / 60.0 * 100))
             for (mz, ii) in spectrum.peaks:
                 iie = int(math.log10(ii))
                 iifrac = int((ii / 10 ** iie) * 1000)
@@ -141,6 +143,22 @@ def _pickle_peakmap(obj, conn):
     conn.commit()
 
     return Sqlite3PeakMapProxy(next_id, str(obj))
+
+
+def chromatogram(conn, peakmap_id, rtmin, rtmax, mzmin, mzmax):
+    table_name = "ms1_spectra__%d" % peakmap_id
+    result = conn.cursor().execute("""
+            SELECT rt, iie, iifrac FROM %s WHERE (? <= rt) AND (rt <= ?) AND (? <= mz) AND (mz <= ?)
+            ORDER BY rt ASC
+            """ % table_name, (rtmin * 100, rtmax * 100, mzmin, mzmax)).fetchall()
+
+    rts = []
+    intensities = []
+    for rt, iie, iifrac in result:
+        rts.append(rt / 100.0)
+        intensities.append(iifrac / 1000.0 * 10 ** iie)
+
+    return np.array(rts), np.array(intensities)
 
 
 def _pickle_object(obj, conn):

@@ -126,6 +126,8 @@ class EicPlottingWidget(CurveWidget):
         patch_inner_plot_object(self, EicPlot)
         self._with_range = with_range
         self._setup_plot()
+        self.VIEW_RANGE_CHANGED = self.plot.VIEW_RANGE_CHANGED
+        self.setMinimumSize(150, 150)
 
     def enable_range(self, flag):
         self._with_range = flag
@@ -203,7 +205,7 @@ class EicPlottingWidget(CurveWidget):
         self.plot.overall_x_min = rtmin
         self.plot.overall_x_max = rtmax
 
-    def eic_plotter(self):
+    def eic_plotter(self, inc_update=True):
         """generator which receives plot items"""
 
         unique_labels = set()
@@ -231,8 +233,9 @@ class EicPlottingWidget(CurveWidget):
             curve = make_unselectable_curve(rts, chromatogram, title=label, **config)
             allrts.extend(rts)
             self.plot.add_item(curve)
-            self.plot.replot()
-            qapplication().processEvents()
+            if inc_update:
+                self.plot.replot()
+                qapplication().processEvents()
 
         self.plot.add_item(self.label)
         self.plot.set_x_values(sorted(set(allrts)))
@@ -246,14 +249,19 @@ class EicPlottingWidget(CurveWidget):
 
         yield  # avoids StopIteration
 
-    def add_eics(self, data, labels=None, configs=None):
+    def add_eics(self, data, labels=None, configs=None, show_legend=False):
         """ do not forget to call replot() after calling this function ! """
 
-        plotter = self.eic_plotter()
+        plotter = self.eic_plotter(inc_update=False)
         plotter.next()
 
         if labels is None:
             labels = itertools.repeat("")
+        else:
+            legend = make.legend("TL")
+            if show_legend:
+                setup_label_param(legend, {"font.size": 10})
+                self.plot.add_item(legend)
 
         if configs is None:
             configs = itertools.repeat(None)

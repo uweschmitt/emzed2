@@ -30,10 +30,14 @@ def patch_inner_plot_object(widget, plot_clz):
     class _Q(QObject):
         CURSOR_MOVED = pyqtSignal(float)
         VIEW_RANGE_CHANGED = pyqtSignal(float, float)
+        VIEW_RANGE_CHANGE_FINISHED = pyqtSignal(float, float)
 
     widget._q = _Q()
     widget.CURSOR_MOVED = widget.plot.CURSOR_MOVED = widget._q.CURSOR_MOVED
     widget.VIEW_RANGE_CHANGED = widget.plot.VIEW_RANGE_CHANGED = widget._q.VIEW_RANGE_CHANGED
+
+    widget.plot.VIEW_RANGE_CHANGE_FINISHED = widget._q.VIEW_RANGE_CHANGE_FINISHED
+    widget.VIEW_RANGE_CHANGE_FINISHED = widget.plot.VIEW_RANGE_CHANGE_FINISHED
 
 
 class UnselectableCurveItem(CurveItem):
@@ -79,6 +83,13 @@ class ImprovedZoomHandler(ZoomHandler):
         filter.add_event(self.state1, filter.mouse_release(btn),
                          self.stop_moving, start_state)
 
+# Bouton droit
+class ZoomHandlerWithStopingEvent(ImprovedZoomHandler):
+
+    def stop_moving(self, filter_, event):
+        x_state, y_state = self.get_move_state(filter_, event.pos())
+        filter_.plot.do_finish_zoom_view(x_state, y_state)
+
 
 class RtSelectionTool(InteractiveTool):
 
@@ -122,8 +133,8 @@ class RtSelectionTool(InteractiveTool):
         ImprovedPanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
         # Bouton droit
-        ImprovedZoomHandler(filter, Qt.RightButton, start_state=start_state)
-        ImprovedZoomHandler(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
+        ZoomHandlerWithStopingEvent(filter, Qt.RightButton, start_state=start_state)
+        ZoomHandlerWithStopingEvent(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)
@@ -176,15 +187,9 @@ class MzSelectionTool(InteractiveTool):
         ImprovedPanHandler(filter, Qt.MidButton, start_state=start_state)
         ImprovedPanHandler(filter, Qt.LeftButton, mods=Qt.AltModifier, start_state=start_state)
 
-        # Bouton droit
-        class ZoomHandlerWithStopingEvent(ImprovedZoomHandler):
-
-            def stop_moving(self, filter_, event):
-                x_state, y_state = self.get_move_state(filter_, event.pos())
-                filter_.plot.do_finish_zoom_view(x_state, y_state)
-
         ZoomHandlerWithStopingEvent(filter, Qt.RightButton, start_state=start_state)
-        ZoomHandlerWithStopingEvent(filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
+        ZoomHandlerWithStopingEvent(
+            filter, Qt.LeftButton, mods=Qt.ControlModifier, start_state=start_state)
 
         # Autres (touches, move)
         MoveHandler(filter, start_state=start_state)
@@ -432,6 +437,26 @@ class ExtendedCurvePlot(CurvePlot):
         self.replot()
 
 
+    def do_finish_zoom_view(self, dx, dy):
+        dx = (-1,) + dx  # adding direction to tuple dx
+        dy = (1,) + dy  # adding direction to tuple dy
+        axes_to_update = self.get_axes_to_update(dx, dy)
+
+        xmins = []
+        xmaxs = []
+
+        axis_ids_horizontal = (self.get_axis_id("bottom"), self.get_axis_id("top"))
+        for __, id_ in axes_to_update:
+            if id_ in axis_ids_horizontal:
+                xmin, xmax = self.get_axis_limits(id_)
+                xmins.append(xmin)
+                xmaxs.append(xmax)
+
+        xmin = min(xmins)
+        xmax = max(xmaxs)
+        return xmin, xmax
+
+
 class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
     """ modified behavior:
@@ -560,6 +585,9 @@ class EicPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
         self.CURSOR_MOVED.emit(x_values[imin])
         return self.current_peak
 
+    def do_finish_zoom_view(self, dx, dy):
+        xmin, xmax = super(EicPlot, self).do_finish_zoom_view(dx, dy)
+        self.VIEW_RANGE_CHANGE_FINISHED.emit(xmin, xmax)
 
 class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
 
@@ -601,22 +629,8 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             self.replot()
 
     def do_finish_zoom_view(self, dx, dy):
-        dx = (-1,) + dx  # adding direction to tuple dx
-        dy = (1,) + dy  # adding direction to tuple dy
-        axes_to_update = self.get_axes_to_update(dx, dy)
-
-        mzmins = []
-        mzmaxs = []
-
-        axis_ids_horizontal = (self.get_axis_id("bottom"), self.get_axis_id("top"))
-        for __, id_ in axes_to_update:
-            if id_ in axis_ids_horizontal:
-                mzmin, mzmax = self.get_axis_limits(id_)
-                mzmins.append(mzmin)
-                mzmaxs.append(mzmax)
-
-        mzmin = min(mzmins)
-        mzmax = max(mzmaxs)
+        mzmin, mzmax = super(EicPlot, self).do_finish_zoom_view(dx, dy)
+        self.VIEW_RANGE_CHANGE_FINISHED.emit(xmin, xmax)
         self.update_plot_xlimits(mzmin, mzmax, rescale_y=False)
         self.replot()
 
