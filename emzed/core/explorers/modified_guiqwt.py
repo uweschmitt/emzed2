@@ -31,6 +31,7 @@ def patch_inner_plot_object(widget, plot_clz):
         CURSOR_MOVED = pyqtSignal(float)
         VIEW_RANGE_CHANGED = pyqtSignal(float, float)
         VIEW_RANGE_CHANGE_FINISHED = pyqtSignal(float, float)
+        BACKSPACE_PRESSED = pyqtSignal()
 
     widget._q = _Q()
     widget.CURSOR_MOVED = widget.plot.CURSOR_MOVED = widget._q.CURSOR_MOVED
@@ -38,6 +39,8 @@ def patch_inner_plot_object(widget, plot_clz):
 
     widget.plot.VIEW_RANGE_CHANGE_FINISHED = widget._q.VIEW_RANGE_CHANGE_FINISHED
     widget.VIEW_RANGE_CHANGE_FINISHED = widget.plot.VIEW_RANGE_CHANGE_FINISHED
+
+    widget.BACKSPACE_PRESSED = widget.plot.BACKSPACE_PRESSED = widget._q.BACKSPACE_PRESSED
 
 
 class UnselectableCurveItem(CurveItem):
@@ -350,6 +353,7 @@ class ExtendedCurvePlot(CurvePlot):
     @protect_signal_handler
     def do_backspace_pressed(self, filter, evt):
         """ reset axes of plot """
+        self.BACKSPACE_PRESSED.emit()
         self.reset_x_limits()
 
     def get_items_of_class(self, clz):
@@ -629,8 +633,8 @@ class MzPlot(PositiveValuedCurvePlot, ExtendedCurvePlot):
             self.replot()
 
     def do_finish_zoom_view(self, dx, dy):
-        mzmin, mzmax = super(EicPlot, self).do_finish_zoom_view(dx, dy)
-        self.VIEW_RANGE_CHANGE_FINISHED.emit(xmin, xmax)
+        mzmin, mzmax = super(MzPlot, self).do_finish_zoom_view(dx, dy)
+        self.VIEW_RANGE_CHANGE_FINISHED.emit(mzmin, mzmax)
         self.update_plot_xlimits(mzmin, mzmax, rescale_y=False)
         self.replot()
 

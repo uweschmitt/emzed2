@@ -185,6 +185,10 @@ class EicPlottingWidget(CurveWidget):
         setup_label_param(cc, {"label": "", "font.size": 12})
         self.plot.add_item(cc)
 
+    def add_range_item(self):
+        if self.range_ is not None:
+            self.plot.add_item(self.range_)
+
     def _setup_label(self):
         label = make.info_label("T", [self.cursor_info], title=None)
         setup_label_param(label, {"label": "", "font.size": 12, "border.color": "#ffffff"})
@@ -243,8 +247,7 @@ class EicPlottingWidget(CurveWidget):
         self.marker.attach(self.plot)
         self.plot.add_item(self.marker)
 
-        if self.range_ is not None:
-            self.plot.add_item(self.range_)
+        self.add_range_item()
         self.plot.replot()
 
         yield  # avoids StopIteration
@@ -298,6 +301,7 @@ class EicPlottingWidget(CurveWidget):
         if self.range_ is None:
             return
         timethis(self.range_.set_range)(xleft, xright, block_signals)
+
 
     def reset_intensity_limits(self, imin=None, imax=None, fac=1.1, rtmin=None, rtmax=None):
         self.plot.reset_y_limits(imin, imax, fac, rtmin, rtmax)

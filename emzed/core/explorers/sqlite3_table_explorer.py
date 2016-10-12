@@ -11,13 +11,12 @@ import os
 import sys
 from PyQt4 import QtCore, QtGui
 
-from ..data_types.sqlite3_table_proxy import Sqlite3TableProxy
-from ..data_types.table import _formatter
 from ..config import folders
 
 from .widgets.column_selection_dialog import ColumnMultiSelectDialog
 
 from ._sqlite3_table_explorer import _Sqlite3TableExplorer
+from .sqlite3_table_explorer_model import Sqlite3Model
 from .filter_dialog import FilterDialog
 
 
@@ -169,6 +168,8 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
         self.eic_plotter.setMinimumSize(100, 100)
         self.mz_plotter.setMinimumSize(100, 100)
         self.eic_plotter.VIEW_RANGE_CHANGE_FINISHED.connect(self.rt_range_changed)
+        self.eic_plotter.BACKSPACE_PRESSED.connect(self.plot_chromatograms)
+        self.eic_plotter.enable_range(True)
 
         self.connect_signals()
         self.configure_dialog(config.get("id", "default"))
@@ -283,7 +284,7 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
 
     def handle_activated(self, new, before):
         if self.show_peaks:
-            self.update_chromatograms()
+            self.plot_chromatograms()
             self.eic_plotter.replot()
 
     def selected_rows(self):
@@ -292,13 +293,22 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
     def rt_range_changed(self, rtmin, rtmax):
         # eventhandler, rtmin, rtmax are in seconds
         __, __, imin, imax = self.eic_plotter.get_limits()
-        self.update_chromatograms(rtmin / 60.0, rtmax / 60.0, reset_limits=False)
+        eics, __, __ = self._compute_chromatograms(rtmin / 60.0, rtmax / 60.0)
+        if not eics:
+            return
+
+        self.eic_plotter.del_all_items()
+        self.eic_plotter.add_eics(eics)
         self.eic_plotter.set_intensity_axis_limits(imin, imax)
+        self.eic_plotter.add_range_item()
         self.eic_plotter.replot()
 
-    def update_chromatograms(self, rtmin=None, rtmax=None, reset_limits=True):
+    def _selected_rt_limits(self):
+        row_indices = self.selected_rows()
+        return self.model.values("rtmin", row_indices), self.model.values("rtmax", row_indices)
+
+    def _compute_chromatograms(self, rtmin=None, rtmax=None):
         eics = []
-        labels = []
         rt_bounds = []
         for row in self.selected_rows():
             rts, intensities, label = self.model.get_chromatogram(row, rtmin=rtmin, rtmax=rtmax)
@@ -307,16 +317,29 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
                 rt_bounds.append(min(rts))
                 rt_bounds.append(max(rts))
                 eics.append((rts, intensities))
-                labels.append(label)
-        self.eic_plotter.del_all_items()
+        if eics:
+            return eics, min(rt_bounds), max(rt_bounds)
+        else:
+            return [], None, None
 
+    def plot_chromatograms(self):
+        rtmins, rtmaxs = self._selected_rt_limits()
+        if not rtmins:
+            return
+
+        rtmin, rtmax = min(rtmins), max(rtmaxs)
+        rtmin_w = rtmin - (rtmax - rtmin) * 0.2
+        rtmax_w = rtmax + (rtmax - rtmin) * 0.2
+
+        eics, overall_rtmin, overall_rtmax = self._compute_chromatograms(rtmin_w, rtmax_w)
         if not eics:
             return
 
-        self.eic_plotter.add_eics(eics, labels)
-        if reset_limits:
-            overall_rtmin, overall_rtmax = min(rt_bounds), max(rt_bounds)
-            self.eic_plotter.set_rt_axis_limits(overall_rtmin, overall_rtmax)
+        self.eic_plotter.del_all_items()
+        self.eic_plotter.add_eics(eics)
+        self.eic_plotter.set_range_selection_limits(rtmin * 60, rtmax * 60)
+        self.eic_plotter.set_rt_axis_limits(rtmin_w * 60, rtmax_w * 60)
+        self.eic_plotter.replot()
 
     def set_styles(self):
         self.table_view.setFont(std_font())
@@ -373,167 +396,6 @@ class Sqlite3TableExplorer(_Sqlite3TableExplorer):
 
         self.model.update_sort_order(sort_params)
 
-
-class Sqlite3Model(QtCore.QAbstractTableModel):
-
-    def __init__(self, path, prefetch=100, parent=None):
-        super(Sqlite3Model, self).__init__(parent)
-
-        self.db_proxy = Sqlite3TableProxy(path)
-        self.db_proxy.create_query()
-
-        for attr in ("col_names", "col_types", "col_formats", "meta", "object_columns"):
-            setattr(self, attr, getattr(self.db_proxy, attr))
-
-        self.setup_compatibility_api()
-
-        self.always_invisible = set(i for (i, f) in enumerate(self.col_formats) if f is None)
-
-        self.prefetch = prefetch
-
-        self.exhausted = False
-        self.fetch_first_batch()
-
-    def update_filter(self, expression):
-        self.beginResetModel()
-        try:
-            if expression == "":
-                self.db_proxy.reset_filter()
-            else:
-                self.db_proxy.set_filter(expression)
-            self.db_proxy.create_query()
-            self.fetch_first_batch()
-        finally:
-            self.endResetModel()
-
-    def check_filter_expression(self, expression):
-        return self.db_proxy.check_filter_expression(expression)
-
-    def update_sort_order(self, params):
-        self.beginResetModel()
-        try:
-            self.db_proxy.set_sort_order(params)
-            self.db_proxy.create_query()
-            self.fetch_first_batch()
-        finally:
-            self.endResetModel()
-
-    def setup_compatibility_api(self):
-        def getter(attribute):
-            def inner():
-                return attribute
-            return inner
-        self.getColFormats = getter(self.col_formats)
-        self.getColNames = getter(self.col_names)
-        self.getColTypes = getter(self.col_types)
-        self.colFormatters = [lambda x: _formatter(f)(x) for f in self.col_formats]
-
-    def data(self, index, role):
-        ci = index.column()
-        ri = index.row()
-        if role == QtCore.Qt.TextAlignmentRole:
-            type_ = self.col_types[ci]
-            if type_ in (int, float):
-                return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
-            else:
-                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
-        if role == QtCore.Qt.BackgroundRole:
-            if ri % 2 == 0:
-                return QtGui.QBrush(QtGui.QColor(255, 255, 255))
-            if ri % 2 == 1:
-                return QtGui.QBrush(QtGui.QColor(245, 245, 245))
-
-        if role != QtCore.Qt.DisplayRole:
-            return QtCore.QVariant()
-        try:
-            row = self.get_row(index.row())
-        except IndexError:
-            return QtCore.QVariant()
-        value = row[ci]
-        if value is None:
-            return "-"
-        if self.col_names[ci] in self.object_columns:
-            value = value.split("!", 1)[1]
-        format = self.col_formats[ci]
-        return _formatter(format)(value)
-
-    def table_info_identifier(self):
-        id_ = "__".join(self.col_names)
-        id_ += "!" + "__".join(map(str, self.col_types))
-        id_ += "!" + "__".join(map(str, self.col_formats))
-        return id_
-
-    def headerData(self, section, orientation, role):
-        if role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter
-        if role != QtCore.Qt.DisplayRole:
-            return QtCore.QVariant()
-        if orientation == QtCore.Qt.Horizontal:
-            if section < len(self.col_names):
-                return self.col_names[section]
-            return QtCore.QVariant()
-        return QtCore.QString("> ")
-
-    def columnCount(self, index=None):
-        return len(self.col_names)
-
-    def fetch_first_batch(self):
-        self.exhausted = False
-        self.loaded_rows = []
-        try:
-            self.get_row(self.prefetch)
-        except IndexError:
-            pass
-
-    def rowCount(self, index=None):
-        if self.exhausted:
-            return len(self.loaded_rows)
-        else:
-            return len(self.loaded_rows) + 1
-
-    def get_row(self, row_index):
-
-        if self.exhausted:
-            return self.loaded_rows[row_index]
-
-        if row_index < len(self.loaded_rows):
-            return self.loaded_rows[row_index]
-
-        # not exhausted, so we try to fetch the next block:
-        before = len(self.loaded_rows)
-        new_rows = []
-        for i in xrange(len(self.loaded_rows), row_index + 1):
-            row = self.db_proxy.fetchone()
-            if row is None:
-                self.exhausted = True
-                break
-            new_rows.append(row)
-        if new_rows:
-            self.beginInsertRows(QtCore.QModelIndex(), before + 1, before + len(new_rows))
-            self.loaded_rows.extend(new_rows)
-            self.endInsertRows()
-        if row_index < len(self.loaded_rows):
-            return self.loaded_rows[row_index]
-        raise IndexError()
-
-    @property
-    def has_peaks(self):
-        return all(name in self.col_names for name in ("mzmin", "mzmax", "rtmin", "rtmax",
-                                                       "peakmap"))
-
-    def lookup(self, row, name):
-        return row[self.col_names.index(name)]
-
-    def get_chromatogram(self, row_index, rtmin=None, rtmax=None):
-        row = self.get_row(row_index)
-        if rtmin is None:
-            rtmin = self.lookup(row, "rtmin")
-        if rtmax is None:
-            rtmax = self.lookup(row, "rtmax")
-        mzmin, mzmax, peakmap = (self.lookup(row, name) for name in ("mzmin", "mzmax", "peakmap"))
-        rts, iis = self.db_proxy.get_chromatogram(rtmin, rtmax, mzmin, mzmax, peakmap)
-        label = self.lookup(row, "peak_id")
-        return rts, iis, label
 
 
 if __name__ == "__main__":
