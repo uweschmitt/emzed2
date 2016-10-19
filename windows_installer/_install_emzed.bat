@@ -22,6 +22,9 @@ rem trouble on most machines having no appropriate microsoft compiler
 rem installed.  so we first install all pre compiled binary packages and the
 rem final "pip install emzed" will only install source distributed stuff:
 
+rem upate numpy first, pyopenms needs this to work:
+pip install -U "numpy<1.12"
+@echo.
 pip install pyopenms
 @echo.
 python -c "import pyopenms"

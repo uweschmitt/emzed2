@@ -14,7 +14,7 @@ ChangesAssociations=Yes
 [Files]
 Source: "create_bootstrap.bat"; DestDir: "{app}"
 Source: "emzed_inspect.bat"; DestDir: "{app}"
-Source: "install_emzed.bat"; DestDir: "{app}"
+Source: "download_install_emzed_bat.vbs"; DestDir: "{app}"
 Source: "emzed_icon.ico"; DestDir: "{app}"
 Source: "ez_setup.py"; DestDir: "{app}"
 
