@@ -506,7 +506,7 @@ class PeakMap(SpecialColType):
 
             meta    : dictionary of meta values
         """
-        self.spectra = sorted(spectra, key=lambda spec: spec.rt)
+        self.spectra = spectra
 
         if meta is None:
             meta = dict()
@@ -530,7 +530,10 @@ class PeakMap(SpecialColType):
 
     @spectra.setter
     def spectra(self, spectra):
-        self._spectra = tuple(spectra)
+        """remove empty spectra and sort by retention time.
+        """
+        spectra = (s for s in spectra if len(s))
+        self._spectra = tuple(sorted(spectra, key=lambda spec: spec.rt))
         for s in self._spectra:
             s.register_parent(self)
 
@@ -617,8 +620,6 @@ class PeakMap(SpecialColType):
                 if imax is not None:
                     s.peaks = s.peaks[s.peaks[:, 1] <= imax]
 
-        spectra = (s for s in spectra if len(s.peaks))
-
         return PeakMap(spectra, self.meta.copy())
 
     def representingMzPeak(self, mzmin, mzmax, rtmin, rtmax):
@@ -681,15 +682,18 @@ class PeakMap(SpecialColType):
         if msLevel is None:
             msLevel = min(self.getMsLevels())
 
-        for s in self.spectra:
+        to_remove = set()
+        for i, s in enumerate(self.spectra[:]):
             if s.msLevel != msLevel:
                 continue
             if rtmin <= s.rt <= rtmax:
                 peaks = s.peaks
                 cut_out = (s.peaks[:, 0] >= mzmin) & (s.peaks[:, 0] <= mzmax)
                 s.peaks = peaks[~cut_out]
+                if not len(s):
+                    to_remove.add(i)
 
-        self.spectra = tuple(s for s in self.spectra if len(s.peaks))
+        self.spectra = [s for (i, s) in enumerate(self.spectra) if i not in to_remove]
 
     def chromatogram(self, mzmin, mzmax, rtmin=None, rtmax=None, msLevel=None):
         """
@@ -945,10 +949,10 @@ class PeakMap(SpecialColType):
 
     def cleaned(self):
         """ removes empty spectra """
-        spectra = [s for s in self.spectra if len(s.peaks) > 0]
+        deprecation("this method is obsolete and does nothing as a pm meanwhile only holds non "
+                    "empty spectra")
+        spectra = self.spectra[:]
         meta = self.meta.copy()
-        if "unique_id" in meta:
-            del meta["unique_id"]
         return PeakMap(spectra, meta=meta)
 
     def sample_peaks(self, rtmin, rtmax, mzmin, mzmax, n_bins, ms_level):

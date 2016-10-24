@@ -49,12 +49,14 @@ import emzed.db
 import emzed.updaters
 
 
+@pytest.mark.slow
 def test_pubchem_import():
     db = emzed.db.load_pubchem()
     assert db is not None
     assert len(db) >= 0
 
 
+@pytest.mark.slow
 def test_pubchem_updaters_without_exchange_folder(tmpdir):
 
     emzed.updaters.setup_updaters()
@@ -92,6 +94,7 @@ def test_pubchem_updaters_without_exchange_folder(tmpdir):
     assert len(hmdb) == len(pc.filter(pc.is_in_hmdb))
 
 
+@pytest.mark.slow
 def test_pubchem_updaters_with_exchange_folder(tmpdir):
 
     # create folders

@@ -56,7 +56,7 @@ def test_stack_tables_with_empty_list():
 def test_invalidated_peakmaps():
     import numpy as np
 
-    peaks = np.zeros((0, 2), dtype="float64")
+    peaks = np.ones((1, 2), dtype="float64")
     spec = emzed.core.data_types.ms_types.Spectrum(peaks, 0.0, 1, "+", [])
     pm = emzed.core.data_types.ms_types.PeakMap([spec])
 
