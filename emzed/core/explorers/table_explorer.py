@@ -1079,7 +1079,7 @@ class TableExplorer(EmzedDialog):
 
             if to_select is not None:
                 self.model.set_selected_widget_rows(to_select)
-            if not self.has_time_series and not self.eic_only_mode:
+            if not self.eic_only_mode:
                 self.choose_spec.blockSignals(True)
                 try:
                     self.setup_spectrum_chooser()
@@ -1148,7 +1148,7 @@ class TableExplorer(EmzedDialog):
 
                 if to_select is not None:
                     self.model.set_selected_widget_rows(to_select)
-                if not self.has_time_series and not self.eic_only_mode:
+                if not self.eic_only_mode:
                     self.choose_spec.blockSignals(True)
                     try:
                         self.setup_spectrum_chooser()
