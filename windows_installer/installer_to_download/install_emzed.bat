@@ -13,7 +13,6 @@ rem on some machines we find the python script on others the exe, so we try both
 @echo.
 call %INSTALLTARGET%\Scripts\activate
 @echo.
-pip install -U setuptools
 @echo.
 
 rem "pip install" will download a binary package if available, but when
@@ -22,10 +21,12 @@ rem trouble on most machines having no appropriate microsoft compiler
 rem installed.  so we first install all pre compiled binary packages and the
 rem final "pip install emzed" will only install source distributed stuff:
 
-rem upate numpy first, pyopenms needs this to work:
-pip install -U "numpy<1.12"
+rem upate numpy first, then scipy, pyopenms needs new numpy to work and
+rem scipy depends on numpy:
+pip install http://emzed.ethz.ch/downloads/numpy-1.11.1+mkl-cp27-cp27m-win_amd64.whl
+pip install http://emzed.ethz.ch/downloads/scipy-0.17.0-cp27-none-win_amd64.whl
 @echo.
-pip install pyopenms
+pip install pyopenms==2.0.1
 @echo.
 python -c "import pyopenms"
 @echo.
