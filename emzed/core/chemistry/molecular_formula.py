@@ -21,9 +21,7 @@ class MolecularFormula(object):
             raise Exception("can not handle argument %s" % form)
 
     def asDict(self):
-        # maybe dictForm is a Counter, so in order to provide too much
-        # surprise we convert to dict:
-        return dict(self._dictForm)
+        return self._dictForm
 
     def __str__(self):
         return self._stringForm

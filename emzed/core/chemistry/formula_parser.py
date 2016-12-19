@@ -92,10 +92,12 @@ def parseFormula(mf, re = re.compile("\s")):
         Counter({('C', None): 4, ('C', 13): 2, ('H', None): 1})
 
     """
-    from collections import Counter
+    from collections import Counter, OrderedDict
     mf = re.sub("", mf)  # remove whitespaces
-    symbols, _ =  _parse(mf+chr(0))
-    return Counter(symbols)
+    symbols, _ =  _parse(mf + chr(0))
+    cc = Counter(symbols)
+    od = OrderedDict([(symbol, cc[symbol]) for symbol in symbols])
+    return od
 
 
 def joinFormula(cc):
