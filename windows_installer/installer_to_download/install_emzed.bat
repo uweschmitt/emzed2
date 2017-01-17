@@ -15,6 +15,9 @@ call %INSTALLTARGET%\Scripts\activate
 @echo.
 @echo.
 
+rem newer setuptools will not install ipython==0.10 below
+pip install setuptools==28.0
+
 rem "pip install" will download a binary package if available, but when
 rem resolving dependencies pip will download source packages. This causes
 rem trouble on most machines having no appropriate microsoft compiler
