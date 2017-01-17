@@ -198,7 +198,7 @@ def run_tests(filter_=None):
         fexpr = "-k '%s'" % filter_
     else:
         fexpr = ""
-    subprocess.call("py.test %s %s" % (fexpr, path), shell=True, stderr=sys.__stderr__,
+    subprocess.call(["py.test", fexpr, path], shell=True, stderr=sys.__stderr__,
                     stdout=sys.__stdout__)
 
 
