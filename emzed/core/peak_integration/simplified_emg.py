@@ -51,8 +51,9 @@ class SimplifiedEMGIntegrator(BaseIntegrator):
              model is simplified EMG
         """
 
-        if len(rts)<4:
-            rmse = 1.0/math.sqrt(len(rts))*np.linalg.norm(chromatogram)
+        needed_data = 5 if self.fit_baseline else 4
+        if len(rts) < needed_data:
+            rmse = 1.0 / math.sqrt(len(rts)) * np.linalg.norm(chromatogram)
             return 0.0, rmse, (0.0, rts[0], 1.0, 0.0)
 
         imax = np.argmax(chromatogram)
