@@ -827,7 +827,7 @@ class R(object):  # "del r.XXX" fails on FePy-r7 (IronPython 1.1 on .NET 2.0.507
                     prog.poll()
                     print "R interpreter shut down"
             except:
-                traceback.print_exc()
+                pass
         self.__dict__["_del_ref"] = weakref.ref(self, on_die)
 
     def __getattr__(self, obj, use_dict=None):  # to model object attribute: "r.XXX"

@@ -789,6 +789,8 @@ class PeakMap(SpecialColType):
             mzranges = [s.mzRange() for s in self.spectra if s.msLevel == msLevel]
         else:
             mzranges = [s.mzRange() for s in self.spectra]
+
+        mzranges = [r for r in mzranges if r[0] is not None and r[1] is not None]
         if not mzranges:
             return None, None
 
