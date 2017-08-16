@@ -26,20 +26,35 @@ from guiqwt.tools import SelectTool, InteractiveTool
 from emzed_optimizations.sample import sample_image
 
 from lru_cache import lru_cache
+from functools import partial
 
 from helpers import protect_signal_handler, set_rt_formatting_on_x_axis
 
 
+def _agg_filtered(function, values):
+    values = (v for v in values if v is not None)
+    if values:
+        return function(values)
+    else:
+        return None
+
+
+min_ = partial(_agg_filtered, min)
+max_ = partial(_agg_filtered, max)
+
+
 def get_range(peakmap, peakmap2):
-    rtmin, rtmax = peakmap.rtRange()
-    mzmin, mzmax = full_mz_range(peakmap)
-    if peakmap2 is not None:
-        rtmin2, rtmax2 = peakmap2.rtRange()
-        mzmin2, mzmax2 = full_mz_range(peakmap2)
-        rtmin = min(rtmin, rtmin2)
-        rtmax = max(rtmax, rtmax2)
-        mzmin = min(mzmin, mzmin2)
-        mzmax = max(mzmax, mzmax2)
+
+    all_rtlimits = [pm.rtRange(i) for pm in (peakmap, peakmap2) for i in (1, 2)
+                                  if pm is not None]
+    mins, maxs = zip(*all_rtlimits)
+    rtmin, rtmax = min_(mins), max_(maxs)
+
+    all_mzlimits = [pm.mzRange(i) for pm in (peakmap, peakmap2) for i in (1, 2)
+                                  if pm is not None]
+    mins, maxs = zip(*all_mzlimits)
+    mzmin, mzmax = min_(mins), max_(maxs)
+
     return rtmin, rtmax, mzmin, mzmax
 
 

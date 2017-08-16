@@ -186,7 +186,6 @@ class PeakMapExplorer(EmzedDialog):
 
         self.current_ms_level = self.ms_levels[0]
         self.process_peakmap(self.current_ms_level)
-        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
 
         self.setup_plot_widgets()
         self.setup_menu_bar()
@@ -251,6 +250,7 @@ class PeakMapExplorer(EmzedDialog):
             if msl == ms_level:
                 pass # TODO self.ms_level.setCurrentIndex(i)
 
+        self.rtmin, self.rtmax, self.mzmin, self.mzmax = get_range(self.peakmap, self.peakmap2)
         self.setWindowTitle()
 
     def setup_initial_values(self):
@@ -615,6 +615,7 @@ class PeakMapExplorer(EmzedDialog):
         if ms_level != self.current_ms_level:
             self.current_ms_level = ms_level
             self.process_peakmap(ms_level)
+            self.view_range_widget.set_view_range(self.rtmin, self.rtmax, self.mzmin, self.mzmax)
             self.peakmap_plotter.set_peakmaps(self.peakmap, self.peakmap2)
             self.peakmap_plotter.replot()
             self.plot_peakmap()

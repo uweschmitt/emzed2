@@ -13,8 +13,8 @@ t.addColumn("mzmin", (0, 100), type_=float)
 t.addColumn("mzmax", (100, 1000), type_=float)
 print(t)
 
-pm = emzed.io.loadPeakMap(os.path.join(here, "000.mzXML"))
-pm2 = emzed.io.loadPeakMap(os.path.join(here, "..", "tests", "data", "test_mini.mzXML"))
+pm = emzed.io.loadPeakMap(os.path.join(here, "jerom.mzML"))
+#kpm2 = emzed.io.loadPeakMap(os.path.join(here, "..", "tests", "data", "test_mini.mzXML"))
 
 emzed.gui.inspect(pm)
 
