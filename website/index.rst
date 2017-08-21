@@ -11,13 +11,13 @@ What is emzed ?
 
 
 What does this mean ?
----------------
+---------------------
 
   *emzed* makes experimenting with new analysis strategies for LCMS data as simple as possible.
 
 
 Fundamental principles of emzed
----------------
+-------------------------------
 
 1. Analysis workflows are *Python* scripts composing **emzed modules**.
    Single processing steps are explicit and clear which supports `reproducible research
@@ -46,7 +46,7 @@ You find some slides about emzed and how the story started at |presentation_link
 
 
 Screenshots
----------------
+-----------
 
 .. fancybox:: welcome2emzed_fig1.png
     :width: 35.2%
@@ -64,7 +64,7 @@ Screenshots
 
 
 Development goals
----------------
+-----------------
 
 * When we started to implement own analysis workflows we found that the software landscape
   was almost divided into two classes:
@@ -105,11 +105,9 @@ Recent publications using emzed for data analysis:
 * Erb, Kiefer, et al. "GFAJ-1 is an arsenate-resistant, phosphate-dependent organism", Science (2012).
 
 Website Navigation
----------------
+------------------
 
 .. toctree::
-
-    :maxdepth: 2
 
     installation
     fix_windows
@@ -128,15 +126,12 @@ APIs: Overview
 ~~~~~~~~~~~~~~
 .. toctree::
 
-    :maxdepth: 1
-    
     api_overview
     
 APIs: Detailed List
 ~~~~~~~~~~~~~~~~~~~
 .. toctree::
 
-    :maxdepth: 2
     
     api_mstypes
     api_io
@@ -157,7 +152,7 @@ APIs: Detailed List
 
 
 Indexes and tables
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 * :ref:`genindex`
 * :ref:`modindex`

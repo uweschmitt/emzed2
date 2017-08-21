@@ -56,7 +56,10 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'emzed'
-copyright = u'2012-2017, Uwe Schmitt & Patrick Kiefer'
+
+from datetime import datetime
+
+copyright = u'2012-%d, Uwe Schmitt & Patrick Kiefer' % datetime.now().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -65,7 +68,7 @@ copyright = u'2012-2017, Uwe Schmitt & Patrick Kiefer'
 # The short X.Y version.
 
 from emzed.version import version as __version__
-version = "%d.%d.%d" % __version__
+version = ".".join(str(vi) for vi in __version__)
 
 #version = '1.0'
 # The full version, including alpha/beta/rc tags.
