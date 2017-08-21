@@ -94,6 +94,7 @@ emzed in the press
 
 Recent publications using emzed for data analysis:
 
+* Hartl et al., "Longevity of major coenzymes allows minimal de novo synthesis in microorganisms", Nature Microbiology, 2017, http://dx.doi.org/10.1038/nmicrobiol.2017.73
 * Hemann et al. "The One-carbon Carrier Methylofuran from Methylobacterium extorquens AM1 Contains a Large Number of Alpha- and Gamma-linked Glutamic Acid Residues", http://doi.org/10.1074/jbc.M116.714741
 * Peter et al. "Screening and Engineering the Synthetic Potential of Carboxylating Reductases from Central Metabolism and Polyketide Biosynthesis." Angew Chem Int Ed Engl. (2015).
 * Kiefer, Patrick, et al. "DynaMet, a fully automated pipeline for dynamic LC-MS data." Analytical Chemistry (2015).
