@@ -43,8 +43,8 @@ pip install "pycryptodome<=3.3"
 @echo.
 
 :: create unique url to bypass potential cache:
-set datetime=%date:~7,2%-%date:~4,2%-%date:~10,4%_%time:~0,2%_%time:~3,2%_%time:~6,2%
-pip install http://emzed.ethz.ch/downloads/emzed.zip?%datetime%
+set always_different_id=%RANDOM%%RANDOM%%RANDOM%
+pip install http://emzed.ethz.ch/downloads/emzed.zip?%always_different_id%
 
 REM sometimes matplotlib setup is broken, this should fix this:
 set MPLCONFIGDIR=%APPDATA%\matplotlib_config

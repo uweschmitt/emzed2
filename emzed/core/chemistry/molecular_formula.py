@@ -2,7 +2,6 @@
 
 
 import formula_parser
-import elements
 
 import collections
 
@@ -61,6 +60,7 @@ class MolecularFormula(object):
             inst.mass(C=elements.C12)
         """
 
+        import elements
         el = elements.Elements()
         items = self._dictForm.items()
         def get_mass(sym, massnum):
@@ -84,3 +84,29 @@ class MolecularFormula(object):
         if None in masses:
             return None
         return sum(m * c for m, (_, c) in zip(masses, items) )
+
+
+if __name__ == "__main__":
+    mf = MolecularFormula("[13]CO2")
+    mf2 = MolecularFormula("O")
+    print MolecularFormula('CO2')-MolecularFormula('C')
+    # print(mf  - mf2)
+
+    def diff(mf1, mf2):
+
+        if isinstance(mf1, str):
+            mf1 = MolecularFormula(mf1)
+        if isinstance(mf2, str):
+            mf2 = MolecularFormula(mf2)
+
+        dd = mf1.asDict().copy()
+        for elem, count in mf2.asDict().items():
+            new_count = dd.get(elem, 0) - count
+            if new_count > 0:
+                dd[elem] = new_count
+            else:
+                del dd[elem]
+
+        return MolecularFormula(dd)
+
+    print diff('[13]CO2', '[13]C')

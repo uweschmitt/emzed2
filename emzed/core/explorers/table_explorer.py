@@ -198,12 +198,12 @@ class EmzedTableView(QTableView):
                 row = min(max(row, 0), self.model().rowCount() - 1)
                 current_position = self.currentIndex()
                 ix = self.model().index(row, current_position.column())
+                self.setCurrentIndex(ix)
                 self.selectRow(row)
                 self.verticalHeader().sectionClicked.emit(row)
-                self.scrollTo(ix)
-                self.setCurrentIndex(ix)
                 # skip event handling:
                 return
+
         return super(EmzedTableView, self).keyPressEvent(evt)
 
 
@@ -1169,6 +1169,9 @@ class TableExplorer(EmzedDialog):
                 self.setEnabled(True)
                 self.tableView.blockSignals(False)
 
+        to_select = find_rows()
+        mark_rows(to_select)
+        return
         self.async_runner.run_async(find_rows, (),
                                     blocked=True,
                                     call_back=mark_rows)
@@ -1267,6 +1270,8 @@ class TableExplorer(EmzedDialog):
             return
 
         overall_rtmin, overall_rtmax = current_rt_limits(self.model)
+        if overall_rtmin is None or overall_rtmax is None:
+            return
 
         plotter = self.eic_plotter.eic_plotter()
         plotter.next()
