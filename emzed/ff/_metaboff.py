@@ -29,6 +29,11 @@ class _ParamHandler(object):
         ffm_params = pyopenms.FeatureFindingMetabo().getDefaults()
         ffm_params.remove("chrom_fwhm")
 
+        ffm_params.setValue("report_convex_hulls",
+                            "true",
+                            "Augment each reported feature with the "
+                            "convex hull of the underlying mass traces")
+
         combined_params = pyopenms.Param()
         combined_params.insert("common_", common_params)
         combined_params.insert("mtd_", mtd_params)
