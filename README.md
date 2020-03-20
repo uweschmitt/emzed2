@@ -3,5 +3,8 @@
 About
 -----
 
-This is the successor of http://github.com/uweschmitt/emzed. Look at
-http://emzed.ethz.ch for more information.
+This is the successor of http://github.com/uweschmitt/emzed.
+
+We are currently working on a new version 3 of emzed which we except to publish Summer 2020.
+
+The http://emzed.ethz.ch is currently down, we are working on this.
