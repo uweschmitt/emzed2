@@ -10,7 +10,7 @@ version = (2, 29, 4)
 install_requires = ["guidata<=1.6.2",
                     "guiqwt<=2.3.2",
                     "requests",
-                    "ipython==0.10",
+                    "ipython==7.16.3",
                     "dill",
                     "html2text",
                     "pandas<0.18",
